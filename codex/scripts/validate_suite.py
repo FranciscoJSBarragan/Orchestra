@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tomllib
 from typing import Callable
 
 
@@ -22,6 +23,18 @@ REQUIRED_PATHS = (
     "docs/ROADMAP.md",
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
+    "codex/scripts/commit_phase.py",
+    "codex/config/roles.toml",
+    "codex/runtime/AGENTS.orchestra.md",
+    "codex/agents/implementation_worker.toml",
+    "codex/agents/reviewer.toml",
+    "codex/agents/phase_committer.toml",
+    "codex/skills/orchestra/SKILL.md",
+    "codex/skills/orchestra/agents/openai.yaml",
+    "codex/skills/orchestra-phase-commit/SKILL.md",
+    "codex/skills/orchestra-phase-commit/agents/openai.yaml",
+    "codex/tests/test_commit_phase.py",
+    "codex/tests/test_light_flow.py",
     "codex/tests/test_validate_suite.py",
 )
 
@@ -97,9 +110,21 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
 """
 
+PROFILE_NAMES = (
+    "implementation_worker",
+    "reviewer",
+    "phase_committer",
+)
+
+EXPECTED_TIER_ROLES = {
+    "light": {"implementation_worker", "reviewer", "phase_committer"},
+}
+
+SKILL_NAMES = ("orchestra", "orchestra-phase-commit")
+
 
 def check_required_paths(root: Path) -> list[str]:
-    """Ensure every Phase 1 conformance consumer is present."""
+    """Ensure every current conformance consumer is present."""
     return [
         f"required-path: missing {relative}"
         for relative in REQUIRED_PATHS
@@ -119,6 +144,160 @@ def check_distribution_boundary(root: Path) -> list[str]:
             failures.append(
                 f"distribution-boundary: prohibited V1 path {relative.as_posix()}"
             )
+    return failures
+
+
+def check_roles_and_profiles(root: Path) -> list[str]:
+    """Keep assignments canonical and profiles limited to behavior contracts."""
+    roles_path = root / "codex/config/roles.toml"
+    if not roles_path.is_file():
+        return []
+    try:
+        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"role-contract: codex/config/roles.toml is invalid: {error}"]
+
+    failures: list[str] = []
+    if set(roles) != {"tiers"}:
+        failures.append("role-contract: roles.toml must contain tiers only")
+    tiers = roles.get("tiers")
+    if not isinstance(tiers, dict) or set(tiers) != set(EXPECTED_TIER_ROLES):
+        failures.append(
+            "role-contract: roles.toml must define only the executable light tier"
+        )
+    else:
+        for tier, expected_roles in EXPECTED_TIER_ROLES.items():
+            actual_roles = tiers.get(tier)
+            if not isinstance(actual_roles, dict) or set(actual_roles) != expected_roles:
+                failures.append(f"role-contract: unexpected {tier} role set")
+                continue
+            for role, assignment in actual_roles.items():
+                if not isinstance(assignment, dict) or set(assignment) != {
+                    "model",
+                    "reasoning_effort",
+                }:
+                    failures.append(
+                        f"role-contract: {tier}.{role} needs model and reasoning_effort"
+                    )
+                    continue
+                if not isinstance(assignment["model"], str) or not assignment[
+                    "model"
+                ].strip():
+                    failures.append(f"role-contract: {tier}.{role} has no model")
+                if assignment["reasoning_effort"] not in {
+                    "low",
+                    "medium",
+                    "high",
+                    "xhigh",
+                    "max",
+                }:
+                    failures.append(
+                        f"role-contract: {tier}.{role} has invalid reasoning_effort"
+                    )
+
+    agents = root / "codex/agents"
+    actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
+    if actual_profiles != sorted(PROFILE_NAMES):
+        failures.append("profile-contract: Phase 2 must define exactly three profiles")
+        return failures
+    for name in PROFILE_NAMES:
+        path = agents / f"{name}.toml"
+        try:
+            profile = tomllib.loads(path.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError, UnicodeError) as error:
+            failures.append(f"profile-contract: {path.relative_to(root)} is invalid: {error}")
+            continue
+        if set(profile) != {"name", "description", "developer_instructions"}:
+            failures.append(
+                f"profile-contract: {name} must contain only name, description, "
+                "and developer_instructions"
+            )
+            continue
+        if profile["name"] != name:
+            failures.append(f"profile-contract: {name} has a mismatched name")
+        if not isinstance(profile["description"], str) or not profile["description"].strip():
+            failures.append(f"profile-contract: {name} needs a description")
+        instructions = profile["developer_instructions"]
+        if not isinstance(instructions, str):
+            failures.append(f"profile-contract: {name} needs developer instructions")
+            continue
+        for heading in ("## Input", "## Output", "## Stop conditions"):
+            if heading not in instructions:
+                failures.append(f"profile-contract: {name} is missing {heading}")
+
+    behavior_sources = [
+        *(agents / f"{name}.toml" for name in PROFILE_NAMES),
+        *(root / f"codex/skills/{name}/SKILL.md" for name in SKILL_NAMES),
+        root / "codex/runtime/AGENTS.orchestra.md",
+    ]
+    for path in behavior_sources:
+        if path.is_file() and "gpt-5." in path.read_text(encoding="utf-8"):
+            failures.append(
+                "role-contract: model assignments must exist only in roles.toml; "
+                f"found one in {path.relative_to(root)}"
+            )
+    return failures
+
+
+def _skill_frontmatter(text: str) -> dict[str, str] | None:
+    if not text.startswith("---\n") or "\n---\n" not in text[4:]:
+        return None
+    raw = text[4:].split("\n---\n", 1)[0]
+    metadata: dict[str, str] = {}
+    for line in raw.splitlines():
+        key, separator, value = line.partition(":")
+        if not separator or not key or not value.strip():
+            return None
+        metadata[key.strip()] = value.strip()
+    return metadata
+
+
+def check_skills_and_runtime(root: Path) -> list[str]:
+    """Validate skill metadata, direct links, and the managed light routing block."""
+    failures: list[str] = []
+    for name in SKILL_NAMES:
+        skill = root / f"codex/skills/{name}/SKILL.md"
+        if not skill.is_file():
+            continue
+        text = skill.read_text(encoding="utf-8")
+        metadata = _skill_frontmatter(text)
+        if metadata is None or set(metadata) != {"name", "description"}:
+            failures.append(f"skill-contract: {name} needs name and description metadata")
+        elif metadata["name"] != name or "TODO" in metadata["description"]:
+            failures.append(f"skill-contract: {name} metadata is incomplete")
+
+        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
+            if target.startswith(("#", "http://", "https://")):
+                continue
+            resolved = (skill.parent / target).resolve()
+            if not resolved.is_file():
+                failures.append(f"skill-contract: {name} has broken link {target}")
+
+        metadata_file = skill.parent / "agents/openai.yaml"
+        if metadata_file.is_file():
+            ui = metadata_file.read_text(encoding="utf-8")
+            for field in ("display_name:", "short_description:", "default_prompt:"):
+                if field not in ui:
+                    failures.append(f"skill-contract: {name} openai.yaml is missing {field}")
+            if f"${name}" not in ui:
+                failures.append(
+                    f"skill-contract: {name} default_prompt must mention ${name}"
+                )
+
+    runtime = root / "codex/runtime/AGENTS.orchestra.md"
+    if runtime.is_file():
+        text = runtime.read_text(encoding="utf-8")
+        if text.count("<!-- orchestra:start -->") != 1 or text.count(
+            "<!-- orchestra:end -->"
+        ) != 1:
+            failures.append("runtime-contract: managed markers must occur exactly once")
+        for target in (
+            "codex/skills/orchestra/SKILL.md",
+            "codex/config/roles.toml",
+            "codex/agents/",
+        ):
+            if target not in text:
+                failures.append(f"runtime-contract: managed block must route to {target}")
     return failures
 
 
@@ -234,6 +413,8 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_distribution_boundary,
     check_documentation,
     check_hook,
+    check_roles_and_profiles,
+    check_skills_and_runtime,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

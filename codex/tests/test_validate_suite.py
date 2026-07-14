@@ -1,4 +1,4 @@
-"""Behavioral tests for the Phase 1 Orchestra conformance engine."""
+"""Behavioral tests for the Orchestra conformance engine."""
 
 from __future__ import annotations
 
@@ -177,6 +177,45 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("hook-contract", result.stdout)
+
+    def test_invalid_role_toml_is_actionable(self) -> None:
+        roles = self.root / "codex/config/roles.toml"
+        roles.write_text("[tiers.light\n", encoding="utf-8")
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("role-contract: codex/config/roles.toml is invalid", result.stdout)
+
+    def test_model_assignment_in_profile_is_rejected(self) -> None:
+        profile = self.root / "codex/agents/reviewer.toml"
+        profile.write_text(
+            profile.read_text(encoding="utf-8") + '\nmodel = "gpt-5.6-luna"\n',
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("profile-contract: reviewer must contain only", result.stdout)
+
+    def test_broken_skill_link_is_actionable(self) -> None:
+        skill = self.root / "codex/skills/orchestra/SKILL.md"
+        skill.write_text(
+            skill.read_text(encoding="utf-8") + "\n[missing](missing.md)\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skill-contract: orchestra has broken link missing.md", result.stdout)
+
+    def test_runtime_requires_exact_managed_markers(self) -> None:
+        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "<!-- orchestra:end -->", "<!-- orchestra:done -->"
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("runtime-contract: managed markers", result.stdout)
 
     def test_full_mode_rejects_invalid_python_syntax(self) -> None:
         invalid = self.root / "codex/tests/invalid_fixture.py"

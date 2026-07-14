@@ -116,13 +116,15 @@ meet.
 
 ## Model and reasoning configuration
 
-The role matrix in `WORKFLOW.md` is canonical. Agent profile files map those
-assignments to current Codex model identifiers and reasoning effort. Model
-selection lives in one configuration surface so a future retune does not
-require editing every skill.
+The approved target role matrix is documented in `WORKFLOW.md`. Its only
+machine-readable configuration, `codex/config/roles.toml`, contains assignments
+for currently executable lanes only. Workflow skills pass explicit model and
+reasoning overrides from that file when spawning agents. Profile files contain
+role behavior, not assignments.
 
-Light tasks dispatch `implementation_worker` and `reviewer` with Luna max.
-Standard and critical use the exact role matrix documented in `WORKFLOW.md`.
+Light tasks dispatch `implementation_worker`, `reviewer`, and `phase_committer`
+with Luna max. Standard and critical target the role matrix documented in
+`WORKFLOW.md` when those lanes become executable.
 
 ## Browser testing constraint
 

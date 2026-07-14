@@ -38,9 +38,11 @@ crossing the high-impact boundaries defined in `AGENTS.md`.
 
 ## Tier flows and models
 
-Model names describe the intended Codex profile families. The implementation
-must keep assignments configurable in one place rather than duplicating them in
-skills.
+Model names describe the intended Codex profile families. The table below is
+the approved human-readable target matrix. `codex/config/roles.toml` contains
+only assignments consumed by currently executable lanes; unavailable lanes do
+not receive speculative configuration. Skills pass explicit model and reasoning
+overrides from that file when spawning a role. Profiles contain behavior only.
 
 | Role | Standard | Critical |
 | --- | --- | --- |
@@ -54,9 +56,9 @@ skills.
 | PR-open synthesis fallback / PR-merge verification | Sol high | Sol high |
 | Light task end-to-end | Luna max | Not applicable |
 
-For a light task, both `implementation_worker` and `reviewer` use Luna max.
-Light does not mean unreviewed; it means discovery and planning roles are omitted
-because the scope is already small and certain.
+For a light task, `implementation_worker`, `reviewer`, and `phase_committer` use
+Luna max. Light does not mean unreviewed; it means discovery and planning roles
+are omitted because the scope is already small and certain.
 
 ## Context and planning
 

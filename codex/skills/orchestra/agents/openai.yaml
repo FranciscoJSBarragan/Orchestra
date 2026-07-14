@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra Light Flow"
+  short_description: "Route dependable light software changes"
+  default_prompt: "Use $orchestra to route this small, well-defined software change."
