@@ -14,6 +14,7 @@ PROFILE_NAMES = {
     "planner",
     "plan_scope_auditor",
     "implementation_worker",
+    "frontend_implementation_worker",
     "reviewer",
     "debugging_investigator",
     "web_researcher",
@@ -47,7 +48,7 @@ class PlannedFlowContractTests(unittest.TestCase):
                 {"model": model, "reasoning_effort": effort},
             )
 
-    def test_eleven_profiles_have_unique_structural_contracts(self) -> None:
+    def test_twelve_profiles_have_unique_structural_contracts(self) -> None:
         self.assertEqual(set(self.profiles), PROFILE_NAMES)
         declared_names = {profile["name"] for profile in self.profiles.values()}
         self.assertEqual(declared_names, PROFILE_NAMES)
@@ -64,6 +65,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "planner",
             "plan_scope_auditor",
             "implementation_worker",
+            "frontend_implementation_worker",
             "reviewer",
             "debugging_investigator",
             "repo_context_explorer",
@@ -79,12 +81,19 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertEqual(set(self.roles["critical"]), critical_roles)
         self.assertNotIn("orchestrator", self.roles["standard"])
         self.assertNotIn("orchestrator", self.roles["critical"])
+        self.assertNotIn("frontend_implementation_worker", self.roles["light"])
 
         self.assert_assignments(
             "standard",
             {"planner", "plan_scope_auditor"},
             "gpt-5.6-sol",
             "high",
+        )
+        self.assert_assignments(
+            "standard",
+            {"frontend_implementation_worker"},
+            "gpt-5.6-sol",
+            "medium",
         )
         self.assert_assignments(
             "standard",
@@ -116,7 +125,12 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         self.assert_assignments(
             "critical",
-            {"planner", "plan_scope_auditor", "reviewer_second_pass"},
+            {
+                "planner",
+                "plan_scope_auditor",
+                "reviewer_second_pass",
+                "frontend_implementation_worker",
+            },
             "gpt-5.6-sol",
             "xhigh",
         )
@@ -247,15 +261,48 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_browser_acceptance_uses_computer_use_and_chrome_only(self) -> None:
         browser = self.instructions("browser_acceptance_tester")
         for contract in (
-            "Use Computer Use to operate Chrome",
+            "Use Computer Use as the exclusive browser-control path to operate Chrome",
             "Open a new Chrome tab",
             "preserve every unrelated tab and session",
-            "Never use Codex's in-app Browser",
+            "Never invoke, probe, or fall back to Codex's in-app Browser",
             "reproducible evidence",
             "do not edit files",
+            "when Computer Use or Chrome is unavailable",
+            "Return `blocked`",
         ):
             self.assertIn(contract, browser)
-        self.assertIn("without switching to the in-app Browser", browser)
+        self.assertNotIn("fallback", browser.lower())
+
+    def test_frontend_owner_is_exclusive_and_bounded(self) -> None:
+        frontend = self.instructions("frontend_implementation_worker")
+        for contract in (
+            "sole implementation owner",
+            "approved brief, scope, and design system",
+            "Reuse existing patterns and components",
+            "responsive behavior",
+            "accessibility",
+            "interaction states",
+            "Do not collaborate in parallel with `implementation_worker`",
+            "use Computer Use with Chrome as the exclusive browser-control path",
+            "Never invoke, probe, or fall back to Codex's in-app Browser",
+            "does not replace independent acceptance",
+            "must not claim independent acceptance",
+        ):
+            self.assertIn(contract, frontend)
+        for routing in (
+            "Use `frontend_implementation_worker` instead of `implementation_worker`",
+            "never dispatch them together or as parallel collaborators",
+            "Split mixed work into frontend and non-frontend phases",
+            "Return accepted findings to the same implementation owner",
+        ):
+            self.assertIn(routing, self.skill)
+        agent_rules = (ROOT / "AGENTS.md").read_text()
+        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        architecture = (ROOT / "docs/ARCHITECTURE.md").read_text()
+        self.assertIn("Twelve specialist profiles are a maximum", agent_rules)
+        self.assertIn("Twelve profiles are the maximum supported set", architecture)
+        self.assertIn("the two never\ncollaborate in parallel on one phase", workflow)
+        self.assertIn("Mixed work is split into frontend and\nnon-frontend phases", workflow)
 
     def test_delivery_routing_starts_only_after_reviewed_commits(self) -> None:
         self.assertIn("After all reviewed, verified phase commits", self.skill)

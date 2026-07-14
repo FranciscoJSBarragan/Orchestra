@@ -1,16 +1,16 @@
 # Graph Report - implement-orchestra  (2026-07-14)
 
 ## Corpus Check
-- 29 files · ~21,782 words
+- 29 files · ~22,296 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 398 nodes · 791 edges · 22 communities (18 shown, 4 thin omitted)
+- 399 nodes · 794 edges · 22 communities (18 shown, 4 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 27 edges (avg confidence: 0.67)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2fc258c3`
+- Built from commit: `ef9e7744`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,8 +44,8 @@
 3. `ValidateSuiteTests` - 25 edges
 4. `uninstall()` - 20 edges
 5. `SyncError` - 18 edges
-6. `CommitPhaseTests` - 16 edges
-7. `PlannedFlowContractTests` - 16 edges
+6. `PlannedFlowContractTests` - 17 edges
+7. `CommitPhaseTests` - 16 edges
 8. `integrate_local()` - 15 edges
 9. `_analyze()` - 15 edges
 10. `_apply_operation()` - 15 edges
@@ -92,7 +92,7 @@ Cohesion: 0.08
 Nodes (19): Choose an authorized delivery path, Resolve policy and authority, Execute the local contract, Integrate one task locally, Commit an accepted phase, Execute the thin path, Execute the merge contract, Merge one clean PR (+11 more)
 
 ### Community 6 - "SyncTests"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (3): Path, Isolated tests for direct Orchestra synchronization., SyncTests
 
 ### Community 7 - "CommitPhaseTests"
@@ -160,4 +160,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Route an Orchestra change` be split into smaller, more focused modules?**
   _Cohesion score 0.08 - nodes in this community are weakly interconnected._
 - **Should `SyncTests` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.135632183908046 - nodes in this community are weakly interconnected._

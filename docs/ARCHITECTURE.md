@@ -54,6 +54,7 @@ Each recurring role has its own profile and prompt. Initial roles are:
 - `planner`
 - `plan_scope_auditor`
 - `implementation_worker`
+- `frontend_implementation_worker`
 - `reviewer`
 - `debugging_investigator`
 - `web_researcher`
@@ -61,7 +62,7 @@ Each recurring role has its own profile and prompt. Initial roles are:
 - `phase_committer`
 
 PR polling and triage are the remaining two specialized roles in the PR-review
-lane. Eleven profiles are the maximum supported set, not a growth target.
+lane. Twelve profiles are the maximum supported set, not a growth target.
 PR-open synthesis and PR-merge verification remain root responsibilities under
 the root's current session configuration selected outside Orchestra. They add
 no profile or role key.
@@ -130,13 +131,17 @@ overrides when spawning agents. Profile files contain role behavior, not
 assignments.
 
 Light tasks dispatch `implementation_worker`, `reviewer`, and `phase_committer`
-with Luna max. Standard and critical use the role matrix documented in
-`WORKFLOW.md`, with audit and additional review dispatched only when justified.
+with Luna max. Standard and critical select exactly one implementation owner per
+phase: `frontend_implementation_worker` replaces `implementation_worker` for a
+primarily frontend phase. Mixed work is split into frontend and non-frontend
+phases rather than assigning both owners in parallel. The remaining roles use
+the matrix documented in `WORKFLOW.md`, with audit and additional review
+dispatched only when justified.
 
 ## Browser testing constraint
 
-Codex's in-app Browser currently fails when invoked from a subagent. Therefore
-`browser_acceptance_tester` must use Computer Use with Chrome:
+`browser_acceptance_tester` uses Computer Use with Chrome as its exclusive
+browser-control path:
 
 1. Open a new Chrome tab for the target application.
 2. Preserve unrelated existing tabs and sessions.
@@ -144,8 +149,9 @@ Codex's in-app Browser currently fails when invoked from a subagent. Therefore
 4. Capture concise evidence and reproducible failure steps.
 5. Return findings without editing source code.
 
-The parent orchestrator may use the in-app Browser when appropriate, but the
-delegated tester profile must not rely on it until capability evidence changes.
+It never invokes, probes, or falls back to Codex's in-app Browser and returns
+blocked when Computer Use or Chrome is unavailable. The parent orchestrator may
+use the in-app Browser separately when appropriate.
 
 ## Lightweight conformance and hooks
 

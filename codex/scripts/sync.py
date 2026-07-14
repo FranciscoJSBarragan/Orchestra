@@ -25,6 +25,7 @@ SKILLS = (
 AGENTS = (
     "browser_acceptance_tester",
     "debugging_investigator",
+    "frontend_implementation_worker",
     "implementation_worker",
     "phase_committer",
     "plan_scope_auditor",
@@ -141,7 +142,7 @@ def _inventory(source_root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise SyncError(f"unexpected agent source entry: {child}")
         actual_agents.append(child.stem)
     if tuple(actual_agents) != AGENTS:
-        raise SyncError("agent source inventory does not match the eleven supported profiles")
+        raise SyncError("agent source inventory does not match the twelve supported profiles")
     for name in AGENTS:
         source = agent_dir / f"{name}.toml"
         destination = f"agents/{name}.toml"

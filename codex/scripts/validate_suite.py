@@ -33,6 +33,7 @@ REQUIRED_PATHS = (
     "codex/config/roles.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/implementation_worker.toml",
+    "codex/agents/frontend_implementation_worker.toml",
     "codex/agents/reviewer.toml",
     "codex/agents/phase_committer.toml",
     "codex/agents/repo_context_explorer.toml",
@@ -144,6 +145,7 @@ PROFILE_NAMES = (
     "planner",
     "plan_scope_auditor",
     "implementation_worker",
+    "frontend_implementation_worker",
     "reviewer",
     "debugging_investigator",
     "web_researcher",
@@ -165,6 +167,7 @@ EXPECTED_TIER_ROLES = {
         "planner",
         "plan_scope_auditor",
         "implementation_worker",
+        "frontend_implementation_worker",
         "reviewer",
         "debugging_investigator",
         "repo_context_explorer",
@@ -178,6 +181,7 @@ EXPECTED_TIER_ROLES = {
         "planner",
         "plan_scope_auditor",
         "implementation_worker",
+        "frontend_implementation_worker",
         "reviewer",
         "reviewer_second_pass",
         "debugging_investigator",
@@ -300,7 +304,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
     if actual_profiles != sorted(PROFILE_NAMES):
-        failures.append("profile-contract: current routing must define exactly eleven profiles")
+        failures.append("profile-contract: current routing must define exactly twelve profiles")
         return failures
     declared_names: list[str] = []
     for name in PROFILE_NAMES:
@@ -470,7 +474,7 @@ def check_direct_sync(root: Path) -> list[str]:
     if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
         failures.append("sync-contract: sync inventory must name exactly seven skills")
     if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly eleven agents")
+        failures.append("sync-contract: sync inventory must name exactly twelve agents")
     if tuple(constants.get("HELPERS", ())) != (
         "commit_phase.py",
         "policy.py",
@@ -495,7 +499,7 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append("sync-contract: source must contain exactly seven skill directories")
     profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
     if profiles != sorted(PROFILE_NAMES):
-        failures.append("sync-contract: source must contain exactly eleven agent profiles")
+        failures.append("sync-contract: source must contain exactly twelve agent profiles")
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():
         runtime_text = runtime.read_text(encoding="utf-8")

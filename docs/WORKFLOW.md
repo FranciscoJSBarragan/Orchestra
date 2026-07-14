@@ -50,6 +50,7 @@ Profiles contain behavior only.
 | Root orchestrator (outside `roles.toml`) | Sol high | Sol xhigh |
 | `planner` / `plan_scope_auditor` | Sol high | Sol xhigh |
 | `implementation_worker` | Luna max | Sol high |
+| `frontend_implementation_worker` | Sol medium | Sol xhigh |
 | `reviewer` | Luna max | Sol high; second pass Sol xhigh |
 | `debugging_investigator` | Luna max | Sol high |
 | `repo_context_explorer` / `web_researcher` | Luna xhigh | Luna high |
@@ -62,6 +63,14 @@ Profiles contain behavior only.
 For a light task, `implementation_worker`, `reviewer`, and `phase_committer` use
 Luna max. Light does not mean unreviewed; it means discovery and planning roles
 are omitted because the scope is already small and certain.
+
+For standard and critical work, a primarily frontend phase replaces
+`implementation_worker` with `frontend_implementation_worker`; the two never
+collaborate in parallel on one phase. Mixed work is split into frontend and
+non-frontend phases with one implementation owner each. The frontend owner stays
+within the approved brief, scope, and design system, reuses existing patterns and
+components, covers responsive, accessibility, and interaction states, and leaves
+independent browser acceptance to `browser_acceptance_tester`.
 
 ## Context and planning
 
@@ -95,7 +104,9 @@ delegated from the main plan.
 
 The loop is:
 
-1. Implementation owner changes the phase scope.
+1. The root selects one implementation owner for the phase. Primarily frontend
+   phases use `frontend_implementation_worker`; other phases use
+   `implementation_worker`.
 2. Targeted tests run and their results are read.
 3. One independent reviewer checks specification, correctness, regressions,
    safety, and materially defect-prone design.

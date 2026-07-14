@@ -65,9 +65,22 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(applied["status"], "ok")
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(self.codex_home.joinpath("agents/reviewer.toml").is_file())
+        self.assertTrue(
+            self.codex_home.joinpath("agents/frontend_implementation_worker.toml").is_file()
+        )
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
         self.assertEqual(self.run_sync("status")["status"], "ok")
+        installed_agents = {
+            entry["path"]
+            for entry in self.manifest()["entries"]
+            if entry["root"] == "codex_home" and entry["path"].startswith("agents/")
+        }
+        self.assertEqual(
+            installed_agents,
+            {f"agents/{name}.toml" for name in sync.AGENTS},
+        )
+        self.assertEqual(len(installed_agents), 12)
         second = self.run_sync("apply")
         self.assertEqual(second["status"], "ok")
         self.assertEqual(second["changes"], [])
@@ -90,6 +103,9 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra").exists())
         self.assertFalse(self.codex_home.joinpath("install-manifest.json").exists())
         self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
+        self.assertFalse(
+            self.codex_home.joinpath("agents/frontend_implementation_worker.toml").exists()
+        )
 
     def test_dry_run_is_a_zero_mutation_full_preview(self) -> None:
         preview = self.run_sync("apply", dry_run=True)

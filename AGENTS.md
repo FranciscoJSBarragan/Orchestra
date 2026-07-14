@@ -52,12 +52,18 @@ destructive actions, production changes, or other high-impact risk.
 
 - Light: `implementation_worker` then independent `reviewer`.
 - Standard: bounded `repo_context_explorer`, `planner`,
-  `implementation_worker`, one high-signal `reviewer`, and verification.
+  one phase implementation owner, one high-signal `reviewer`, and verification.
 - Critical: standard flow plus plan audit and a second independent review where
   the risk justifies it.
 - Use a detailed phase subplan only when the phase itself is complex.
 - Accepted findings return to the same implementation owner.
 - Reviewers report; they do not silently implement their own findings.
+
+For each standard or critical phase, use `frontend_implementation_worker`
+instead of `implementation_worker` when the phase is primarily frontend. Never
+dispatch both for the same phase or in parallel collaboration. Split mixed work
+into frontend and non-frontend phases with one implementation owner each. Light
+work continues to use `implementation_worker`.
 
 Fix correctness, security, regression, acceptance, and defect-prone
 maintainability findings. Record or reject cosmetic, speculative, or
@@ -91,10 +97,12 @@ out-of-scope suggestions without entering a review loop.
 
 ## Browser acceptance
 
-The delegated `browser_acceptance_tester` must not use Codex's in-app Browser;
-it is not reliable from subagents. It must use Computer Use to operate Chrome,
-open a new tab for the test, preserve unrelated tabs, and report observed
-behavior with reproducible steps and evidence.
+The delegated `browser_acceptance_tester` uses Computer Use with Chrome as its
+exclusive browser path. It must never invoke, probe, or fall back to Codex's
+in-app Browser. It opens a new Chrome tab, preserves unrelated tabs and sessions,
+and reports observed behavior with reproducible steps and evidence. It returns
+blocked when Computer Use or Chrome is unavailable. The root may use the in-app
+Browser separately.
 
 ## Anti-overengineering rules
 
@@ -106,7 +114,7 @@ behavior with reproducible steps and evidence.
 - No whole-workflow restart for a local step failure.
 - No repeated discovery when a targeted context delta is sufficient.
 - No new specialist profile without a distinct recurring responsibility.
-- Eleven specialist profiles are a maximum, not a growth target.
+- Twelve specialist profiles are a maximum, not a growth target.
 - Prefer deletion and direct code over compatibility layers.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure,
