@@ -9,10 +9,10 @@ Keep the root responsible for decisions, accepted findings, routing, blockers, a
 
 ## Observe and triage
 
-1. Resolve `pr_polling_specialist` and `pr_triage_specialist` assignments for the task tier from [roles.toml](../../config/roles.toml). Pass explicit model and reasoning overrides when spawning each profile.
-2. Send repository, explicit `OWNER/REPO`, PR number, current revision, and any in-memory previous clean head to [pr_polling_specialist.toml](../../agents/pr_polling_specialist.toml). It runs `python3 codex/scripts/pr.py observe ...` through [pr.py](../../scripts/pr.py) and reports current head, checks, review decision, merge state, and unresolved non-outdated feedback without deciding disposition.
-3. If the snapshot has unresolved non-outdated feedback, send that snapshot, PR-CONTEXT, full current diff, intent, code, verification, and scope to [pr_triage_specialist.toml](../../agents/pr_triage_specialist.toml). It reports only; it never fixes or routes.
-4. Have the root accept or reject findings from evidence. Return accepted fixes to the same [implementation_worker.toml](../../agents/implementation_worker.toml) that owned implementation.
+1. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Resolve `pr_polling_specialist` and `pr_triage_specialist` assignments for the task tier from `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`. Pass explicit model and reasoning overrides when spawning each profile.
+2. Send repository, explicit `OWNER/REPO`, PR number, current revision, and any in-memory previous clean head to the `${CODEX_HOME:-$HOME/.codex}/agents/pr_polling_specialist.toml` profile. It runs `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/pr.py" observe ...` and reports current head, checks, review decision, merge state, and unresolved non-outdated feedback without deciding disposition.
+3. If the snapshot has unresolved non-outdated feedback, send that snapshot, PR-CONTEXT, full current diff, intent, code, verification, and scope to the `${CODEX_HOME:-$HOME/.codex}/agents/pr_triage_specialist.toml` profile. It reports only; it never fixes or routes.
+4. Have the root accept or reject findings from evidence. Return accepted fixes to the same `${CODEX_HOME:-$HOME/.codex}/agents/implementation_worker.toml` profile that owned implementation.
 
 ## Fix and converge
 

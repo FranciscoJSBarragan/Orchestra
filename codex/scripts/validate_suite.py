@@ -25,6 +25,7 @@ REQUIRED_PATHS = (
     "orchestra.toml",
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
+    "codex/scripts/sync.py",
     "codex/scripts/commit_phase.py",
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
@@ -63,6 +64,7 @@ REQUIRED_PATHS = (
     "codex/tests/test_delivery_policy.py",
     "codex/tests/test_pr_flow.py",
     "codex/tests/test_local_integration.py",
+    "codex/tests/test_sync.py",
 )
 
 PERMANENT_DOCS = (
@@ -417,13 +419,110 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         ) != 1:
             failures.append("runtime-contract: managed markers must occur exactly once")
         for target in (
-            "codex/skills/orchestra/SKILL.md",
-            "codex/skills/orchestra-delivery-policy/SKILL.md",
-            "codex/config/roles.toml",
-            "codex/agents/",
+            "$orchestra",
+            "$orchestra-delivery-policy",
+            "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
+            "${CODEX_HOME:-$HOME/.codex}/agents/",
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")
+    fallback = "${CODEX_HOME:-$HOME/.codex}"
+    for name in SKILL_NAMES:
+        skill = root / f"codex/skills/{name}/SKILL.md"
+        if skill.is_file() and fallback not in skill.read_text(encoding="utf-8"):
+            failures.append(f"runtime-contract: {name} must state the Codex home fallback")
+    return failures
+
+
+def check_direct_sync(root: Path) -> list[str]:
+    """Validate the bounded source inventory and direct-sync public contract."""
+    failures: list[str] = []
+    sync_path = root / "codex/scripts/sync.py"
+    if not sync_path.is_file():
+        return failures
+    text = sync_path.read_text(encoding="utf-8")
+    try:
+        tree = ast.parse(text, filename=str(sync_path))
+    except SyntaxError:
+        return failures
+    constants: dict[str, object] = {}
+    commands: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(
+            node.targets[0], ast.Name
+        ):
+            if node.targets[0].id in {"SKILLS", "AGENTS", "HELPERS"}:
+                try:
+                    constants[node.targets[0].id] = ast.literal_eval(node.value)
+                except (TypeError, ValueError):
+                    pass
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_parser"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            commands.add(node.args[0].value)
+    if commands != {"status", "apply", "uninstall"}:
+        failures.append("sync-contract: CLI must expose exactly status, apply, and uninstall")
+    if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
+        failures.append("sync-contract: sync inventory must name exactly seven skills")
+    if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
+        failures.append("sync-contract: sync inventory must name exactly eleven agents")
+    if tuple(constants.get("HELPERS", ())) != (
+        "commit_phase.py",
+        "policy.py",
+        "pr.py",
+        "integrate_local.py",
+    ):
+        failures.append("sync-contract: sync inventory must name exactly four helpers")
+    for destination in (
+        ".agents/skills/",
+        "agents/",
+        "orchestra/roles.toml",
+        "orchestra/scripts/",
+        "orchestra/install-manifest.json",
+        "AGENTS.md",
+    ):
+        if destination not in text:
+            failures.append(f"sync-contract: missing destination contract {destination}")
+    skill_dirs = sorted(
+        path.name for path in (root / "codex/skills").iterdir() if path.is_dir()
+    )
+    if skill_dirs != sorted(SKILL_NAMES):
+        failures.append("sync-contract: source must contain exactly seven skill directories")
+    profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
+    if profiles != sorted(PROFILE_NAMES):
+        failures.append("sync-contract: source must contain exactly eleven agent profiles")
+    runtime = root / "codex/runtime/AGENTS.orchestra.md"
+    if runtime.is_file():
+        runtime_text = runtime.read_text(encoding="utf-8")
+        if not runtime_text.startswith("<!-- orchestra:start -->\n") or not runtime_text.endswith(
+            "<!-- orchestra:end -->\n"
+        ):
+            failures.append("sync-contract: runtime source must be exactly one marked block")
+
+    gitignore = root / ".gitignore"
+    if gitignore.is_file():
+        patterns = set(gitignore.read_text(encoding="utf-8").splitlines())
+        required = {
+            "graphify-out/*",
+            "!graphify-out/graph.json",
+            "!graphify-out/graph.html",
+            "!graphify-out/GRAPH_REPORT.md",
+            "graphify-out/manifest.json",
+            "graphify-out/cost.json",
+        }
+        missing = sorted(required - patterns)
+        if missing:
+            failures.append(
+                "sync-contract: .gitignore is missing Graphify boundaries: "
+                + ", ".join(missing)
+            )
+        if "graphify-out/" in patterns:
+            failures.append("sync-contract: graphify-out/ blanket ignore defeats the allowlist")
     return failures
 
 
@@ -542,6 +641,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_roles_and_profiles,
     check_skills_and_runtime,
+    check_direct_sync,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

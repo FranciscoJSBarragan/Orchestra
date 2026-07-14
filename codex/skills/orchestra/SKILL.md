@@ -22,17 +22,17 @@ Fail closed to `standard` on any ambiguity, unknown scope, new coupling, or risk
 
 ## Resolve role assignments
 
-Read [roles.toml](../../config/roles.toml) as the only machine-readable model and reasoning matrix for spawned specialists. Resolve `tiers.<tier>.<role>` and pass its `model` and `reasoning_effort` as explicit overrides for every spawned role:
+Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Read `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only machine-readable model and reasoning matrix for spawned specialists. Resolve `tiers.<tier>.<role>` and pass its `model` and `reasoning_effort` as explicit overrides for every spawned role:
 
-- use [repo_context_explorer.toml](../../agents/repo_context_explorer.toml) for `repo_context_explorer`;
-- use [planner.toml](../../agents/planner.toml) for `planner`;
-- use [plan_scope_auditor.toml](../../agents/plan_scope_auditor.toml) for `plan_scope_auditor` only with a complete risk-based audit packet;
-- use [implementation_worker.toml](../../agents/implementation_worker.toml) for `implementation_worker`;
-- use [reviewer.toml](../../agents/reviewer.toml) for `reviewer` and a justified `reviewer_second_pass`;
-- use [debugging_investigator.toml](../../agents/debugging_investigator.toml) for `debugging_investigator` after the same failure repeats;
-- use [web_researcher.toml](../../agents/web_researcher.toml) for narrow, current `web_researcher` evidence;
-- use [browser_acceptance_tester.toml](../../agents/browser_acceptance_tester.toml) for `browser_acceptance_tester` scenarios;
-- use [phase_committer.toml](../../agents/phase_committer.toml) for `phase_committer`.
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/repo_context_explorer.toml` profile for `repo_context_explorer`;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/planner.toml` profile for `planner`;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/plan_scope_auditor.toml` profile for `plan_scope_auditor` only with a complete risk-based audit packet;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/implementation_worker.toml` profile for `implementation_worker`;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/reviewer.toml` profile for `reviewer` and a justified `reviewer_second_pass`;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/debugging_investigator.toml` profile for `debugging_investigator` after the same failure repeats;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/web_researcher.toml` profile for narrow, current `web_researcher` evidence;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/browser_acceptance_tester.toml` profile for `browser_acceptance_tester` scenarios;
+- use the `${CODEX_HOME:-$HOME/.codex}/agents/phase_committer.toml` profile for `phase_committer`.
 
 Do not copy assignments into profiles or this skill. Profiles report to the root; they never spawn agents or become orchestrators.
 

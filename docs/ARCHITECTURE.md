@@ -235,3 +235,16 @@ repository-driven direct sync. A single sync tool owns explicitly managed Codex
 resources, supports dry-run and backup, preserves unrelated user configuration,
 and reports what it installed. Installation is never part of ordinary task
 execution.
+
+The direct-sync destinations are `$HOME/.agents/skills/<skill>`,
+`$CODEX_HOME/agents/<profile>.toml`, and `$CODEX_HOME/orchestra/` for the role
+matrix, four runtime helpers, manifest, and deterministic current backups. The
+default `CODEX_HOME` is `$HOME/.codex`. The only managed content in
+`$CODEX_HOME/AGENTS.md` is the single block delimited by
+`<!-- orchestra:start -->` and `<!-- orchestra:end -->`.
+
+`status` and `apply --dry-run` are read-only. `apply` creates, upgrades, and
+removes stale owned resources only after a complete preflight. `uninstall`
+removes only content that still matches the manifest digest; drift and unrelated
+configuration are preserved and reported. The generated manifest is ownership
+evidence, while backups are bounded safety evidence rather than a recovery log.

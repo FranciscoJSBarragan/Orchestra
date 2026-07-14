@@ -5,12 +5,12 @@ description: Choose the authorized Orchestra delivery path after reviewed phase 
 
 # Choose an authorized delivery path
 
-Keep the root responsible for reading the user's delivery direction and making the routing decision. Read the repository policy with [policy.py](../../scripts/policy.py); do not infer it from branches, PRs, checks, or history.
+Keep the root responsible for reading the user's delivery direction and making the routing decision. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and read the repository policy with `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/policy.py`; do not infer it from branches, PRs, checks, or history.
 
 ## Resolve policy and authority
 
 1. Require a reviewed, verified, committed change and its exact revision.
-2. Run `python3 codex/scripts/policy.py --repo <root> show`.
+2. Run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/policy.py" --repo <root> show`.
 3. If the policy is missing, ask the user once and recommend `hybrid`. Return `blocked`; do not create the file or choose for the user.
 4. If the user chooses hold, make no delivery mutation and return `ok` with the committed branch or worktree.
 5. Allow the PR lane only for `pr-required` or `hybrid`. Require `open PR` or equivalent explicit task direction, then route to [orchestra-pr-open](../orchestra-pr-open/SKILL.md).

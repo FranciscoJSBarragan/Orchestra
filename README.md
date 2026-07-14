@@ -37,6 +37,31 @@ The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
 to unrelated Codex configuration.
 
+## Direct sync
+
+Run synchronization explicitly from a trusted Orchestra checkout. It is outside
+ordinary task execution:
+
+```sh
+python3 codex/scripts/sync.py status
+python3 codex/scripts/sync.py apply --dry-run
+python3 codex/scripts/sync.py apply
+python3 codex/scripts/sync.py uninstall
+```
+
+Skills install under `$HOME/.agents/skills/`. Agent profiles install under
+`$CODEX_HOME/agents/`; roles and the four runtime helpers install under
+`$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
+`$HOME/.codex`. The tool owns only destinations recorded in
+`$CODEX_HOME/orchestra/install-manifest.json` and the exactly marked Orchestra
+block in `$CODEX_HOME/AGENTS.md`.
+
+Before replacing or removing an existing owned destination, the tool writes one
+current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.
+Backups are not restoration history: uninstall removes only content whose digest
+still matches the manifest, preserves drifted or unrelated content, and never
+restores unrelated user configuration.
+
 ## Conformance
 
 Run the deterministic suite validator from the repository root:

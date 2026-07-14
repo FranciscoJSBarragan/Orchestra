@@ -5,7 +5,7 @@ description: Commit one accepted Orchestra phase with an exact path scope and ve
 
 # Commit an accepted phase
 
-Receive exact repository-relative authorized paths, the verification summary, revision evidence, and a structured message covering why, acceptance, invariants, validation, and risks. Use [phase_committer.toml](../../agents/phase_committer.toml) as the narrow agent contract.
+Receive exact repository-relative authorized paths, the verification summary, revision evidence, and a structured message covering why, acceptance, invariants, validation, and risks. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and `${CODEX_HOME:-$HOME/.codex}/agents/phase_committer.toml` as the narrow agent contract.
 
 ## Execute the thin path
 
@@ -13,7 +13,7 @@ Receive exact repository-relative authorized paths, the verification summary, re
 2. Inspect Git status and the relevant diff for the exact authorized paths.
 3. Return `blocked` if any unrelated path is staged or the relevant diff exceeds authority.
 4. Write the supplied message to a temporary file outside the repository and arrange its cleanup.
-5. Run `python3 codex/scripts/commit_phase.py --repo <root> --message-file <file> --path <path> [--path <path> ...]`. Require the helper to use those exact paths as literal final-commit pathspecs and verify the created commit's changed paths with rename detection disabled.
+5. Run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/commit_phase.py" --repo <root> --message-file <file> --path <path> [--path <path> ...]`. Require the helper to use those exact paths as literal final-commit pathspecs and verify the created commit's changed paths with rename detection disabled.
 6. Read the helper's compact JSON result. For `committed`, confirm it contains the verified SHA. For `nothing_to_commit`, make no commit. For `blocked`, report the stable reason and any SHA proving a commit exists; when a SHA is present, do not retry, amend, reset, or recover the created commit.
 7. Remove the temporary message file.
 
