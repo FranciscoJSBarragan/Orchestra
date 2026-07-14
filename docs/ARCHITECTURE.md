@@ -29,17 +29,14 @@ Orchestra/
 ├── docs/
 │   ├── WORKFLOW.md
 │   ├── ARCHITECTURE.md
-│   └── MIGRATION.md
-├── .githooks/                 # optional thin wrappers only
+│   └── ROADMAP.md              # non-canonical sequencing
+├── .githooks/                 # versioned thin wrappers only
 └── codex/
-    ├── .codex-plugin/
     ├── agents/                # specialized role profiles
     ├── skills/                # user-facing workflow entry points
     ├── scripts/               # deterministic mechanical helpers
     └── tests/
 ```
-
-No Hermes or Devin source exists in the initial repository.
 
 ## Component responsibilities
 
@@ -63,14 +60,14 @@ Each recurring role has its own profile and prompt. Initial roles are:
 - `browser_acceptance_tester`
 - `phase_committer`
 
-PR polling and triage remain specialized internal roles in the PR-review lane.
-PR-open synthesis and PR-merge verification may use dedicated Sol-high fallback
-profiles when the root cannot safely perform the synthesis from compact input.
+PR polling and triage are the remaining two specialized roles in the PR-review
+lane. Eleven profiles are the maximum supported set, not a growth target.
+PR-open synthesis and PR-merge verification remain root responsibilities and may
+use the configured Sol-high model assignment without adding profiles.
 
-Future profiles such as architecture or frontend specialists are added when a
-recurring task has a distinct context, tool set, acceptance standard, and prompt
-that measurably improves results. They are not simulated through one universal
-profile, and they are not created speculatively.
+The profile set changes only when a recurring responsibility has a distinct
+context, tool set, acceptance standard, and measurable value, while remaining
+within the maximum. Profiles are not created speculatively.
 
 Profiles share only minimal conventions: input packet shape, output status,
 evidence references, scope boundaries, and stop conditions.
@@ -96,21 +93,21 @@ They should remain readable and route to deeper references only when needed.
 Scripts perform operations that benefit from deterministic behavior: parsing
 Git status, validating structured messages, collecting PR state, publishing a
 PR body, resolving review threads, running configured checks, synchronizing
-installed resources, and validating the suite.
+managed resources through direct sync, and validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems.
 
 ## Minimal contracts
 
-The rebuild may persist only contracts with direct consumers:
+Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
 - approved plan and phase definition;
 - structured commit message;
 - compact commit result (`sha` or stable failure reason);
 - PR context and PR-review state required to resume external asynchronous work;
-- installation manifest for resources managed by the sync tool.
+- direct-sync manifest consumed by install, update, status, and uninstall.
 
 Do not introduce a global workflow event ledger, authority-bundle chain,
 duplicate Git index, commit recovery journal, or general-purpose workflow state
@@ -150,11 +147,11 @@ The workflow needs drift protection, but enforcement must remain thin.
 `codex/scripts/validate_suite.py` is the only suite conformance engine. Its
 checks should stay deterministic and fast enough for local use. It validates:
 
-- required files and plugin metadata;
+- required canonical files and direct-sync boundaries;
 - skill links and profile references;
 - model matrix/profile consistency;
 - concise AGENTS/runtime instructions;
-- forbidden legacy dependencies and paths;
+- forbidden distribution paths and historical product narrative;
 - representative workflow contract tests.
 
 It does not validate live approvals, replay agent history, or inspect unrelated
@@ -188,14 +185,28 @@ Tests protect the few important invariants:
 - accepted review findings return to the same implementation owner;
 - hooks call the validator without adding policy;
 - local integration cleans only safely merged branches and worktrees;
-- legacy authority/journal machinery is not reintroduced.
+- rejected authority/journal machinery is not introduced.
 
 ## Complexity safeguards
 
-Before adding a persistent artifact, schema, lock, helper, or agent profile,
-identify its direct consumer and the concrete failure it prevents. Prefer an
-existing Git, GitHub, Codex, or project-test primitive when it already owns the
-truth.
+Before accepting a persistent artifact, schema, lock, transaction layer,
+helper, or agent profile, document:
+
+- its named consumer;
+- a demonstrated failure, explicit requirement, or reproducible risk;
+- why an existing Git, GitHub, Codex, or project-test primitive is insufficient;
+- lifecycle, ownership, and cleanup;
+- why its cost is proportional;
+- why a smaller direct implementation does not suffice.
+
+Review only the delta after a finding. If a mechanism fails this gate, stop and
+simplify it. Graphify can inform repository context; it does not establish
+correctness or policy.
+
+The design explicitly rejects a global workflow event ledger, authority-bundle
+chain, duplicate Git index, commit recovery journal, general-purpose workflow
+state engine, and repeated validation of unchanged authority unless later
+evidence passes the same gate.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:
@@ -204,7 +215,8 @@ unused mechanisms.
 
 ## Installation boundary
 
-The source repository is authoritative. A single sync tool owns only explicitly
-managed Codex resources, supports dry-run and backup, preserves unrelated user
-configuration, and can report what it installed. Installation must not be part
-of ordinary task execution.
+The source repository is authoritative. V1 installation uses only
+repository-driven direct sync. A single sync tool owns explicitly managed Codex
+resources, supports dry-run and backup, preserves unrelated user configuration,
+and reports what it installed. Installation is never part of ordinary task
+execution.

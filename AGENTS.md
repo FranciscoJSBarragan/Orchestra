@@ -106,5 +106,13 @@ behavior with reproducible steps and evidence.
 - No whole-workflow restart for a local step failure.
 - No repeated discovery when a targeted context delta is sufficient.
 - No new specialist profile without a distinct recurring responsibility.
-- Prefer deletion and direct code over compatibility layers during the clean
-  rebuild.
+- Eleven specialist profiles are a maximum, not a growth target.
+- Prefer deletion and direct code over compatibility layers.
+
+Before accepting a mechanism, name its consumer, the demonstrated failure,
+explicit requirement, or reproducible risk it addresses, why an existing
+primitive is insufficient, its lifecycle, ownership, and cleanup, its
+proportional cost, and why a smaller direct implementation does not suffice.
+Review only deltas after a finding. If the gate rejects a mechanism, stop and
+simplify it. Graphify may provide context, but it is not correctness or policy
+evidence.
