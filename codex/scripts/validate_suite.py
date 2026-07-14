@@ -29,12 +29,19 @@ REQUIRED_PATHS = (
     "codex/agents/implementation_worker.toml",
     "codex/agents/reviewer.toml",
     "codex/agents/phase_committer.toml",
+    "codex/agents/repo_context_explorer.toml",
+    "codex/agents/planner.toml",
+    "codex/agents/plan_scope_auditor.toml",
+    "codex/agents/debugging_investigator.toml",
+    "codex/agents/web_researcher.toml",
+    "codex/agents/browser_acceptance_tester.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
     "codex/skills/orchestra-phase-commit/SKILL.md",
     "codex/skills/orchestra-phase-commit/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_light_flow.py",
+    "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
 )
 
@@ -111,16 +118,46 @@ exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
 """
 
 PROFILE_NAMES = (
+    "repo_context_explorer",
+    "planner",
+    "plan_scope_auditor",
     "implementation_worker",
     "reviewer",
+    "debugging_investigator",
+    "web_researcher",
+    "browser_acceptance_tester",
     "phase_committer",
 )
 
 EXPECTED_TIER_ROLES = {
     "light": {"implementation_worker", "reviewer", "phase_committer"},
+    "standard": {
+        "planner",
+        "plan_scope_auditor",
+        "implementation_worker",
+        "reviewer",
+        "debugging_investigator",
+        "repo_context_explorer",
+        "web_researcher",
+        "browser_acceptance_tester",
+        "phase_committer",
+    },
+    "critical": {
+        "planner",
+        "plan_scope_auditor",
+        "implementation_worker",
+        "reviewer",
+        "reviewer_second_pass",
+        "debugging_investigator",
+        "repo_context_explorer",
+        "web_researcher",
+        "browser_acceptance_tester",
+        "phase_committer",
+    },
 }
 
 SKILL_NAMES = ("orchestra", "orchestra-phase-commit")
+VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
 
 
 def check_required_paths(root: Path) -> list[str]:
@@ -163,7 +200,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     tiers = roles.get("tiers")
     if not isinstance(tiers, dict) or set(tiers) != set(EXPECTED_TIER_ROLES):
         failures.append(
-            "role-contract: roles.toml must define only the executable light tier"
+            "role-contract: roles.toml must define light, standard, and critical"
         )
     else:
         for tier, expected_roles in EXPECTED_TIER_ROLES.items():
@@ -180,10 +217,8 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                         f"role-contract: {tier}.{role} needs model and reasoning_effort"
                     )
                     continue
-                if not isinstance(assignment["model"], str) or not assignment[
-                    "model"
-                ].strip():
-                    failures.append(f"role-contract: {tier}.{role} has no model")
+                if assignment["model"] not in VALID_MODELS:
+                    failures.append(f"role-contract: {tier}.{role} has invalid model")
                 if assignment["reasoning_effort"] not in {
                     "low",
                     "medium",
@@ -198,8 +233,9 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
     if actual_profiles != sorted(PROFILE_NAMES):
-        failures.append("profile-contract: Phase 2 must define exactly three profiles")
+        failures.append("profile-contract: current routing must define exactly nine profiles")
         return failures
+    declared_names: list[str] = []
     for name in PROFILE_NAMES:
         path = agents / f"{name}.toml"
         try:
@@ -215,6 +251,8 @@ def check_roles_and_profiles(root: Path) -> list[str]:
             continue
         if profile["name"] != name:
             failures.append(f"profile-contract: {name} has a mismatched name")
+        if isinstance(profile["name"], str):
+            declared_names.append(profile["name"])
         if not isinstance(profile["description"], str) or not profile["description"].strip():
             failures.append(f"profile-contract: {name} needs a description")
         instructions = profile["developer_instructions"]
@@ -224,6 +262,9 @@ def check_roles_and_profiles(root: Path) -> list[str]:
         for heading in ("## Input", "## Output", "## Stop conditions"):
             if heading not in instructions:
                 failures.append(f"profile-contract: {name} is missing {heading}")
+
+    if len(declared_names) != len(set(declared_names)):
+        failures.append("profile-contract: profile names must be unique")
 
     behavior_sources = [
         *(agents / f"{name}.toml" for name in PROFILE_NAMES),
@@ -236,6 +277,18 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                 "role-contract: model assignments must exist only in roles.toml; "
                 f"found one in {path.relative_to(root)}"
             )
+
+    orchestra = root / "codex/skills/orchestra/SKILL.md"
+    if orchestra.is_file() and isinstance(tiers, dict):
+        routing = orchestra.read_text(encoding="utf-8")
+        for tier, roles in tiers.items():
+            if not isinstance(roles, dict):
+                continue
+            for role in roles:
+                if f"`{role}`" not in routing:
+                    failures.append(
+                        f"role-contract: {tier}.{role} is not consumed by orchestra routing"
+                    )
     return failures
 
 
@@ -253,7 +306,7 @@ def _skill_frontmatter(text: str) -> dict[str, str] | None:
 
 
 def check_skills_and_runtime(root: Path) -> list[str]:
-    """Validate skill metadata, direct links, and the managed light routing block."""
+    """Validate skill metadata, direct links, and the managed routing block."""
     failures: list[str] = []
     for name in SKILL_NAMES:
         skill = root / f"codex/skills/{name}/SKILL.md"

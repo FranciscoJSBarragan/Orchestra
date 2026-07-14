@@ -1,4 +1,4 @@
 interface:
-  display_name: "Orchestra Light Flow"
-  short_description: "Route dependable light software changes"
-  default_prompt: "Use $orchestra to route this small, well-defined software change."
+  display_name: "Orchestra Change Routing"
+  short_description: "Route proportional reviewed software changes"
+  default_prompt: "Use $orchestra to classify and route this software change through the proportional workflow."

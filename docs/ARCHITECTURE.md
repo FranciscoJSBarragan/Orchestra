@@ -116,15 +116,16 @@ meet.
 
 ## Model and reasoning configuration
 
-The approved target role matrix is documented in `WORKFLOW.md`. Its only
-machine-readable configuration, `codex/config/roles.toml`, contains assignments
-for currently executable lanes only. Workflow skills pass explicit model and
-reasoning overrides from that file when spawning agents. Profile files contain
-role behavior, not assignments.
+The approved target role matrix is documented in `WORKFLOW.md`. The root keeps
+the current session configuration selected outside Orchestra. The only
+machine-readable specialist configuration, `codex/config/roles.toml`, contains
+assignments for executable spawned roles. Workflow skills pass those explicit
+overrides when spawning agents. Profile files contain role behavior, not
+assignments.
 
 Light tasks dispatch `implementation_worker`, `reviewer`, and `phase_committer`
-with Luna max. Standard and critical target the role matrix documented in
-`WORKFLOW.md` when those lanes become executable.
+with Luna max. Standard and critical use the role matrix documented in
+`WORKFLOW.md`, with audit and additional review dispatched only when justified.
 
 ## Browser testing constraint
 

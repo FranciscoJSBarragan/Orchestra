@@ -38,15 +38,17 @@ crossing the high-impact boundaries defined in `AGENTS.md`.
 
 ## Tier flows and models
 
-Model names describe the intended Codex profile families. The table below is
-the approved human-readable target matrix. `codex/config/roles.toml` contains
-only assignments consumed by currently executable lanes; unavailable lanes do
-not receive speculative configuration. Skills pass explicit model and reasoning
-overrides from that file when spawning a role. Profiles contain behavior only.
+Model names describe the intended Codex profile families. The root uses its
+current session configuration, selected outside Orchestra. The table below
+documents that target separately from spawned specialists. For specialists,
+`codex/config/roles.toml` contains only assignments consumed by executable
+lanes; skills pass explicit overrides from that file when spawning a role.
+Profiles contain behavior only.
 
 | Role | Standard | Critical |
 | --- | --- | --- |
-| Orchestrator / planner / plan auditor | Sol high | Sol xhigh |
+| Root orchestrator (outside `roles.toml`) | Sol high | Sol xhigh |
+| `planner` / `plan_scope_auditor` | Sol high | Sol xhigh |
 | `implementation_worker` | Luna max | Sol high |
 | `reviewer` | Luna max | Sol high; second pass Sol xhigh |
 | `debugging_investigator` | Luna max | Sol high |
@@ -69,14 +71,20 @@ For standard and critical work:
 3. The orchestrator and user settle objective, constraints, acceptance, and
    relevant product choices.
 4. The planner writes the formal technical plan.
-5. A plan audit is added for critical risk or genuinely complex architecture,
-   not automatically for every standard plan.
+5. A plan audit is added only when its packet names a measurable risk,
+   supporting evidence and affected area, and an independently detectable
+   defect class. Architectural complexity alone is insufficient.
 6. The orchestrator summarizes the plan at the user's altitude and requests
    implementation approval.
 
 The root may create a high-level sketch and phase strategy. The planner owns
 the detailed non-trivial plan; this distinction keeps the root intelligent
 without forcing it to absorb the whole repository.
+
+Standard and critical implementation does not begin until the user explicitly
+approves the aligned plan. That approval covers implementation and successful
+commits at the approved phase boundaries; it does not authorize merge, release,
+deployment, production mutation, or another delivery action.
 
 ## Phase execution
 

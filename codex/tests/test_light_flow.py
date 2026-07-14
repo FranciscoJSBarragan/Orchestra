@@ -1,4 +1,4 @@
-"""Static contract tests for the Phase 2 light workflow."""
+"""Static contract tests for the Orchestra light workflow."""
 
 from __future__ import annotations
 
@@ -20,12 +20,7 @@ class LightFlowContractTests(unittest.TestCase):
     def test_light_tiering_fails_closed_and_declares_reason(self) -> None:
         self.assertIn("Tier: light|standard|critical — reason", self.skill)
         self.assertIn("Fail closed to `standard` on any ambiguity", self.skill)
-        self.assertIn(
-            "Stop this skill before dispatch for `standard` or `critical`", self.skill
-        )
-        self.assertIn("Standard and critical execution are not implemented", self.skill)
-        self.assertIn("unavailable in the current slice", self.skill)
-        self.assertNotIn("completed in Phase", self.skill)
+        self.assertIn("Select `critical` for security-sensitive work", self.skill)
 
     def test_root_owns_judgment_and_packet_stays_in_memory(self) -> None:
         for responsibility in (
@@ -59,12 +54,13 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertIn("Remain read-only: do not edit files", reviewer)
         self.assertIn("accepted findings return to the same implementation owner", reviewer)
 
-    def test_profiles_are_three_behavior_only_contracts(self) -> None:
-        profile_paths = sorted((ROOT / "codex/agents").glob("*.toml"))
-        self.assertEqual(
-            [path.name for path in profile_paths],
-            ["implementation_worker.toml", "phase_committer.toml", "reviewer.toml"],
-        )
+    def test_light_profiles_remain_behavior_only_contracts(self) -> None:
+        profile_paths = [
+            ROOT / "codex/agents/implementation_worker.toml",
+            ROOT / "codex/agents/reviewer.toml",
+            ROOT / "codex/agents/phase_committer.toml",
+        ]
+        self.assertTrue(all(path.is_file() for path in profile_paths))
         for path in profile_paths:
             profile = tomllib.loads(path.read_text())
             self.assertEqual(
@@ -78,7 +74,7 @@ class LightFlowContractTests(unittest.TestCase):
     def test_role_matrix_is_unique_and_light_uses_luna_max(self) -> None:
         roles = tomllib.loads((ROOT / "codex/config/roles.toml").read_text())
         self.assertEqual(set(roles), {"tiers"})
-        self.assertEqual(set(roles["tiers"]), {"light"})
+        self.assertEqual(set(roles["tiers"]), {"light", "standard", "critical"})
         self.assertEqual(
             roles["tiers"]["light"],
             {
@@ -100,7 +96,7 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertIn(
             "pass its `model` and `reasoning_effort` as explicit overrides", self.skill
         )
-        self.assertIn("including `phase_committer`", self.skill)
+        self.assertIn("`phase_committer`", self.skill)
 
     def test_commit_path_rejects_parallel_git_machinery(self) -> None:
         helper = (ROOT / "codex/scripts/commit_phase.py").read_text()
@@ -124,7 +120,8 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertEqual(runtime.count("<!-- orchestra:end -->"), 1)
         self.assertIn("codex/skills/orchestra/SKILL.md", runtime)
         self.assertIn("codex/config/roles.toml", runtime)
-        self.assertIn("Do not install or synchronize", runtime)
+        self.assertIn("Do not take delivery actions", runtime)
+        self.assertIn("install or synchronize", runtime)
 
 
 if __name__ == "__main__":

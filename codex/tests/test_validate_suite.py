@@ -195,6 +195,56 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("profile-contract: reviewer must contain only", result.stdout)
 
+    def test_invalid_role_model_is_rejected(self) -> None:
+        roles = self.root / "codex/config/roles.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8").replace(
+                'model = "gpt-5.6-sol"', 'model = "unsupported"', 1
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("has invalid model", result.stdout)
+
+    def test_duplicate_profile_name_is_rejected(self) -> None:
+        planner = self.root / "codex/agents/planner.toml"
+        planner.write_text(
+            planner.read_text(encoding="utf-8").replace(
+                'name = "planner"', 'name = "reviewer"', 1
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("profile names must be unique", result.stdout)
+
+    def test_unconsumed_matrix_role_is_rejected(self) -> None:
+        skill = self.root / "codex/skills/orchestra/SKILL.md"
+        skill.write_text(
+            skill.read_text(encoding="utf-8").replace(
+                "`debugging_investigator`", "diagnostic specialist"
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "standard.debugging_investigator is not consumed", result.stdout
+        )
+
+    def test_speculative_pr_role_is_rejected(self) -> None:
+        roles = self.root / "codex/config/roles.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8")
+            + '\n[tiers.standard.pr_poll]\nmodel = "gpt-5.6-luna"\n'
+            + 'reasoning_effort = "xhigh"\n',
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unexpected standard role set", result.stdout)
+
     def test_broken_skill_link_is_actionable(self) -> None:
         skill = self.root / "codex/skills/orchestra/SKILL.md"
         skill.write_text(

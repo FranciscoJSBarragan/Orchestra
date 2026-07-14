@@ -9,3 +9,79 @@ reasoning_effort = "max"
 [tiers.light.phase_committer]
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
+
+[tiers.standard.planner]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.standard.plan_scope_auditor]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.standard.implementation_worker]
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.standard.reviewer]
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.standard.debugging_investigator]
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.standard.repo_context_explorer]
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.standard.web_researcher]
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.standard.browser_acceptance_tester]
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.standard.phase_committer]
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.critical.planner]
+model = "gpt-5.6-sol"
+reasoning_effort = "xhigh"
+
+[tiers.critical.plan_scope_auditor]
+model = "gpt-5.6-sol"
+reasoning_effort = "xhigh"
+
+[tiers.critical.implementation_worker]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.critical.reviewer]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.critical.reviewer_second_pass]
+model = "gpt-5.6-sol"
+reasoning_effort = "xhigh"
+
+[tiers.critical.debugging_investigator]
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.critical.repo_context_explorer]
+model = "gpt-5.6-luna"
+reasoning_effort = "high"
+
+[tiers.critical.web_researcher]
+model = "gpt-5.6-luna"
+reasoning_effort = "high"
+
+[tiers.critical.browser_acceptance_tester]
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.critical.phase_committer]
+model = "gpt-5.6-luna"
+reasoning_effort = "high"
