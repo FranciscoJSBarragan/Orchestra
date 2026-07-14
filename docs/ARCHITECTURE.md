@@ -62,8 +62,9 @@ Each recurring role has its own profile and prompt. Initial roles are:
 
 PR polling and triage are the remaining two specialized roles in the PR-review
 lane. Eleven profiles are the maximum supported set, not a growth target.
-PR-open synthesis and PR-merge verification remain root responsibilities and may
-use the configured Sol-high model assignment without adding profiles.
+PR-open synthesis and PR-merge verification remain root responsibilities under
+the root's current session configuration selected outside Orchestra. They add
+no profile or role key.
 
 The profile set changes only when a recurring responsibility has a distinct
 context, tool set, acceptance standard, and measurable value, while remaining
@@ -91,9 +92,10 @@ They should remain readable and route to deeper references only when needed.
 ### Mechanical helpers
 
 Scripts perform operations that benefit from deterministic behavior: parsing
-Git status, validating structured messages, collecting PR state, publishing a
-PR body, resolving review threads, running configured checks, synchronizing
-managed resources through direct sync, and validating the suite.
+Git status, validating structured messages, loading delivery policy, running
+configured argv checks, opening or observing a PR through direct `gh`, merging
+an authorized clean PR, integrating a local fast-forward, synchronizing managed
+resources through direct sync, and validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems.
@@ -106,8 +108,12 @@ Orchestra may persist only contracts with direct consumers:
 - approved plan and phase definition;
 - structured commit message;
 - compact commit result (`sha` or stable failure reason);
-- PR context and PR-review state required to resume external asynchronous work;
+- one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
+
+The previous clean PR head exists only in root memory between consecutive
+observations. GitHub owns PR, check, and review-thread state; Orchestra creates
+no local PR state file.
 
 Do not introduce a global workflow event ledger, authority-bundle chain,
 duplicate Git index, commit recovery journal, or general-purpose workflow state
@@ -210,6 +216,12 @@ The design explicitly rejects a global workflow event ledger, authority-bundle
 chain, duplicate Git index, commit recovery journal, general-purpose workflow
 state engine, and repeated validation of unchanged authority unless later
 evidence passes the same gate.
+
+Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
+`integrate_local.py`. `pr.py` calls `gh` directly for open, observe, and merge;
+it is not a generalized GitHub abstraction. Review-thread observation uses one
+bounded GraphQL query because REST check and comment data cannot establish
+thread resolution. Incomplete pagination remains `partial`, never clean.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:

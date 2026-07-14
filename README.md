@@ -29,6 +29,10 @@ Orchestra scales discovery, planning, implementation, review, and verification
 to task risk. It supports both direct local integration and GitHub PR delivery
 when repository policy and user authority allow them.
 
+Each consumer repository declares that choice in `orchestra.toml`. Missing
+policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured
+verification uses ordered argument arrays, not shell command strings.
+
 The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
 to unrelated Codex configuration.

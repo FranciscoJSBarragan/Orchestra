@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import os
 from pathlib import Path
 import re
@@ -21,9 +22,13 @@ REQUIRED_PATHS = (
     "docs/WORKFLOW.md",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
+    "orchestra.toml",
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
     "codex/scripts/commit_phase.py",
+    "codex/scripts/policy.py",
+    "codex/scripts/pr.py",
+    "codex/scripts/integrate_local.py",
     "codex/config/roles.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/implementation_worker.toml",
@@ -35,14 +40,29 @@ REQUIRED_PATHS = (
     "codex/agents/debugging_investigator.toml",
     "codex/agents/web_researcher.toml",
     "codex/agents/browser_acceptance_tester.toml",
+    "codex/agents/pr_polling_specialist.toml",
+    "codex/agents/pr_triage_specialist.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
     "codex/skills/orchestra-phase-commit/SKILL.md",
     "codex/skills/orchestra-phase-commit/agents/openai.yaml",
+    "codex/skills/orchestra-delivery-policy/SKILL.md",
+    "codex/skills/orchestra-delivery-policy/agents/openai.yaml",
+    "codex/skills/orchestra-pr-open/SKILL.md",
+    "codex/skills/orchestra-pr-open/agents/openai.yaml",
+    "codex/skills/orchestra-pr-review/SKILL.md",
+    "codex/skills/orchestra-pr-review/agents/openai.yaml",
+    "codex/skills/orchestra-pr-merge/SKILL.md",
+    "codex/skills/orchestra-pr-merge/agents/openai.yaml",
+    "codex/skills/orchestra-local-integrate/SKILL.md",
+    "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_light_flow.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
+    "codex/tests/test_delivery_policy.py",
+    "codex/tests/test_pr_flow.py",
+    "codex/tests/test_local_integration.py",
 )
 
 PERMANENT_DOCS = (
@@ -127,10 +147,18 @@ PROFILE_NAMES = (
     "web_researcher",
     "browser_acceptance_tester",
     "phase_committer",
+    "pr_polling_specialist",
+    "pr_triage_specialist",
 )
 
 EXPECTED_TIER_ROLES = {
-    "light": {"implementation_worker", "reviewer", "phase_committer"},
+    "light": {
+        "implementation_worker",
+        "reviewer",
+        "phase_committer",
+        "pr_polling_specialist",
+        "pr_triage_specialist",
+    },
     "standard": {
         "planner",
         "plan_scope_auditor",
@@ -141,6 +169,8 @@ EXPECTED_TIER_ROLES = {
         "web_researcher",
         "browser_acceptance_tester",
         "phase_committer",
+        "pr_polling_specialist",
+        "pr_triage_specialist",
     },
     "critical": {
         "planner",
@@ -153,10 +183,20 @@ EXPECTED_TIER_ROLES = {
         "web_researcher",
         "browser_acceptance_tester",
         "phase_committer",
+        "pr_polling_specialist",
+        "pr_triage_specialist",
     },
 }
 
-SKILL_NAMES = ("orchestra", "orchestra-phase-commit")
+SKILL_NAMES = (
+    "orchestra",
+    "orchestra-phase-commit",
+    "orchestra-delivery-policy",
+    "orchestra-pr-open",
+    "orchestra-pr-review",
+    "orchestra-pr-merge",
+    "orchestra-local-integrate",
+)
 VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
 
 
@@ -182,6 +222,31 @@ def check_distribution_boundary(root: Path) -> list[str]:
                 f"distribution-boundary: prohibited V1 path {relative.as_posix()}"
             )
     return failures
+
+
+def check_delivery_config(root: Path) -> list[str]:
+    """Delegate source policy validation to its only loader."""
+    helper = root / "codex/scripts/policy.py"
+    if not helper.is_file():
+        return []
+    result = subprocess.run(
+        [sys.executable, str(helper), "--repo", str(root), "show"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        return [f"delivery-contract: policy helper returned invalid JSON: {error}"]
+    if not isinstance(payload, dict):
+        return ["delivery-contract: policy helper returned invalid result"]
+    if result.returncode or payload.get("status") != "ok":
+        return [f"delivery-contract: {payload.get('reason', 'policy validation failed')}"]
+    if payload.get("mode") != "hybrid":
+        return ["delivery-contract: source repository mode must be hybrid"]
+    return []
 
 
 def check_roles_and_profiles(root: Path) -> list[str]:
@@ -233,7 +298,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
     if actual_profiles != sorted(PROFILE_NAMES):
-        failures.append("profile-contract: current routing must define exactly nine profiles")
+        failures.append("profile-contract: current routing must define exactly eleven profiles")
         return failures
     declared_names: list[str] = []
     for name in PROFILE_NAMES:
@@ -278,16 +343,23 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                 f"found one in {path.relative_to(root)}"
             )
 
-    orchestra = root / "codex/skills/orchestra/SKILL.md"
-    if orchestra.is_file() and isinstance(tiers, dict):
-        routing = orchestra.read_text(encoding="utf-8")
+    if isinstance(tiers, dict):
         for tier, roles in tiers.items():
             if not isinstance(roles, dict):
                 continue
             for role in roles:
+                consumer = (
+                    "orchestra-pr-review"
+                    if role in {"pr_polling_specialist", "pr_triage_specialist"}
+                    else "orchestra"
+                )
+                consumer_path = root / f"codex/skills/{consumer}/SKILL.md"
+                if not consumer_path.is_file():
+                    continue
+                routing = consumer_path.read_text(encoding="utf-8")
                 if f"`{role}`" not in routing:
                     failures.append(
-                        f"role-contract: {tier}.{role} is not consumed by orchestra routing"
+                        f"role-contract: {tier}.{role} is not consumed by {consumer} routing"
                     )
     return failures
 
@@ -346,6 +418,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append("runtime-contract: managed markers must occur exactly once")
         for target in (
             "codex/skills/orchestra/SKILL.md",
+            "codex/skills/orchestra-delivery-policy/SKILL.md",
             "codex/config/roles.toml",
             "codex/agents/",
         ):
@@ -464,6 +537,7 @@ Check = Callable[[Path], list[str]]
 QUICK_CHECKS: tuple[Check, ...] = (
     check_required_paths,
     check_distribution_boundary,
+    check_delivery_config,
     check_documentation,
     check_hook,
     check_roles_and_profiles,

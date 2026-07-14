@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra Delivery Policy"
+  short_description: "Choose an authorized delivery path"
+  default_prompt: "Use $orchestra-delivery-policy to choose the authorized hold, local integration, or PR path for this reviewed change."

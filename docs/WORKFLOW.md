@@ -55,7 +55,8 @@ Profiles contain behavior only.
 | `repo_context_explorer` / `web_researcher` | Luna xhigh | Luna high |
 | `browser_acceptance_tester` | Luna xhigh | Luna xhigh |
 | `phase_committer` | Luna xhigh | Luna high |
-| PR-open synthesis fallback / PR-merge verification | Sol high | Sol high |
+| `pr_polling_specialist` | Luna high | Luna high |
+| `pr_triage_specialist` | Luna max | Sol high |
 | Light task end-to-end | Luna max | Not applicable |
 
 For a light task, `implementation_worker`, `reviewer`, and `phase_committer` use
@@ -168,6 +169,10 @@ A consumer repository stores an explicit delivery policy. When it is missing,
 Orchestra asks the user once and recommends `hybrid`. It does not infer
 permission from existing PRs, CI workflows, or branch history.
 
+`orchestra.toml` contains only the delivery mode and ordered verification checks
+as argument arrays. PR merge and local integration share that check runner;
+commands never pass through a shell.
+
 Supported policy modes:
 
 - `pr-required`: final integration goes through a PR.
@@ -185,8 +190,15 @@ The Orchestra-named PR skills preserve the proven behavioral chain:
 4. Triage validates comments against intent, current code, and scope.
 5. The implementation owner applies accepted fixes, verifies them, commits, and
    pushes.
-6. The loop continues until the established clean condition is met, including
-   two clean observations on the same head when external state is asynchronous.
+6. The loop continues until two complete clean observations occur on the same
+   head. The root passes the first clean head directly to the second observation
+   in memory; a push or head change resets it.
+
+GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
+in the PR body. Polling reports current checks and review-thread evidence;
+triage independently evaluates only unresolved, non-outdated feedback. Neither
+profile fixes, routes, or persists state. Accepted findings return to the same
+implementation owner.
 
 `Open a PR` authorizes opening, review processing, fixes, commits, and pushes
 needed to make that PR clean. It does not authorize merge unless the user said
@@ -202,6 +214,11 @@ Local integration is a direct alternative, not a degraded PR path. It requires:
 - integration into the intended base without rewriting unrelated history;
 - confirmation of the result;
 - worktree and merged-branch cleanup.
+
+The mechanical path runs configured checks in the clean task worktree, permits
+only conservative fast-forward integration, verifies that the base contains the
+captured task SHA, and removes only a still-clean integrated worktree and fully
+merged task branch. Divergence returns to the root for resolution.
 
 It does not authorize release, deployment, or production mutation.
 

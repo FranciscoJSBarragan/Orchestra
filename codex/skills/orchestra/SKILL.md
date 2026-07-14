@@ -1,6 +1,6 @@
 ---
 name: orchestra
-description: Route software changes through Orchestra's proportional light, standard, or critical workflow. Use when the root must classify implementation risk, gather bounded repository or current external evidence, create and align a formal plan, require user approval before planned implementation, coordinate reviewed phase commits, diagnose repeated local failures, or run Chrome acceptance through Computer Use without taking delivery actions.
+description: Route software changes through Orchestra's proportional light, standard, or critical workflow. Use when the root must classify implementation risk, gather bounded repository or current external evidence, create and align a formal plan, require user approval before planned implementation, coordinate reviewed phase commits, diagnose repeated local failures, run Chrome acceptance through Computer Use, and hand completed commits to explicit delivery-policy routing.
 ---
 
 # Route an Orchestra change
@@ -63,4 +63,4 @@ Keep one compact packet in memory with: objective; known decisions and context d
 10. When the same local failure repeats, stop retrying and send only that failure evidence and context delta to `debugging_investigator`. Return the diagnosis to the existing owner and resume the failed local step; never restart the whole workflow.
 11. Use `browser_acceptance_tester` only for a named browser scenario. Require read-only Chrome interaction through Computer Use in a new tab, preservation of unrelated tabs and sessions, and reproducible evidence; never use the in-app Browser.
 
-Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. End this skill with the reviewed, verified, committed implementation ready for a separately authorized delivery decision. Do not open a PR, merge, push, deploy, release, synchronize, or install.
+Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. After all reviewed, verified phase commits are complete, route the delivery decision only through [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). Do not choose a lane before that point, infer policy, merge without separate authority, deploy, release, synchronize, or install.

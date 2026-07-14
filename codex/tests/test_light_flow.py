@@ -90,6 +90,14 @@ class LightFlowContractTests(unittest.TestCase):
                     "model": "gpt-5.6-luna",
                     "reasoning_effort": "max",
                 },
+                "pr_polling_specialist": {
+                    "model": "gpt-5.6-luna",
+                    "reasoning_effort": "max",
+                },
+                "pr_triage_specialist": {
+                    "model": "gpt-5.6-luna",
+                    "reasoning_effort": "max",
+                },
             },
         )
         self.assertIn("only machine-readable model and reasoning matrix", self.skill)
@@ -120,7 +128,8 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertEqual(runtime.count("<!-- orchestra:end -->"), 1)
         self.assertIn("codex/skills/orchestra/SKILL.md", runtime)
         self.assertIn("codex/config/roles.toml", runtime)
-        self.assertIn("Do not take delivery actions", runtime)
+        self.assertIn("Read explicit repository policy", runtime)
+        self.assertIn("never merge", runtime)
         self.assertIn("install or synchronize", runtime)
 
 

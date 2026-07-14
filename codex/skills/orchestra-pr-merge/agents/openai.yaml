@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra PR Merge"
+  short_description: "Merge a clean PR with explicit authority"
+  default_prompt: "Use $orchestra-pr-merge to verify and merge this clean PR after separate explicit authorization."

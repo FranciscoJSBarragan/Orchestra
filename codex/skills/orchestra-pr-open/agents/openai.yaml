@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra PR Open"
+  short_description: "Open or update one Orchestra PR"
+  default_prompt: "Use $orchestra-pr-open to open or update the authorized PR with one compact PR-CONTEXT capsule."

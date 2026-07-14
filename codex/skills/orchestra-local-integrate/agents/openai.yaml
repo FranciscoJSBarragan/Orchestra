@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra Local Integrate"
+  short_description: "Integrate a reviewed task locally"
+  default_prompt: "Use $orchestra-local-integrate to verify and safely integrate this reviewed task into its local base."

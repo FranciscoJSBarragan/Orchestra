@@ -19,6 +19,8 @@ PROFILE_NAMES = {
     "web_researcher",
     "browser_acceptance_tester",
     "phase_committer",
+    "pr_polling_specialist",
+    "pr_triage_specialist",
 }
 
 
@@ -45,7 +47,7 @@ class PlannedFlowContractTests(unittest.TestCase):
                 {"model": model, "reasoning_effort": effort},
             )
 
-    def test_nine_profiles_have_unique_structural_contracts(self) -> None:
+    def test_eleven_profiles_have_unique_structural_contracts(self) -> None:
         self.assertEqual(set(self.profiles), PROFILE_NAMES)
         declared_names = {profile["name"] for profile in self.profiles.values()}
         self.assertEqual(declared_names, PROFILE_NAMES)
@@ -68,6 +70,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             "web_researcher",
             "browser_acceptance_tester",
             "phase_committer",
+            "pr_polling_specialist",
+            "pr_triage_specialist",
         }
         critical_roles = standard_roles | {"reviewer_second_pass"}
         self.assertEqual(set(self.roles), {"light", "standard", "critical"})
@@ -75,9 +79,6 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertEqual(set(self.roles["critical"]), critical_roles)
         self.assertNotIn("orchestrator", self.roles["standard"])
         self.assertNotIn("orchestrator", self.roles["critical"])
-        self.assertFalse(
-            any("pr_" in role or "poll" in role or "triage" in role for role in critical_roles)
-        )
 
         self.assert_assignments(
             "standard",
@@ -87,9 +88,20 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         self.assert_assignments(
             "standard",
-            {"implementation_worker", "reviewer", "debugging_investigator"},
+            {
+                "implementation_worker",
+                "reviewer",
+                "debugging_investigator",
+                "pr_triage_specialist",
+            },
             "gpt-5.6-luna",
             "max",
+        )
+        self.assert_assignments(
+            "standard",
+            {"pr_polling_specialist"},
+            "gpt-5.6-luna",
+            "high",
         )
         self.assert_assignments(
             "standard",
@@ -110,13 +122,23 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         self.assert_assignments(
             "critical",
-            {"implementation_worker", "reviewer", "debugging_investigator"},
+            {
+                "implementation_worker",
+                "reviewer",
+                "debugging_investigator",
+                "pr_triage_specialist",
+            },
             "gpt-5.6-sol",
             "high",
         )
         self.assert_assignments(
             "critical",
-            {"repo_context_explorer", "web_researcher", "phase_committer"},
+            {
+                "repo_context_explorer",
+                "web_researcher",
+                "phase_committer",
+                "pr_polling_specialist",
+            },
             "gpt-5.6-luna",
             "high",
         )
@@ -235,10 +257,12 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(contract, browser)
         self.assertIn("without switching to the in-app Browser", browser)
 
-    def test_no_delivery_lane_is_executed(self) -> None:
-        self.assertIn("separately authorized delivery decision", self.skill)
-        self.assertIn("Do not open a PR, merge, push, deploy, release", self.skill)
-        self.assertIn("synchronize, or install", self.skill)
+    def test_delivery_routing_starts_only_after_reviewed_commits(self) -> None:
+        self.assertIn("After all reviewed, verified phase commits", self.skill)
+        self.assertIn("orchestra-delivery-policy", self.skill)
+        self.assertIn("Do not choose a lane before that point", self.skill)
+        self.assertIn("merge without separate authority", self.skill)
+        self.assertIn("deploy, release, synchronize, or install", self.skill)
 
     def test_ui_and_runtime_expose_all_tier_routing(self) -> None:
         ui = (ROOT / "codex/skills/orchestra/agents/openai.yaml").read_text()
@@ -248,6 +272,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("light, standard, and critical changes", runtime)
         self.assertIn("Require explicit user approval", runtime)
         self.assertIn("not merge, delivery, deployment, or release", runtime)
+        self.assertIn("orchestra-delivery-policy", runtime)
 
 
 if __name__ == "__main__":

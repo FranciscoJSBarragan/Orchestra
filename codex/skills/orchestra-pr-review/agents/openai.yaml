@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestra PR Review"
+  short_description: "Converge an authorized PR until clean"
+  default_prompt: "Use $orchestra-pr-review to poll, triage, fix, verify, and push this authorized PR until it is clean."
