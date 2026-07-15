@@ -8,7 +8,7 @@ software delivery work, not by its own control plane.
 ```mermaid
 flowchart LR
     U["User"] <--> O["Orchestrator"]
-    O --> A["Specialized agents"]
+    O --> A["Four base profiles + capabilities"]
     O --> W["Workflow skills"]
     W --> G["Git / GitHub / project tools"]
     A --> E["Compact evidence and results"]
@@ -32,8 +32,8 @@ Orchestra/
 │   └── ROADMAP.md              # non-canonical sequencing
 ├── .githooks/                 # versioned thin wrappers only
 └── codex/
-    ├── agents/                # specialized role profiles
-    ├── skills/                # user-facing workflow entry points
+    ├── agents/                # four behavior-only base profiles
+    ├── skills/                # public lanes and internal playbook references
     ├── scripts/               # deterministic mechanical helpers
     └── tests/
 ```
@@ -42,37 +42,46 @@ Orchestra/
 
 ### Orchestrator
 
-Owns user dialogue, tiering, product clarification, routing, synthesis,
-in-scope decisions, blocker resolution, delivery choice, and final judgment.
-It holds compact context and delegates repository-wide reading.
+Owns user dialogue, tiering, product clarification, capability routing,
+synthesis, the local task plan, in-scope decisions, blocker resolution, phase
+commits, PR synthesis and observation, delivery choice, and final judgment. It
+holds compact context and delegates repository-wide reading.
 
-### Specialized agents
+### Base profiles and capabilities
 
-Each recurring role has its own profile and prompt. Initial roles are:
+Orchestra has exactly four behavior-only base profiles:
 
-- `repo_context_explorer`
-- `planner`
-- `plan_scope_auditor`
-- `implementation_worker`
-- `frontend_implementation_worker`
-- `reviewer`
-- `debugging_investigator`
-- `web_researcher`
-- `browser_acceptance_tester`
-- `phase_committer`
+- `analyst` gathers bounded evidence, researches, plans, analyzes architecture,
+  or diagnoses difficult failures. It does not edit implementation files,
+  commit, route agents, or claim product authority.
+- `implementation_worker` owns scoped code and test changes for an approved
+  packet. It may implement general or frontend work, but does not independently
+  review itself, commit, or manage delivery.
+- `reviewer` independently examines plans, architecture, code, and meaningful
+  deltas. It reports evidence-backed findings and never silently implements
+  them.
+- `verifier` runs targeted checks, runtime acceptance, or browser acceptance
+  and reports observed evidence. It does not edit source code or reinterpret a
+  failing result as success.
 
-PR polling and triage are the remaining two specialized roles in the PR-review
-lane. Twelve profiles are the maximum supported set, not a growth target.
-PR-open synthesis and PR-merge verification remain root responsibilities under
-the root's current session configuration selected outside Orchestra. They add
-no profile or role key.
+Each dispatch composes one profile with one explicit named capability selected
+by the root. `general_implementation` and `independent_review` are assignment
+keys whose behavior stays in the base `implementation_worker` and `reviewer`
+prompts; they have no internal playbooks. Internal playbooks exist only for
+`repository_context`, `web_research`, `technical_planning`,
+`difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and
+`runtime_verification`. Architecture guidance is one shared reference used with
+`technical_planning` or `independent_review` when named; the
+`architecture_analysis` assignment has no separate playbook. Playbooks are
+internal references, not public skills or additional personas. Public skill
+names remain unchanged.
 
-The profile set changes only when a recurring responsibility has a distinct
-context, tool set, acceptance standard, and measurable value, while remaining
-within the maximum. Profiles are not created speculatively.
+Frontend implementation and browser acceptance are independent capabilities on
+different profiles. Root-owned planning, commits, PR observation, routing, and
+final judgment add no agent profile or capability key.
 
-Profiles share only minimal conventions: input packet shape, output status,
-evidence references, scope boundaries, and stop conditions.
+Profiles share only minimal conventions: explicit capability, input packet,
+output status, evidence references, scope boundaries, and stop conditions.
 
 ### Workflow skills
 
@@ -99,49 +108,59 @@ an authorized clean PR, integrating a local fast-forward, synchronizing managed
 resources through direct sync, and validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
-spawn agents, or own parallel approval systems.
+spawn agents, or own parallel approval systems. The root commits directly or
+through the narrow commit helper and invokes the PR helper directly to observe
+GitHub state.
 
 ## Minimal contracts
 
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
-- approved plan and phase definition;
+- one root-owned local task plan per standard or critical worktree, resolved
+  with `git rev-parse --git-path orchestra/plan.md`;
 - structured commit message;
 - compact commit result (`sha` or stable failure reason);
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
+
+The local plan is never versioned. Its consumer is the root, its purpose is
+continuity across compaction or resumed sessions, and its lifecycle ends with
+task worktree cleanup. It records `draft`, `active`, `blocked`, or `completed`
+plus a resume note. Explicit user approval moves `draft` directly to `active`
+without another persisted status. Git remains authoritative for branch, HEAD,
+commits, and worktree state; the plan carries intent and progress, not delivery
+authority.
 
 The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
 no local PR state file.
 
 Do not introduce a global workflow event ledger, authority-bundle chain,
-duplicate Git index, commit recovery journal, or general-purpose workflow state
-engine unless real usage later demonstrates a requirement Git/GitHub cannot
-meet.
+duplicate Git index, commit recovery journal, plan CLI, Kanban board, benchmark
+control plane, or general-purpose workflow state engine unless real usage later
+demonstrates a requirement Git/GitHub cannot meet.
 
 ## Model and reasoning configuration
 
-The approved target role matrix is documented in `WORKFLOW.md`. The root keeps
-the current session configuration selected outside Orchestra. The only
-machine-readable specialist configuration, `codex/config/roles.toml`, contains
-assignments for executable spawned roles. Workflow skills pass those explicit
-overrides when spawning agents. Profile files contain role behavior, not
-assignments.
+The approved capability matrix is documented in `WORKFLOW.md`. The user selects
+the root's current Sol medium or Sol high session outside Orchestra, and the
+root has no machine-readable assignment. `codex/config/roles.toml` contains
+assignments only for spawned capabilities. Skills pass those explicit overrides
+when spawning a profile. Profiles contain behavior; playbooks contain capability
+instructions only for the seven capabilities listed above, and architecture
+guidance remains one shared reference.
 
-Light tasks dispatch `implementation_worker`, `reviewer`, and `phase_committer`
-with Luna max. Standard and critical select exactly one implementation owner per
-phase: `frontend_implementation_worker` replaces `implementation_worker` for a
-primarily frontend phase. Mixed work is split into frontend and non-frontend
-phases rather than assigning both owners in parallel. The remaining roles use
-the matrix documented in `WORKFLOW.md`, with audit and additional review
-dispatched only when justified.
+Light composes general implementation, independent review, and runtime
+verification with Luna max. Standard and critical use the exact matrix in
+`WORKFLOW.md`; a second critical review requires a named measurable risk. No
+Orchestra assignment uses Sol xhigh. Frontend work and named browser acceptance
+make a task at least standard and remain separate dispatches.
 
 ## Browser testing constraint
 
-`browser_acceptance_tester` uses Computer Use with Chrome as its exclusive
-browser-control path:
+The `verifier` composed with `browser_acceptance` uses Computer Use with Chrome
+as its exclusive browser-control path:
 
 1. Open a new Chrome tab for the target application.
 2. Preserve unrelated existing tabs and sessions.
@@ -164,7 +183,7 @@ checks should stay deterministic and fast enough for local use. It validates:
 
 - required canonical files and direct-sync boundaries;
 - skill links and profile references;
-- model matrix/profile consistency;
+- capability matrix/profile consistency;
 - concise AGENTS/runtime instructions;
 - forbidden distribution paths and historical product narrative;
 - representative workflow contract tests.
@@ -196,6 +215,7 @@ Tests protect the few important invariants:
 
 - light classification fails closed on ambiguity or risk;
 - plan approval permits phase commits but not merge/deploy;
+- local plan resume reconciles against Git instead of overriding it;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - accepted review findings return to the same implementation owner;
 - hooks call the validator without adding policy;
@@ -205,7 +225,7 @@ Tests protect the few important invariants:
 ## Complexity safeguards
 
 Before accepting a persistent artifact, schema, lock, transaction layer,
-helper, or agent profile, document:
+helper, agent profile, or capability playbook, document:
 
 - its named consumer;
 - a demonstrated failure, explicit requirement, or reproducible risk;
@@ -219,15 +239,17 @@ simplify it. Graphify can inform repository context; it does not establish
 correctness or policy.
 
 The design explicitly rejects a global workflow event ledger, authority-bundle
-chain, duplicate Git index, commit recovery journal, general-purpose workflow
-state engine, and repeated validation of unchanged authority unless later
-evidence passes the same gate.
+chain, duplicate Git index, commit recovery journal, plan CLI, Kanban board,
+general-purpose workflow state engine, and repeated validation of unchanged
+authority unless later evidence passes the same gate.
 
 Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
-`integrate_local.py`. `pr.py` calls `gh` directly for open, observe, and merge;
-it is not a generalized GitHub abstraction. Review-thread observation uses one
-bounded GraphQL query because REST check and comment data cannot establish
-thread resolution. Incomplete pagination remains `partial`, never clean.
+`integrate_local.py`. The root invokes `pr.py` directly for open, observe, and
+authorized merge; `pr.py` calls `gh` and is not a generalized GitHub
+abstraction. Review-thread observation uses one bounded GraphQL query because
+REST check and comment data cannot establish thread resolution. Incomplete
+pagination remains `partial`, never clean. Phase commits use direct Git or the
+existing narrow commit helper, not an agent.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:
@@ -240,13 +262,14 @@ The source repository is authoritative. V1 installation uses only
 repository-driven direct sync. A single sync tool owns explicitly managed Codex
 resources, supports dry-run and backup, preserves unrelated user configuration,
 and reports what it installed. Installation is never part of ordinary task
-execution.
+execution, and bootstrap work must not invoke Orchestra.
 
-The direct-sync destinations are `$HOME/.agents/skills/<skill>`,
-`$CODEX_HOME/agents/<profile>.toml`, and `$CODEX_HOME/orchestra/` for the role
-matrix, four runtime helpers, manifest, and deterministic current backups. The
-default `CODEX_HOME` is `$HOME/.codex`. The only managed content in
-`$CODEX_HOME/AGENTS.md` is the single block delimited by
+The direct-sync destinations are `$HOME/.agents/skills/<skill>` including their
+internal playbook references, the four `$CODEX_HOME/agents/<profile>.toml`
+files, and `$CODEX_HOME/orchestra/` for the capability matrix, runtime helpers,
+manifest, and deterministic current backups. The default `CODEX_HOME` is
+`$HOME/.codex`. The
+only managed content in `$CODEX_HOME/AGENTS.md` is the single block delimited by
 `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.
 
 `status` and `apply --dry-run` are read-only. `apply` creates, upgrades, and

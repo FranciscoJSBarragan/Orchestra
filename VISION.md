@@ -34,17 +34,20 @@ organization-wide approval bureaucracy.
 
 The orchestrator is not a brainless dispatcher. It frames the problem,
 synthesizes evidence, negotiates scope with the user, selects the tier, chooses
-the next specialist, handles ordinary blockers, and makes the final technical
-judgment from fresh evidence.
+the next capability dispatch, handles ordinary blockers, and makes the final
+technical judgment from fresh evidence.
 
-Detailed plans belong to planning specialists for non-trivial work, and code
-belongs to implementation workers. That separation protects context and
-independence; it does not remove thought or responsibility from the root.
+The root owns the task plan and composes focused capabilities with four stable
+agent responsibilities: analysis, implementation, independent review, and
+verification. That separation protects context and independence without
+creating a new profile for every domain or removing technical responsibility
+from the root.
 
 ### Proportional workflow
 
 The workflow expands only when risk or complexity warrants it. Light work uses
-two focused subagents. Standard work adds bounded context and planning.
+focused implementation, review, and verification dispatches. Standard work adds
+bounded context and planning.
 Critical work adds the extra scrutiny justified by actual risk.
 
 Unknown scope is never classified as light merely to save cost.
@@ -80,12 +83,18 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
-### Specialized agents
+### Composable agents
 
-Recurring responsibilities should have focused profiles and prompts. A planner,
-reviewer, debugger, browser tester, and phase committer do not share one generic
-persona. Specialization is added when it creates a distinct, recurring contract
-with measurable value—not merely to increase the number of roles.
+Orchestra keeps four behavior-only base profiles: `analyst`,
+`implementation_worker`, `reviewer`, and `verifier`. The root explicitly adds
+the capability needed for a dispatch, such as technical planning, frontend
+implementation, difficult debugging, or browser acceptance. Applicable internal
+playbooks provide domain instructions without becoming public skills or
+additional personas; some assignment keys use only base-profile behavior.
+
+The profile boundary follows responsibility and independence, while the
+capability boundary follows the work being performed. New recurring knowledge
+should normally become a playbook, not a profile.
 
 ### Simple Git, strong delivery
 
@@ -113,7 +122,9 @@ Orchestra succeeds when:
 - Implementing a generalized enterprise approval platform.
 - Persisting every internal thought or agent transition.
 - Creating a schema, artifact, or state machine for every workflow step.
+- Building a plan CLI, Kanban board, or workflow control plane.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
 - Porting to Hermes, Devin, or another harness before user-approved Codex
   maturity.
-- Building speculative specialist profiles before a real recurring need exists.
+- Building extra profiles for capabilities that compose with the four
+  base responsibilities.

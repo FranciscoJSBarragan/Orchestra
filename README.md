@@ -5,9 +5,9 @@ Orchestra is a Codex-native, cost-efficient, multi-agent software-delivery workf
 It helps an individual developer move a software change from a clear objective
 to a reviewed, verified, and committed result. The root orchestrator acts as
 the technical lead: it frames the problem, selects a proportional workflow,
-routes focused work to specialized agents, resolves ordinary blockers, and
-makes the final technical judgment. The user remains the product owner and
-final authority.
+composes focused capabilities with four base agent profiles, resolves ordinary
+blockers, and makes the final technical judgment. The user remains the product
+owner and final authority.
 
 ## Product sources
 
@@ -29,6 +29,13 @@ Orchestra scales discovery, planning, implementation, review, and verification
 to task risk. It supports both direct local integration and GitHub PR delivery
 when repository policy and user authority allow them.
 
+The four profiles are `analyst`, `implementation_worker`, `reviewer`, and
+`verifier`. The root selects explicit capability assignments and their
+applicable internal references; public skill names stay stable. Standard and
+critical work use one root-owned, unversioned plan resolved by
+`git rev-parse --git-path orchestra/plan.md`. Git, not the plan, remains
+authoritative for code and history.
+
 Each consumer repository declares that choice in `orchestra.toml`. Missing
 policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured
 verification uses ordered argument arrays, not shell command strings.
@@ -49,8 +56,9 @@ python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
 
-Skills install under `$HOME/.agents/skills/`. Agent profiles install under
-`$CODEX_HOME/agents/`; roles and the four runtime helpers install under
+Skills and their internal playbook references install under
+`$HOME/.agents/skills/`. Four agent profiles install under
+`$CODEX_HOME/agents/`; capability assignments and runtime helpers install under
 `$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
 `$HOME/.codex`. The tool owns only destinations recorded in
 `$CODEX_HOME/orchestra/install-manifest.json` and the exactly marked Orchestra
@@ -73,3 +81,6 @@ python3 codex/scripts/validate_suite.py --full
 
 The versioned pre-commit hook invokes only quick validation. Full validation is
 the manual and CI entry point.
+
+Bootstrap, sync, and installation work do not invoke Orchestra itself. Model
+benchmarking is deferred until the composable runtime works end to end.

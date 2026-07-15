@@ -21,3 +21,16 @@ Plugin distribution remains deferred until all of these conditions hold:
 
 Meeting these conditions permits a product decision about distribution; it does
 not prescribe an implementation design.
+
+## Deferred model benchmark
+
+The approved capability matrix is the initial runtime contract. A comparative
+benchmark is deferred until the four profiles, capability playbooks, local plan
+resume flow, and conformance suite work end to end. Bootstrap and installation
+work must not invoke Orchestra to evaluate Orchestra.
+
+After that boundary, representative canary tasks may compare the approved model
+assignments using correctness, defects found by independent review, verification
+reliability, latency, and token use. The benchmark informs a later explicit
+product decision; it does not silently rewrite assignments, add a benchmarking
+profile, persist workflow telemetry, or require a benchmark control plane.

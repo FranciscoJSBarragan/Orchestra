@@ -50,20 +50,23 @@ destructive actions, production changes, or other high-impact risk.
 
 ## Default agent flow
 
-- Light: `implementation_worker` then independent `reviewer`.
-- Standard: bounded `repo_context_explorer`, `planner`,
-  one phase implementation owner, one high-signal `reviewer`, and verification.
-- Critical: standard flow plus plan audit and a second independent review where
-  the risk justifies it.
+- Orchestra has four base profiles: `analyst`, `implementation_worker`,
+  `reviewer`, and `verifier`.
+- The root composes each dispatch with a capability and the exact tier
+  assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
+- Light: general implementation, independent review, and runtime verification.
+- Standard: bounded analysis and root-owned planning, implementation, one
+  high-signal independent review, and verification.
+- Critical: standard flow plus plan audit or a second independent review only
+  for a named measurable risk and detectable defect class.
 - Use a detailed phase subplan only when the phase itself is complex.
 - Accepted findings return to the same implementation owner.
 - Reviewers report; they do not silently implement their own findings.
 
-For each standard or critical phase, use `frontend_implementation_worker`
-instead of `implementation_worker` when the phase is primarily frontend. Never
-dispatch both for the same phase or in parallel collaboration. Split mixed work
-into frontend and non-frontend phases with one implementation owner each. Light
-work continues to use `implementation_worker`.
+Frontend implementation composes `implementation_worker`; browser acceptance
+composes `verifier`. They remain independent, and either capability makes a task
+at least standard. No Orchestra assignment uses Sol xhigh. The user selects the
+root's Sol medium or Sol high session outside Orchestra.
 
 Fix correctness, security, regression, acceptance, and defect-prone
 maintainability findings. Record or reject cosmetic, speculative, or
@@ -72,13 +75,14 @@ out-of-scope suggestions without entering a review loop.
 ## Execution and commits
 
 - Use the fewest independently reviewable phases.
+- For standard and critical work, the root owns one unversioned local plan at
+  `git rev-parse --git-path orchestra/plan.md`; Git is authoritative on resume.
 - Plan approval authorizes implementation and automatic commits at successfully
   reviewed phase boundaries unless the user limits that authority.
 - For light work without a formal plan, the user's explicit implementation
   request authorizes the reviewed task commit unless the user limits it.
-- A lean `phase_committer` stages only the phase scope, creates a structured
-  file-based commit message, executes Git commit, verifies the stored commit,
-  and returns a compact result.
+- The root commits each reviewed phase directly or through the narrow commit
+  helper; commit execution is not an agent profile.
 - Do not create commit journals, replace the Git index, hash the whole worktree,
   or revalidate unchanged authority repeatedly.
 - Preserve unrelated and uncommitted user work.
@@ -97,12 +101,12 @@ out-of-scope suggestions without entering a review loop.
 
 ## Browser acceptance
 
-The delegated `browser_acceptance_tester` uses Computer Use with Chrome as its
-exclusive browser path. It must never invoke, probe, or fall back to Codex's
-in-app Browser. It opens a new Chrome tab, preserves unrelated tabs and sessions,
-and reports observed behavior with reproducible steps and evidence. It returns
-blocked when Computer Use or Chrome is unavailable. The root may use the in-app
-Browser separately.
+The delegated `verifier` with `browser_acceptance` uses Computer Use with Chrome
+as its exclusive browser path. It must never invoke, probe, or fall back to
+Codex's in-app Browser. It opens a new Chrome tab, preserves unrelated tabs and
+sessions, and reports observed behavior with reproducible steps and evidence.
+It returns blocked when Computer Use or Chrome is unavailable. The root may use
+the in-app Browser separately.
 
 ## Anti-overengineering rules
 
@@ -113,8 +117,9 @@ Browser separately.
   a simple result object already provides the required truth.
 - No whole-workflow restart for a local step failure.
 - No repeated discovery when a targeted context delta is sufficient.
-- No new specialist profile without a distinct recurring responsibility.
-- Twelve specialist profiles are a maximum, not a growth target.
+- New domain guidance is an internal capability playbook unless it requires a
+  genuinely different responsibility boundary.
+- No plan CLI, Kanban board, benchmark control plane, or workflow state engine.
 - Prefer deletion and direct code over compatibility layers.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure,

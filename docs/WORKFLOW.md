@@ -7,15 +7,15 @@ flowchart TD
     U["User describes an implementation"] --> O["Orchestrator frames the problem and selects a tier"]
     O --> L{"Tier"}
     L -->|"Light"| LW["Implementation worker"]
-    LW --> LR["Reviewer and targeted verification"]
-    L -->|"Standard or critical"| C["Bounded context explorer"]
+    LW --> LR["Independent reviewer and verifier"]
+    L -->|"Standard or critical"| C["Bounded analyst context"]
     C --> S["Orchestrator synthesizes and aligns with user"]
-    S --> P["Planner creates the formal plan"]
+    S --> P["Root writes the local task plan with analyst support"]
     P --> A["User approves implementation"]
     A --> F["Execute the next phase"]
     F --> R["Review and verify"]
     R -->|"Material finding"| F
-    R -->|"Accepted"| M["Phase committer"]
+    R -->|"Accepted"| M["Root commits the phase"]
     M --> N{"More phases?"}
     N -->|"Yes"| F
     N -->|"No"| D["Delivery-ready implementation"]
@@ -34,67 +34,117 @@ found during execution. It does not stop for routine technical choices and does
 not blindly follow a stale step when a reversible correction is clearly needed.
 
 It reports meaningful scope or design changes to the user. It asks before
-crossing the high-impact boundaries defined in `AGENTS.md`.
+crossing the high-impact boundaries defined in `AGENTS.md`. It owns capability
+routing, the local plan, phase commits, direct PR observation, and final
+judgment.
 
 ## Tier flows and models
 
-Model names describe the intended Codex profile families. The root uses its
-current session configuration, selected outside Orchestra. The table below
-documents that target separately from spawned specialists. For specialists,
-`codex/config/roles.toml` contains only assignments consumed by executable
-lanes; skills pass explicit overrides from that file when spawning a role.
-Profiles contain behavior only.
+The user selects the root's current Sol medium or Sol high session
+configuration outside Orchestra. The root has no machine-readable assignment,
+and Orchestra never changes its model or reasoning effort.
 
-| Role | Standard | Critical |
-| --- | --- | --- |
-| Root orchestrator (outside `roles.toml`) | Sol high | Sol xhigh |
-| `planner` / `plan_scope_auditor` | Sol high | Sol xhigh |
-| `implementation_worker` | Luna max | Sol high |
-| `frontend_implementation_worker` | Sol medium | Sol xhigh |
-| `reviewer` | Luna max | Sol high; second pass Sol xhigh |
-| `debugging_investigator` | Luna max | Sol high |
-| `repo_context_explorer` / `web_researcher` | Luna xhigh | Luna high |
-| `browser_acceptance_tester` | Luna xhigh | Luna xhigh |
-| `phase_committer` | Luna xhigh | Luna high |
-| `pr_polling_specialist` | Luna high | Luna high |
-| `pr_triage_specialist` | Luna max | Sol high |
-| Light task end-to-end | Luna max | Not applicable |
+For every spawned dispatch, the root selects the explicit capability, base
+profile, model, and reasoning effort below. Profiles contain behavior only;
+public skill names remain unchanged. `general_implementation` and
+`independent_review` are assignment keys whose behavior remains in the base
+`implementation_worker` and `reviewer` prompts; neither has an internal
+playbook.
 
-For a light task, `implementation_worker`, `reviewer`, and `phase_committer` use
-Luna max. Light does not mean unreviewed; it means discovery and planning roles
-are omitted because the scope is already small and certain.
+The only internal playbooks are `repository_context`, `web_research`,
+`technical_planning`, `difficult_debugging`, `frontend_implementation`,
+`browser_acceptance`, and `runtime_verification`. `architecture_analysis` uses
+the shared architecture guidance reference also used with `technical_planning`
+or `independent_review` when architecture is named; it has no dedicated
+playbook.
 
-For standard and critical work, a primarily frontend phase replaces
-`implementation_worker` with `frontend_implementation_worker`; the two never
-collaborate in parallel on one phase. Mixed work is split into frontend and
-non-frontend phases with one implementation owner each. The frontend owner stays
-within the approved brief, scope, and design system, reuses existing patterns and
-components, covers responsive, accessibility, and interaction states, and leaves
-independent browser acceptance to `browser_acceptance_tester`.
+| Tier | Capability | Base profile | Model | Reasoning |
+| --- | --- | --- | --- | --- |
+| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |
+| Light | `independent_review` | `reviewer` | `gpt-5.6-luna` | `max` |
+| Light | `runtime_verification` | `verifier` | `gpt-5.6-luna` | `max` |
+| Standard | `repository_context` | `analyst` | `gpt-5.6-luna` | `xhigh` |
+| Standard | `web_research` | `analyst` | `gpt-5.6-luna` | `xhigh` |
+| Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `architecture_analysis` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |
+| Standard | `frontend_implementation` | `implementation_worker` | `gpt-5.6-sol` | `medium` |
+| Standard | `independent_review` | `reviewer` | `gpt-5.6-sol` | `medium` |
+| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-luna` | `xhigh` |
+| Standard | `runtime_verification` | `verifier` | `gpt-5.6-luna` | `max` |
+| Critical | `repository_context` | `analyst` | `gpt-5.6-sol` | `medium` |
+| Critical | `web_research` | `analyst` | `gpt-5.6-sol` | `medium` |
+| Critical | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `architecture_analysis` | `analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `high` |
+| Critical | `frontend_implementation` | `implementation_worker` | `gpt-5.6-sol` | `high` |
+| Critical | `independent_review` | `reviewer` | `gpt-5.6-sol` | `high` |
+| Critical | `browser_acceptance` | `verifier` | `gpt-5.6-sol` | `medium` |
+| Critical | `runtime_verification` | `verifier` | `gpt-5.6-sol` | `medium` |
+
+Light has no context, research, planning, architecture, difficult-debugging,
+frontend, or browser-acceptance dispatch. Frontend implementation or named
+browser acceptance makes a task at least standard. A second critical review
+reuses `independent_review` with Sol high only for a named measurable risk and
+independently detectable defect class. No Orchestra assignment uses Sol xhigh.
+
+Frontend implementation composes `implementation_worker`; browser acceptance
+composes `verifier`. They remain independent and never run as one combined
+role.
 
 ## Context and planning
 
 For standard and critical work:
 
-1. A context explorer inspects only the domains needed for the request.
+1. An `analyst` with `repository_context` inspects only the domains needed for
+   the request.
 2. The orchestrator merges evidence into a compact problem statement.
 3. The orchestrator and user settle objective, constraints, acceptance, and
    relevant product choices.
-4. The planner writes the formal technical plan.
-5. A plan audit is added only when its packet names a measurable risk,
-   supporting evidence and affected area, and an independently detectable
-   defect class. Architectural complexity alone is insufficient.
+4. The root writes the formal plan, using an `analyst` with
+   `technical_planning` or `architecture_analysis` when useful.
+5. A critical plan audit is an independent `reviewer` dispatch only when its
+   packet names a measurable risk, supporting evidence and affected area, and
+   an independently detectable defect class. Complexity alone is insufficient.
 6. The orchestrator summarizes the plan at the user's altitude and requests
    implementation approval.
-
-The root may create a high-level sketch and phase strategy. The planner owns
-the detailed non-trivial plan; this distinction keeps the root intelligent
-without forcing it to absorb the whole repository.
 
 Standard and critical implementation does not begin until the user explicitly
 approves the aligned plan. That approval covers implementation and successful
 commits at the approved phase boundaries; it does not authorize merge, release,
 deployment, production mutation, or another delivery action.
+
+### Local task plan
+
+The root maintains exactly one local plan per standard or critical worktree at
+`git rev-parse --git-path orchestra/plan.md`. It is never versioned and is an
+intent and resume aid for the root, not a workflow database. It records the
+objective, tier, branch, base revision, decisions, phase contracts,
+verification, current phase, blocker, next action, and uncommitted-work note.
+
+Its statuses are:
+
+- `draft`: alignment is incomplete and implementation is not authorized;
+- `active`: the root is executing after explicit user approval;
+- `blocked`: execution stopped at a named blocker and next action;
+- `completed`: phases are reviewed, verified, and committed, while delivery
+  authority remains separate.
+
+Explicit user approval moves `draft` directly to `active`; approval is not a
+persisted status. The normal lifecycle is `draft` to `active` to `completed`,
+with `active` to `blocked` to `active` when needed. The root owns every update;
+plan state never grants authority beyond the user's instruction.
+
+On resume, the root resolves the path again and reconciles the plan with
+`git status`, branch, HEAD, merge base, and relevant commits. Git is
+authoritative for code, worktree state, and history; the plan is authoritative
+only for approved intent and recorded progress. The root corrects stale
+progress, revalidates affected evidence, and never infers missing approval. A
+missing or unreadable plan prevents automatic continuation until it is
+reconstructed and realigned with the user. Worktree cleanup removes the plan;
+there is no global index, plan CLI, Kanban board, event log, or state engine.
 
 ## Phase execution
 
@@ -104,19 +154,19 @@ delegated from the main plan.
 
 The loop is:
 
-1. The root selects one implementation owner for the phase. Primarily frontend
-   phases use `frontend_implementation_worker`; other phases use
-   `implementation_worker`.
-2. Targeted tests run and their results are read.
-3. One independent reviewer checks specification, correctness, regressions,
+1. The root selects one `implementation_worker` with `general_implementation`
+   or `frontend_implementation`.
+2. A `verifier` runs applicable checks and reports their observed results.
+3. One independent `reviewer` checks specification, correctness, regressions,
    safety, and materially defect-prone design.
 4. Accepted findings return to the same owner.
 5. Re-run affected verification and review the meaningful delta.
-6. Commit automatically when the phase passes.
+6. The root commits directly or through the narrow commit helper when the phase
+   passes.
 
-If the same failure repeats, stop blind retries, diagnose the root cause, and
-change the approach or ask the user when the decision crosses an authority
-boundary.
+If the same failure repeats, stop blind retries. The root may dispatch an
+`analyst` with `difficult_debugging`, change the approach, or ask the user when
+the decision crosses an authority boundary.
 
 ## Review policy
 
@@ -148,17 +198,17 @@ After authorized integration:
 1. verify the exact task revision;
 2. integrate using the selected local or PR path;
 3. confirm the target branch contains the expected commit;
-4. remove the task worktree;
+4. remove the task worktree and its local plan;
 5. delete the merged task branch when safe.
 
 Unmerged or dirty worktrees are never removed automatically.
 
 ## Commit path
 
-Plan approval covers commits at successful phase boundaries. The phase
-committer is a specialized but thin subagent. It receives the phase intent,
-changed paths, and verification summary; it does not rediscover the repository
-or reopen product decisions.
+Plan approval covers commits at successful phase boundaries. Commit execution
+is a root responsibility, not an agent profile or capability. The root uses Git
+directly or the narrow deterministic commit helper; it does not rediscover the
+repository or reopen product decisions.
 
 The commit implementation should preserve the useful `commitbot` behavior:
 
@@ -192,13 +242,14 @@ Supported policy modes:
 
 ## PR path
 
-The Orchestra-named PR skills preserve the proven behavioral chain:
+The unchanged public PR skills preserve the proven behavioral chain:
 
 1. PR-open reads the complete branch commit range and diff.
-2. It synthesizes and publishes a compact `PR-CONTEXT` capsule.
-3. PR-review uses a polling specialist for GitHub/CI state and a triage
-   specialist for actionable feedback.
-4. Triage validates comments against intent, current code, and scope.
+2. The root synthesizes and publishes a compact `PR-CONTEXT` capsule.
+3. The root calls the narrow PR helper directly to observe GitHub/CI and
+   review-thread state.
+4. The root evaluates actionable feedback against intent, current code, and
+   scope, using an independent `reviewer` when code-review judgment is useful.
 5. The implementation owner applies accepted fixes, verifies them, commits, and
    pushes.
 6. The loop continues until two complete clean observations occur on the same
@@ -206,10 +257,10 @@ The Orchestra-named PR skills preserve the proven behavioral chain:
    in memory; a push or head change resets it.
 
 GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
-in the PR body. Polling reports current checks and review-thread evidence;
-triage independently evaluates only unresolved, non-outdated feedback. Neither
-profile fixes, routes, or persists state. Accepted findings return to the same
-implementation owner.
+in the PR body. The helper reports current checks and review-thread evidence; it
+does not interpret feedback, fix code, route work, or persist state. The root
+evaluates only unresolved, non-outdated feedback and returns accepted findings
+to the same implementation owner.
 
 `Open a PR` authorizes opening, review processing, fixes, commits, and pushes
 needed to make that PR clean. It does not authorize merge unless the user said
