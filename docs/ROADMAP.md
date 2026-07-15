@@ -5,8 +5,11 @@
 This roadmap is non-canonical. It does not override `VISION.md`,
 `docs/WORKFLOW.md`, `docs/ARCHITECTURE.md`, or `AGENTS.md`.
 
-Current work prioritizes dependable repository-driven direct sync and proven
-software-delivery behavior in real projects.
+Current work prioritizes dependable repository-driven direct sync, proven
+software-delivery behavior, and implementation of the advisory Graphify
+lifecycle defined by `docs/WORKFLOW.md` and `docs/ARCHITECTURE.md`. The sequence
+is canonical contract first, executable routing and conformance second, then
+real-project evidence; the roadmap adds no parallel Graphify policy.
 
 ## Deferred distribution boundary
 

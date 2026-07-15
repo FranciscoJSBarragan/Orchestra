@@ -44,6 +44,44 @@ The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
 to unrelated Codex configuration.
 
+## Advisory Graphify lifecycle
+
+For standard and critical planned repositories, the root uses Graphify by
+default as advisory context. Read-only configuration/freshness checks and query
+may run before approval. Missing command, required artifact boundary, or safely
+repairable required hooks add one bootstrap phase; stale/pending evidence or
+hook/query failure falls back to source as `partial` without another bootstrap.
+Nothing mutates before plan approval. Light work never adopts Graphify
+automatically.
+
+Each detection pass executes `graphify hook status` once: valid installed
+status continues, valid absence bootstraps only when safely repairable, and
+failure or uninterpretable output falls back to source without bootstrap. The
+root then checks relevant Git delta and pending evidence before query smoke/use;
+it does not call hook status twice.
+
+Approved bootstrap uses `uv tool install --upgrade graphifyy`, one complete
+`graphify .` build, and repository ignore/versioning changes. The root reviews,
+verifies, and commits that initial snapshot before running
+`graphify hook install`, then reruns active detection. Exactly
+`graphify-out/graph.json`, `graphify-out/graph.html`, and
+`graphify-out/GRAPH_REPORT.md` are versioned;
+`manifest.json`, `cost.json`, and other generated data remain ignored. Before
+installing hooks, the root resolves Git's actual destination including
+`core.hooksPath`. A destination inside the tracked worktree or installation
+that would modify a tracked hook is preserved as `partial`; no wrapper or
+alternate hook is created. Only safely untracked, installation-local hooks may
+be treated as clone-local, reinstalled after cloning, or removed with
+`graphify hook uninstall`. Never use `graphify codex install`.
+
+Before using a configured graph, unusable evidence falls back to source. After
+functional phases, the root runs semantic
+`graphify . --update` at most once before plan completion and creates one
+graph-only commit only when tracked outputs changed. Graphify failure is
+`partial` and never overrides Git, source, tests, runtime evidence, or
+independent review. External credentials or material cost require separate user
+authority.
+
 ## Direct sync
 
 Run synchronization explicitly from a trusted Orchestra checkout. It is outside
