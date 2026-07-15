@@ -256,12 +256,30 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("failed or uninterpretable status command", self.skill)
         self.assertIn("returns `partial`, uses source, and adds no bootstrap", self.skill)
         self.assertIn("no package install", self.skill)
+        self.assertIn("treat the repository as a linked worktree", self.skill)
+        self.assertIn("do not run `graphify hook status`", self.skill)
+        self.assertIn("preserve existing common hooks", self.skill)
+        self.assertIn("add bootstrap solely for hooks", self.skill)
+        self.assertIn("whose hook step is skipped", self.skill)
+        self.assertIn("continue read-only to the relevant Git delta", self.skill)
+        self.assertIn("tracked graph fresh at HEAD", self.skill)
+        self.assertIn("tell `repository_context` that it is usable", self.skill)
+        self.assertIn(
+            "When the command is missing, add the one bootstrap and use source "
+            "because query cannot run",
+            self.skill,
+        )
 
     def test_graphify_hook_safety_and_freshness_precede_query(self) -> None:
+        git_dir = self.skill.index("`git rev-parse --git-dir`")
+        common_dir = self.skill.index("`git rev-parse --git-common-dir`")
+        hook_status = self.skill.index("execute `graphify hook status` exactly once")
         core_hooks = self.skill.index("`git config --path --get core.hooksPath`")
         git_hooks = self.skill.index("`git rev-parse --git-path hooks`")
         delta = self.skill.index("inspect the relevant Git delta")
         query = self.skill.index("`graphify query` smoke check")
+        self.assertLess(git_dir, hook_status)
+        self.assertLess(common_dir, hook_status)
         self.assertLess(core_hooks, delta)
         self.assertLess(git_hooks, delta)
         self.assertLess(delta, query)
@@ -279,7 +297,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "Review, verify, and commit the initial snapshot",
             "Only after that commit succeeds",
             "run native `graphify hook install`",
-            "Rerun one configuration and freshness detection pass",
+            "For either branch, inspect Git delta and pending evidence",
         )
         positions = [self.skill.index(item) for item in ordered]
         self.assertEqual(positions, sorted(positions))
@@ -288,6 +306,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("one separate graph-only commit", self.skill)
         self.assertIn("`nothing_to_commit`", self.skill)
         self.assertIn("does not prevent functional plan completion", self.skill)
+        self.assertIn("including for linked worktrees", self.skill)
 
     def test_repository_context_uses_graph_only_from_root_packet(self) -> None:
         context = (self.references / "repository_context.md").read_text()
@@ -308,14 +327,37 @@ class PlannedFlowContractTests(unittest.TestCase):
             runtime,
         )
         self.assertIn(
-            "Only when the command exists, interpret exactly one "
+            "Before hook status, canonicalize `git rev-parse --git-dir` and "
+            "`git rev-parse --git-common-dir`",
+            runtime,
+        )
+        self.assertIn(
+            "Only for a non-linked worktree with the command available, interpret "
+            "exactly one "
             "`graphify hook status` result",
+            runtime,
+        )
+        self.assertIn(
+            "If they differ, record hook automation as `partial`", runtime
+        )
+        self.assertIn("preserve common hooks", runtime)
+        self.assertIn(
+            "do not run status, install, reinstall, or uninstall hooks", runtime
+        )
+        self.assertIn("bootstrap solely for hooks", runtime)
+        self.assertIn("with its hook step skipped", runtime)
+        self.assertIn("continues read-only through relevant Git delta", runtime)
+        self.assertIn("tracked graph is fresh at HEAD", runtime)
+        self.assertIn("tell `repository_context` it is usable", runtime)
+        self.assertIn(
+            "When the command is missing, add bootstrap and use source because "
+            "query cannot run",
             runtime,
         )
         self.assertIn("valid installed hooks continue", runtime)
         self.assertIn("valid absence adds that bootstrap only when", runtime)
         self.assertIn("failure or uninterpretable output is `partial`", runtime)
-        self.assertIn("Tell `repository_context` whether", runtime)
+        self.assertIn("tell `repository_context` it is usable", runtime)
         self.assertIn("Graphify never establishes correctness or policy", runtime)
         for forbidden in (
             "graphify.toml",
@@ -324,6 +366,42 @@ class PlannedFlowContractTests(unittest.TestCase):
             "graphify lifecycle capability",
         ):
             self.assertNotIn(forbidden, self.skill + runtime)
+
+    def test_linked_worktree_hook_guard_is_consistent_across_consumers(self) -> None:
+        consumers = {
+            relative: (ROOT / relative).read_text()
+            for relative in (
+                "README.md",
+                "AGENTS.md",
+                "docs/WORKFLOW.md",
+                "docs/ARCHITECTURE.md",
+                "codex/skills/orchestra/SKILL.md",
+                "codex/runtime/AGENTS.orchestra.md",
+            )
+        }
+        for relative, text in consumers.items():
+            self.assertIn("`git rev-parse --git-dir`", text, relative)
+            self.assertIn("`git rev-parse --git-common-dir`", text, relative)
+            self.assertIn("linked worktree", text, relative)
+            self.assertIn("`partial`", text, relative)
+            normalized = " ".join(text.lower().split())
+            self.assertIn("git delta", normalized, relative)
+            self.assertIn("pending", normalized, relative)
+            self.assertIn("query", normalized, relative)
+            self.assertIn("fresh", normalized, relative)
+            self.assertIn("usable", normalized, relative)
+        workflow = consumers["docs/WORKFLOW.md"]
+        self.assertIn("do not call hook status", workflow)
+        self.assertIn("do not call hook status, install, reinstall, or uninstall", workflow)
+        self.assertIn(
+            "this does not invalidate the graph",
+            " ".join(workflow.lower().split()),
+        )
+        architecture = consumers["docs/ARCHITECTURE.md"]
+        self.assertIn("skips status, installation,", architecture)
+        self.assertIn("reinstallation, uninstall, wrappers, alternate hooks", architecture)
+        self.assertIn("the manual final", architecture)
+        self.assertIn("update remains the closure path", architecture)
 
 
 if __name__ == "__main__":

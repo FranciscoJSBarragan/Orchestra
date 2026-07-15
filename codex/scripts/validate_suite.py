@@ -215,6 +215,8 @@ VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
 
 GRAPHIFY_ROUTING_REQUIREMENTS = (
     "## Use advisory Graphify context",
+    "`git rev-parse --git-dir` and `git rev-parse --git-common-dir`",
+    "do not run `graphify hook status`",
     "`graphify hook status` exactly once",
     "`uv tool install --upgrade graphifyy`",
     "`graphify . --update` at most once",
@@ -231,8 +233,19 @@ GRAPHIFY_RUNTIME_REQUIREMENTS = (
     "The root solely owns Graphify as advisory, non-blocking context",
     "A missing command or incorrect exact tracked/ignored boundary adds the one "
     "approval-gated bootstrap",
-    "Only when the command exists, interpret exactly one `graphify hook status` result",
-    "Tell `repository_context` whether the pass found a usable graph",
+    "Before hook status, canonicalize `git rev-parse --git-dir` and "
+    "`git rev-parse --git-common-dir`",
+    "If they differ, record hook automation as `partial`, preserve common hooks",
+    "When the command exists, a linked worktree continues read-only through "
+    "relevant Git delta, pending evidence, and query smoke",
+    "When the command is missing, add bootstrap and use source because query "
+    "cannot run",
+    "Only for a non-linked worktree with the command available, interpret exactly "
+    "one `graphify hook status` result",
+    "Incorrect artifact configuration may also authorize that bootstrap, with its "
+    "hook step skipped",
+    "tell `repository_context` it is usable",
+    "`graphify . --update` at most once even for linked worktrees",
     "Graphify never establishes correctness or policy",
 )
 

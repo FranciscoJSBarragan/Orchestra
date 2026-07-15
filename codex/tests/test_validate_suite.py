@@ -362,9 +362,24 @@ class FullModeFixtureTest(unittest.TestCase):
         runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
         runtime.write_text(
             runtime.read_text(encoding="utf-8").replace(
-                "Only when the command exists, interpret exactly one "
-                "`graphify hook status` result",
+                "Only for a non-linked worktree with the command available, interpret "
+                "exactly one `graphify hook status` result",
                 "Interpret `graphify hook status` once",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: managed runtime is missing", result.stdout)
+
+    def test_managed_runtime_requires_linked_worktree_guard(self) -> None:
+        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "Before hook status, canonicalize `git rev-parse --git-dir` and "
+                "`git rev-parse --git-common-dir`",
+                "Inspect the hooks destination",
                 1,
             ),
             encoding="utf-8",
