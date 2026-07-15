@@ -1,25 +1,26 @@
 ---
 name: orchestra-pr-review
-description: Converge an authorized Orchestra pull request through factual polling, independent feedback triage, accepted fixes by the existing owner, affected verification, reviewed commits, and pushes until two clean observations occur on the same HEAD. Use only after an authorized PR exists; never merge implicitly or persist local PR state.
+description: Converge an authorized Orchestra pull request through direct root observation, independent review of current feedback, accepted fixes by the same implementation owner, affected verification, reviewed commits, and pushes until two clean observations occur on one HEAD. Use only after an authorized PR exists; never merge implicitly or persist local PR state.
 ---
 
 # Converge an authorized PR
 
-Keep the root responsible for decisions, accepted findings, routing, blockers, and the clean conclusion. Keep the previous clean head only in root memory for the immediately following observation.
+Keep the root responsible for GitHub observation, feedback decisions, routing, blockers, pushes, and the clean conclusion. Keep the previous clean head only in root memory for the immediately following observation. There is no polling or PR-triage profile and no PR observation capability.
 
-## Observe and triage
+## Observe and evaluate
 
-1. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Resolve `pr_polling_specialist` and `pr_triage_specialist` assignments for the task tier from `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`. Pass explicit model and reasoning overrides when spawning each profile.
-2. Send repository, explicit `OWNER/REPO`, PR number, current revision, and any in-memory previous clean head to the `${CODEX_HOME:-$HOME/.codex}/agents/pr_polling_specialist.toml` profile. It runs `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/pr.py" observe ...` and reports current head, checks, review decision, merge state, and unresolved non-outdated feedback without deciding disposition.
-3. If the snapshot has unresolved non-outdated feedback, send that snapshot, PR-CONTEXT, full current diff, intent, code, verification, and scope to the `${CODEX_HOME:-$HOME/.codex}/agents/pr_triage_specialist.toml` profile. It reports only; it never fixes or routes.
-4. Have the root accept or reject findings from evidence. Return accepted fixes to the same `${CODEX_HOME:-$HOME/.codex}/agents/implementation_worker.toml` profile that owned implementation.
+1. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/pr.py" observe --repo <root> --repository <OWNER/REPO> --pr <number> [--previous-clean-head <sha>]`.
+2. Read the helper's factual current head, checks, review decision, merge state, unresolved non-outdated feedback, pagination completeness, and clean-observation result. Treat malformed or incomplete evidence as `partial` or `blocked`, never clean.
+3. When feedback needs code-review judgment, resolve `tiers.<tier>.independent_review` from `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` and dispatch the configured `reviewer` with explicit model and reasoning overrides. Supply the observation, exact head, PR-CONTEXT capsule, complete current base..HEAD diff, approved intent and scope, relevant source, and verification evidence.
+4. Require the reviewer to report evidence-backed accepted and rejected feedback without editing. The root decides disposition from current intent, code, and scope.
 
 ## Fix and converge
 
-1. Apply accepted fixes, run affected verification, and send the meaningful delta to the reviewer.
-2. Commit accepted fixes through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then have the root push the current branch directly under the existing `open PR` authority.
-3. Clear any remembered clean head after a push or observed head change. Resume at polling; do not restart discovery, planning, or unaffected verification.
-4. Treat pending or failed checks, required review, changes requested, non-clean merge state, triaged actionable feedback, incomplete thread pagination, or a first clean observation as `partial`.
-5. Return `ok` only after two complete clean observations on the same HEAD. Pass the first clean head directly as `--previous-clean-head` for the second observation; never write it to disk.
+1. Return every accepted finding to the same `implementation_worker` that owned the affected implementation, preserving its original `general_implementation` or `frontend_implementation` capability and playbook. Do not silently transfer ownership.
+2. Run affected `runtime_verification` and any required `browser_acceptance`, then send only the meaningful delta to `independent_review`.
+3. Commit accepted fixes through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then have the root push the current branch directly under the existing `open PR` authority.
+4. Clear any remembered clean head after a push or observed head change. Resume with direct observation; do not restart discovery, planning, or unaffected verification.
+5. Treat pending or failed checks, required review, changes requested, non-clean merge state, accepted feedback, incomplete thread pagination, or a first clean observation as `partial`.
+6. Return `ok` only after two complete clean observations on the same HEAD. Pass the first clean head directly as `--previous-clean-head` for the second observation; never write it to disk.
 
-`Open PR` authority covers this review/fix/commit/push loop only. Stop before merge unless the user separately authorized it, then route to [orchestra-pr-merge](../orchestra-pr-merge/SKILL.md). Never release, deploy, publish, or mutate production.
+`Open PR` authority covers this review/fix/commit/push loop only. Stop before merge unless the user separately authorized it, then route to [orchestra-pr-merge](../orchestra-pr-merge/SKILL.md). Never release, deploy, publish, mutate production, or create a local PR state file.

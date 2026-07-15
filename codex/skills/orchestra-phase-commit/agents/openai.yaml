@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestra Phase Commit"
-  short_description: "Commit one verified Orchestra phase safely"
-  default_prompt: "Use $orchestra-phase-commit to commit this reviewed phase within its exact path scope."
+  short_description: "Commit one phase directly and safely"
+  default_prompt: "Use $orchestra-phase-commit so the root directly commits this reviewed phase within its exact path scope."

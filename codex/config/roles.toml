@@ -1,119 +1,114 @@
-[tiers.light.implementation_worker]
+[tiers.light.general_implementation]
+profile = "implementation_worker"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.light.reviewer]
+[tiers.light.independent_review]
+profile = "reviewer"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.light.phase_committer]
+[tiers.light.runtime_verification]
+profile = "verifier"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.light.pr_polling_specialist]
+[tiers.standard.repository_context]
+profile = "analyst"
 model = "gpt-5.6-luna"
-reasoning_effort = "max"
+reasoning_effort = "xhigh"
 
-[tiers.light.pr_triage_specialist]
+[tiers.standard.web_research]
+profile = "analyst"
 model = "gpt-5.6-luna"
-reasoning_effort = "max"
+reasoning_effort = "xhigh"
 
-[tiers.standard.planner]
+[tiers.standard.technical_planning]
+profile = "analyst"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 
-[tiers.standard.plan_scope_auditor]
+[tiers.standard.architecture_analysis]
+profile = "analyst"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 
-[tiers.standard.implementation_worker]
+[tiers.standard.difficult_debugging]
+profile = "analyst"
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.standard.general_implementation]
+profile = "implementation_worker"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.standard.frontend_implementation_worker]
+[tiers.standard.frontend_implementation]
+profile = "implementation_worker"
 model = "gpt-5.6-sol"
 reasoning_effort = "medium"
 
-[tiers.standard.reviewer]
+[tiers.standard.independent_review]
+profile = "reviewer"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"
+
+[tiers.standard.browser_acceptance]
+profile = "verifier"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.standard.runtime_verification]
+profile = "verifier"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.standard.debugging_investigator]
-model = "gpt-5.6-luna"
-reasoning_effort = "max"
-
-[tiers.standard.repo_context_explorer]
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
-
-[tiers.standard.web_researcher]
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
-
-[tiers.standard.browser_acceptance_tester]
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
-
-[tiers.standard.phase_committer]
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
-
-[tiers.standard.pr_polling_specialist]
-model = "gpt-5.6-luna"
-reasoning_effort = "high"
-
-[tiers.standard.pr_triage_specialist]
-model = "gpt-5.6-luna"
-reasoning_effort = "max"
-
-[tiers.critical.planner]
+[tiers.critical.repository_context]
+profile = "analyst"
 model = "gpt-5.6-sol"
-reasoning_effort = "xhigh"
+reasoning_effort = "medium"
 
-[tiers.critical.plan_scope_auditor]
+[tiers.critical.web_research]
+profile = "analyst"
 model = "gpt-5.6-sol"
-reasoning_effort = "xhigh"
+reasoning_effort = "medium"
 
-[tiers.critical.implementation_worker]
+[tiers.critical.technical_planning]
+profile = "analyst"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 
-[tiers.critical.frontend_implementation_worker]
-model = "gpt-5.6-sol"
-reasoning_effort = "xhigh"
-
-[tiers.critical.reviewer]
+[tiers.critical.architecture_analysis]
+profile = "analyst"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 
-[tiers.critical.reviewer_second_pass]
-model = "gpt-5.6-sol"
-reasoning_effort = "xhigh"
-
-[tiers.critical.debugging_investigator]
+[tiers.critical.difficult_debugging]
+profile = "analyst"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
 
-[tiers.critical.repo_context_explorer]
-model = "gpt-5.6-luna"
-reasoning_effort = "high"
-
-[tiers.critical.web_researcher]
-model = "gpt-5.6-luna"
-reasoning_effort = "high"
-
-[tiers.critical.browser_acceptance_tester]
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
-
-[tiers.critical.phase_committer]
-model = "gpt-5.6-luna"
-reasoning_effort = "high"
-
-[tiers.critical.pr_polling_specialist]
-model = "gpt-5.6-luna"
-reasoning_effort = "high"
-
-[tiers.critical.pr_triage_specialist]
+[tiers.critical.general_implementation]
+profile = "implementation_worker"
 model = "gpt-5.6-sol"
 reasoning_effort = "high"
+
+[tiers.critical.frontend_implementation]
+profile = "implementation_worker"
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.critical.independent_review]
+profile = "reviewer"
+model = "gpt-5.6-sol"
+reasoning_effort = "high"
+
+[tiers.critical.browser_acceptance]
+profile = "verifier"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"
+
+[tiers.critical.runtime_verification]
+profile = "verifier"
+model = "gpt-5.6-sol"
+reasoning_effort = "medium"

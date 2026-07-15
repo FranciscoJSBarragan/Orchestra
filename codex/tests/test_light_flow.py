@@ -1,4 +1,4 @@
-"""Static contract tests for the Orchestra light workflow."""
+"""Static contracts for the proportional Orchestra light workflow."""
 
 from __future__ import annotations
 
@@ -19,94 +19,90 @@ class LightFlowContractTests(unittest.TestCase):
 
     def test_light_tiering_fails_closed_and_declares_reason(self) -> None:
         self.assertIn("Tier: light|standard|critical — reason", self.skill)
-        self.assertIn("Fail closed to `standard` on any ambiguity", self.skill)
+        self.assertIn("Fail closed to `standard` on ambiguity", self.skill)
         self.assertIn("Select `critical` for security-sensitive work", self.skill)
+        self.assertIn("Frontend implementation or named browser acceptance", self.skill)
 
     def test_root_owns_judgment_and_packet_stays_in_memory(self) -> None:
         for responsibility in (
             "problem framing",
             "tier selection",
             "user alignment",
-            "routing",
+            "capability routing",
             "compact synthesis",
             "blocker resolution",
             "final technical judgment",
         ):
             self.assertIn(responsibility, self.skill)
-        self.assertIn("Keep one compact packet in memory", self.skill)
+        self.assertIn("compact in-memory packet", self.skill)
         for field in (
+            "explicit capability",
             "objective",
-            "known decisions and context",
-            "allowed paths",
+            "known decisions and context delta",
+            "allowed paths or interactions",
             "acceptance",
             "verification",
             "exclusions",
             "stop conditions",
-            "references and revision",
+            "relevant references and revision",
         ):
             self.assertIn(field, self.skill)
 
-    def test_review_is_independent_read_only_and_fixes_return_to_owner(self) -> None:
+    def test_review_and_verification_are_independent_and_fixes_return(self) -> None:
         reviewer = (ROOT / "codex/agents/reviewer.toml").read_text()
-        self.assertIn("one independent `reviewer`", self.skill)
-        self.assertIn("Do not ask the reviewer to edit", self.skill)
+        verifier = (ROOT / "codex/agents/verifier.toml").read_text()
+        self.assertIn("one read-only `reviewer`", self.skill)
+        self.assertIn("source-read-only `verifier`", self.skill)
         self.assertIn("same implementation owner", self.skill)
-        self.assertIn("Remain read-only: do not edit files", reviewer)
-        self.assertIn("accepted findings return to the same implementation owner", reviewer)
+        self.assertIn("Remain read-only and report-only", reviewer)
+        self.assertIn("Accepted findings return to the same implementation owner", reviewer)
+        self.assertIn("Remain read-only with respect to repository source", verifier)
 
-    def test_light_profiles_remain_behavior_only_contracts(self) -> None:
-        profile_paths = [
-            ROOT / "codex/agents/implementation_worker.toml",
-            ROOT / "codex/agents/reviewer.toml",
-            ROOT / "codex/agents/phase_committer.toml",
-        ]
-        self.assertTrue(all(path.is_file() for path in profile_paths))
+    def test_all_four_profiles_are_behavior_only_contracts(self) -> None:
+        profile_paths = sorted((ROOT / "codex/agents").glob("*.toml"))
+        self.assertEqual(
+            {path.stem for path in profile_paths},
+            {"analyst", "implementation_worker", "reviewer", "verifier"},
+        )
         for path in profile_paths:
             profile = tomllib.loads(path.read_text())
             self.assertEqual(
                 set(profile), {"name", "description", "developer_instructions"}
             )
-            self.assertNotIn("model", profile["developer_instructions"].lower())
+            self.assertNotIn("gpt-5.", profile["developer_instructions"].lower())
             self.assertIn("## Input", profile["developer_instructions"])
             self.assertIn("## Output", profile["developer_instructions"])
             self.assertIn("## Stop conditions", profile["developer_instructions"])
 
-    def test_role_matrix_is_unique_and_light_uses_luna_max(self) -> None:
+    def test_light_matrix_is_exactly_three_luna_max_capabilities(self) -> None:
         roles = tomllib.loads((ROOT / "codex/config/roles.toml").read_text())
         self.assertEqual(set(roles), {"tiers"})
         self.assertEqual(set(roles["tiers"]), {"light", "standard", "critical"})
         self.assertEqual(
             roles["tiers"]["light"],
             {
-                "implementation_worker": {
+                "general_implementation": {
+                    "profile": "implementation_worker",
                     "model": "gpt-5.6-luna",
                     "reasoning_effort": "max",
                 },
-                "reviewer": {
+                "independent_review": {
+                    "profile": "reviewer",
                     "model": "gpt-5.6-luna",
                     "reasoning_effort": "max",
                 },
-                "phase_committer": {
-                    "model": "gpt-5.6-luna",
-                    "reasoning_effort": "max",
-                },
-                "pr_polling_specialist": {
-                    "model": "gpt-5.6-luna",
-                    "reasoning_effort": "max",
-                },
-                "pr_triage_specialist": {
+                "runtime_verification": {
+                    "profile": "verifier",
                     "model": "gpt-5.6-luna",
                     "reasoning_effort": "max",
                 },
             },
         )
-        self.assertIn("only machine-readable model and reasoning matrix", self.skill)
-        self.assertIn(
-            "pass its `model` and `reasoning_effort` as explicit overrides", self.skill
-        )
-        self.assertIn("`phase_committer`", self.skill)
+        self.assertIn("only machine-readable assignment matrix", self.skill)
+        self.assertIn("explicit model and reasoning overrides", self.skill)
+        self.assertIn("root has no assignment", self.skill)
 
-    def test_commit_path_rejects_parallel_git_machinery(self) -> None:
+    def test_commit_path_is_direct_and_rejects_parallel_git_machinery(self) -> None:
         helper = (ROOT / "codex/scripts/commit_phase.py").read_text()
         self.assertIn('"commit",', helper)
         self.assertIn('"-F",', helper)
@@ -121,6 +117,8 @@ class LightFlowContractTests(unittest.TestCase):
             self.assertNotIn(rejected, helper)
         self.assertIn("alternate index", self.commit_skill)
         self.assertIn("Git is the commit truth", self.commit_skill)
+        self.assertIn("root directly run", self.commit_skill)
+        self.assertIn("Do not resolve an assignment", self.commit_skill)
 
     def test_runtime_managed_block_routes_without_installing(self) -> None:
         runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()

@@ -208,10 +208,10 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("has invalid model", result.stdout)
 
     def test_duplicate_profile_name_is_rejected(self) -> None:
-        planner = self.root / "codex/agents/planner.toml"
-        planner.write_text(
-            planner.read_text(encoding="utf-8").replace(
-                'name = "planner"', 'name = "reviewer"', 1
+        analyst = self.root / "codex/agents/analyst.toml"
+        analyst.write_text(
+            analyst.read_text(encoding="utf-8").replace(
+                'name = "analyst"', 'name = "reviewer"', 1
             ),
             encoding="utf-8",
         )
@@ -223,27 +223,60 @@ class FullModeFixtureTest(unittest.TestCase):
         skill = self.root / "codex/skills/orchestra/SKILL.md"
         skill.write_text(
             skill.read_text(encoding="utf-8").replace(
-                "`debugging_investigator`", "diagnostic specialist"
+                "`difficult_debugging`", "diagnostic specialist"
             ),
             encoding="utf-8",
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "standard.debugging_investigator is not consumed", result.stdout
+            "standard.difficult_debugging is not consumed", result.stdout
         )
 
     def test_speculative_pr_role_is_rejected(self) -> None:
         roles = self.root / "codex/config/roles.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
-            + '\n[tiers.standard.pr_poll]\nmodel = "gpt-5.6-luna"\n'
+            + '\n[tiers.standard.pr_poll]\nprofile = "reviewer"\n'
+            + 'model = "gpt-5.6-luna"\n'
             + 'reasoning_effort = "xhigh"\n',
             encoding="utf-8",
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpected standard role set", result.stdout)
+        self.assertIn("unexpected standard capability set", result.stdout)
+
+    def test_assignment_without_profile_is_rejected(self) -> None:
+        roles = self.root / "codex/config/roles.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8").replace(
+                'profile = "implementation_worker"\n', "", 1
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("needs profile, model, and reasoning_effort", result.stdout)
+
+    def test_wrong_profile_mapping_and_sol_xhigh_are_rejected(self) -> None:
+        roles = self.root / "codex/config/roles.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8")
+            .replace('profile = "analyst"', 'profile = "reviewer"', 1)
+            .replace('reasoning_effort = "high"', 'reasoning_effort = "xhigh"', 1),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("approved assignment matrix", result.stdout)
+        self.assertIn("must not use Sol xhigh", result.stdout)
+
+    def test_extra_internal_playbook_is_rejected(self) -> None:
+        extra = self.root / "codex/skills/orchestra/references/extra.md"
+        extra.write_text("# Extra\n", encoding="utf-8")
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exactly seven playbooks and one architecture", result.stdout)
 
     def test_broken_skill_link_is_actionable(self) -> None:
         skill = self.root / "codex/skills/orchestra/SKILL.md"

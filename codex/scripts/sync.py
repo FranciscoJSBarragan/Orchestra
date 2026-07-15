@@ -23,17 +23,21 @@ SKILLS = (
     "orchestra-local-integrate",
 )
 AGENTS = (
+    "analyst",
+    "implementation_worker",
+    "reviewer",
+    "verifier",
+)
+LEGACY_AGENTS = (
     "browser_acceptance_tester",
     "debugging_investigator",
     "frontend_implementation_worker",
-    "implementation_worker",
     "phase_committer",
     "plan_scope_auditor",
     "planner",
     "pr_polling_specialist",
     "pr_triage_specialist",
     "repo_context_explorer",
-    "reviewer",
     "web_researcher",
 )
 HELPERS = ("commit_phase.py", "policy.py", "pr.py", "integrate_local.py")
@@ -142,7 +146,7 @@ def _inventory(source_root: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise SyncError(f"unexpected agent source entry: {child}")
         actual_agents.append(child.stem)
     if tuple(actual_agents) != AGENTS:
-        raise SyncError("agent source inventory does not match the twelve supported profiles")
+        raise SyncError("agent source inventory does not match the four supported profiles")
     for name in AGENTS:
         source = agent_dir / f"{name}.toml"
         destination = f"agents/{name}.toml"
@@ -184,7 +188,8 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
     if kind != "file":
         return False
     if len(parts) == 2 and parts[0] == "agents":
-        return parts[1] in {f"{name}.toml" for name in AGENTS}
+        allowed_agents = {*AGENTS, *LEGACY_AGENTS}
+        return parts[1] in {f"{name}.toml" for name in allowed_agents}
     return path == "orchestra/roles.toml" or path in {
         f"orchestra/scripts/{name}" for name in HELPERS
     }

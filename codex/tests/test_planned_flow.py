@@ -1,325 +1,243 @@
-"""Static contracts for standard and critical Orchestra routing."""
+"""Static and isolated contracts for composable planned Orchestra work."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import re
+import subprocess
+import tempfile
 import tomllib
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PROFILE_NAMES = {
-    "repo_context_explorer",
-    "planner",
-    "plan_scope_auditor",
-    "implementation_worker",
-    "frontend_implementation_worker",
-    "reviewer",
-    "debugging_investigator",
-    "web_researcher",
-    "browser_acceptance_tester",
-    "phase_committer",
-    "pr_polling_specialist",
-    "pr_triage_specialist",
+PROFILE_NAMES = {"analyst", "implementation_worker", "reviewer", "verifier"}
+PLAYBOOK_NAMES = {
+    "repository_context",
+    "web_research",
+    "technical_planning",
+    "difficult_debugging",
+    "frontend_implementation",
+    "browser_acceptance",
+    "runtime_verification",
 }
 
 
 class PlannedFlowContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
-        self.profiles = {
-            path.stem: tomllib.loads(path.read_text())
-            for path in sorted((ROOT / "codex/agents").glob("*.toml"))
-        }
         self.roles = tomllib.loads(
             (ROOT / "codex/config/roles.toml").read_text()
         )["tiers"]
+        self.profiles = {
+            path.stem: tomllib.loads(path.read_text())
+            for path in (ROOT / "codex/agents").glob("*.toml")
+        }
+        self.references = ROOT / "codex/skills/orchestra/references"
 
     def instructions(self, name: str) -> str:
         return self.profiles[name]["developer_instructions"]
 
-    def assert_assignments(
-        self, tier: str, names: set[str], model: str, effort: str
-    ) -> None:
-        for name in names:
-            self.assertEqual(
-                self.roles[tier][name],
-                {"model": model, "reasoning_effort": effort},
-            )
-
-    def test_twelve_profiles_have_unique_structural_contracts(self) -> None:
+    def test_exact_four_profiles_are_behavior_only(self) -> None:
         self.assertEqual(set(self.profiles), PROFILE_NAMES)
-        declared_names = {profile["name"] for profile in self.profiles.values()}
-        self.assertEqual(declared_names, PROFILE_NAMES)
+        self.assertEqual(
+            {profile["name"] for profile in self.profiles.values()}, PROFILE_NAMES
+        )
         for name, profile in self.profiles.items():
             self.assertEqual(
                 set(profile), {"name", "description", "developer_instructions"}
             )
-            self.assertNotIn("model", profile["developer_instructions"].lower())
+            self.assertTrue(profile["description"].strip())
             for heading in ("## Input", "## Output", "## Stop conditions"):
                 self.assertIn(heading, profile["developer_instructions"], name)
+            self.assertNotIn("gpt-5.", profile["developer_instructions"].lower())
 
-    def test_roles_match_current_standard_and_critical_matrix(self) -> None:
-        standard_roles = {
-            "planner",
-            "plan_scope_auditor",
-            "implementation_worker",
-            "frontend_implementation_worker",
-            "reviewer",
-            "debugging_investigator",
-            "repo_context_explorer",
-            "web_researcher",
-            "browser_acceptance_tester",
-            "phase_committer",
-            "pr_polling_specialist",
-            "pr_triage_specialist",
+    def test_capability_inventory_and_profile_mapping_are_exact(self) -> None:
+        light = {
+            "general_implementation": "implementation_worker",
+            "independent_review": "reviewer",
+            "runtime_verification": "verifier",
         }
-        critical_roles = standard_roles | {"reviewer_second_pass"}
+        standard = {
+            "repository_context": "analyst",
+            "web_research": "analyst",
+            "technical_planning": "analyst",
+            "architecture_analysis": "analyst",
+            "difficult_debugging": "analyst",
+            "general_implementation": "implementation_worker",
+            "frontend_implementation": "implementation_worker",
+            "independent_review": "reviewer",
+            "browser_acceptance": "verifier",
+            "runtime_verification": "verifier",
+        }
         self.assertEqual(set(self.roles), {"light", "standard", "critical"})
-        self.assertEqual(set(self.roles["standard"]), standard_roles)
-        self.assertEqual(set(self.roles["critical"]), critical_roles)
-        self.assertNotIn("orchestrator", self.roles["standard"])
-        self.assertNotIn("orchestrator", self.roles["critical"])
-        self.assertNotIn("frontend_implementation_worker", self.roles["light"])
+        self.assertEqual(
+            {name: value["profile"] for name, value in self.roles["light"].items()},
+            light,
+        )
+        for tier in ("standard", "critical"):
+            self.assertEqual(
+                {name: value["profile"] for name, value in self.roles[tier].items()},
+                standard,
+            )
+        for assignments in self.roles.values():
+            for assignment in assignments.values():
+                self.assertEqual(
+                    set(assignment), {"profile", "model", "reasoning_effort"}
+                )
+                self.assertNotEqual(
+                    (assignment["model"], assignment["reasoning_effort"]),
+                    ("gpt-5.6-sol", "xhigh"),
+                )
+                self.assertNotIn(assignment["profile"], {"root", "orchestrator"})
 
-        self.assert_assignments(
-            "standard",
-            {"planner", "plan_scope_auditor"},
-            "gpt-5.6-sol",
-            "high",
+    def test_seven_playbooks_and_shared_architecture_reference_are_composed(self) -> None:
+        expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
+            "architecture_guidance.md"
+        }
+        self.assertEqual({path.name for path in self.references.iterdir()}, expected)
+        for name in PLAYBOOK_NAMES:
+            self.assertIn(f"references/{name}.md", self.skill)
+        self.assertGreaterEqual(
+            self.skill.count("references/architecture_guidance.md"), 3
         )
-        self.assert_assignments(
-            "standard",
-            {"frontend_implementation_worker"},
-            "gpt-5.6-sol",
-            "medium",
-        )
-        self.assert_assignments(
-            "standard",
-            {
-                "implementation_worker",
-                "reviewer",
-                "debugging_investigator",
-                "pr_triage_specialist",
-            },
-            "gpt-5.6-luna",
-            "max",
-        )
-        self.assert_assignments(
-            "standard",
-            {"pr_polling_specialist"},
-            "gpt-5.6-luna",
-            "high",
-        )
-        self.assert_assignments(
-            "standard",
-            {
-                "repo_context_explorer",
-                "web_researcher",
-                "browser_acceptance_tester",
-                "phase_committer",
-            },
-            "gpt-5.6-luna",
-            "xhigh",
-        )
-        self.assert_assignments(
-            "critical",
-            {
-                "planner",
-                "plan_scope_auditor",
-                "reviewer_second_pass",
-                "frontend_implementation_worker",
-            },
-            "gpt-5.6-sol",
-            "xhigh",
-        )
-        self.assert_assignments(
-            "critical",
-            {
-                "implementation_worker",
-                "reviewer",
-                "debugging_investigator",
-                "pr_triage_specialist",
-            },
-            "gpt-5.6-sol",
-            "high",
-        )
-        self.assert_assignments(
-            "critical",
-            {
-                "repo_context_explorer",
-                "web_researcher",
-                "phase_committer",
-                "pr_polling_specialist",
-            },
-            "gpt-5.6-luna",
-            "high",
-        )
-        self.assert_assignments(
-            "critical",
-            {"browser_acceptance_tester"},
-            "gpt-5.6-luna",
-            "xhigh",
-        )
+        for absent in (
+            "general_implementation.md",
+            "independent_review.md",
+            "architecture_analysis.md",
+        ):
+            self.assertNotIn(absent, self.skill)
 
-    def test_standard_stops_for_user_approval_and_limits_authority(self) -> None:
-        self.assertIn("request explicit user approval", self.skill)
-        self.assertIn(
-            "Stop before any standard or critical implementation until approval",
-            self.skill,
-        )
-        self.assertIn("successful phase commits only", self.skill)
-        for action in ("merge", "delivery", "release", "deployment"):
-            self.assertIn(action, self.skill)
+    def test_profile_responsibilities_are_bounded(self) -> None:
+        analyst = self.instructions("analyst")
+        self.assertIn("Perform exactly one named analysis capability", analyst)
+        self.assertIn("Remain read-only with respect to repository source", analyst)
+        worker = self.instructions("implementation_worker")
+        self.assertIn("approved paths and accepted fixes", worker)
+        self.assertIn("same implementation owner", self.skill)
+        reviewer = self.instructions("reviewer")
+        for target in ("plan", "architecture", "code revision", "PR feedback"):
+            self.assertIn(target, reviewer)
+        self.assertIn("Remain read-only and report-only", reviewer)
+        verifier = self.instructions("verifier")
+        self.assertIn("runtime, test, log, or visible-browser checks", verifier)
+        self.assertIn("Remain read-only with respect to repository source", verifier)
+        for name in PROFILE_NAMES:
+            instructions = self.instructions(name)
+            self.assertRegex(
+                instructions, r"Do not choose[^.\n]*model[^.\n]*reasoning effort", name
+            )
+            for boundary in ("route work", "spawn agents", "orchestrate"):
+                self.assertIn(boundary, instructions, name)
 
-    def test_critical_audit_and_second_review_are_proportional(self) -> None:
-        auditor_description = self.profiles["plan_scope_auditor"]["description"].lower()
-        self.assertIn("named measurable risk", auditor_description)
-        self.assertNotIn("complex", auditor_description)
-        auditor = self.instructions("plan_scope_auditor").lower()
+    def test_local_plan_path_is_per_worktree_and_root_owned(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary) / "repo"
+            linked = Path(temporary) / "linked"
+            subprocess.run(
+                ["git", "init", "-b", "main", str(base)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "config", "user.email", "test@example.com"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "config", "user.name", "Test"], check=True
+            )
+            (base / "seed.txt").write_text("seed\n")
+            subprocess.run(["git", "-C", str(base), "add", "seed.txt"], check=True)
+            subprocess.run(
+                ["git", "-C", str(base), "commit", "-m", "seed"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "worktree", "add", "-b", "task", str(linked)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            def plan_path(worktree: Path) -> Path:
+                result = subprocess.run(
+                    ["git", "-C", str(worktree), "rev-parse", "--git-path", "orchestra/plan.md"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                path = Path(result.stdout.strip())
+                return path if path.is_absolute() else worktree / path
+
+            base_plan = plan_path(base).resolve()
+            linked_plan = plan_path(linked).resolve()
+            self.assertNotEqual(base_plan, linked_plan)
+            self.assertIn(".git/orchestra/plan.md", base_plan.as_posix())
+            self.assertIn(".git/worktrees/linked/orchestra/plan.md", linked_plan.as_posix())
+
+        self.assertIn("git rev-parse --git-path orchestra/plan.md", self.skill)
+        for status in ("`draft`", "`active`", "`blocked`", "`completed`"):
+            self.assertIn(status, self.skill)
+        self.assertIn("Only the root writes the plan", self.skill)
+        self.assertIn("Git is authoritative", self.skill)
+
+    def test_browser_acceptance_is_independent_and_chrome_only(self) -> None:
+        browser = (self.references / "browser_acceptance.md").read_text()
+        frontend = (self.references / "frontend_implementation.md").read_text()
+        for contract in (
+            "Use Computer Use with Chrome as the exclusive browser-control path",
+            "Never invoke, probe, or fall back to Codex's in-app Browser",
+            "Open a new Chrome tab",
+            "preserve all unrelated tabs",
+            "Return `blocked` when Computer Use or Chrome is unavailable",
+        ):
+            self.assertIn(contract, browser)
+        self.assertIn("use Computer Use with Chrome only", frontend)
+        self.assertIn("never invoke, probe, or fall back", frontend)
+        self.assertIn("Never claim acceptance of your own work", frontend)
+        self.assertIn("browser acceptance is an independent verifier dispatch", self.skill)
+
+    def test_commit_and_pr_observation_are_direct_root_helper_operations(self) -> None:
+        commit_skill = (
+            ROOT / "codex/skills/orchestra-phase-commit/SKILL.md"
+        ).read_text()
+        review_skill = (ROOT / "codex/skills/orchestra-pr-review/SKILL.md").read_text()
+        self.assertIn("root directly run", commit_skill)
+        self.assertIn("commit_phase.py", commit_skill)
+        self.assertIn("without a committer profile or capability", commit_skill)
+        self.assertIn("root directly run", review_skill)
+        self.assertIn("pr.py", review_skill)
+        self.assertIn("observe", review_skill)
+        self.assertIn("tiers.<tier>.independent_review", review_skill)
+        self.assertIn("same implementation owner", review_skill)
+        for retired in ("phase_committer", "pr_polling_specialist", "pr_triage_specialist"):
+            self.assertNotIn(retired, commit_skill + review_skill + self.skill)
+
+    def test_extra_review_and_debugging_are_proportional(self) -> None:
         routing = self.skill.lower()
         for field in (
             "measurable risk",
             "supporting evidence",
             "affected area",
-            "defect class",
+            "independently detectable defect class",
         ):
-            self.assertIn(field, auditor)
             self.assertIn(field, routing)
-        self.assertIn("architectural complexity alone", auditor)
-        self.assertIn("architectural complexity alone", routing)
-        self.assertIn("report only material", auditor)
-        self.assertIn("do not rewrite or approve the plan", auditor)
-        self.assertIn("reviewer_second_pass", routing)
-        self.assertIn("reuse `reviewer.toml`", routing)
+        self.assertIn("complexity alone is insufficient", routing)
+        debugging = (self.references / "difficult_debugging.md").read_text()
+        self.assertIn("same local failure has demonstrably repeated", debugging)
+        self.assertIn("blind retries have stopped", debugging)
+        self.assertIn("same implementation owner", debugging)
+        self.assertIn("or the whole workflow", debugging)
 
-    def test_root_keeps_authority_and_context_stays_ephemeral(self) -> None:
-        for responsibility in (
-            "problem framing",
-            "tier selection",
-            "user alignment",
-            "routing",
-            "compact synthesis",
-            "blocker resolution",
-            "ordinary reversible in-scope decisions",
-            "final technical judgment",
-        ):
-            self.assertIn(responsibility, self.skill)
-        self.assertIn("current session configuration", self.skill)
-        self.assertIn("selected outside Orchestra", self.skill)
-        self.assertNotIn("planned root assignment", self.skill)
-        self.assertIn("compact packet in memory", self.skill)
-        self.assertIn("only changed context deltas", self.skill)
-        self.assertIn("Do not write packets, workflow state", self.skill)
-        self.assertIn("never restart the whole workflow", self.skill)
-        self.assertIn("same implementation owner", self.skill)
-
-    def test_specialists_report_without_spawning_or_orchestrating(self) -> None:
-        for name in PROFILE_NAMES - {"implementation_worker", "reviewer", "phase_committer"}:
-            instructions = self.instructions(name)
-            self.assertRegex(
-                instructions.lower(), re.compile(r"do not [^.\n]*spawn agents"), name
-            )
-            self.assertRegex(
-                instructions.lower(),
-                re.compile(r"do not [^.\n]*act as the orchestrator"),
-                name,
-            )
-        self.assertIn("Remain read-only", self.instructions("repo_context_explorer"))
-        self.assertIn("Remain read-only", self.instructions("planner"))
-        self.assertIn("Remain read-only", self.instructions("plan_scope_auditor"))
-        self.assertIn("Remain read-only", self.instructions("debugging_investigator"))
-        self.assertIn("Remain read-only", self.instructions("web_researcher"))
-        self.assertIn("Remain read-only", self.instructions("browser_acceptance_tester"))
-
-    def test_explorer_is_bounded_evidence_and_planner_never_edits(self) -> None:
-        explorer = self.instructions("repo_context_explorer")
-        self.assertIn("only the repository domains and questions", explorer)
-        self.assertIn("Return bounded evidence", explorer)
-        self.assertIn("Separate observed facts from inferences", explorer)
-        planner = self.instructions("planner")
-        self.assertIn("smallest executable plan", planner)
-        self.assertIn("independently reviewable phases", planner)
-        self.assertIn("do not edit, implement, approve", planner)
-
-    def test_debugger_is_local_diagnostic_after_repeated_failure(self) -> None:
-        debugger = self.instructions("debugging_investigator")
-        self.assertIn("after the same failure repeats", debugger)
-        self.assertIn("do not implement fixes", debugger.lower())
-        self.assertIn("root-cause conclusion with evidence", debugger)
-        self.assertIn("next local corrective action", debugger)
-        self.assertIn("never restart the whole workflow", self.skill)
-
-    def test_web_research_is_narrow_current_and_cited(self) -> None:
-        researcher = self.instructions("web_researcher")
-        self.assertIn("time-sensitive external questions", researcher)
-        self.assertIn("primary evidence", researcher)
-        self.assertIn("direct primary-source citations", researcher)
-        self.assertIn("Do not fill gaps from memory", researcher)
-
-    def test_browser_acceptance_uses_computer_use_and_chrome_only(self) -> None:
-        browser = self.instructions("browser_acceptance_tester")
-        for contract in (
-            "Use Computer Use as the exclusive browser-control path to operate Chrome",
-            "Open a new Chrome tab",
-            "preserve every unrelated tab and session",
-            "Never invoke, probe, or fall back to Codex's in-app Browser",
-            "reproducible evidence",
-            "do not edit files",
-            "when Computer Use or Chrome is unavailable",
-            "Return `blocked`",
-        ):
-            self.assertIn(contract, browser)
-        self.assertNotIn("fallback", browser.lower())
-
-    def test_frontend_owner_is_exclusive_and_bounded(self) -> None:
-        frontend = self.instructions("frontend_implementation_worker")
-        for contract in (
-            "sole implementation owner",
-            "approved brief, scope, and design system",
-            "Reuse existing patterns and components",
-            "responsive behavior",
-            "accessibility",
-            "interaction states",
-            "Do not collaborate in parallel with `implementation_worker`",
-            "use Computer Use with Chrome as the exclusive browser-control path",
-            "Never invoke, probe, or fall back to Codex's in-app Browser",
-            "does not replace independent acceptance",
-            "must not claim independent acceptance",
-        ):
-            self.assertIn(contract, frontend)
-        for routing in (
-            "Use `frontend_implementation_worker` instead of `implementation_worker`",
-            "never dispatch them together or as parallel collaborators",
-            "Split mixed work into frontend and non-frontend phases",
-            "Return accepted findings to the same implementation owner",
-        ):
-            self.assertIn(routing, self.skill)
-        agent_rules = (ROOT / "AGENTS.md").read_text()
-        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
-        architecture = (ROOT / "docs/ARCHITECTURE.md").read_text()
-        self.assertIn("Twelve specialist profiles are a maximum", agent_rules)
-        self.assertIn("Twelve profiles are the maximum supported set", architecture)
-        self.assertIn("the two never\ncollaborate in parallel on one phase", workflow)
-        self.assertIn("Mixed work is split into frontend and\nnon-frontend phases", workflow)
-
-    def test_delivery_routing_starts_only_after_reviewed_commits(self) -> None:
-        self.assertIn("After all reviewed, verified phase commits", self.skill)
-        self.assertIn("orchestra-delivery-policy", self.skill)
-        self.assertIn("Do not choose a lane before that point", self.skill)
+    def test_standard_requires_approval_and_delivery_authority_stays_separate(self) -> None:
+        self.assertIn("request explicit user approval", self.skill)
+        self.assertIn("Stop before implementation", self.skill)
+        self.assertIn("draft` directly to `active", self.skill)
+        self.assertIn("delivery authority remains separate", self.skill)
         self.assertIn("merge without separate authority", self.skill)
-        self.assertIn("deploy, release, synchronize, or install", self.skill)
-
-    def test_ui_and_runtime_expose_all_tier_routing(self) -> None:
-        ui = (ROOT / "codex/skills/orchestra/agents/openai.yaml").read_text()
-        self.assertIn("Route proportional reviewed software changes", ui)
-        self.assertIn("$orchestra", ui)
-        runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
-        self.assertIn("light, standard, and critical changes", runtime)
-        self.assertIn("Require explicit user approval", runtime)
-        self.assertIn("not merge, delivery, deployment, or release", runtime)
-        self.assertIn("orchestra-delivery-policy", runtime)
+        self.assertIn("orchestra-delivery-policy", self.skill)
 
 
 if __name__ == "__main__":

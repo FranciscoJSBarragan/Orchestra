@@ -32,20 +32,20 @@ REQUIRED_PATHS = (
     "codex/scripts/integrate_local.py",
     "codex/config/roles.toml",
     "codex/runtime/AGENTS.orchestra.md",
+    "codex/agents/analyst.toml",
     "codex/agents/implementation_worker.toml",
-    "codex/agents/frontend_implementation_worker.toml",
     "codex/agents/reviewer.toml",
-    "codex/agents/phase_committer.toml",
-    "codex/agents/repo_context_explorer.toml",
-    "codex/agents/planner.toml",
-    "codex/agents/plan_scope_auditor.toml",
-    "codex/agents/debugging_investigator.toml",
-    "codex/agents/web_researcher.toml",
-    "codex/agents/browser_acceptance_tester.toml",
-    "codex/agents/pr_polling_specialist.toml",
-    "codex/agents/pr_triage_specialist.toml",
+    "codex/agents/verifier.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
+    "codex/skills/orchestra/references/repository_context.md",
+    "codex/skills/orchestra/references/web_research.md",
+    "codex/skills/orchestra/references/technical_planning.md",
+    "codex/skills/orchestra/references/difficult_debugging.md",
+    "codex/skills/orchestra/references/frontend_implementation.md",
+    "codex/skills/orchestra/references/browser_acceptance.md",
+    "codex/skills/orchestra/references/runtime_verification.md",
+    "codex/skills/orchestra/references/architecture_guidance.md",
     "codex/skills/orchestra-phase-commit/SKILL.md",
     "codex/skills/orchestra-phase-commit/agents/openai.yaml",
     "codex/skills/orchestra-delivery-policy/SKILL.md",
@@ -141,58 +141,66 @@ exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
 """
 
 PROFILE_NAMES = (
-    "repo_context_explorer",
-    "planner",
-    "plan_scope_auditor",
+    "analyst",
     "implementation_worker",
-    "frontend_implementation_worker",
     "reviewer",
-    "debugging_investigator",
-    "web_researcher",
-    "browser_acceptance_tester",
-    "phase_committer",
-    "pr_polling_specialist",
-    "pr_triage_specialist",
+    "verifier",
 )
 
-EXPECTED_TIER_ROLES = {
+EXPECTED_ASSIGNMENTS = {
     "light": {
-        "implementation_worker",
-        "reviewer",
-        "phase_committer",
-        "pr_polling_specialist",
-        "pr_triage_specialist",
+        "general_implementation": ("implementation_worker", "gpt-5.6-luna", "max"),
+        "independent_review": ("reviewer", "gpt-5.6-luna", "max"),
+        "runtime_verification": ("verifier", "gpt-5.6-luna", "max"),
     },
     "standard": {
-        "planner",
-        "plan_scope_auditor",
-        "implementation_worker",
-        "frontend_implementation_worker",
-        "reviewer",
-        "debugging_investigator",
-        "repo_context_explorer",
-        "web_researcher",
-        "browser_acceptance_tester",
-        "phase_committer",
-        "pr_polling_specialist",
-        "pr_triage_specialist",
+        "repository_context": ("analyst", "gpt-5.6-luna", "xhigh"),
+        "web_research": ("analyst", "gpt-5.6-luna", "xhigh"),
+        "technical_planning": ("analyst", "gpt-5.6-sol", "high"),
+        "architecture_analysis": ("analyst", "gpt-5.6-sol", "high"),
+        "difficult_debugging": ("analyst", "gpt-5.6-sol", "high"),
+        "general_implementation": ("implementation_worker", "gpt-5.6-luna", "max"),
+        "frontend_implementation": ("implementation_worker", "gpt-5.6-sol", "medium"),
+        "independent_review": ("reviewer", "gpt-5.6-sol", "medium"),
+        "browser_acceptance": ("verifier", "gpt-5.6-luna", "xhigh"),
+        "runtime_verification": ("verifier", "gpt-5.6-luna", "max"),
     },
     "critical": {
-        "planner",
-        "plan_scope_auditor",
-        "implementation_worker",
-        "frontend_implementation_worker",
-        "reviewer",
-        "reviewer_second_pass",
-        "debugging_investigator",
-        "repo_context_explorer",
-        "web_researcher",
-        "browser_acceptance_tester",
-        "phase_committer",
-        "pr_polling_specialist",
-        "pr_triage_specialist",
+        "repository_context": ("analyst", "gpt-5.6-sol", "medium"),
+        "web_research": ("analyst", "gpt-5.6-sol", "medium"),
+        "technical_planning": ("analyst", "gpt-5.6-sol", "high"),
+        "architecture_analysis": ("analyst", "gpt-5.6-sol", "high"),
+        "difficult_debugging": ("analyst", "gpt-5.6-sol", "high"),
+        "general_implementation": ("implementation_worker", "gpt-5.6-sol", "high"),
+        "frontend_implementation": ("implementation_worker", "gpt-5.6-sol", "high"),
+        "independent_review": ("reviewer", "gpt-5.6-sol", "high"),
+        "browser_acceptance": ("verifier", "gpt-5.6-sol", "medium"),
+        "runtime_verification": ("verifier", "gpt-5.6-sol", "medium"),
     },
 }
+
+PLAYBOOK_NAMES = (
+    "repository_context",
+    "web_research",
+    "technical_planning",
+    "difficult_debugging",
+    "frontend_implementation",
+    "browser_acceptance",
+    "runtime_verification",
+)
+ARCHITECTURE_REFERENCE = "architecture_guidance"
+LEGACY_PROFILE_NAMES = (
+    "browser_acceptance_tester",
+    "debugging_investigator",
+    "frontend_implementation_worker",
+    "phase_committer",
+    "plan_scope_auditor",
+    "planner",
+    "pr_polling_specialist",
+    "pr_triage_specialist",
+    "repo_context_explorer",
+    "web_researcher",
+)
 
 SKILL_NAMES = (
     "orchestra",
@@ -269,27 +277,48 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     if set(roles) != {"tiers"}:
         failures.append("role-contract: roles.toml must contain tiers only")
     tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != set(EXPECTED_TIER_ROLES):
+    if not isinstance(tiers, dict) or set(tiers) != set(EXPECTED_ASSIGNMENTS):
         failures.append(
             "role-contract: roles.toml must define light, standard, and critical"
         )
     else:
-        for tier, expected_roles in EXPECTED_TIER_ROLES.items():
-            actual_roles = tiers.get(tier)
-            if not isinstance(actual_roles, dict) or set(actual_roles) != expected_roles:
-                failures.append(f"role-contract: unexpected {tier} role set")
+        for tier, expected_assignments in EXPECTED_ASSIGNMENTS.items():
+            actual_assignments = tiers.get(tier)
+            if not isinstance(actual_assignments, dict) or set(
+                actual_assignments
+            ) != set(expected_assignments):
+                failures.append(f"role-contract: unexpected {tier} capability set")
                 continue
-            for role, assignment in actual_roles.items():
+            for capability, expected in expected_assignments.items():
+                assignment = actual_assignments[capability]
                 if not isinstance(assignment, dict) or set(assignment) != {
+                    "profile",
                     "model",
                     "reasoning_effort",
                 }:
                     failures.append(
-                        f"role-contract: {tier}.{role} needs model and reasoning_effort"
+                        f"role-contract: {tier}.{capability} needs profile, model, "
+                        "and reasoning_effort"
                     )
                     continue
+                actual = (
+                    assignment["profile"],
+                    assignment["model"],
+                    assignment["reasoning_effort"],
+                )
+                if actual != expected:
+                    failures.append(
+                        f"role-contract: {tier}.{capability} does not match the "
+                        "approved assignment matrix"
+                    )
+                if assignment["profile"] not in PROFILE_NAMES:
+                    failures.append(
+                        f"role-contract: {tier}.{capability} has invalid profile"
+                    )
                 if assignment["model"] not in VALID_MODELS:
-                    failures.append(f"role-contract: {tier}.{role} has invalid model")
+                    failures.append(
+                        f"role-contract: {tier}.{capability} has invalid model"
+                    )
                 if assignment["reasoning_effort"] not in {
                     "low",
                     "medium",
@@ -298,13 +327,24 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                     "max",
                 }:
                     failures.append(
-                        f"role-contract: {tier}.{role} has invalid reasoning_effort"
+                        f"role-contract: {tier}.{capability} has invalid reasoning_effort"
                     )
+                if (
+                    assignment["model"] == "gpt-5.6-sol"
+                    and assignment["reasoning_effort"] == "xhigh"
+                ):
+                    failures.append(
+                        f"role-contract: {tier}.{capability} must not use Sol xhigh"
+                    )
+                if capability in {"root", "orchestrator"} or assignment[
+                    "profile"
+                ] in {"root", "orchestrator"}:
+                    failures.append("role-contract: root must have no assignment")
 
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
     if actual_profiles != sorted(PROFILE_NAMES):
-        failures.append("profile-contract: current routing must define exactly twelve profiles")
+        failures.append("profile-contract: current routing must define exactly four profiles")
         return failures
     declared_names: list[str] = []
     for name in PROFILE_NAMES:
@@ -349,23 +389,17 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                 f"found one in {path.relative_to(root)}"
             )
 
-    if isinstance(tiers, dict):
-        for tier, roles in tiers.items():
-            if not isinstance(roles, dict):
+    routing_path = root / "codex/skills/orchestra/SKILL.md"
+    if routing_path.is_file() and isinstance(tiers, dict):
+        routing = routing_path.read_text(encoding="utf-8")
+        for tier, capabilities in tiers.items():
+            if not isinstance(capabilities, dict):
                 continue
-            for role in roles:
-                consumer = (
-                    "orchestra-pr-review"
-                    if role in {"pr_polling_specialist", "pr_triage_specialist"}
-                    else "orchestra"
-                )
-                consumer_path = root / f"codex/skills/{consumer}/SKILL.md"
-                if not consumer_path.is_file():
-                    continue
-                routing = consumer_path.read_text(encoding="utf-8")
-                if f"`{role}`" not in routing:
+            for capability in capabilities:
+                if f"`{capability}`" not in routing:
                     failures.append(
-                        f"role-contract: {tier}.{role} is not consumed by {consumer} routing"
+                        f"role-contract: {tier}.{capability} is not consumed by "
+                        "orchestra routing"
                     )
     return failures
 
@@ -415,6 +449,67 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     f"skill-contract: {name} default_prompt must mention ${name}"
                 )
 
+    references = root / "codex/skills/orchestra/references"
+    expected_references = {
+        *(f"{name}.md" for name in PLAYBOOK_NAMES),
+        f"{ARCHITECTURE_REFERENCE}.md",
+    }
+    if not references.is_dir():
+        failures.append("skill-contract: orchestra internal references are missing")
+    else:
+        actual_references = {entry.name for entry in references.iterdir()}
+        if actual_references != expected_references or any(
+            not entry.is_file() or entry.is_symlink() for entry in references.iterdir()
+        ):
+            failures.append(
+                "skill-contract: orchestra must contain exactly seven playbooks "
+                "and one architecture reference"
+            )
+        routing_path = root / "codex/skills/orchestra/SKILL.md"
+        if routing_path.is_file():
+            routing = routing_path.read_text(encoding="utf-8")
+            for name in PLAYBOOK_NAMES:
+                target = f"references/{name}.md"
+                if target not in routing:
+                    failures.append(
+                        f"skill-contract: orchestra does not consume playbook {target}"
+                    )
+            architecture_target = f"references/{ARCHITECTURE_REFERENCE}.md"
+            if routing.count(architecture_target) < 3:
+                failures.append(
+                    "skill-contract: shared architecture guidance must serve "
+                    "technical planning, architecture analysis, and independent review"
+                )
+            for forbidden in (
+                "references/general_implementation.md",
+                "references/independent_review.md",
+                "references/architecture_analysis.md",
+            ):
+                if forbidden in routing:
+                    failures.append(
+                        f"skill-contract: {forbidden} must not be a playbook"
+                    )
+
+    direct_consumers = {
+        "orchestra-phase-commit": ("commit_phase.py", "root directly run"),
+        "orchestra-pr-review": (
+            "pr.py",
+            "observe",
+            "independent_review",
+            "same implementation owner",
+        ),
+    }
+    for name, required_text in direct_consumers.items():
+        skill = root / f"codex/skills/{name}/SKILL.md"
+        if not skill.is_file():
+            continue
+        text = skill.read_text(encoding="utf-8")
+        for expected in required_text:
+            if expected not in text:
+                failures.append(
+                    f"skill-contract: {name} must directly consume {expected}"
+                )
+
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():
         text = runtime.read_text(encoding="utf-8")
@@ -455,7 +550,12 @@ def check_direct_sync(root: Path) -> list[str]:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(
             node.targets[0], ast.Name
         ):
-            if node.targets[0].id in {"SKILLS", "AGENTS", "HELPERS"}:
+            if node.targets[0].id in {
+                "SKILLS",
+                "AGENTS",
+                "LEGACY_AGENTS",
+                "HELPERS",
+            }:
                 try:
                     constants[node.targets[0].id] = ast.literal_eval(node.value)
                 except (TypeError, ValueError):
@@ -474,7 +574,12 @@ def check_direct_sync(root: Path) -> list[str]:
     if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
         failures.append("sync-contract: sync inventory must name exactly seven skills")
     if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly twelve agents")
+        failures.append("sync-contract: sync inventory must name exactly four agents")
+    if set(constants.get("LEGACY_AGENTS", ())) != set(LEGACY_PROFILE_NAMES):
+        failures.append(
+            "sync-contract: stale-profile cleanup must be limited to the ten "
+            "retired agent names"
+        )
     if tuple(constants.get("HELPERS", ())) != (
         "commit_phase.py",
         "policy.py",
@@ -499,7 +604,7 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append("sync-contract: source must contain exactly seven skill directories")
     profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
     if profiles != sorted(PROFILE_NAMES):
-        failures.append("sync-contract: source must contain exactly twelve agent profiles")
+        failures.append("sync-contract: source must contain exactly four agent profiles")
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():
         runtime_text = runtime.read_text(encoding="utf-8")
