@@ -131,6 +131,17 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertIn("never merge", runtime)
         self.assertIn("install or synchronize", runtime)
 
+    def test_light_never_auto_adopts_graphify(self) -> None:
+        self.assertIn(
+            "Light work may deliberately query an already useful graph", self.skill
+        )
+        self.assertIn(
+            "never installs, repairs, upgrades, or bootstraps Graphify automatically",
+            self.skill,
+        )
+        runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        self.assertIn("light never auto-adopts it", runtime)
+
 
 if __name__ == "__main__":
     unittest.main()

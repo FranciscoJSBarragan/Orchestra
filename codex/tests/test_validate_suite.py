@@ -300,6 +300,79 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("runtime-contract: managed markers", result.stdout)
 
+    def test_graphify_routing_lifecycle_is_required(self) -> None:
+        skill = self.root / "codex/skills/orchestra/SKILL.md"
+        skill.write_text(
+            skill.read_text(encoding="utf-8").replace(
+                "`graphify hook status` exactly once",
+                "`graphify hook status` when useful",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: orchestra routing is missing", result.stdout)
+
+    def test_repository_context_requires_root_usable_signal(self) -> None:
+        context = self.root / "codex/skills/orchestra/references/repository_context.md"
+        context.write_text(
+            context.read_text(encoding="utf-8").replace(
+                "only when the root packet explicitly says the current detection pass "
+                "found the graph usable",
+                "whenever graph.json exists",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: repository_context is missing", result.stdout)
+
+    def test_managed_runtime_requires_graphify_non_authority_boundary(self) -> None:
+        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "Graphify never establishes correctness or policy",
+                "Graphify informs the workflow",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: managed runtime is missing", result.stdout)
+
+    def test_managed_runtime_requires_missing_configuration_bootstrap_branch(self) -> None:
+        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "A missing command or incorrect exact tracked/ignored boundary adds the "
+                "one approval-gated bootstrap",
+                "Missing configuration uses source",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: managed runtime is missing", result.stdout)
+
+    def test_managed_runtime_guards_hook_status_on_command_availability(self) -> None:
+        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "Only when the command exists, interpret exactly one "
+                "`graphify hook status` result",
+                "Interpret `graphify hook status` once",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("graphify-contract: managed runtime is missing", result.stdout)
+
     def test_full_mode_rejects_invalid_python_syntax(self) -> None:
         invalid = self.root / "codex/tests/invalid_fixture.py"
         invalid.write_text("def broken(:\n", encoding="utf-8")

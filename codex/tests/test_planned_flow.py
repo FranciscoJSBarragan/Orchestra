@@ -239,6 +239,92 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("merge without separate authority", self.skill)
         self.assertIn("orchestra-delivery-policy", self.skill)
 
+    def test_graphify_detection_is_root_owned_read_only_and_branch_complete(self) -> None:
+        self.assertIn("the advisory Graphify lifecycle", self.skill)
+        self.assertIn("root owns its lifecycle directly", self.skill)
+        self.assertIn("Before standard or critical planning", self.skill)
+        self.assertIn("`git ls-files graphify-out` contains exactly", self.skill)
+        self.assertIn(
+            "A missing command or incorrect tracked/ignored artifact boundary adds "
+            "exactly one explicit approval-gated bootstrap phase",
+            self.skill,
+        )
+        self.assertIn("`graphify hook status` exactly once", self.skill)
+        self.assertIn("both required hooks installed", self.skill)
+        self.assertIn("either required hook absent", self.skill)
+        self.assertIn("one explicit approval-gated bootstrap phase", self.skill)
+        self.assertIn("failed or uninterpretable status command", self.skill)
+        self.assertIn("returns `partial`, uses source, and adds no bootstrap", self.skill)
+        self.assertIn("no package install", self.skill)
+
+    def test_graphify_hook_safety_and_freshness_precede_query(self) -> None:
+        core_hooks = self.skill.index("`git config --path --get core.hooksPath`")
+        git_hooks = self.skill.index("`git rev-parse --git-path hooks`")
+        delta = self.skill.index("inspect the relevant Git delta")
+        query = self.skill.index("`graphify query` smoke check")
+        self.assertLess(core_hooks, delta)
+        self.assertLess(git_hooks, delta)
+        self.assertLess(delta, query)
+        self.assertIn("inside the tracked worktree", self.skill)
+        self.assertIn("would modify a tracked hook", self.skill)
+        self.assertIn("neither a wrapper nor an alternate hook mechanism", self.skill)
+        self.assertIn("do not call hook status a second time", self.skill)
+        self.assertIn("without bootstrap", self.skill)
+
+    def test_graphify_bootstrap_order_and_final_update_are_bounded(self) -> None:
+        ordered = (
+            "`uv tool install --upgrade graphifyy`",
+            "one complete initial `graphify .` build",
+            "Enforce the exact three-output versioning",
+            "Review, verify, and commit the initial snapshot",
+            "Only after that commit succeeds",
+            "run native `graphify hook install`",
+            "Rerun one configuration and freshness detection pass",
+        )
+        positions = [self.skill.index(item) for item in ordered]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("Never run `graphify codex install`", self.skill)
+        self.assertIn("`graphify . --update` at most once", self.skill)
+        self.assertIn("one separate graph-only commit", self.skill)
+        self.assertIn("`nothing_to_commit`", self.skill)
+        self.assertIn("does not prevent functional plan completion", self.skill)
+
+    def test_repository_context_uses_graph_only_from_root_packet(self) -> None:
+        context = (self.references / "repository_context.md").read_text()
+        self.assertIn(
+            "only when the root packet explicitly says the current detection pass found "
+            "the graph usable",
+            context,
+        )
+        self.assertIn("verify every relevant claim against current source", context)
+        self.assertIn("file existence alone never authorizes graph use", context)
+
+    def test_runtime_consumes_graphify_without_expanding_public_inventory(self) -> None:
+        runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        self.assertIn("The root solely owns Graphify", runtime)
+        self.assertIn(
+            "A missing command or incorrect exact tracked/ignored boundary adds the one "
+            "approval-gated bootstrap",
+            runtime,
+        )
+        self.assertIn(
+            "Only when the command exists, interpret exactly one "
+            "`graphify hook status` result",
+            runtime,
+        )
+        self.assertIn("valid installed hooks continue", runtime)
+        self.assertIn("valid absence adds that bootstrap only when", runtime)
+        self.assertIn("failure or uninterpretable output is `partial`", runtime)
+        self.assertIn("Tell `repository_context` whether", runtime)
+        self.assertIn("Graphify never establishes correctness or policy", runtime)
+        for forbidden in (
+            "graphify.toml",
+            "graphify.py",
+            "graphify lifecycle profile",
+            "graphify lifecycle capability",
+        ):
+            self.assertNotIn(forbidden, self.skill + runtime)
+
 
 if __name__ == "__main__":
     unittest.main()

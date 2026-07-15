@@ -213,6 +213,29 @@ SKILL_NAMES = (
 )
 VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
 
+GRAPHIFY_ROUTING_REQUIREMENTS = (
+    "## Use advisory Graphify context",
+    "`graphify hook status` exactly once",
+    "`uv tool install --upgrade graphifyy`",
+    "`graphify . --update` at most once",
+)
+
+GRAPHIFY_CONTEXT_REQUIREMENTS = (
+    "only when the root packet explicitly says the current detection pass found "
+    "the graph usable",
+    "verify every relevant claim against current source at the packet revision",
+    "file existence alone never authorizes graph use",
+)
+
+GRAPHIFY_RUNTIME_REQUIREMENTS = (
+    "The root solely owns Graphify as advisory, non-blocking context",
+    "A missing command or incorrect exact tracked/ignored boundary adds the one "
+    "approval-gated bootstrap",
+    "Only when the command exists, interpret exactly one `graphify hook status` result",
+    "Tell `repository_context` whether the pass found a usable graph",
+    "Graphify never establishes correctness or policy",
+)
+
 
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present."""
@@ -489,6 +512,22 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     failures.append(
                         f"skill-contract: {forbidden} must not be a playbook"
                     )
+            for required in GRAPHIFY_ROUTING_REQUIREMENTS:
+                if required not in routing:
+                    failures.append(
+                        "graphify-contract: orchestra routing is missing "
+                        f"{required}"
+                    )
+
+        repository_context = references / "repository_context.md"
+        if repository_context.is_file():
+            context_text = repository_context.read_text(encoding="utf-8")
+            for required in GRAPHIFY_CONTEXT_REQUIREMENTS:
+                if required not in context_text:
+                    failures.append(
+                        "graphify-contract: repository_context is missing "
+                        f"{required}"
+                    )
 
     direct_consumers = {
         "orchestra-phase-commit": ("commit_phase.py", "root directly run"),
@@ -525,6 +564,11 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")
+        for required in GRAPHIFY_RUNTIME_REQUIREMENTS:
+            if required not in text:
+                failures.append(
+                    f"graphify-contract: managed runtime is missing {required}"
+                )
     fallback = "${CODEX_HOME:-$HOME/.codex}"
     for name in SKILL_NAMES:
         skill = root / f"codex/skills/{name}/SKILL.md"
