@@ -191,6 +191,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         self,
     ) -> None:
         worker = self.instructions("implementation_worker").lower()
+        responsibility = worker.split("## input", 1)[0]
         worker_input = self.input_instructions("implementation_worker").lower()
         for requirement in (
             "before editing",
@@ -209,6 +210,26 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(requirement, worker)
         self.assertIn("necessary edit, public behavior change, or scope expansion", worker)
+        shared_scope = "before editing for either implementation capability"
+        general_branch = "for `general_implementation`, these base instructions"
+        frontend_branch = "for `frontend_implementation`, also follow"
+        self.assertIn(shared_scope, responsibility)
+        self.assertIn(general_branch, responsibility)
+        self.assertIn(frontend_branch, responsibility)
+        for shared_rule in (
+            shared_scope,
+            "reuse repository",
+            "supported root cause",
+            "remaining limitation",
+        ):
+            self.assertLess(
+                responsibility.index(shared_rule),
+                responsibility.index(general_branch),
+            )
+            self.assertLess(
+                responsibility.index(shared_rule),
+                responsibility.index(frontend_branch),
+            )
         self.assertNotIn("focused read-only inspection scope", worker_input)
         for packet_field in (
             "approved objective",
