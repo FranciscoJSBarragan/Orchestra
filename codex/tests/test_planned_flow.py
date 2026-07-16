@@ -37,6 +37,14 @@ class PlannedFlowContractTests(unittest.TestCase):
     def instructions(self, name: str) -> str:
         return self.profiles[name]["developer_instructions"]
 
+    def output_instructions(self, name: str) -> str:
+        instructions = self.instructions(name)
+        return instructions.split("## Output", 1)[1].split("## Stop conditions", 1)[0]
+
+    def input_instructions(self, name: str) -> str:
+        instructions = self.instructions(name)
+        return instructions.split("## Input", 1)[1].split("## Output", 1)[0]
+
     def test_exact_four_profiles_are_behavior_only(self) -> None:
         self.assertEqual(set(self.profiles), PROFILE_NAMES)
         self.assertEqual(
@@ -128,6 +136,119 @@ class PlannedFlowContractTests(unittest.TestCase):
             )
             for boundary in ("route work", "spawn agents", "orchestrate"):
                 self.assertIn(boundary, instructions, name)
+
+    def test_profile_returns_are_outcome_first_and_lossless_for_material_evidence(
+        self,
+    ) -> None:
+        material_terms = (
+            "security",
+            "privacy",
+            "authentication",
+            "payment",
+            "destructive or irreversible",
+            "blocker or authority",
+            "failure or exact error",
+            "reviewer finding",
+            "ambiguity or conflicting evidence",
+            "verification",
+            "locator",
+            "remaining risk",
+        )
+        existing_output_fields = {
+            "analyst": ("evidence", "planned", "diagnosed", "blocked", "capability name", "observed facts", "unresolved questions", "source references"),
+            "implementation_worker": ("implemented", "blocked", "capability name", "changed paths", "implementation notes", "tests changed", "verification commands", "remaining risks"),
+            "reviewer": ("accepted", "findings", "blocked", "review target", "material findings", "verification or authority gaps", "rejected pr feedback"),
+            "verifier": ("passed", "failed", "blocked", "capability name", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details"),
+        }
+        for name in PROFILE_NAMES:
+            output = self.output_instructions(name).lower().strip()
+            first_sentence = output.split(".", 1)[0]
+            self.assertTrue(output.startswith("return the outcome or status"), name)
+            self.assertIn(" first, then ", first_sentence, name)
+            for omission in (
+                "packet replay",
+                "praise",
+                "unchanged context",
+                "duplicate evidence",
+            ):
+                self.assertIn(omission, output, name)
+            for term in material_terms:
+                self.assertIn(term, output, name)
+            for field in existing_output_fields[name]:
+                self.assertIn(field, output, name)
+            for identity in (
+                "committed revision",
+                "when uncommitted changes",
+                "dirty worktree",
+                "diff state",
+            ):
+                self.assertIn(identity, output, name)
+            self.assertNotIn("otherwise name", output, name)
+            self.assertIn("redact secrets", output, name)
+            self.assertIn("safe category or locator", output, name)
+
+    def test_worker_minimality_requires_focused_comprehension_and_supported_cause(
+        self,
+    ) -> None:
+        worker = self.instructions("implementation_worker").lower()
+        worker_input = self.input_instructions("implementation_worker").lower()
+        for requirement in (
+            "before editing",
+            "affected flow",
+            "relevant callers",
+            "allowed paths constrain edits",
+            "focused safe read-only inspection",
+            "standard-library",
+            "native-platform",
+            "already-installed dependency primitives",
+            "do not follow a rigid preference order",
+            "supported root cause at the causal boundary that explains the affected behavior",
+            "do not substitute a symptom-only patch",
+            "remaining limitation only when current evidence supports it",
+            "concrete revisit trigger",
+        ):
+            self.assertIn(requirement, worker)
+        self.assertIn("necessary edit, public behavior change, or scope expansion", worker)
+        self.assertNotIn("focused read-only inspection scope", worker_input)
+        for packet_field in (
+            "approved objective",
+            "known decisions and context delta",
+            "allowed paths",
+            "acceptance criteria",
+            "verification",
+            "exclusions",
+            "stop conditions",
+            "references",
+            "revision identity",
+        ):
+            self.assertIn(packet_field, worker_input)
+
+    def test_reviewer_complexity_is_material_not_metric_scoring(self) -> None:
+        reviewer = self.instructions("reviewer").lower()
+        for requirement in (
+            "unsupported consumer, requirement, or reproducible risk",
+            "recommend deletion, an existing primitive, or a smaller direct implementation",
+            "line count, file count, abstraction count, or unfamiliarity alone",
+            "severity, causal rationale, applicable locator, and correction rationale",
+        ):
+            self.assertIn(requirement, reviewer)
+
+    def test_compact_context_requests_lossless_returns_without_hard_caps(self) -> None:
+        self.assertIn("Request outcome-first, lossless structured returns", self.skill)
+        self.assertIn(
+            "never impose a token, line, file, finding, test, or explanation cap",
+            self.skill,
+        )
+        architecture = (ROOT / "docs/ARCHITECTURE.md").read_text().lower()
+        for invariant in (
+            "outcome-first output status",
+            "dirty worktree or diff state",
+            "focused read-only inspection",
+            "supported root cause at the causal boundary",
+            "reproducible risk",
+        ):
+            self.assertIn(invariant, architecture)
+        self.assertIn("relevant references and revision identity", self.skill)
 
     def test_local_plan_path_is_per_worktree_and_root_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -84,7 +84,22 @@ different profiles. Root-owned planning, commits, PR observation, routing, and
 final judgment add no agent profile or capability key.
 
 Profiles share only minimal conventions: explicit capability, input packet,
-output status, evidence references, scope boundaries, and stop conditions.
+outcome-first output status, evidence references, scope boundaries, and stop
+conditions. Returns omit routine replay and duplicate context while preserving
+the material safety, authority, failure, review, ambiguity, verification, and
+remaining-risk evidence needed for root judgment. Sensitive values are redacted
+with a safe category or locator, and revision identity distinguishes a committed
+revision from a dirty worktree or diff state.
+
+For approved implementation, focused read-only inspection of the affected flow
+and relevant callers does not expand edit authority. The worker chooses existing
+repository, standard-library, native-platform, or installed primitives by actual
+constraints, corrects the supported root cause at the causal boundary that
+explains the affected behavior within scope, rejects symptom-only patches, and
+records a limitation only with evidence and a concrete revisit trigger. Review
+treats complexity as material only when an unsupported consumer, requirement,
+or reproducible risk makes it defect-prone; size or novelty metrics alone do
+not establish a finding.
 
 ### Workflow skills
 

@@ -45,7 +45,9 @@ Light has assignments only for `general_implementation`, `independent_review`, a
 
 ## Keep compact context
 
-Keep one compact in-memory packet with: explicit capability; objective; known decisions and context delta; allowed paths or interactions; acceptance; verification; exclusions; stop conditions; relevant references and revision. Reuse still-valid evidence and send only changed context deltas after the first pass. Do not persist packets, agent transitions, previous clean PR heads, authority bundles, or workflow logs.
+Keep one compact in-memory packet with: explicit capability; objective; known decisions and context delta; allowed paths or interactions; acceptance; verification; exclusions; stop conditions; relevant references and revision identity. Reuse still-valid evidence and send only changed context deltas after the first pass. Do not persist packets, agent transitions, previous clean PR heads, authority bundles, or workflow logs.
+
+Request outcome-first, lossless structured returns: omit packet and routine process replay, preserve material evidence appropriate to the capability, and never impose a token, line, file, finding, test, or explanation cap.
 
 ## Maintain the local task plan
 

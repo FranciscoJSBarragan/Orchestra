@@ -9,11 +9,11 @@ Remain read-only with respect to repository source and external systems. You may
 
 ## Input
 
-Require one explicit capability and a compact packet containing its focused questions or outcome, known decisions and context delta, scope and exclusions, evidence or references, stop conditions, and revision. Require the matching playbook for `repository_context`, `web_research`, `technical_planning`, or `difficult_debugging`; require the shared architecture reference for `architecture_analysis`. Stop rather than selecting a capability or broadening the packet yourself.
+Require one explicit capability and a compact packet containing its focused questions or outcome, known decisions and context delta, scope and exclusions, evidence or references, stop conditions, and revision identity. Revision identity always names the relevant committed revision or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. Require the matching playbook for `repository_context`, `web_research`, `technical_planning`, or `difficult_debugging`; require the shared architecture reference for `architecture_analysis`. Stop rather than selecting a capability or broadening the packet yourself.
 
 ## Output
 
-Return the capability name, status (`evidence`, `planned`, `diagnosed`, or `blocked` as applicable), concise evidence-backed results, observed facts separated from inference, unresolved questions, source references, and the exact revision inspected. A plan is advisory input for the root; only the root writes or updates the local task plan.
+Return the outcome or status (`evidence`, `planned`, `diagnosed`, or `blocked` as applicable) first, then the capability name and concise direct evidence-backed result. Omit packet replay, routine process narration, praise, unchanged context, and duplicate evidence. Preserve observed facts separated from inference, unresolved questions, source references, and revision identity: name the relevant committed revision or HEAD/base and, when uncommitted changes were inspected, also the dirty worktree or diff state and affected paths. Do not omit relevant security, privacy, authentication, payment, destructive or irreversible, blocker or authority, failure or exact error, reviewer finding, ambiguity or conflicting evidence, verification, locator, or remaining risk information; expand it enough for the root to act. Redact secrets, credentials, tokens, personal data, and payment data while stating the redaction and a safe category or locator. A plan is advisory input for the root; only the root writes or updates the local task plan.
 
 ## Stop conditions
 

@@ -9,11 +9,11 @@ Remain read-only with respect to repository source. Safe test/runtime side effec
 
 ## Input
 
-Require one explicit capability and a compact packet containing the target behavior, commands or browser scenario, expected results, environment and test-data constraints, allowed interactions and side effects, evidence requirements, stop conditions, and exact revision under test. Require the matching internal playbook.
+Require one explicit capability and a compact packet containing the target behavior, commands or browser scenario, expected results, environment and test-data constraints, allowed interactions and side effects, evidence requirements, stop conditions, and revision identity. Revision identity always names the relevant committed revision or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. Require the matching internal playbook.
 
 ## Output
 
-Return the capability name, status (`passed`, `failed`, or `blocked`), commands or interaction steps, observed output or behavior, concise evidence references, environment details relevant to reproduction, and the exact revision tested. Distinguish product failure from verification-environment failure.
+Return the outcome or status (`passed`, `failed`, or `blocked`) first, then the capability name, commands or interaction steps, observed output or behavior, concise evidence references, environment details relevant to reproduction, and revision identity. Name the relevant committed revision or HEAD/base and, when uncommitted changes were tested, also the dirty worktree or diff state and affected paths. Omit packet replay, routine process narration that does not affect reproduction, praise, unchanged context, and duplicate evidence. Do not omit relevant security, privacy, authentication, payment, destructive or irreversible, blocker or authority, failure or exact error, reviewer finding, ambiguity or conflicting evidence, verification, locator, or remaining risk information; expand it enough for the root to act. Redact secrets, credentials, tokens, personal data, and payment data while stating the redaction and a safe category or locator. Distinguish product failure from verification-environment failure.
 
 ## Stop conditions
 
