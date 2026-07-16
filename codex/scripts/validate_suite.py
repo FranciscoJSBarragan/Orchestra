@@ -213,43 +213,6 @@ SKILL_NAMES = (
 )
 VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
 
-GRAPHIFY_ROUTING_REQUIREMENTS = (
-    "## Use advisory Graphify context",
-    "`git rev-parse --git-dir` and `git rev-parse --git-common-dir`",
-    "do not run `graphify hook status`",
-    "`graphify hook status` exactly once",
-    "`uv tool install --upgrade graphifyy`",
-    "`graphify . --update` at most once",
-)
-
-GRAPHIFY_CONTEXT_REQUIREMENTS = (
-    "only when the root packet explicitly says the current detection pass found "
-    "the graph usable",
-    "verify every relevant claim against current source at the packet revision",
-    "file existence alone never authorizes graph use",
-)
-
-GRAPHIFY_RUNTIME_REQUIREMENTS = (
-    "The root solely owns Graphify as advisory, non-blocking context",
-    "A missing command or incorrect exact tracked/ignored boundary adds the one "
-    "approval-gated bootstrap",
-    "Before hook status, canonicalize `git rev-parse --git-dir` and "
-    "`git rev-parse --git-common-dir`",
-    "If they differ, record hook automation as `partial`, preserve common hooks",
-    "When the command exists, a linked worktree continues read-only through "
-    "relevant Git delta, pending evidence, and query smoke",
-    "When the command is missing, add bootstrap and use source because query "
-    "cannot run",
-    "Only for a non-linked worktree with the command available, interpret exactly "
-    "one `graphify hook status` result",
-    "Incorrect artifact configuration may also authorize that bootstrap, with its "
-    "hook step skipped",
-    "tell `repository_context` it is usable",
-    "`graphify . --update` at most once even for linked worktrees",
-    "Graphify never establishes correctness or policy",
-)
-
-
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present."""
     return [
@@ -525,23 +488,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     failures.append(
                         f"skill-contract: {forbidden} must not be a playbook"
                     )
-            for required in GRAPHIFY_ROUTING_REQUIREMENTS:
-                if required not in routing:
-                    failures.append(
-                        "graphify-contract: orchestra routing is missing "
-                        f"{required}"
-                    )
-
-        repository_context = references / "repository_context.md"
-        if repository_context.is_file():
-            context_text = repository_context.read_text(encoding="utf-8")
-            for required in GRAPHIFY_CONTEXT_REQUIREMENTS:
-                if required not in context_text:
-                    failures.append(
-                        "graphify-contract: repository_context is missing "
-                        f"{required}"
-                    )
-
     direct_consumers = {
         "orchestra-phase-commit": ("commit_phase.py", "root directly run"),
         "orchestra-pr-review": (
@@ -577,11 +523,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")
-        for required in GRAPHIFY_RUNTIME_REQUIREMENTS:
-            if required not in text:
-                failures.append(
-                    f"graphify-contract: managed runtime is missing {required}"
-                )
     fallback = "${CODEX_HOME:-$HOME/.codex}"
     for name in SKILL_NAMES:
         skill = root / f"codex/skills/{name}/SKILL.md"
@@ -670,25 +611,6 @@ def check_direct_sync(root: Path) -> list[str]:
         ):
             failures.append("sync-contract: runtime source must be exactly one marked block")
 
-    gitignore = root / ".gitignore"
-    if gitignore.is_file():
-        patterns = set(gitignore.read_text(encoding="utf-8").splitlines())
-        required = {
-            "graphify-out/*",
-            "!graphify-out/graph.json",
-            "!graphify-out/graph.html",
-            "!graphify-out/GRAPH_REPORT.md",
-            "graphify-out/manifest.json",
-            "graphify-out/cost.json",
-        }
-        missing = sorted(required - patterns)
-        if missing:
-            failures.append(
-                "sync-contract: .gitignore is missing Graphify boundaries: "
-                + ", ".join(missing)
-            )
-        if "graphify-out/" in patterns:
-            failures.append("sync-contract: graphify-out/ blanket ignore defeats the allowlist")
     return failures
 
 

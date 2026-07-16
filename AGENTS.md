@@ -15,8 +15,8 @@ documents; they do not redefine them independently.
 ## Orchestrator responsibility
 
 The root orchestrator owns problem framing, tier selection, user alignment,
-routing, compact synthesis, blocker resolution, the advisory Graphify
-lifecycle, and final technical judgment. It may make reversible in-scope
+routing, compact synthesis, blocker resolution, and final technical judgment.
+It may make reversible in-scope
 technical decisions needed to complete an approved objective.
 
 Stop for the user before destructive or irreversible operations, production
@@ -87,63 +87,6 @@ out-of-scope suggestions without entering a review loop.
   or revalidate unchanged authority repeatedly.
 - Preserve unrelated and uncommitted user work.
 
-## Graphify lifecycle
-
-- Graphify is advisory, non-blocking, and default-on only for standard and
-  critical planned repositories. Light never auto-adopts it.
-- Before planning, check Graphify configuration read-only: command available;
-  exactly `graph.json`, `graph.html`, and `GRAPH_REPORT.md` tracked under
-  `graphify-out/`; `manifest.json`, `cost.json`, and all other generated paths
-  ignored. Before hook status, canonicalize `git rev-parse --git-dir` and
-  `git rev-parse --git-common-dir`. If they differ, this linked worktree is
-  hook automation is `partial`: preserve common hooks and do not run status,
-  install, reinstall, or uninstall hooks, add a wrapper or alternate hook, or
-  bootstrap solely for hooks. When the command exists, continue with relevant
-  Git delta, pending evidence, and query smoke; a graph proven fresh at HEAD
-  remains usable and is reported usable to `repository_context`, otherwise use
-  source. When the command is missing, add the bootstrap and use source because
-  query cannot run. Artifact configuration may still authorize that bootstrap,
-  with its hook step skipped. Only an eligible non-linked worktree with the command
-  available executes `graphify hook status` exactly once per detection pass:
-  valid installed status continues; valid absence adds bootstrap only when
-  safely repairable; failure or uninterpretable output is `partial` source
-  fallback without bootstrap.
-- After hook configuration passes, check the relevant Git delta and pending
-  evidence before query smoke/use; do not call hook status again. Stale or
-  pending evidence or execution failure is `partial` source fallback, never
-  repeated bootstrap. Persist none of these labels.
-- Read-only detection and query may run before approval. Do not install, build,
-  edit ignore rules, install hooks, or mutate Git before plan approval.
-- Approval authorizes one complete initial build, repository ignore/versioning
-  changes, `uv tool install --upgrade graphifyy`, and `graphify hook install`.
-  External API credentials or material cost require separate user authority.
-  Never run `graphify codex install`.
-- Review, verify, and commit the initial bootstrap snapshot before running
-  `graphify hook install`; then rerun active detection. This avoids a redundant
-  post-commit rebuild of the initial snapshot.
-- Before hook installation, resolve Git's actual hooks destination including
-  `core.hooksPath`, after proving the worktree is non-linked. A linked worktree
-  preserves existing hooks, records hook automation as `partial`, and skips
-  installation; its graph-use decision still follows freshness checks. Use
-  source when a non-linked destination is inside the tracked worktree or
-  installation would modify a tracked hook. Add no wrapper or alternate hook
-  mechanism.
-- Native hooks structurally refresh after commits only in eligible non-linked
-  worktrees. Before later phase context, linked worktrees continue past skipped
-  hook operations to freshness and query checks; stale or pending evidence and
-  failed hook/query execution fall back to source without bootstrap.
-- After functional phases and before plan completion, run semantic
-  `graphify . --update` at most once. Commit changed tracked outputs in one
-  separate graph-only commit; return `nothing_to_commit` when unchanged.
-- Treat every Graphify failure as `partial`. Source, Git, project tests, runtime
-  evidence, and independent review remain authoritative and functional work
-  continues.
-- Treat hooks as clone-local and unversioned only after the resolved destination
-  proves it. Reinstall safely after cloning or hook removal and use
-  `graphify hook uninstall` for deliberate safe cleanup. The root owns the
-  lifecycle directly; add no profile, capability, helper, playbook, wrapper,
-  schema, lock, transaction, state machine, or policy gate.
-
 ## Delivery
 
 - Repository policy is explicit. If absent, ask the user once and recommend
@@ -184,5 +127,4 @@ explicit requirement, or reproducible risk it addresses, why an existing
 primitive is insufficient, its lifecycle, ownership, and cleanup, its
 proportional cost, and why a smaller direct implementation does not suffice.
 Review only deltas after a finding. If the gate rejects a mechanism, stop and
-simplify it. Graphify may provide context, but it is not correctness or policy
-evidence.
+simplify it.

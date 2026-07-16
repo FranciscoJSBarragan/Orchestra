@@ -83,22 +83,9 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
-### Advisory graph context
-
-Graphify is default-on for standard and critical planned repositories. The root
-may perform read-only configuration/freshness detection and query an existing
-usable graph before plan approval. Only bootstrap or another mutation requires
-approval. Missing required configuration receives one explicit bootstrap phase;
-active repositories use a fresh graph to focus later context, and functional
-work ends with at most one semantic update before plan completion. Light work
-never adopts Graphify automatically.
-
-The graph is advisory and non-blocking. Source, Git, project tests, runtime
-evidence, and independent review remain authoritative. Missing required
-configuration is addressed only by an approved bootstrap; stale, pending, or
-failed graph use falls back to source without triggering another bootstrap,
-weakening verification, or preventing functional delivery. External API
-credentials or material cost always require separate user authority.
+Current source and Git provide repository context. Project tests, runtime
+evidence, and independent review provide the complementary correctness signals;
+Orchestra does not maintain a separate repository index or control plane.
 
 ### Composable agents
 
@@ -145,5 +132,3 @@ Orchestra succeeds when:
   maturity.
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
-- Building a Graphify control plane, wrapper, policy gate, or correctness
-  authority around its advisory repository outputs.

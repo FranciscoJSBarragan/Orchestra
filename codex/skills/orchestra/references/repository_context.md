@@ -6,7 +6,6 @@ Use this internal playbook only with the `analyst` profile and the explicit `rep
 
 - Answer only the focused repository questions in the packet; do not plan or implement the change.
 - Read the repository's applicable `AGENTS.md` files and canonical product sources before interpreting local conventions.
-- Query Graphify only when the root packet explicitly says the current detection pass found the graph usable. When allowed, query only the named relationships and verify every relevant claim against current source at the packet revision; file existence alone never authorizes graph use because the graph may lag the revision.
 - Inspect the smallest relevant domain and prefer a changed context delta over rereading evidence that is still valid.
 - Report paths, symbols, relationships, established patterns, relevant tests, and unresolved facts at the exact inspected revision.
 - Separate direct observations from inferences and name evidence that could disprove an inference.

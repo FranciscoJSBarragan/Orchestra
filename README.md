@@ -44,52 +44,6 @@ The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
 to unrelated Codex configuration.
 
-## Advisory Graphify lifecycle
-
-For standard and critical planned repositories, the root uses Graphify by
-default as advisory context. Read-only configuration/freshness checks and query
-may run before approval. Missing command, required artifact boundary, or safely
-repairable required hooks add one bootstrap phase; stale/pending evidence or
-hook/query failure falls back to source as `partial` without another bootstrap.
-Nothing mutates before plan approval. Light work never adopts Graphify
-automatically.
-
-Before hook status, detection canonicalizes `git rev-parse --git-dir` and
-`git rev-parse --git-common-dir`. When they differ, native hook refresh is
-unsupported for that linked worktree: it preserves common hooks, records hook
-automation as `partial`, and skips status, install, reinstall, uninstall,
-wrappers, alternate hooks, and hook-only bootstrap. When the command exists, it
-still checks relevant Git delta and pending evidence before query smoke; a graph
-proven fresh at HEAD is usable advisory context, otherwise source is
-authoritative. When the command is missing, it adds bootstrap and uses source
-because query cannot run. Artifact configuration may also authorize that
-bootstrap, with its hook step skipped. Only an eligible non-linked worktree with the command
-available executes `graphify hook status` exactly once; it does not call hook
-status twice.
-
-Approved bootstrap uses `uv tool install --upgrade graphifyy`, one complete
-`graphify .` build, and repository ignore/versioning changes. The root reviews,
-verifies, and commits that initial snapshot before running
-`graphify hook install`, then reruns active detection. Exactly
-`graphify-out/graph.json`, `graphify-out/graph.html`, and
-`graphify-out/GRAPH_REPORT.md` are versioned;
-`manifest.json`, `cost.json`, and other generated data remain ignored. Before
-installing hooks, the root first proves the worktree is non-linked and resolves
-Git's actual destination including `core.hooksPath`. A linked worktree,
-destination inside the tracked worktree, or installation that would modify a
-tracked hook is preserved as `partial`; no wrapper or alternate hook is
-created. Only safely untracked, installation-local hooks may be treated as
-clone-local, reinstalled after cloning, or removed with
-`graphify hook uninstall`. Never use `graphify codex install`.
-
-Before using a configured graph, unusable evidence falls back to source. After
-functional phases, the root runs semantic
-`graphify . --update` at most once before plan completion and creates one
-graph-only commit only when tracked outputs changed. Graphify failure is
-`partial` and never overrides Git, source, tests, runtime evidence, or
-independent review. External credentials or material cost require separate user
-authority.
-
 ## Direct sync
 
 Run synchronization explicitly from a trusted Orchestra checkout. It is outside
