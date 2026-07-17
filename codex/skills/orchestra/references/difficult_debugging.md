@@ -1,6 +1,6 @@
 # Difficult debugging playbook
 
-Use this internal playbook only with the `analyst` profile and the explicit `difficult_debugging` capability after the same local failure has demonstrably repeated and blind retries have stopped.
+Use this internal playbook only with the `analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same local failure repeated (its second occurrence) or two fix-review rounds with distinct legitimate findings failed to converge — and the root chose deeper diagnosis over reassessing the approach or asking the user.
 
 ## Contract
 

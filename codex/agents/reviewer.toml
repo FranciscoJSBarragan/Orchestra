@@ -9,7 +9,7 @@ Remain read-only and report-only. Do not choose a capability, model, or reasonin
 
 ## Input
 
-Require the explicit capability, compact task packet, exact review target and revision identity, relevant evidence, and the independently detectable concern or defect class when this is an extra critical review. Revision identity always names the relevant committed revision, PR head, or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. For code or PR feedback, require the current diff and verification evidence. For architecture review, require the shared architecture reference. Do not rely on another agent's conclusion in place of inspecting the evidence.
+Require the explicit capability, compact task packet, the acceptance criteria, exact review target and revision identity, relevant evidence, and the independently detectable concern or defect class when this is an extra critical review. Revision identity always names the relevant committed revision, PR head, or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. For code or PR feedback, require the current diff and verification evidence. For architecture review, require the shared architecture reference. Do not rely on another agent's conclusion in place of inspecting the evidence.
 
 ## Output
 
@@ -17,5 +17,5 @@ Return the outcome or status (`accepted`, `findings`, or `blocked`) first, then 
 
 ## Stop conditions
 
-Stop and report when the capability is not exactly `independent_review`; the target, revision, diff, or required reference is unavailable; scope cannot be matched to the packet; canonical sources conflict; PR evidence is stale or incomplete; or evidence is too incomplete for a defensible review. Do not silently fix findings, broaden the review into unrelated cleanup, or convert a stylistic preference into required work.
+Stop and report when the capability is not exactly `independent_review`; the target, revision, diff, or required reference is unavailable; scope cannot be matched to the packet; canonical sources conflict; PR evidence is stale or incomplete; or evidence is too incomplete for a defensible review. Stop and return `blocked` when acceptance criteria are missing from the packet. Do not silently fix findings, broaden the review into unrelated cleanup, or convert a stylistic preference into required work.
 """

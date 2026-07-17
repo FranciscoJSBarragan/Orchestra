@@ -104,12 +104,18 @@ role.
 For standard and critical work:
 
 1. An `analyst` with `repository_context` inspects only the domains needed for
-   the request.
+   the request. The root may skip or reduce this dispatch only when it cites the
+   specific prior evidence it reuses (artifact and HEAD, same session);
+   otherwise dispatch. A reduced dispatch requests only the targeted context
+   delta.
 2. The orchestrator merges evidence into a compact problem statement.
 3. The orchestrator and user settle objective, constraints, acceptance, and
    relevant product choices.
-4. The root writes the formal plan, using an `analyst` with
-   `technical_planning` or `architecture_analysis` when useful.
+4. The root writes the formal plan, dispatching `technical_planning` (or
+   `architecture_analysis` for a bounded named architecture question) when
+   useful; for a small single-phase standard task the root may write the
+   compact plan directly. A single-phase standard plan is explicitly compact:
+   objective, one phase contract, verification, nothing else.
 5. A critical plan audit is an independent `reviewer` dispatch only when its
    packet names a measurable risk, supporting evidence and affected area, and
    an independently detectable defect class. Complexity alone is insufficient.
@@ -161,7 +167,10 @@ The loop is:
 
 1. The root selects one `implementation_worker` with `general_implementation`
    or `frontend_implementation`.
-2. A `verifier` runs applicable checks and reports their observed results.
+2. A `verifier` runs applicable checks and reports their observed results. If
+   verification returns `failed`, return findings to the same implementation
+   owner and re-verify before dispatching `independent_review`. If it returns
+   `blocked`, the root decides whether review proceeds on source alone.
 3. One independent `reviewer` checks specification, correctness, regressions,
    safety, and materially defect-prone design.
 4. Accepted findings return to the same owner.
@@ -169,9 +178,11 @@ The loop is:
 6. The root commits directly or through the narrow commit helper when the phase
    passes.
 
-If the same failure repeats, stop blind retries. The root may dispatch an
-`analyst` with `difficult_debugging`, change the approach, or ask the user when
-the decision crosses an authority boundary.
+When either the same failure repeats (its second occurrence) or two fix-review
+rounds with distinct legitimate findings fail to converge, stop blind retries
+and choose: reassess the phase approach, dispatch `difficult_debugging` when
+the pattern suggests a deeper cause, or ask the user when an authority boundary
+is crossed.
 
 ## Review policy
 

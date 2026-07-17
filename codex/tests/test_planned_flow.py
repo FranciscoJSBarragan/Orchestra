@@ -253,6 +253,22 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(requirement, reviewer)
 
+    def test_dispatch_packet_pins_phase_acceptance_and_scope_stop_conditions(self) -> None:
+        reviewer_input = self.input_instructions("reviewer").lower()
+        self.assertIn("the acceptance criteria", reviewer_input)
+        reviewer_stop = self.instructions("reviewer").split("## Stop conditions", 1)[1].lower()
+        self.assertIn(
+            "stop and return `blocked` when acceptance criteria are missing from the packet",
+            reviewer_stop,
+        )
+        worker_stop = self.instructions("implementation_worker").split(
+            "## Stop conditions", 1
+        )[1].lower()
+        self.assertIn(
+            "stop when the change grows beyond the packet objective, even inside allowed paths",
+            worker_stop,
+        )
+
     def test_compact_context_requests_lossless_returns_without_hard_caps(self) -> None:
         self.assertIn("Request outcome-first, lossless structured returns", self.skill)
         self.assertIn(
@@ -367,8 +383,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(field, routing)
         self.assertIn("complexity alone is insufficient", routing)
         debugging = (self.references / "difficult_debugging.md").read_text()
-        self.assertIn("same local failure has demonstrably repeated", debugging)
-        self.assertIn("blind retries have stopped", debugging)
+        self.assertIn("escalation trigger fired", debugging)
+        self.assertIn("the same local failure repeated (its second occurrence)", debugging)
+        self.assertIn("two fix-review rounds with distinct legitimate findings failed to converge", debugging)
         self.assertIn("same implementation owner", debugging)
         self.assertIn("or the whole workflow", debugging)
 

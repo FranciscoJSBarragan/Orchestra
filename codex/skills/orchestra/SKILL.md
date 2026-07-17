@@ -79,17 +79,17 @@ User approval moves `draft` directly to `active`; approval is not a status. Only
 
 ## Route standard and critical work
 
-1. Dispatch `repository_context` to an `analyst` with focused discovery questions. Add `web_research` only for necessary time-sensitive external evidence.
+1. Dispatch `repository_context` to an `analyst` with focused discovery questions. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. A reduced dispatch requests only the targeted context delta. Add `web_research` only for necessary time-sensitive external evidence.
 2. Have the root synthesize evidence and align objective, constraints, acceptance, exclusions, and unresolved product choices with the user.
-3. Dispatch `technical_planning` to an `analyst`; use `architecture_analysis` instead or additionally only for a bounded named architecture question. The root writes the returned plan into the local `draft` plan.
+3. The root writes the plan, dispatching `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. The root records the resulting plan in the local `draft` plan. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
 4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient.
 5. Have the root summarize the plan and request explicit user approval. Stop before implementation. On approval, update the plan directly from `draft` to `active`.
 6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase.
-7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Then dispatch `independent_review` against the exact revision and evidence.
+7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. If verification returns `failed`, return findings to the same implementation owner and re-verify before dispatching `independent_review`. If it returns `blocked`, the root decides whether review proceeds on source alone. Then dispatch `independent_review` against the exact revision and evidence.
 8. For a second critical review, reuse `independent_review` with the critical assignment only for a named measurable risk and independently detectable defect class.
 9. Return accepted findings to the same implementation owner, preserve its original implementation capability and playbook, rerun affected verification, and review the meaningful delta.
 10. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update phase progress in the local plan.
-11. After the same local failure demonstrably repeats, stop blind retries and dispatch `difficult_debugging` with only the failure evidence and context delta. Return the diagnosis to the same owner and resume the failed local step, not the whole workflow.
+11. When either the same local failure repeats (its second occurrence) or two fix-review rounds with distinct legitimate findings fail to converge, stop blind retries and choose: reassess the phase approach, dispatch `difficult_debugging` with only the failure evidence and context delta when the pattern suggests a deeper cause, or ask the user when an authority boundary is crossed. Return the diagnosis to the same owner and resume the failed local step, not the whole workflow.
 12. After every phase is reviewed, verified, and committed, set the local plan to `completed`.
 
 Frontend visual iteration and browser acceptance use Computer Use with Chrome only when their references require browser interaction. Neither path may invoke, probe, or fall back to Codex's in-app Browser. The frontend owner never accepts its own work; browser acceptance is an independent verifier dispatch and returns `blocked` if Computer Use or Chrome is unavailable.
