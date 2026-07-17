@@ -12,7 +12,7 @@ import re
 import subprocess
 import sys
 import tomllib
-from typing import Callable
+from typing import Callable, NoReturn
 
 
 REQUIRED_PATHS = (
@@ -30,6 +30,7 @@ REQUIRED_PATHS = (
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
+    "codex/scripts/_common.py",
     "codex/config/roles.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/analyst.toml",
@@ -191,6 +192,13 @@ def check_required_paths(root: Path) -> list[str]:
 
 
 _ASSIGNMENT_TABLE_HEADER = "## Tier flows and models"
+_ASSIGNMENT_COLUMN_LABELS = (
+    "Tier",
+    "Capability",
+    "Base profile",
+    "Model",
+    "Reasoning",
+)
 _ASSIGNMENT_ROW = re.compile(
     r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$"
 )
@@ -215,12 +223,16 @@ def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, st
             section_start = index
             break
     if section_start is None:
-        raise ValueError("assignment table section is missing")
+        raise ValueError(f"{path}: assignment table section is missing")
+
+    def fail(line_no: int, message: str) -> NoReturn:
+        raise ValueError(f"{path}:{line_no}: {message}")
 
     assignments: dict[str, dict[str, tuple[str, str, str]]] = {}
     seen_keys: set[tuple[str, str]] = set()
+    header_seen = False
     separator_seen = False
-    for line in lines[section_start + 1 :]:
+    for offset, line in enumerate(lines[section_start + 1 :], start=section_start + 2):
         stripped = line.strip()
         if stripped.startswith("## "):
             break
@@ -233,36 +245,53 @@ def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, st
             ":",
             " ",
         }:
+            if not header_seen:
+                fail(offset, "assignment table separator before header")
             separator_seen = True
             continue
         if not stripped.startswith("|"):
             if separator_seen:
                 break
             continue
-        if not separator_seen:
-            continue
         match = _ASSIGNMENT_ROW.match(stripped)
         if not match:
-            raise ValueError("assignment table has a malformed row")
-        tier = match.group(1).strip().strip("`").strip().lower()
-        capability = match.group(2).strip().strip("`").strip()
-        profile = match.group(3).strip().strip("`").strip()
-        model = match.group(4).strip().strip("`").strip()
-        reasoning = match.group(5).strip().strip("`").strip()
+            fail(offset, "assignment table has a malformed row")
+        cells = tuple(
+            match.group(index).strip().strip("`").strip() for index in range(1, 6)
+        )
+        if not separator_seen:
+            if header_seen:
+                fail(offset, "assignment table has multiple header rows")
+            if cells != _ASSIGNMENT_COLUMN_LABELS:
+                fail(
+                    offset,
+                    "assignment table header must be "
+                    + " | ".join(_ASSIGNMENT_COLUMN_LABELS),
+                )
+            header_seen = True
+            continue
+        tier, capability, profile, model, reasoning = cells
+        tier = tier.lower()
         if not tier or not capability or not profile or not model or not reasoning:
-            raise ValueError("assignment table has an empty cell")
+            fail(offset, "assignment table has an empty cell")
         if tier not in {"light", "standard", "critical"}:
-            raise ValueError(f"assignment table has an unknown tier: {tier}")
+            fail(offset, f"assignment table has an unknown tier: {tier}")
         key = (tier, capability)
         if key in seen_keys:
-            raise ValueError(f"assignment table has a duplicate row: {tier}.{capability}")
+            fail(offset, f"assignment table has a duplicate row: {tier}.{capability}")
         seen_keys.add(key)
         assignments.setdefault(tier, {})[capability] = (profile, model, reasoning)
 
+    if not header_seen:
+        raise ValueError(f"{path}: assignment table header is missing")
+    if not separator_seen:
+        raise ValueError(f"{path}: assignment table separator is missing")
     if not assignments:
-        raise ValueError("assignment table is empty")
+        raise ValueError(f"{path}: assignment table is empty")
     if set(assignments) != {"light", "standard", "critical"}:
-        raise ValueError("assignment table must define light, standard, and critical")
+        raise ValueError(
+            f"{path}: assignment table must define light, standard, and critical"
+        )
     return assignments
 
 

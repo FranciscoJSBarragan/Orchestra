@@ -357,6 +357,40 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("role-contract:", result.stdout)
 
+    def test_missing_common_helper_fails_quick(self) -> None:
+        (self.root / "codex/scripts/_common.py").unlink()
+        result = self.run_validator("--quick")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required-path: missing codex/scripts/_common.py", result.stdout)
+
+    def test_mislabeled_assignment_header_fails_closed(self) -> None:
+        import importlib.util
+
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            workflow.read_text(encoding="utf-8").replace(
+                "| Tier | Capability | Base profile | Model | Reasoning |",
+                "| Model | Capability | Base profile | Tier | Reasoning |",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        spec = importlib.util.spec_from_file_location(
+            "validate_suite", self.root / "codex/scripts/validate_suite.py"
+        )
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with self.assertRaises(ValueError) as raised:
+            module.parse_assignment_table(workflow)
+        self.assertRegex(
+            str(raised.exception),
+            r"WORKFLOW\.md:\d+: assignment table header must be",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("role-contract:", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

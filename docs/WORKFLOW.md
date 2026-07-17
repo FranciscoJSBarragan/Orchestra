@@ -170,7 +170,8 @@ The loop is:
 2. A `verifier` runs applicable checks and reports their observed results. If
    verification returns `failed`, return findings to the same implementation
    owner and re-verify before dispatching `independent_review`. If it returns
-   `blocked`, the root decides whether review proceeds on source alone.
+   `blocked`, the root decides whether review proceeds on source alone and,
+   when it does, records the blocked reason in the review evidence.
 3. One independent `reviewer` checks specification, correctness, regressions,
    safety, and materially defect-prone design.
 4. Accepted findings return to the same owner.

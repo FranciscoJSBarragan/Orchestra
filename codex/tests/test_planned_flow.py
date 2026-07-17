@@ -265,7 +265,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             "## Stop conditions", 1
         )[1].lower()
         self.assertIn(
-            "stop when the change grows beyond the packet objective, even inside allowed paths",
+            "stop when the change materially expands the packet objective, "
+            "acceptance criteria, exclusions, or approved authority, even inside "
+            "allowed paths",
             worker_stop,
         )
 
@@ -368,6 +370,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("pr.py", review_skill)
         self.assertIn("observe", review_skill)
         self.assertIn("tiers.<tier>.independent_review", review_skill)
+        self.assertIn(
+            "the acceptance criteria from the open-time packet or PR-CONTEXT",
+            review_skill,
+        )
         self.assertIn("same implementation owner", review_skill)
         for retired in ("phase_committer", "pr_polling_specialist", "pr_triage_specialist"):
             self.assertNotIn(retired, commit_skill + review_skill + self.skill)
@@ -382,6 +388,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(field, routing)
         self.assertIn("complexity alone is insufficient", routing)
+        self.assertIn("records the blocked reason in the review evidence", self.skill)
         debugging = (self.references / "difficult_debugging.md").read_text()
         self.assertIn("escalation trigger fired", debugging)
         self.assertIn("the same local failure repeated (its second occurrence)", debugging)

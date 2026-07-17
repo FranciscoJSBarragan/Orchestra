@@ -38,6 +38,13 @@ class LightFlowContractTests(unittest.TestCase):
         self.assertIn("Select `critical` for security-sensitive work", self.skill)
         self.assertIn("Named browser acceptance makes a task at least standard", self.skill)
         self.assertIn("A frontend change may be light only when", self.skill)
+        frontend = (
+            ROOT / "codex/skills/orchestra/references/frontend_implementation.md"
+        ).read_text()
+        self.assertIn(
+            "including one direct targeted verification",
+            frontend,
+        )
 
     def test_root_owns_judgment_and_packet_stays_in_memory(self) -> None:
         for responsibility in (
