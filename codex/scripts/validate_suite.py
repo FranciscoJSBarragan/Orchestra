@@ -147,38 +147,6 @@ PROFILE_NAMES = (
     "verifier",
 )
 
-EXPECTED_ASSIGNMENTS = {
-    "light": {
-        "general_implementation": ("implementation_worker", "gpt-5.6-luna", "max"),
-        "independent_review": ("reviewer", "gpt-5.6-luna", "max"),
-        "runtime_verification": ("verifier", "gpt-5.6-luna", "max"),
-    },
-    "standard": {
-        "repository_context": ("analyst", "gpt-5.6-luna", "xhigh"),
-        "web_research": ("analyst", "gpt-5.6-luna", "xhigh"),
-        "technical_planning": ("analyst", "gpt-5.6-sol", "high"),
-        "architecture_analysis": ("analyst", "gpt-5.6-sol", "high"),
-        "difficult_debugging": ("analyst", "gpt-5.6-sol", "high"),
-        "general_implementation": ("implementation_worker", "gpt-5.6-luna", "max"),
-        "frontend_implementation": ("implementation_worker", "gpt-5.6-sol", "medium"),
-        "independent_review": ("reviewer", "gpt-5.6-sol", "medium"),
-        "browser_acceptance": ("verifier", "gpt-5.6-luna", "xhigh"),
-        "runtime_verification": ("verifier", "gpt-5.6-luna", "max"),
-    },
-    "critical": {
-        "repository_context": ("analyst", "gpt-5.6-sol", "medium"),
-        "web_research": ("analyst", "gpt-5.6-sol", "medium"),
-        "technical_planning": ("analyst", "gpt-5.6-sol", "high"),
-        "architecture_analysis": ("analyst", "gpt-5.6-sol", "high"),
-        "difficult_debugging": ("analyst", "gpt-5.6-sol", "high"),
-        "general_implementation": ("implementation_worker", "gpt-5.6-sol", "high"),
-        "frontend_implementation": ("implementation_worker", "gpt-5.6-sol", "high"),
-        "independent_review": ("reviewer", "gpt-5.6-sol", "high"),
-        "browser_acceptance": ("verifier", "gpt-5.6-sol", "medium"),
-        "runtime_verification": ("verifier", "gpt-5.6-sol", "medium"),
-    },
-}
-
 PLAYBOOK_NAMES = (
     "repository_context",
     "web_research",
@@ -220,6 +188,83 @@ def check_required_paths(root: Path) -> list[str]:
         for relative in REQUIRED_PATHS
         if not (root / relative).is_file()
     ]
+
+
+_ASSIGNMENT_TABLE_HEADER = "## Tier flows and models"
+_ASSIGNMENT_ROW = re.compile(
+    r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$"
+)
+
+
+def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, str]]]:
+    """Parse the canonical tier assignment table from docs/WORKFLOW.md.
+
+    Returns a mapping ``{tier: {capability: (profile, model, reasoning_effort)}}``.
+    Fails closed on a missing section, malformed rows, duplicates, or an empty
+    result by raising ``ValueError``.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise ValueError(f"cannot read {path}: {error}") from error
+
+    lines = text.splitlines()
+    section_start: int | None = None
+    for index, line in enumerate(lines):
+        if line.strip() == _ASSIGNMENT_TABLE_HEADER:
+            section_start = index
+            break
+    if section_start is None:
+        raise ValueError("assignment table section is missing")
+
+    assignments: dict[str, dict[str, tuple[str, str, str]]] = {}
+    seen_keys: set[tuple[str, str]] = set()
+    separator_seen = False
+    for line in lines[section_start + 1 :]:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            break
+        if not stripped:
+            if separator_seen:
+                break
+            continue
+        if stripped.startswith("|") and set(stripped.replace("|", "").strip()) <= {
+            "-",
+            ":",
+            " ",
+        }:
+            separator_seen = True
+            continue
+        if not stripped.startswith("|"):
+            if separator_seen:
+                break
+            continue
+        if not separator_seen:
+            continue
+        match = _ASSIGNMENT_ROW.match(stripped)
+        if not match:
+            raise ValueError("assignment table has a malformed row")
+        tier = match.group(1).strip().strip("`").strip().lower()
+        capability = match.group(2).strip().strip("`").strip()
+        profile = match.group(3).strip().strip("`").strip()
+        model = match.group(4).strip().strip("`").strip()
+        reasoning = match.group(5).strip().strip("`").strip()
+        if not tier or not capability or not profile or not model or not reasoning:
+            raise ValueError("assignment table has an empty cell")
+        if tier not in {"light", "standard", "critical"}:
+            raise ValueError(f"assignment table has an unknown tier: {tier}")
+        key = (tier, capability)
+        if key in seen_keys:
+            raise ValueError(f"assignment table has a duplicate row: {tier}.{capability}")
+        seen_keys.add(key)
+        assignments.setdefault(tier, {})[capability] = (profile, model, reasoning)
+
+    if not assignments:
+        raise ValueError("assignment table is empty")
+    if set(assignments) != {"light", "standard", "critical"}:
+        raise ValueError("assignment table must define light, standard, and critical")
+    return assignments
+
 
 
 def check_distribution_boundary(root: Path) -> list[str]:
@@ -272,23 +317,29 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     except (tomllib.TOMLDecodeError, UnicodeError) as error:
         return [f"role-contract: codex/config/roles.toml is invalid: {error}"]
 
+    workflow_path = root / "docs/WORKFLOW.md"
+    try:
+        expected_assignments = parse_assignment_table(workflow_path)
+    except (OSError, UnicodeError, ValueError) as error:
+        return [f"role-contract: cannot parse docs/WORKFLOW.md assignment table: {error}"]
+
     failures: list[str] = []
     if set(roles) != {"tiers"}:
         failures.append("role-contract: roles.toml must contain tiers only")
     tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != set(EXPECTED_ASSIGNMENTS):
+    if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
         failures.append(
             "role-contract: roles.toml must define light, standard, and critical"
         )
     else:
-        for tier, expected_assignments in EXPECTED_ASSIGNMENTS.items():
+        for tier, expected_tier_assignments in expected_assignments.items():
             actual_assignments = tiers.get(tier)
             if not isinstance(actual_assignments, dict) or set(
                 actual_assignments
-            ) != set(expected_assignments):
+            ) != set(expected_tier_assignments):
                 failures.append(f"role-contract: unexpected {tier} capability set")
                 continue
-            for capability, expected in expected_assignments.items():
+            for capability, expected in expected_tier_assignments.items():
                 assignment = actual_assignments[capability]
                 if not isinstance(assignment, dict) or set(assignment) != {
                     "profile",
@@ -583,8 +634,9 @@ def check_direct_sync(root: Path) -> list[str]:
         "policy.py",
         "pr.py",
         "integrate_local.py",
+        "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly four helpers")
+        failures.append("sync-contract: sync inventory must name exactly five helpers")
     for destination in (
         ".agents/skills/",
         "agents/",

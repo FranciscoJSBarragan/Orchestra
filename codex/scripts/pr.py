@@ -11,6 +11,7 @@ import subprocess
 from typing import Any
 
 from policy import blocked, load_policy, run_checks
+from _common import SHA_PATTERN, _git, _run
 
 
 CAPSULE_START = "<!-- PR-CONTEXT:start -->"
@@ -18,7 +19,6 @@ CAPSULE_END = "<!-- PR-CONTEXT:end -->"
 CAPSULE_PATTERN = re.compile(
     re.escape(CAPSULE_START) + r".*?" + re.escape(CAPSULE_END), re.DOTALL
 )
-SHA_PATTERN = re.compile(r"[0-9a-f]{40,64}\Z")
 REPOSITORY_PATTERN = re.compile(r"[^/\s]+/[^/\s]+\Z")
 GRAPHQL_QUERY = """
 query($owner:String!, $name:String!, $number:Int!) {
@@ -36,20 +36,6 @@ query($owner:String!, $name:String!, $number:Int!) {
   }
 }
 """.strip()
-
-
-def _run(repo: Path, command: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        command,
-        cwd=repo,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-
-def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return _run(repo, ["git", *args])
 
 
 def _gh(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:

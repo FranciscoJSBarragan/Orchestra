@@ -22,5 +22,6 @@ Keep the root responsible for GitHub observation, feedback decisions, routing, b
 4. Clear any remembered clean head after a push or observed head change. Resume with direct observation; do not restart discovery, planning, or unaffected verification.
 5. Treat pending or failed checks, required review, changes requested, non-clean merge state, accepted feedback, incomplete thread pagination, or a first clean observation as `partial`.
 6. Return `ok` only after two complete clean observations on the same HEAD. Pass the first clean head directly as `--previous-clean-head` for the second observation; never write it to disk.
+7. When the PR helper reports `partial` because review threads are paginated (more than 100 threads), the root escalates to the user instead of looping; thread pagination is out of scope.
 
 `Open PR` authority covers this review/fix/commit/push loop only. Stop before merge unless the user separately authorized it, then route to [orchestra-pr-merge](../orchestra-pr-merge/SKILL.md). Never release, deploy, publish, mutate production, or create a local PR state file.

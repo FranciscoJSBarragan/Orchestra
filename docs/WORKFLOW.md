@@ -254,7 +254,9 @@ The unchanged public PR skills preserve the proven behavioral chain:
    pushes.
 6. The loop continues until two complete clean observations occur on the same
    head. The root passes the first clean head directly to the second observation
-   in memory; a push or head change resets it.
+   in memory; a push or head change resets it. The second observation on an
+   unchanged head is a lightweight but complete re-poll of checks and review
+   threads; it does not re-read the diff.
 
 GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
 in the PR body. The helper reports current checks and review-thread evidence; it

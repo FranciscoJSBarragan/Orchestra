@@ -309,6 +309,54 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(full.returncode, 0)
         self.assertIn("python-syntax: codex/tests/invalid_fixture.py", full.stdout)
 
+    def test_parse_assignment_table_reads_real_workflow(self) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "validate_suite", self.root / "codex/scripts/validate_suite.py"
+        )
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assignments = module.parse_assignment_table(
+            self.root / "docs/WORKFLOW.md"
+        )
+        self.assertEqual(
+            len(assignments["light"]) + len(assignments["standard"]) + len(assignments["critical"]),
+            23,
+        )
+        self.assertEqual(len(assignments["light"]), 3)
+        self.assertEqual(len(assignments["standard"]), 10)
+        self.assertEqual(len(assignments["critical"]), 10)
+        self.assertEqual(
+            assignments["light"]["general_implementation"],
+            ("implementation_worker", "gpt-5.6-luna", "max"),
+        )
+
+    def test_mutated_workflow_model_cell_is_rejected_against_roles(self) -> None:
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            workflow.read_text(encoding="utf-8").replace(
+                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |",
+                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("role-contract:", result.stdout)
+
+    def test_missing_workflow_table_fails_closed(self) -> None:
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            "# Orchestra Workflow\n\n## Tier flows and models\n\nNo table here.\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("role-contract:", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,7 +40,7 @@ LEGACY_AGENTS = (
     "repo_context_explorer",
     "web_researcher",
 )
-HELPERS = ("commit_phase.py", "policy.py", "pr.py", "integrate_local.py")
+HELPERS = ("commit_phase.py", "policy.py", "pr.py", "integrate_local.py", "_common.py")
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 MANIFEST_PATH = "orchestra/install-manifest.json"

@@ -6,12 +6,10 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path, PurePosixPath
-import re
 import subprocess
 import sys
 
-
-SHA_PATTERN = re.compile(r"[0-9a-f]{40,64}\Z")
+from _common import SHA_PATTERN
 
 
 def _git(repo: Path, *args: str, text: bool = True) -> subprocess.CompletedProcess:

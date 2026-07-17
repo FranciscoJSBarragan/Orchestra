@@ -6,24 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
 import subprocess
 from typing import Any
 
 from policy import blocked, load_policy, run_checks
-
-
-SHA_PATTERN = re.compile(r"[0-9a-f]{40,64}\Z")
-
-
-def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args],
-        cwd=repo,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+from _common import SHA_PATTERN, _git
 
 
 def _command_reason(name: str, result: subprocess.CompletedProcess[str]) -> str:
