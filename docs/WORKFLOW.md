@@ -61,18 +61,18 @@ playbook.
 
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
-| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |
-| Light | `independent_review` | `reviewer` | `gpt-5.6-luna` | `max` |
-| Standard | `repository_context` | `analyst` | `gpt-5.6-luna` | `xhigh` |
-| Standard | `web_research` | `analyst` | `gpt-5.6-luna` | `xhigh` |
+| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |
+| Light | `independent_review` | `reviewer` | `gpt-5.6-terra` | `max` |
+| Standard | `repository_context` | `analyst` | `gpt-5.6-terra` | `xhigh` |
+| Standard | `web_research` | `analyst` | `gpt-5.6-terra` | `xhigh` |
 | Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `architecture_analysis` | `analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |
+| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |
 | Standard | `frontend_implementation` | `implementation_worker` | `gpt-5.6-sol` | `medium` |
 | Standard | `independent_review` | `reviewer` | `gpt-5.6-sol` | `medium` |
-| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-luna` | `xhigh` |
-| Standard | `runtime_verification` | `verifier` | `gpt-5.6-luna` | `max` |
+| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-terra` | `xhigh` |
+| Standard | `runtime_verification` | `verifier` | `gpt-5.6-terra` | `max` |
 | Critical | `repository_context` | `analyst` | `gpt-5.6-sol` | `medium` |
 | Critical | `web_research` | `analyst` | `gpt-5.6-sol` | `medium` |
 | Critical | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |

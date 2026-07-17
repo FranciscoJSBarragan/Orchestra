@@ -98,7 +98,7 @@ class LightFlowContractTests(unittest.TestCase):
             self.assertIn("## Output", profile["developer_instructions"])
             self.assertIn("## Stop conditions", profile["developer_instructions"])
 
-    def test_light_matrix_is_exactly_two_luna_max_capabilities(self) -> None:
+    def test_light_matrix_is_exactly_two_terra_max_capabilities(self) -> None:
         roles = tomllib.loads((ROOT / "codex/config/roles.toml").read_text())
         self.assertEqual(set(roles), {"tiers"})
         self.assertEqual(set(roles["tiers"]), {"light", "standard", "critical"})
@@ -107,12 +107,12 @@ class LightFlowContractTests(unittest.TestCase):
             {
                 "general_implementation": {
                     "profile": "implementation_worker",
-                    "model": "gpt-5.6-luna",
+                    "model": "gpt-5.6-terra",
                     "reasoning_effort": "max",
                 },
                 "independent_review": {
                     "profile": "reviewer",
-                    "model": "gpt-5.6-luna",
+                    "model": "gpt-5.6-terra",
                     "reasoning_effort": "max",
                 },
             },

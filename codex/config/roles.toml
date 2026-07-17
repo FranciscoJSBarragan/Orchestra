@@ -1,21 +1,21 @@
 [tiers.light.general_implementation]
 profile = "implementation_worker"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "max"
 
 [tiers.light.independent_review]
 profile = "reviewer"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "max"
 
 [tiers.standard.repository_context]
 profile = "analyst"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "xhigh"
 
 [tiers.standard.web_research]
 profile = "analyst"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "xhigh"
 
 [tiers.standard.technical_planning]
@@ -35,7 +35,7 @@ reasoning_effort = "high"
 
 [tiers.standard.general_implementation]
 profile = "implementation_worker"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "max"
 
 [tiers.standard.frontend_implementation]
@@ -50,12 +50,12 @@ reasoning_effort = "medium"
 
 [tiers.standard.browser_acceptance]
 profile = "verifier"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "xhigh"
 
 [tiers.standard.runtime_verification]
 profile = "verifier"
-model = "gpt-5.6-luna"
+model = "gpt-5.6-terra"
 reasoning_effort = "max"
 
 [tiers.critical.repository_context]

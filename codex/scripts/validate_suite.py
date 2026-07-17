@@ -180,7 +180,7 @@ SKILL_NAMES = (
     "orchestra-pr-merge",
     "orchestra-local-integrate",
 )
-VALID_MODELS = {"gpt-5.6-luna", "gpt-5.6-sol"}
+VALID_MODELS = {"gpt-5.6-sol", "gpt-5.6-terra"}
 
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present."""

@@ -188,7 +188,7 @@ class FullModeFixtureTest(unittest.TestCase):
     def test_model_assignment_in_profile_is_rejected(self) -> None:
         profile = self.root / "codex/agents/reviewer.toml"
         profile.write_text(
-            profile.read_text(encoding="utf-8") + '\nmodel = "gpt-5.6-luna"\n',
+            profile.read_text(encoding="utf-8") + '\nmodel = "gpt-5.6-terra"\n',
             encoding="utf-8",
         )
         result = self.run_validator()
@@ -238,7 +238,7 @@ class FullModeFixtureTest(unittest.TestCase):
         roles.write_text(
             roles.read_text(encoding="utf-8")
             + '\n[tiers.standard.pr_poll]\nprofile = "reviewer"\n'
-            + 'model = "gpt-5.6-luna"\n'
+            + 'model = "gpt-5.6-terra"\n'
             + 'reasoning_effort = "xhigh"\n',
             encoding="utf-8",
         )
@@ -330,14 +330,14 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertEqual(len(assignments["critical"]), 10)
         self.assertEqual(
             assignments["light"]["general_implementation"],
-            ("implementation_worker", "gpt-5.6-luna", "max"),
+            ("implementation_worker", "gpt-5.6-terra", "max"),
         )
 
     def test_mutated_workflow_model_cell_is_rejected_against_roles(self) -> None:
         workflow = self.root / "docs/WORKFLOW.md"
         workflow.write_text(
             workflow.read_text(encoding="utf-8").replace(
-                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |",
+                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |",
                 "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
                 1,
             ),

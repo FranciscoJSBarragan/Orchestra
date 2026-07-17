@@ -168,7 +168,7 @@ when spawning a profile. Profiles contain behavior; playbooks contain capability
 instructions only for the seven capabilities listed above, and architecture
 guidance remains one shared reference.
 
-Light composes general implementation and independent review with Luna max; the
+Light composes general implementation and independent review with Terra max; the
 root itself runs the single direct targeted verification that qualified the task
 as light. Standard and critical use the exact matrix in `WORKFLOW.md`; a second
 critical review requires a named measurable risk. No Orchestra assignment uses
