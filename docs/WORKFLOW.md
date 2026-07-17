@@ -4,31 +4,37 @@
 
 ```mermaid
 flowchart TD
-    U["User describes an implementation"] --> O["Orchestrator frames the problem and selects a tier"]
-    O --> L{"Tier"}
-    L -->|"Light"| LW["Implementation worker"]
-    LW --> RV["Root runs the direct targeted verification"]
-    RV --> LR["Independent reviewer"]
-    L -->|"Standard or critical"| C["Bounded analyst context"]
-    C --> S["Orchestrator synthesizes and aligns with user"]
-    S --> P["Root writes the local task plan with analyst support"]
+    U["Normal chat"] --> Q{"User intent"}
+    Q -->|"Direct change or implementation"| DX["Ordinary direct execution outside Orchestra"]
+    Q -->|"Create the plan or explicit Orchestra"| S["Root-led specification gate"]
+    NPM["Native Codex Plan Mode"] --> PX["Native planning and later direct execution"]
+    S --> C["Confirm compact specification"]
+    C --> T{"Standard or critical"}
+    T --> P["Bounded context and formal technical plan"]
     P --> A["User approves implementation"]
-    A --> F["Execute the next phase"]
+    A --> W["Write approved plan directly as active"]
+    W --> F["Execute the next phase"]
     F --> R["Review and verify"]
     R -->|"Material finding"| F
     R -->|"Accepted"| M["Root commits the phase"]
     M --> N{"More phases?"}
     N -->|"Yes"| F
     N -->|"No"| D["Delivery-ready implementation"]
-    LR --> M
     D --> H{"User or prior delivery instruction"}
-    H -->|"Hold"| X["Committed branch/worktree ready"]
+    H -->|"Hold"| HX["Committed branch/worktree ready"]
     H -->|"Local integration"| LI["Verify, integrate, clean worktree and branch"]
     H -->|"PR"| PR["Open PR, review/fix/push until clean"]
-    PR --> PM["Merge only when separately authorized"]
+    PR --> PMG["Merge only when separately authorized"]
 ```
 
 ## Orchestrator behavior
+
+Orchestra is an explicit planned-work route. Native Codex Plan Mode and
+Orchestra are mutually exclusive; an Orchestra request made while Plan Mode is
+active must wait until the user leaves Plan Mode. In normal chat, ordinary
+change, fix, implementation, and implementation of a prior native plan remain
+direct work. Explicit intent to create, prepare, or write the implementation
+plan starts Orchestra.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -61,8 +67,6 @@ playbook.
 
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
-| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |
-| Light | `independent_review` | `reviewer` | `gpt-5.6-terra` | `max` |
 | Standard | `repository_context` | `analyst` | `gpt-5.6-terra` | `xhigh` |
 | Standard | `web_research` | `analyst` | `gpt-5.6-terra` | `xhigh` |
 | Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
@@ -84,14 +88,7 @@ playbook.
 | Critical | `browser_acceptance` | `verifier` | `gpt-5.6-sol` | `medium` |
 | Critical | `runtime_verification` | `verifier` | `gpt-5.6-sol` | `medium` |
 
-Light has no context, research, planning, architecture, difficult-debugging,
-frontend, browser-acceptance, or verifier dispatch. The root itself runs the
-single direct targeted verification that qualified the task as light and records
-the observed command and exit status; if verification needs more than the direct
-targeted check, the task is not light — escalate to standard. Named browser
-acceptance makes a task at least standard. A frontend change may be light only
-when every light condition holds, including one direct targeted verification;
-otherwise it is standard. A second critical review reuses `independent_review`
+A second critical review reuses `independent_review`
 with Sol high only for a named measurable risk and independently detectable
 defect class. No Orchestra assignment uses Sol xhigh.
 
@@ -101,25 +98,28 @@ role.
 
 ## Context and planning
 
-For standard and critical work:
+After explicit activation in normal chat:
 
-1. An `analyst` with `repository_context` inspects only the domains needed for
+1. The root reuses the prior conversation, asks only genuine gaps, and confirms
+   Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
+   Decisions, and Open questions with the user. No artifact is persisted.
+2. The root classifies the settled work as standard or critical.
+3. An `analyst` with `repository_context` inspects only the domains needed for
    the request. The root may skip or reduce this dispatch only when it cites the
    specific prior evidence it reuses (artifact and HEAD, same session);
    otherwise dispatch. A reduced dispatch requests only the targeted context
    delta.
-2. The orchestrator merges evidence into a compact problem statement.
-3. The orchestrator and user settle objective, constraints, acceptance, and
-   relevant product choices.
-4. The root writes the formal plan, dispatching `technical_planning` (or
+4. The orchestrator merges evidence into the settled specification.
+5. The root writes the formal plan in conversation or system temporary storage,
+   dispatching `technical_planning` (or
    `architecture_analysis` for a bounded named architecture question) when
    useful; for a small single-phase standard task the root may write the
    compact plan directly. A single-phase standard plan is explicitly compact:
    objective, one phase contract, verification, nothing else.
-5. A critical plan audit is an independent `reviewer` dispatch only when its
+6. A critical plan audit is an independent `reviewer` dispatch only when its
    packet names a measurable risk, supporting evidence and affected area, and
    an independently detectable defect class. Complexity alone is insufficient.
-6. The orchestrator summarizes the plan at the user's altitude and requests
+7. The root reviews the plan, summarizes it at the user's altitude, and requests
    implementation approval.
 
 Standard and critical implementation does not begin until the user explicitly
@@ -129,7 +129,9 @@ deployment, production mutation, or another delivery action.
 
 ### Local task plan
 
-The root maintains exactly one local plan per standard or critical worktree at
+Before approval, neither the provisional specification nor the formal-plan
+draft is persisted. After approval, the root writes the exact approved plan
+directly as `active` to
 `git rev-parse --git-path orchestra/plan.md`. It is never versioned and is an
 intent and resume aid for the root, not a workflow database. It records the
 objective, tier, branch, base revision, decisions, phase contracts,
@@ -137,16 +139,14 @@ verification, current phase, blocker, next action, and uncommitted-work note.
 
 Its statuses are:
 
-- `draft`: alignment is incomplete and implementation is not authorized;
 - `active`: the root is executing after explicit user approval;
 - `blocked`: execution stopped at a named blocker and next action;
 - `completed`: phases are reviewed, verified, and committed, while delivery
   authority remains separate.
 
-Explicit user approval moves `draft` directly to `active`; approval is not a
-persisted status. The normal lifecycle is `draft` to `active` to `completed`,
-with `active` to `blocked` to `active` when needed. The root owns every update;
-plan state never grants authority beyond the user's instruction.
+The normal lifecycle is `active` to `completed`, with `active` to `blocked` to
+`active` when needed. The root owns every update; plan state never grants
+authority beyond the user's instruction.
 
 On resume, the root resolves the path again and reconciles the plan with
 `git status`, branch, HEAD, merge base, and relevant commits. Git is

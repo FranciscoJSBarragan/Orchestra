@@ -180,7 +180,7 @@ class FullModeFixtureTest(unittest.TestCase):
 
     def test_invalid_role_toml_is_actionable(self) -> None:
         roles = self.root / "codex/config/roles.toml"
-        roles.write_text("[tiers.light\n", encoding="utf-8")
+        roles.write_text("[tiers.standard\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("role-contract: codex/config/roles.toml is invalid", result.stdout)
@@ -322,23 +322,18 @@ class FullModeFixtureTest(unittest.TestCase):
             self.root / "docs/WORKFLOW.md"
         )
         self.assertEqual(
-            len(assignments["light"]) + len(assignments["standard"]) + len(assignments["critical"]),
-            22,
+            len(assignments["standard"]) + len(assignments["critical"]),
+            20,
         )
-        self.assertEqual(len(assignments["light"]), 2)
         self.assertEqual(len(assignments["standard"]), 10)
         self.assertEqual(len(assignments["critical"]), 10)
-        self.assertEqual(
-            assignments["light"]["general_implementation"],
-            ("implementation_worker", "gpt-5.6-terra", "max"),
-        )
 
     def test_mutated_workflow_model_cell_is_rejected_against_roles(self) -> None:
         workflow = self.root / "docs/WORKFLOW.md"
         workflow.write_text(
             workflow.read_text(encoding="utf-8").replace(
-                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |",
-                "| Light | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
+                "| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |",
+                "| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
                 1,
             ),
             encoding="utf-8",

@@ -2,9 +2,12 @@
 
 Orchestra is a Codex-native, cost-efficient, multi-agent software-delivery workflow.
 
-It helps an individual developer move a software change from a clear objective
-to a reviewed, verified, and committed result. The root orchestrator acts as
-the technical lead: it frames the problem, selects a proportional workflow,
+It helps an individual developer move an explicitly planned software change
+from a confirmed specification to a reviewed, verified, and committed result.
+Native Codex Plan Mode and direct implementation remain separate. In normal
+chat, asking to create the implementation plan starts Orchestra. The root
+orchestrator acts as the technical lead: it confirms the specification, selects
+a standard or critical workflow,
 composes focused capabilities with four base agent profiles, resolves ordinary
 blockers, and makes the final technical judgment. The user remains the product
 owner and final authority.
@@ -25,16 +28,19 @@ together.
 
 ## Delivery model
 
-Orchestra scales discovery, planning, implementation, review, and verification
-to task risk. It supports both direct local integration and GitHub PR delivery
+Orchestra starts only from explicit planning intent in normal chat. It reuses
+the conversation, confirms a compact specification, creates a formal plan, and
+after approval scales implementation, review, and verification to task risk.
+It supports both direct local integration and GitHub PR delivery
 when repository policy and user authority allow them.
 
 The four profiles are `analyst`, `implementation_worker`, `reviewer`, and
 `verifier`. The root selects explicit capability assignments and their
-applicable internal references; public skill names stay stable. Standard and
-critical work use one root-owned, unversioned plan resolved by
-`git rev-parse --git-path orchestra/plan.md`. Git, not the plan, remains
-authoritative for code and history.
+applicable internal references; public skill names stay stable. The approved
+formal plan is written directly as `active` to one root-owned, unversioned path
+resolved by `git rev-parse --git-path orchestra/plan.md`. Provisional specs and
+unapproved plans are not persisted. Git, not the plan, remains authoritative
+for code and history.
 
 Each consumer repository declares that choice in `orchestra.toml`. Missing
 policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured

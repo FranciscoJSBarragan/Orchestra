@@ -1,32 +1,29 @@
 ---
 name: orchestra
-description: Route software changes through Orchestra's proportional light, standard, or critical workflow. Use when the root must select explicit capabilities, compose four stable profiles with internal playbooks, maintain a local plan for planned work, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
+description: Use only for explicit planned work in normal chat: align the specification, create an approved standard or critical implementation plan, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
 ---
 
 # Route an Orchestra change
 
-Keep the root orchestrator responsible for problem framing, tier selection, user alignment, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. Use the root's current session configuration selected outside Orchestra; the root has no assignment in `roles.toml` and is never respawned.
+Keep the root orchestrator responsible for specification alignment, tier selection, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. Use the root's current session configuration selected outside Orchestra; the root has no assignment in `roles.toml` and is never respawned.
 
-## Classify before dispatch
+## Activate explicitly and align the specification
 
-Declare `Tier: light|standard|critical — reason` before execution. Strengthen that declaration to `Tier: <tier> — <matching condition>: <one-line evidence>`: cite the exact gating condition that places the work in the selected tier with one line of supporting evidence. If the cited condition is disproven by evidence, reclassify before dispatching. Select `light` only when every condition is proven:
+Native Codex Plan Mode and Orchestra are mutually exclusive. If Plan Mode is active, do not start Orchestra, even for an explicit `$orchestra` request; tell the user to leave Plan Mode first. A plan created in native Plan Mode is implemented later through ordinary direct execution.
 
-- one small, fully understood objective;
-- localized impact following an established pattern;
-- no public API, schema, CLI, persisted-format, dependency, or architecture change;
-- no auth, security, privacy, payment, migration, production, deployment, destructive, or irreversible risk;
-- no unresolved product decision;
-- one direct targeted verification exists.
+In normal chat, direct change, fix, implementation, and implementation of a prior native Codex plan remain ordinary work outside Orchestra. Start Orchestra only when the user explicitly requests `$orchestra` or asks to create, prepare, or write the implementation plan.
+
+Reuse the preceding conversation and ask only genuine gaps. Before tiering, present and confirm a compact specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Do not persist it.
+
+## Classify after specification confirmation
+
+Declare `Tier: standard|critical — <matching condition>: <one-line evidence>` before dispatch. If the cited condition is disproven, reclassify before dispatching.
 
 Destructive means irreversible loss of unique data or work. An operation whose reversibility is proven by a cheap preflight (for example `git branch --contains` showing the commits exist in the base, or state that is regenerable) is not destructive and does not force critical.
 
-Fail closed to `standard` on ambiguity, unknown scope, new coupling, or risk. Select `critical` for security-sensitive work, credentials, payments, migrations, destructive actions, production changes, or comparable high-impact risk. Named browser acceptance makes a task at least standard. A frontend change may be light only when every light condition holds, including one direct targeted verification; otherwise it is standard.
+Use `standard` for ordinary planned features and fixes. Select `critical` for security-sensitive work, credentials, payments, migrations, destructive actions, production changes, or comparable high-impact risk.
 
-Tier exemplars:
-
-- light: typo/copy fix; deleting a fully merged worktree/branch after a containment check; bugfix covered by an existing targeted test.
-- standard: multi-file feature or fix; anything needing discovery or a formal plan.
-- critical: schema migration; auth/payment/credential changes; deleting unrecoverable data; production mutation.
+Tier exemplars: standard covers ordinary planned features and fixes; critical covers schema migrations, auth/payment/credential changes, unrecoverable deletion, and production mutation.
 
 ## Resolve assignments and references
 
@@ -49,7 +46,7 @@ Compose assignments as follows:
 
 These seven files are the complete playbook inventory: `repository_context`, `web_research`, `technical_planning`, `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and `runtime_verification`. Architecture guidance is one shared reference, not an eighth playbook. Do not create a playbook for `general_implementation`, `independent_review`, or `architecture_analysis`.
 
-Light has assignments only for `general_implementation` and `independent_review`. Light has no `frontend_implementation` assignment; a light frontend change routes through `general_implementation`. Standard and critical may use all ten capabilities. Do not dispatch a capability absent from the selected tier and never create root, commit, polling, PR-triage, or delivery assignments.
+Standard and critical may use all ten capabilities. Do not dispatch a capability absent from the selected tier and never create root, commit, polling, PR-triage, or delivery assignments.
 
 ## Keep compact context
 
@@ -59,31 +56,23 @@ Request outcome-first, lossless structured returns: omit packet and routine proc
 
 ## Maintain the local task plan
 
-For standard or critical work, the root resolves `git rev-parse --git-path orchestra/plan.md` in the task worktree and maintains exactly that one unversioned plan. Record objective, tier, branch, base revision, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note.
+Before approval, keep the formal-plan draft in conversation or system temporary storage. After approval, the root resolves `git rev-parse --git-path orchestra/plan.md` in the task worktree and writes the exact approved plan directly as `active`. Record objective, tier, branch, base revision, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note.
 
 Use only these statuses:
 
-- `draft`: alignment incomplete; implementation not authorized;
 - `active`: explicit user approval received and approved execution is underway;
 - `blocked`: stopped at a named blocker with the next action recorded;
 - `completed`: all phases reviewed, verified, and committed; delivery authority remains separate.
 
-User approval moves `draft` directly to `active`; approval is not a status. Only the root writes the plan. On resume, resolve the Git path again and reconcile the plan with current status, branch, HEAD, merge base, relevant commits, and user authority. Git is authoritative for code and history; the plan carries approved intent and progress only. A missing or unreadable plan blocks automatic continuation until the root reconstructs it and realigns with the user. Remove it only with safe task-worktree cleanup. Do not add a plan CLI, global index, Kanban board, event log, or state engine.
-
-## Route light work
-
-1. Dispatch `general_implementation` to one `implementation_worker` with the compact approved packet.
-2. The root itself runs the single direct targeted verification that qualified the task as light and records the observed command and exit status. Light has no `verifier` dispatch; if verification needs more than the direct targeted check, the task is not light — escalate to standard.
-3. Dispatch `independent_review` to one read-only `reviewer` with the packet, diff, revision, and the root's recorded verification evidence.
-4. Findings return to the same owner; the root re-runs the direct verification after fixes, the reviewer re-checks the meaningful delta, and the root commits the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md).
+Only the root writes the plan. On resume, resolve the Git path again and reconcile the plan with current status, branch, HEAD, merge base, relevant commits, and user authority. Git is authoritative for code and history; the plan carries approved intent and progress only. A missing or unreadable plan blocks automatic continuation until the root reconstructs it and realigns with the user. Remove it only with safe task-worktree cleanup. Do not add a plan CLI, global index, Kanban board, event log, or state engine.
 
 ## Route standard and critical work
 
 1. Dispatch `repository_context` to an `analyst` with focused discovery questions. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. A reduced dispatch requests only the targeted context delta. Add `web_research` only for necessary time-sensitive external evidence.
-2. Have the root synthesize evidence and align objective, constraints, acceptance, exclusions, and unresolved product choices with the user.
-3. The root writes the plan, dispatching `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. The root records the resulting plan in the local `draft` plan. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
+2. Have the root synthesize evidence against the confirmed specification.
+3. The root drafts the plan in conversation or system temporary storage, dispatching `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
 4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient.
-5. Have the root summarize the plan and request explicit user approval. Stop before implementation. On approval, update the plan directly from `draft` to `active`.
+5. Have the root review and summarize the plan and request explicit user approval. Stop before implementation. On approval, write the exact approved plan directly as `active`.
 6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase.
 7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. If verification returns `failed`, return findings to the same implementation owner and re-verify before dispatching `independent_review`. If it returns `blocked`, the root decides whether review proceeds on source alone and, when it does, records the blocked reason in the review evidence. Then dispatch `independent_review` against the exact revision and evidence.
 8. For a second critical review, reuse `independent_review` with the critical assignment only for a named measurable risk and independently detectable defect class.

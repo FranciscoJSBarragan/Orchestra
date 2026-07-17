@@ -2,9 +2,9 @@
 
 ## Mission
 
-Help an individual developer take a software change from idea to verified
-delivery with strong engineering judgment, useful multi-agent specialization,
-and a favorable quality-to-cost ratio.
+Help an individual developer turn an explicitly requested implementation plan
+into verified delivery with strong engineering judgment, useful multi-agent
+specialization, and a favorable quality-to-cost ratio.
 
 ## Vision
 
@@ -13,9 +13,11 @@ Codex orchestrator and trust it to reach a correct, reviewed, and committed
 result. The user remains the product owner and final authority; the
 orchestrator acts as the technical lead responsible for execution.
 
-The desired experience is not maximum process. It is the smallest dependable
-process that puts intelligence where it has leverage: understanding the
-problem, planning non-trivial work, implementing carefully, finding real bugs,
+The desired experience is not maximum process. Direct implementation and native
+Codex Plan Mode remain available outside Orchestra. When the user explicitly
+requests a formal plan in normal chat, Orchestra supplies the smallest
+dependable process that puts intelligence where it has leverage: confirming the
+specification, planning the work, implementing carefully, finding real bugs,
 and verifying behavior.
 
 ## Primary users
@@ -32,8 +34,9 @@ organization-wide approval bureaucracy.
 
 ### Intelligent orchestration
 
-The orchestrator is not a brainless dispatcher. It frames the problem,
-synthesizes evidence, negotiates scope with the user, selects the tier, chooses
+The orchestrator is not a brainless dispatcher. It reuses the preceding
+conversation, closes genuine specification gaps, synthesizes evidence, confirms
+scope with the user, selects the tier, chooses
 the next capability dispatch, handles ordinary blockers, and makes the final
 technical judgment from fresh evidence.
 
@@ -43,14 +46,13 @@ verification. That separation protects context and independence without
 creating a new profile for every domain or removing technical responsibility
 from the root.
 
-### Proportional workflow
+### Explicit, proportional workflow
 
-The workflow expands only when risk or complexity warrants it. Light work uses
-focused implementation, review, and verification dispatches. Standard work adds
-bounded context and planning.
-Critical work adds the extra scrutiny justified by actual risk.
-
-Unknown scope is never classified as light merely to save cost.
+Workflow selection belongs to the user. Native Plan Mode never invokes
+Orchestra, and ordinary change or implementation requests remain direct work.
+In normal chat, explicit planning intent starts Orchestra. Orchestra then uses
+standard execution by default and adds critical scrutiny only for actual
+high-impact risk.
 
 ### Quality per token
 

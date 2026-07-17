@@ -9,6 +9,6 @@ Use this internal playbook only with the `analyst` profile and the explicit `tec
 - Preserve cross-phase invariants and assign one implementation owner per phase. Split frontend and non-frontend work only when ownership cannot remain safely bounded.
 - Identify assumptions and unresolved authority decisions explicitly. Do not silently convert them into implementation choices.
 - Recommend an extra critical plan review only for a named measurable risk, supporting evidence, affected area, and independently detectable defect class.
-- Return the plan to the root. The root alone writes and updates the local plan at `git rev-parse --git-path orchestra/plan.md`.
+- Return the plan to the root for review and user approval. Before approval it remains in conversation or system temporary storage; only the root writes the approved plan directly as `active` at `git rev-parse --git-path orchestra/plan.md`.
 
 Return `blocked` when evidence is insufficient, scope is materially ambiguous, canonical sources conflict, a public or high-impact decision remains unresolved, or no proportional phase boundary can be defended.

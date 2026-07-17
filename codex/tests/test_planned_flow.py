@@ -60,10 +60,6 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertNotIn("gpt-5.", profile["developer_instructions"].lower())
 
     def test_capability_inventory_and_profile_mapping_are_exact(self) -> None:
-        light = {
-            "general_implementation": "implementation_worker",
-            "independent_review": "reviewer",
-        }
         standard = {
             "repository_context": "analyst",
             "web_research": "analyst",
@@ -76,11 +72,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "browser_acceptance": "verifier",
             "runtime_verification": "verifier",
         }
-        self.assertEqual(set(self.roles), {"light", "standard", "critical"})
-        self.assertEqual(
-            {name: value["profile"] for name, value in self.roles["light"].items()},
-            light,
-        )
+        self.assertEqual(set(self.roles), {"standard", "critical"})
         for tier in ("standard", "critical"):
             self.assertEqual(
                 {name: value["profile"] for name, value in self.roles[tier].items()},
@@ -337,8 +329,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(".git/worktrees/linked/orchestra/plan.md", linked_plan.as_posix())
 
         self.assertIn("git rev-parse --git-path orchestra/plan.md", self.skill)
-        for status in ("`draft`", "`active`", "`blocked`", "`completed`"):
+        for status in ("`active`", "`blocked`", "`completed`"):
             self.assertIn(status, self.skill)
+        self.assertNotIn("`draft`", self.skill)
         self.assertIn("Only the root writes the plan", self.skill)
         self.assertIn("Git is authoritative", self.skill)
 
@@ -378,6 +371,27 @@ class PlannedFlowContractTests(unittest.TestCase):
         for retired in ("phase_committer", "pr_polling_specialist", "pr_triage_specialist"):
             self.assertNotIn(retired, commit_skill + review_skill + self.skill)
 
+    def test_commit_path_rejects_parallel_git_and_state_machinery(self) -> None:
+        helper = (ROOT / "codex/scripts/commit_phase.py").read_text()
+        commit_skill = (
+            ROOT / "codex/skills/orchestra-phase-commit/SKILL.md"
+        ).read_text()
+        self.assertIn('"commit",', helper)
+        self.assertIn('"-F",', helper)
+        for rejected in (
+            "GIT_INDEX_FILE",
+            "recovery journal",
+            "reflog ownership",
+            "workflow state",
+            "transaction layer",
+            "threading.Lock",
+        ):
+            self.assertNotIn(rejected, helper)
+        self.assertIn("alternate index", commit_skill)
+        self.assertIn("Git is the commit truth", commit_skill)
+        self.assertIn("root directly run", commit_skill)
+        self.assertIn("Do not resolve an assignment", commit_skill)
+
     def test_extra_review_and_debugging_are_proportional(self) -> None:
         routing = self.skill.lower()
         for field in (
@@ -399,7 +413,7 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_standard_requires_approval_and_delivery_authority_stays_separate(self) -> None:
         self.assertIn("request explicit user approval", self.skill)
         self.assertIn("Stop before implementation", self.skill)
-        self.assertIn("draft` directly to `active", self.skill)
+        self.assertIn("approved plan directly as `active`", self.skill)
         self.assertIn("delivery authority remains separate", self.skill)
         self.assertIn("merge without separate authority", self.skill)
         self.assertIn("orchestra-delivery-policy", self.skill)

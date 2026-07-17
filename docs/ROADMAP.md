@@ -15,7 +15,7 @@ Plugin distribution remains deferred until all of these conditions hold:
 
 - install, update, status, and uninstall are dependable;
 - user configuration is preserved reliably;
-- light and standard workflows succeed in real projects;
+- standard and critical workflows succeed in real projects;
 - local and PR delivery are proven;
 - the user judges the product mature;
 - packaging reduces friction without creating a second runtime.

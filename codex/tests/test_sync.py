@@ -98,6 +98,10 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(self.codex_home.joinpath("agents/verifier.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
+        installed_guidance = self.codex_home.joinpath("AGENTS.md").read_text()
+        self.assertIn("Native Codex Plan Mode and Orchestra are mutually exclusive", installed_guidance)
+        self.assertIn("direct change, fix, implementation", installed_guidance)
+        self.assertIn("asks to create, prepare, or write the implementation plan", installed_guidance)
         self.assertEqual(self.run_sync("status")["status"], "ok")
         installed_agents = {
             entry["path"]

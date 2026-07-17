@@ -134,18 +134,19 @@ GitHub state.
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
-- one root-owned local task plan per standard or critical worktree, resolved
-  with `git rev-parse --git-path orchestra/plan.md`;
+- one root-owned approved task plan per Orchestra worktree, resolved with
+  `git rev-parse --git-path orchestra/plan.md`;
 - structured commit message;
 - compact commit result (`sha` or stable failure reason);
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
 
-The local plan is never versioned. Its consumer is the root, its purpose is
-continuity across compaction or resumed sessions, and its lifecycle ends with
-task worktree cleanup. It records `draft`, `active`, `blocked`, or `completed`
-plus a resume note. Explicit user approval moves `draft` directly to `active`
-without another persisted status. Git remains authoritative for branch, HEAD,
+The provisional specification and unapproved formal plan remain in conversation
+or system temporary storage. The local plan is first written after approval as
+`active` and is never versioned. Its consumer is the root, its purpose is
+continuity across implementation or resumed sessions, and its lifecycle ends
+with task worktree cleanup. It records `active`, `blocked`, or `completed` plus
+a resume note. Git remains authoritative for branch, HEAD,
 commits, and worktree state; the plan carries intent and progress, not delivery
 authority.
 
@@ -168,14 +169,9 @@ when spawning a profile. Profiles contain behavior; playbooks contain capability
 instructions only for the seven capabilities listed above, and architecture
 guidance remains one shared reference.
 
-Light composes general implementation and independent review with Terra max; the
-root itself runs the single direct targeted verification that qualified the task
-as light. Standard and critical use the exact matrix in `WORKFLOW.md`; a second
-critical review requires a named measurable risk. No Orchestra assignment uses
-Sol xhigh. Named browser acceptance makes a task at least standard; a frontend
-change may be light only when every light condition holds, including one direct
-targeted verification. Frontend work and browser acceptance remain separate
-dispatches.
+Standard and critical use the exact matrix in `WORKFLOW.md`; a second critical
+review requires a named measurable risk. No Orchestra assignment uses Sol
+xhigh. Frontend work and browser acceptance remain separate dispatches.
 
 ## Browser testing constraint
 
@@ -232,7 +228,9 @@ implement three competing rule sets.
 
 Tests protect the few important invariants:
 
-- light classification fails closed on ambiguity or risk;
+- native Plan Mode and direct implementation do not activate Orchestra;
+- explicit planning intent in normal chat activates the specification gate;
+- only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
 - local plan resume reconciles against Git instead of overriding it;
 - PR-open authority includes the review/fix/push loop but not implicit merge;

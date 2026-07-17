@@ -14,7 +14,7 @@ documents; they do not redefine them independently.
 
 ## Orchestrator responsibility
 
-The root orchestrator owns problem framing, tier selection, user alignment,
+The root orchestrator owns specification alignment, tier selection, capability
 routing, compact synthesis, blocker resolution, and final technical judgment.
 It may make reversible in-scope
 technical decisions needed to complete an approved objective.
@@ -23,6 +23,21 @@ Stop for the user before destructive or irreversible operations, production
 mutation, data-loss risk, security/privacy policy changes, public-contract
 changes, new product choices, material external cost, or substantial scope
 expansion.
+
+## Activation and specification gate
+
+Orchestra is an explicit planned-work route, not the default implementation
+route. Native Codex Plan Mode and Orchestra are mutually exclusive. While Plan
+Mode is active, never start Orchestra, even for an explicit `$orchestra`
+request; tell the user to leave Plan Mode first. A plan produced in native Plan
+Mode is implemented later through ordinary direct execution.
+
+In normal chat, direct change, fix, and implementation requests remain outside
+Orchestra. Start Orchestra only when the user explicitly requests `$orchestra`
+or asks to create, prepare, or write the implementation plan. Reuse the prior
+conversation, ask only genuine gaps, and confirm a compact specification with
+Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
+Decisions, and Open questions before selecting a tier.
 
 ## Tier selection
 
@@ -36,20 +51,6 @@ reversibility is proven by a cheap preflight (for example `git branch --contains
 showing the commits exist in the base, or state that is regenerable) is not
 destructive and does not force critical.
 
-`light` is allowed only when every condition holds:
-
-- one small, fully understood objective;
-- localized impact following an established pattern;
-- no public API, schema, CLI, persisted-format, dependency, or architecture
-  change;
-- no auth, security, privacy, payment, migration, production, deployment, or
-  destructive risk;
-- no unresolved product decision;
-- a direct targeted verification exists.
-
-Any doubt makes the task `standard`. Escalate immediately when new coupling,
-risk, or scope appears.
-
 `standard` covers normal features, multi-file fixes, new behavior, and work that
 needs repository discovery or formal planning.
 
@@ -58,10 +59,7 @@ destructive actions, production changes, or other high-impact risk.
 
 Tier exemplars:
 
-- light: typo/copy fix; deleting a fully merged worktree/branch after a
-  containment check; bugfix covered by an existing targeted test.
-- standard: multi-file feature or fix; anything needing discovery or a formal
-  plan.
+- standard: ordinary planned features and fixes.
 - critical: schema migration; auth/payment/credential changes; deleting
   unrecoverable data; production mutation.
 
@@ -71,7 +69,6 @@ Tier exemplars:
   `reviewer`, and `verifier`.
 - The root composes each dispatch with a capability and the exact tier
   assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
-- Light: general implementation, root-run direct verification, and independent review.
 - Standard: bounded analysis and root-owned planning, implementation, one
   high-signal independent review, and verification.
 - Critical: standard flow plus plan audit or a second independent review only
@@ -81,10 +78,9 @@ Tier exemplars:
 - Reviewers report; they do not silently implement their own findings.
 
 Frontend implementation composes `implementation_worker`; browser acceptance
-composes `verifier`. They remain independent, and named browser acceptance makes
-a task at least standard. A frontend change may be light only when every light
-condition holds, including one direct targeted verification; otherwise it is
-standard. No Orchestra assignment uses Sol xhigh. The user selects the
+composes `verifier`. They remain independent, and named browser acceptance is
+standard or critical according to the settled risk. No Orchestra assignment
+uses Sol xhigh. The user selects the
 root's Sol medium or Sol high session outside Orchestra.
 
 Fix correctness, security, regression, acceptance, and defect-prone
@@ -94,12 +90,13 @@ out-of-scope suggestions without entering a review loop.
 ## Execution and commits
 
 - Use the fewest independently reviewable phases.
-- For standard and critical work, the root owns one unversioned local plan at
-  `git rev-parse --git-path orchestra/plan.md`; Git is authoritative on resume.
+- Before approval, keep the specification and formal-plan draft in conversation
+  or system temporary storage; do not create an Orchestra plan file.
+- After formal-plan approval, the root writes the exact approved plan directly
+  as `active` at `git rev-parse --git-path orchestra/plan.md`; valid statuses are
+  only `active`, `blocked`, and `completed`. Git is authoritative on resume.
 - Plan approval authorizes implementation and automatic commits at successfully
   reviewed phase boundaries unless the user limits that authority.
-- For light work without a formal plan, the user's explicit implementation
-  request authorizes the reviewed task commit unless the user limits it.
 - The root commits each reviewed phase directly or through the narrow commit
   helper; commit execution is not an agent profile.
 - Do not create commit journals, replace the Git index, hash the whole worktree,

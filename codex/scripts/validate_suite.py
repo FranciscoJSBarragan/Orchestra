@@ -60,7 +60,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/SKILL.md",
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
-    "codex/tests/test_light_flow.py",
+    "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
     "codex/tests/test_delivery_policy.py",
@@ -129,7 +129,7 @@ ROADMAP_REQUIREMENTS = (
 DEFERRED_DISTRIBUTION_CRITERIA = (
     "install, update, status, and uninstall are dependable;",
     "user configuration is preserved reliably;",
-    "light and standard workflows succeed in real projects;",
+    "standard and critical workflows succeed in real projects;",
     "local and PR delivery are proven;",
     "the user judges the product mature;",
     "packaging reduces friction without creating a second runtime.",
@@ -274,7 +274,7 @@ def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, st
         tier = tier.lower()
         if not tier or not capability or not profile or not model or not reasoning:
             fail(offset, "assignment table has an empty cell")
-        if tier not in {"light", "standard", "critical"}:
+        if tier not in {"standard", "critical"}:
             fail(offset, f"assignment table has an unknown tier: {tier}")
         key = (tier, capability)
         if key in seen_keys:
@@ -288,10 +288,8 @@ def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, st
         raise ValueError(f"{path}: assignment table separator is missing")
     if not assignments:
         raise ValueError(f"{path}: assignment table is empty")
-    if set(assignments) != {"light", "standard", "critical"}:
-        raise ValueError(
-            f"{path}: assignment table must define light, standard, and critical"
-        )
+    if set(assignments) != {"standard", "critical"}:
+        raise ValueError(f"{path}: assignment table must define standard and critical")
     return assignments
 
 
@@ -358,7 +356,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     tiers = roles.get("tiers")
     if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
         failures.append(
-            "role-contract: roles.toml must define light, standard, and critical"
+            "role-contract: roles.toml must define standard and critical"
         )
     else:
         for tier, expected_tier_assignments in expected_assignments.items():
