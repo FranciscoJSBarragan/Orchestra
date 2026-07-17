@@ -168,11 +168,14 @@ when spawning a profile. Profiles contain behavior; playbooks contain capability
 instructions only for the seven capabilities listed above, and architecture
 guidance remains one shared reference.
 
-Light composes general implementation, independent review, and runtime
-verification with Luna max. Standard and critical use the exact matrix in
-`WORKFLOW.md`; a second critical review requires a named measurable risk. No
-Orchestra assignment uses Sol xhigh. Frontend work and named browser acceptance
-make a task at least standard and remain separate dispatches.
+Light composes general implementation and independent review with Luna max; the
+root itself runs the single direct targeted verification that qualified the task
+as light. Standard and critical use the exact matrix in `WORKFLOW.md`; a second
+critical review requires a named measurable risk. No Orchestra assignment uses
+Sol xhigh. Named browser acceptance makes a task at least standard; a frontend
+change may be light only when every light condition holds, including one direct
+targeted verification. Frontend work and browser acceptance remain separate
+dispatches.
 
 ## Browser testing constraint
 

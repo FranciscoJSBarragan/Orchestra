@@ -8,11 +8,6 @@ profile = "reviewer"
 model = "gpt-5.6-luna"
 reasoning_effort = "max"
 
-[tiers.light.runtime_verification]
-profile = "verifier"
-model = "gpt-5.6-luna"
-reasoning_effort = "max"
-
 [tiers.standard.repository_context]
 profile = "analyst"
 model = "gpt-5.6-luna"

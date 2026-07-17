@@ -9,7 +9,7 @@ Keep the root orchestrator responsible for problem framing, tier selection, user
 
 ## Classify before dispatch
 
-Declare `Tier: light|standard|critical — reason` before execution. Select `light` only when every condition is proven:
+Declare `Tier: light|standard|critical — reason` before execution. Strengthen that declaration to `Tier: <tier> — <matching condition>: <one-line evidence>`: cite the exact gating condition that places the work in the selected tier with one line of supporting evidence. If the cited condition is disproven by evidence, reclassify before dispatching. Select `light` only when every condition is proven:
 
 - one small, fully understood objective;
 - localized impact following an established pattern;
@@ -18,7 +18,15 @@ Declare `Tier: light|standard|critical — reason` before execution. Select `lig
 - no unresolved product decision;
 - one direct targeted verification exists.
 
-Fail closed to `standard` on ambiguity, unknown scope, new coupling, or risk. Select `critical` for security-sensitive work, credentials, payments, migrations, destructive actions, production changes, or comparable high-impact risk. Frontend implementation or named browser acceptance is at least standard.
+Destructive means irreversible loss of unique data or work. An operation whose reversibility is proven by a cheap preflight (for example `git branch --contains` showing the commits exist in the base, or state that is regenerable) is not destructive and does not force critical.
+
+Fail closed to `standard` on ambiguity, unknown scope, new coupling, or risk. Select `critical` for security-sensitive work, credentials, payments, migrations, destructive actions, production changes, or comparable high-impact risk. Named browser acceptance makes a task at least standard. A frontend change may be light only when every light condition holds, including one direct targeted verification; otherwise it is standard.
+
+Tier exemplars:
+
+- light: typo/copy fix; deleting a fully merged worktree/branch after a containment check; bugfix covered by an existing targeted test.
+- standard: multi-file feature or fix; anything needing discovery or a formal plan.
+- critical: schema migration; auth/payment/credential changes; deleting unrecoverable data; production mutation.
 
 ## Resolve assignments and references
 
@@ -41,7 +49,7 @@ Compose assignments as follows:
 
 These seven files are the complete playbook inventory: `repository_context`, `web_research`, `technical_planning`, `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and `runtime_verification`. Architecture guidance is one shared reference, not an eighth playbook. Do not create a playbook for `general_implementation`, `independent_review`, or `architecture_analysis`.
 
-Light has assignments only for `general_implementation`, `independent_review`, and `runtime_verification`. Standard and critical may use all ten capabilities. Do not dispatch a capability absent from the selected tier and never create root, commit, polling, PR-triage, or delivery assignments.
+Light has assignments only for `general_implementation` and `independent_review`. Light has no `frontend_implementation` assignment; a light frontend change routes through `general_implementation`. Standard and critical may use all ten capabilities. Do not dispatch a capability absent from the selected tier and never create root, commit, polling, PR-triage, or delivery assignments.
 
 ## Keep compact context
 
@@ -65,11 +73,9 @@ User approval moves `draft` directly to `active`; approval is not a status. Only
 ## Route light work
 
 1. Dispatch `general_implementation` to one `implementation_worker` with the compact approved packet.
-2. Dispatch `runtime_verification` to one source-read-only `verifier` for the exact revision and read its observed evidence.
-3. Dispatch `independent_review` to one read-only `reviewer` with the packet, diff, revision, and verification evidence.
-4. Evaluate material findings at the root and return accepted findings to the same implementation owner.
-5. Re-run affected verification and review only the meaningful delta.
-6. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md).
+2. The root itself runs the single direct targeted verification that qualified the task as light and records the observed command and exit status. Light has no `verifier` dispatch; if verification needs more than the direct targeted check, the task is not light — escalate to standard.
+3. Dispatch `independent_review` to one read-only `reviewer` with the packet, diff, revision, and the root's recorded verification evidence.
+4. Findings return to the same owner; the root re-runs the direct verification after fixes, the reviewer re-checks the meaningful delta, and the root commits the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md).
 
 ## Route standard and critical work
 

@@ -1,6 +1,6 @@
 # Frontend implementation playbook
 
-Use this internal playbook only with the `implementation_worker` profile and the explicit `frontend_implementation` capability. Frontend work is at least standard tier.
+Use this internal playbook only with the `implementation_worker` profile and the explicit `frontend_implementation` capability. Named browser acceptance makes a task at least standard; a frontend change may be light only when every light condition holds.
 
 ## Contract
 

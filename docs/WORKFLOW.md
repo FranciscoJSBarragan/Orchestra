@@ -7,7 +7,8 @@ flowchart TD
     U["User describes an implementation"] --> O["Orchestrator frames the problem and selects a tier"]
     O --> L{"Tier"}
     L -->|"Light"| LW["Implementation worker"]
-    LW --> LR["Independent reviewer and verifier"]
+    LW --> RV["Root runs the direct targeted verification"]
+    RV --> LR["Independent reviewer"]
     L -->|"Standard or critical"| C["Bounded analyst context"]
     C --> S["Orchestrator synthesizes and aligns with user"]
     S --> P["Root writes the local task plan with analyst support"]
@@ -62,7 +63,6 @@ playbook.
 | --- | --- | --- | --- | --- |
 | Light | `general_implementation` | `implementation_worker` | `gpt-5.6-luna` | `max` |
 | Light | `independent_review` | `reviewer` | `gpt-5.6-luna` | `max` |
-| Light | `runtime_verification` | `verifier` | `gpt-5.6-luna` | `max` |
 | Standard | `repository_context` | `analyst` | `gpt-5.6-luna` | `xhigh` |
 | Standard | `web_research` | `analyst` | `gpt-5.6-luna` | `xhigh` |
 | Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
@@ -85,10 +85,15 @@ playbook.
 | Critical | `runtime_verification` | `verifier` | `gpt-5.6-sol` | `medium` |
 
 Light has no context, research, planning, architecture, difficult-debugging,
-frontend, or browser-acceptance dispatch. Frontend implementation or named
-browser acceptance makes a task at least standard. A second critical review
-reuses `independent_review` with Sol high only for a named measurable risk and
-independently detectable defect class. No Orchestra assignment uses Sol xhigh.
+frontend, browser-acceptance, or verifier dispatch. The root itself runs the
+single direct targeted verification that qualified the task as light and records
+the observed command and exit status; if verification needs more than the direct
+targeted check, the task is not light — escalate to standard. Named browser
+acceptance makes a task at least standard. A frontend change may be light only
+when every light condition holds, including one direct targeted verification;
+otherwise it is standard. A second critical review reuses `independent_review`
+with Sol high only for a named measurable risk and independently detectable
+defect class. No Orchestra assignment uses Sol xhigh.
 
 Frontend implementation composes `implementation_worker`; browser acceptance
 composes `verifier`. They remain independent and never run as one combined

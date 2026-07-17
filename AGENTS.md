@@ -26,7 +26,15 @@ expansion.
 
 ## Tier selection
 
-Declare `Tier: light|standard|critical — reason` before execution.
+Declare `Tier: <tier> — <matching condition>: <one-line evidence>` before
+execution. The declaration must cite the exact gating condition that places the
+work in the selected tier with one line of supporting evidence. If the cited
+condition is disproven by evidence, reclassify before dispatching.
+
+Destructive means irreversible loss of unique data or work. An operation whose
+reversibility is proven by a cheap preflight (for example `git branch --contains`
+showing the commits exist in the base, or state that is regenerable) is not
+destructive and does not force critical.
 
 `light` is allowed only when every condition holds:
 
@@ -48,13 +56,22 @@ needs repository discovery or formal planning.
 `critical` covers security-sensitive work, credentials, payments, migrations,
 destructive actions, production changes, or other high-impact risk.
 
+Tier exemplars:
+
+- light: typo/copy fix; deleting a fully merged worktree/branch after a
+  containment check; bugfix covered by an existing targeted test.
+- standard: multi-file feature or fix; anything needing discovery or a formal
+  plan.
+- critical: schema migration; auth/payment/credential changes; deleting
+  unrecoverable data; production mutation.
+
 ## Default agent flow
 
 - Orchestra has four base profiles: `analyst`, `implementation_worker`,
   `reviewer`, and `verifier`.
 - The root composes each dispatch with a capability and the exact tier
   assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
-- Light: general implementation, independent review, and runtime verification.
+- Light: general implementation, root-run direct verification, and independent review.
 - Standard: bounded analysis and root-owned planning, implementation, one
   high-signal independent review, and verification.
 - Critical: standard flow plus plan audit or a second independent review only
@@ -64,8 +81,10 @@ destructive actions, production changes, or other high-impact risk.
 - Reviewers report; they do not silently implement their own findings.
 
 Frontend implementation composes `implementation_worker`; browser acceptance
-composes `verifier`. They remain independent, and either capability makes a task
-at least standard. No Orchestra assignment uses Sol xhigh. The user selects the
+composes `verifier`. They remain independent, and named browser acceptance makes
+a task at least standard. A frontend change may be light only when every light
+condition holds, including one direct targeted verification; otherwise it is
+standard. No Orchestra assignment uses Sol xhigh. The user selects the
 root's Sol medium or Sol high session outside Orchestra.
 
 Fix correctness, security, regression, acceptance, and defect-prone

@@ -13,15 +13,31 @@ ROOT = Path(__file__).resolve().parents[2]
 class LightFlowContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
+        self.workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        self.agents = (ROOT / "AGENTS.md").read_text()
         self.commit_skill = (
             ROOT / "codex/skills/orchestra-phase-commit/SKILL.md"
         ).read_text()
+
+    def test_old_frontend_blanket_tier_rule_is_removed(self) -> None:
+        for text in (self.skill, self.workflow, self.agents):
+            self.assertNotIn(
+                "Frontend implementation or named browser acceptance", text
+            )
+
+    def test_old_light_three_dispatch_sentence_is_removed(self) -> None:
+        self.assertNotIn(
+            "Light has assignments only for `general_implementation`, "
+            "`independent_review`, and `runtime_verification`",
+            self.skill,
+        )
 
     def test_light_tiering_fails_closed_and_declares_reason(self) -> None:
         self.assertIn("Tier: light|standard|critical — reason", self.skill)
         self.assertIn("Fail closed to `standard` on ambiguity", self.skill)
         self.assertIn("Select `critical` for security-sensitive work", self.skill)
-        self.assertIn("Frontend implementation or named browser acceptance", self.skill)
+        self.assertIn("Named browser acceptance makes a task at least standard", self.skill)
+        self.assertIn("A frontend change may be light only when", self.skill)
 
     def test_root_owns_judgment_and_packet_stays_in_memory(self) -> None:
         for responsibility in (
@@ -52,7 +68,8 @@ class LightFlowContractTests(unittest.TestCase):
         reviewer = (ROOT / "codex/agents/reviewer.toml").read_text()
         verifier = (ROOT / "codex/agents/verifier.toml").read_text()
         self.assertIn("one read-only `reviewer`", self.skill)
-        self.assertIn("source-read-only `verifier`", self.skill)
+        self.assertIn("The root itself runs the single direct targeted verification", self.skill)
+        self.assertIn("Light has no `verifier` dispatch", self.skill)
         self.assertIn("same implementation owner", self.skill)
         self.assertIn("Remain read-only and report-only", reviewer)
         self.assertIn("Accepted findings return to the same implementation owner", reviewer)
@@ -74,7 +91,7 @@ class LightFlowContractTests(unittest.TestCase):
             self.assertIn("## Output", profile["developer_instructions"])
             self.assertIn("## Stop conditions", profile["developer_instructions"])
 
-    def test_light_matrix_is_exactly_three_luna_max_capabilities(self) -> None:
+    def test_light_matrix_is_exactly_two_luna_max_capabilities(self) -> None:
         roles = tomllib.loads((ROOT / "codex/config/roles.toml").read_text())
         self.assertEqual(set(roles), {"tiers"})
         self.assertEqual(set(roles["tiers"]), {"light", "standard", "critical"})
@@ -88,11 +105,6 @@ class LightFlowContractTests(unittest.TestCase):
                 },
                 "independent_review": {
                     "profile": "reviewer",
-                    "model": "gpt-5.6-luna",
-                    "reasoning_effort": "max",
-                },
-                "runtime_verification": {
-                    "profile": "verifier",
                     "model": "gpt-5.6-luna",
                     "reasoning_effort": "max",
                 },

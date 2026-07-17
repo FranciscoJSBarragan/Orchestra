@@ -63,7 +63,6 @@ class PlannedFlowContractTests(unittest.TestCase):
         light = {
             "general_implementation": "implementation_worker",
             "independent_review": "reviewer",
-            "runtime_verification": "verifier",
         }
         standard = {
             "repository_context": "analyst",

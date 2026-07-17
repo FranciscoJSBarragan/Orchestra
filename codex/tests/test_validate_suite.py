@@ -323,9 +323,9 @@ class FullModeFixtureTest(unittest.TestCase):
         )
         self.assertEqual(
             len(assignments["light"]) + len(assignments["standard"]) + len(assignments["critical"]),
-            23,
+            22,
         )
-        self.assertEqual(len(assignments["light"]), 3)
+        self.assertEqual(len(assignments["light"]), 2)
         self.assertEqual(len(assignments["standard"]), 10)
         self.assertEqual(len(assignments["critical"]), 10)
         self.assertEqual(
