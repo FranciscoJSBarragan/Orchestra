@@ -49,6 +49,12 @@ holds compact context and delegates repository-wide reading. Current source and
 Git provide repository context; project tests, runtime evidence, and independent
 review provide correctness evidence without a separate repository index.
 
+After specification confirmation, the orchestrator creates a new task branch
+and dedicated worktree from the intended committed base before dispatching
+repository analysis. It never adopts the current worktree for a new task. The
+root uses Git directly, keeps the task identity in transient context before plan
+approval, and passes the exact worktree to every capability.
+
 ### Base profiles and capabilities
 
 Orchestra has exactly four behavior-only base profiles:
@@ -121,8 +127,9 @@ They should remain readable and route to deeper references only when needed.
 Scripts perform operations that benefit from deterministic behavior: parsing
 Git status, validating structured messages, loading delivery policy, running
 configured argv checks, opening or observing a PR through direct `gh`, merging
-an authorized clean PR, integrating a local fast-forward, synchronizing managed
-resources through direct sync, and validating the suite.
+an authorized clean PR with guarded task-resource cleanup, integrating a local
+fast-forward, synchronizing managed resources through direct sync, and
+validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. The root commits directly or
@@ -149,6 +156,13 @@ with task worktree cleanup. It records `active`, `blocked`, or `completed` plus
 a resume note. Git remains authoritative for branch, HEAD,
 commits, and worktree state; the plan carries intent and progress, not delivery
 authority.
+
+The branch and worktree are Git resources, not a new Orchestra state store. A
+new task always creates new resources with collision-free names. The same live
+pre-approval task may continue in memory; later reuse requires the approved plan
+and Git identity to agree. Rejected planning removes only a clean branch still
+equal to its captured base. Completed delivery removes only resources proven to
+belong to the exact integrated or merged task head.
 
 The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
@@ -232,8 +246,11 @@ Tests protect the few important invariants:
 - explicit planning intent in normal chat activates the specification gate;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
+- every new formal task creates a dedicated worktree before repository analysis;
+- task-worktree reuse requires exact same-task identity;
 - local plan resume reconciles against Git instead of overriding it;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
+- authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
 - hooks call the validator without adding policy;
 - local integration cleans only safely merged branches and worktrees;
@@ -261,11 +278,13 @@ authority unless later evidence passes the same gate.
 
 Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
 `integrate_local.py`. The root invokes `pr.py` directly for open, observe, and
-authorized merge; `pr.py` calls `gh` and is not a generalized GitHub
-abstraction. Review-thread observation uses one bounded GraphQL query because
-REST check and comment data cannot establish thread resolution. Incomplete
-pagination remains `partial`, never clean. Phase commits use direct Git or the
-existing narrow commit helper, not an agent.
+authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
+Git primitives and is not a generalized GitHub abstraction. Review-thread
+observation uses one bounded GraphQL query because REST check and comment data
+cannot establish thread resolution. Incomplete pagination remains `partial`,
+never clean. Worktree preparation remains a direct root Git operation rather
+than a sixth helper. Phase commits use direct Git or the existing narrow commit
+helper, not an agent.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:

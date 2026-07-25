@@ -567,12 +567,26 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                         f"skill-contract: {forbidden} must not be a playbook"
                     )
     direct_consumers = {
+        "orchestra": (
+            "git worktree add",
+            "Never adopt the current worktree for a new task",
+            "Block instead of falling back to the current checkout",
+            "same live pre-approval task",
+        ),
         "orchestra-phase-commit": ("commit_phase.py", "root directly run"),
         "orchestra-pr-review": (
             "pr.py",
             "observe",
             "independent_review",
             "same implementation owner",
+        ),
+        "orchestra-pr-merge": (
+            "--base-worktree",
+            "--task-branch",
+            "--base-branch",
+            "--remote",
+            "lease",
+            "retained resource",
         ),
     }
     for name, required_text in direct_consumers.items():
@@ -598,6 +612,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "$orchestra-delivery-policy",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
+            "Never adopt the current worktree for a new task",
+            "incomplete post-mutation cleanup is `partial`",
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")

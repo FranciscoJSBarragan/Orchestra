@@ -108,6 +108,11 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
+Each formal task receives its own branch and worktree before repository
+analysis. Current worktrees are never repurposed for new tasks, and completed
+task resources are removed only after exact integration evidence proves cleanup
+safe.
+
 ## Success criteria
 
 Orchestra succeeds when:
@@ -116,8 +121,9 @@ Orchestra succeeds when:
 - phase commits are routine and traceable;
 - review effort finds or prevents meaningful defects;
 - failures explain the cause and the next useful action;
-- local integration leaves `main`, branches, and worktrees clean;
-- the PR path can open, review, fix, push, and converge without losing intent;
+- local integration leaves the base, task branches, and worktrees clean;
+- the PR path can open, review, fix, push, converge, merge when authorized, and
+  clean exact task resources without losing intent;
 - the root context remains focused and user communication stays clear;
 - the user judges the product dependable in real usage.
 

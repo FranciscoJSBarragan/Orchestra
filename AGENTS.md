@@ -39,6 +39,14 @@ conversation, ask only genuine gaps, and confirm a compact specification with
 Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
 Decisions, and Open questions before selecting a tier.
 
+After specification confirmation and tier selection, resolve the intended base
+branch and committed revision, then create a new collision-free task branch and
+dedicated sibling worktree before repository analysis. Never adopt the current
+worktree for a new task. Use the exact task worktree for every capability,
+approved plan write, implementation, verification, review, and phase commit.
+Only the same live pre-approval task or an exact approved-plan/Git identity match
+may reuse an existing worktree.
+
 ## Tier selection
 
 Declare `Tier: <tier> — <matching condition>: <one-line evidence>` before
@@ -113,6 +121,9 @@ out-of-scope suggestions without entering a review loop.
   when clean.
 - Local integration requires explicit user direction, fresh verification,
   clean integration, and branch/worktree cleanup.
+- Authorized PR merge includes guarded cleanup of the exact clean task
+  worktree, local branch, and unchanged remote branch; incomplete cleanup is
+  `partial`, never silently successful.
 - Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Browser acceptance

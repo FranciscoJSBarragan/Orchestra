@@ -29,10 +29,11 @@ together.
 ## Delivery model
 
 Orchestra starts only from explicit planning intent in normal chat. It reuses
-the conversation, confirms a compact specification, creates a formal plan, and
-after approval scales implementation, review, and verification to task risk.
-It supports both direct local integration and GitHub PR delivery
-when repository policy and user authority allow them.
+the conversation, confirms a compact specification, creates a new branch and
+dedicated worktree for the formal task, and then prepares the plan there. After
+approval it scales implementation, review, and verification to task risk. It
+supports both direct local integration and GitHub PR delivery when repository
+policy and user authority allow them.
 
 The four profiles are `analyst`, `implementation_worker`, `reviewer`, and
 `verifier`. The root selects explicit capability assignments and their
@@ -40,7 +41,8 @@ applicable internal references; public skill names stay stable. The approved
 formal plan is written directly as `active` to one root-owned, unversioned path
 resolved by `git rev-parse --git-path orchestra/plan.md`. Provisional specs and
 unapproved plans are not persisted. Git, not the plan, remains authoritative
-for code and history.
+for code and history. Safe local integration or an authorized PR merge removes
+only the exact clean task resources; `hold` and unmerged work remain available.
 
 Each consumer repository declares that choice in `orchestra.toml`. Missing
 policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured

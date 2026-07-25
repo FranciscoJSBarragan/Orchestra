@@ -22,8 +22,9 @@ class PullRequestFlowTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
         root = Path(self.temporary_directory.name)
-        self.repo = root / "repo"
-        self.repo.mkdir()
+        self.base = root / "base"
+        self.base.mkdir()
+        self.repo = self.base
         self.git("init", "-q", "-b", "main")
         self.git("config", "user.name", "Orchestra Test")
         self.git("config", "user.email", "orchestra@example.invalid")
@@ -31,7 +32,10 @@ class PullRequestFlowTests(unittest.TestCase):
         self.write("orchestra.toml", self.policy_text("pass"))
         self.git("add", "base.txt", "orchestra.toml")
         self.git("commit", "-q", "-m", "base")
-        self.git("checkout", "-q", "-b", "feature")
+        self.git("branch", "feature")
+        task = root / "repo"
+        self.git("worktree", "add", "-q", str(task), "feature")
+        self.repo = task
         self.write("first.txt", "first\n")
         self.git("add", "first.txt")
         self.git("commit", "-q", "-m", "first change")
@@ -39,6 +43,15 @@ class PullRequestFlowTests(unittest.TestCase):
         self.git("add", "second.txt")
         self.git("commit", "-q", "-m", "second change")
         self.head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.remote = root / "remote.git"
+        subprocess.run(
+            ["git", "init", "--bare", "-q", str(self.remote)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.git("remote", "add", "origin", str(self.remote))
+        self.git("push", "-q", "origin", "main", "feature")
 
         self.body_file = root / "body.md"
         self.body_file.write_text("Human summary\n", encoding="utf-8")
@@ -71,19 +84,25 @@ elif args[:2] == ["pr", "create"]:
 elif args[:2] == ["pr", "edit"]:
     print("https://example.invalid/acme/project/pull/7")
 elif args[:2] == ["pr", "view"]:
-    if "state,headRefOid,mergeStateStatus" in args:
+    if any(
+        arg.startswith("state,headRefOid") and "mergeStateStatus" in arg
+        for arg in args
+    ):
         view_file = os.environ.get("FAKE_MERGE_VIEW_FILE")
         if view_file and Path(view_file).exists():
             print(Path(view_file).read_text(encoding="utf-8"))
         else:
             print(os.environ["FAKE_MERGE_VIEW"])
-    elif "state,headRefOid,mergedAt" in args:
+    elif any("mergedAt" in arg for arg in args):
         print(os.environ["FAKE_POST_MERGE_VIEW"])
     else:
         print(os.environ["FAKE_OBSERVE_VIEW"])
 elif args[:2] == ["api", "graphql"]:
     print(os.environ["FAKE_THREADS"])
 elif args[:2] == ["pr", "merge"]:
+    dirty = os.environ.get("FAKE_MERGE_DIRTY")
+    if dirty:
+        Path(dirty).write_text("dirty after merge\\n", encoding="utf-8")
     print("merged")
 else:
     print("unsupported fake gh command", file=sys.stderr)
@@ -111,6 +130,8 @@ else:
                 {
                     "state": "OPEN",
                     "headRefOid": self.head,
+                    "headRefName": "feature",
+                    "baseRefName": "main",
                     "mergeStateStatus": "CLEAN",
                 }
             ),
@@ -119,6 +140,8 @@ else:
                 {
                     "state": "MERGED",
                     "headRefOid": self.head,
+                    "headRefName": "feature",
+                    "baseRefName": "main",
                     "mergedAt": "2026-07-14T12:00:00Z",
                 }
             ),
@@ -202,6 +225,48 @@ else:
             args.extend(("--previous-clean-head", previous))
         return args
 
+    def merge_args(
+        self,
+        method: str = "merge",
+        clean_head: str | None = None,
+        authorized: bool = True,
+    ) -> list[str]:
+        args = [
+            "merge",
+            "--repo",
+            str(self.repo),
+            "--base-worktree",
+            str(self.base),
+            "--task-branch",
+            "feature",
+            "--base-branch",
+            "main",
+            "--remote",
+            "origin",
+            "--repository",
+            "acme/project",
+            "--pr",
+            "7",
+            "--clean-head",
+            clean_head or self.head,
+            "--method",
+            method,
+        ]
+        if authorized:
+            args.append("--authorized")
+        return args
+
+    def remote_head(self) -> str | None:
+        result = subprocess.run(
+            ["git", "ls-remote", "--heads", "origin", "refs/heads/feature"],
+            cwd=self.base,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout.split()[0] if result.stdout.strip() else None
+
     def log_entries(self) -> list[list[str]]:
         if not self.log.exists():
             return []
@@ -247,6 +312,8 @@ else:
             {
                 "state": "OPEN",
                 "headRefOid": self.head,
+                "headRefName": "feature",
+                "baseRefName": "main",
                 "mergeStateStatus": "CLEAN",
             }
         )
@@ -254,6 +321,8 @@ else:
             {
                 "state": "MERGED",
                 "headRefOid": self.head,
+                "headRefName": "feature",
+                "baseRefName": "main",
                 "mergedAt": "2026-07-14T12:00:00Z",
             }
         )
@@ -448,37 +517,14 @@ else:
         self.assertIn("closed or invalid", closed["reason"])
 
     def test_merge_requires_authority_and_current_head(self) -> None:
-        result, payload = self.run_pr(
-            "merge",
-            "--repo",
-            str(self.repo),
-            "--repository",
-            "acme/project",
-            "--pr",
-            "7",
-            "--clean-head",
-            self.head,
-            "--method",
-            "squash",
-        )
+        result, payload = self.run_pr(*self.merge_args("squash", authorized=False))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("authorization", payload["reason"])
         self.assertEqual(self.log_entries(), [])
 
         self.write_policy(passing=True)
         result, payload = self.run_pr(
-            "merge",
-            "--repo",
-            str(self.repo),
-            "--repository",
-            "acme/project",
-            "--pr",
-            "7",
-            "--clean-head",
-            "b" * 40,
-            "--method",
-            "squash",
-            "--authorized",
+            *self.merge_args("squash", clean_head="b" * 40)
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("local HEAD", payload["reason"])
@@ -487,10 +533,7 @@ else:
     def test_merge_blocks_failed_checks_without_calling_gh_merge(self) -> None:
         self.write_policy(passing=False)
 
-        result, payload = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "merge", "--authorized"
-        )
+        result, payload = self.run_pr(*self.merge_args())
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
@@ -500,10 +543,7 @@ else:
     def test_merge_requires_clean_worktree_before_checks(self) -> None:
         self.write("private.txt", "dirty\n")
 
-        result, payload = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "merge", "--authorized"
-        )
+        result, payload = self.run_pr(*self.merge_args())
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("worktree must be clean", payload["reason"])
@@ -513,10 +553,7 @@ else:
         self.write_policy_command(
             "from pathlib import Path; Path('dirty.txt').write_text('dirty')"
         )
-        dirty_result, dirty = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "merge", "--authorized"
-        )
+        dirty_result, dirty = self.run_pr(*self.merge_args())
         self.assertNotEqual(dirty_result.returncode, 0)
         self.assertIn("worktree must be clean", dirty["reason"])
         self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
@@ -529,8 +566,7 @@ else:
         )
         clean_head = self.head
         changed_result, changed = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", clean_head, "--method", "merge", "--authorized"
+            *self.merge_args(clean_head=clean_head)
         )
         self.assertNotEqual(changed_result.returncode, 0)
         self.assertIn("local HEAD", changed["reason"])
@@ -542,6 +578,8 @@ else:
             {
                 "state": "OPEN",
                 "headRefOid": "c" * 40,
+                "headRefName": "feature",
+                "baseRefName": "main",
                 "mergeStateStatus": "CLEAN",
             }
         )
@@ -551,10 +589,7 @@ else:
             f"Path({str(view_file)!r}).write_text({changed_view!r})"
         )
 
-        result, payload = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "merge", "--authorized"
-        )
+        result, payload = self.run_pr(*self.merge_args())
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PR head changed", payload["reason"])
@@ -562,33 +597,137 @@ else:
 
     def test_merge_exit_zero_without_merged_poststate_is_partial(self) -> None:
         self.environment["FAKE_POST_MERGE_VIEW"] = json.dumps(
-            {"state": "OPEN", "headRefOid": self.head, "mergedAt": None}
+            {
+                "state": "OPEN",
+                "headRefOid": self.head,
+                "headRefName": "feature",
+                "baseRefName": "main",
+                "mergedAt": None,
+            }
         )
 
-        result, payload = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "squash", "--authorized"
-        )
+        result, payload = self.run_pr(*self.merge_args("squash"))
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "partial")
         self.assertIn("post-state is unverified", payload["reason"])
+        self.assertEqual(payload["cleanup"], [])
+        self.assertEqual(
+            {item["resource"] for item in payload["retained_resources"]},
+            {"remote_branch", "worktree", "local_branch"},
+        )
+        self.assertTrue(self.repo.exists())
+        self.assertEqual(self.remote_head(), self.head)
         self.assertTrue(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
     def test_merge_fake_success_uses_selected_method(self) -> None:
         self.write_policy(passing=True)
+        plan_path_result = self.git("rev-parse", "--git-path", "orchestra/plan.md")
+        plan_path = Path(plan_path_result.stdout.strip())
+        if not plan_path.is_absolute():
+            plan_path = self.repo / plan_path
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text("status: completed\n", encoding="utf-8")
 
-        result, payload = self.run_pr(
-            "merge", "--repo", str(self.repo), "--repository", "acme/project",
-            "--pr", "7", "--clean-head", self.head, "--method", "rebase", "--authorized"
-        )
+        result, payload = self.run_pr(*self.merge_args("rebase"))
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["method"], "rebase")
         self.assertEqual(payload["merged_at"], "2026-07-14T12:00:00Z")
+        self.assertEqual(
+            payload["cleanup"], ["remote_branch", "worktree", "local_branch"]
+        )
+        self.assertEqual(payload["retained_resources"], [])
+        self.assertFalse(self.repo.exists())
+        self.assertFalse(plan_path.exists())
+        local_branch = subprocess.run(
+            ["git", "branch", "--list", "feature"],
+            cwd=self.base,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(local_branch.stdout, "")
+        self.assertIsNone(self.remote_head())
         merge = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "merge"])
         self.assertIn("--rebase", merge)
+
+    def test_merge_cleanup_accepts_an_absent_remote_branch(self) -> None:
+        self.write_policy(passing=True)
+        self.git("push", "-q", "origin", "--delete", "feature")
+
+        result, payload = self.run_pr(*self.merge_args("squash"))
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["retained_resources"], [])
+        self.assertFalse(self.repo.exists())
+
+    def test_merge_cleanup_preserves_a_moved_remote_branch(self) -> None:
+        main_head = subprocess.run(
+            ["git", "rev-parse", "main"],
+            cwd=self.base,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        subprocess.run(
+            [
+                "git",
+                "--git-dir",
+                str(self.remote),
+                "update-ref",
+                "refs/heads/feature",
+                main_head,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        result, payload = self.run_pr(*self.merge_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        self.assertEqual(
+            [item["resource"] for item in payload["retained_resources"]],
+            ["remote_branch"],
+        )
+        self.assertEqual(self.remote_head(), main_head)
+        self.assertFalse(self.repo.exists())
+
+    def test_merge_cleanup_preserves_dirty_post_merge_work(self) -> None:
+        dirty_path = self.repo / "post-merge.txt"
+        environment = {
+            **self.environment,
+            "FAKE_MERGE_DIRTY": str(dirty_path),
+        }
+
+        result, payload = self.run_pr(*self.merge_args(), environment=environment)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        self.assertEqual(
+            {item["resource"] for item in payload["retained_resources"]},
+            {"remote_branch", "worktree", "local_branch"},
+        )
+        self.assertTrue(dirty_path.exists())
+        self.assertEqual(self.remote_head(), self.head)
+
+    def test_merge_cleanup_reports_locked_worktree_as_partial(self) -> None:
+        self.git("worktree", "lock", str(self.repo))
+
+        result, payload = self.run_pr(*self.merge_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        self.assertEqual(
+            [item["resource"] for item in payload["retained_resources"]],
+            ["worktree", "local_branch"],
+        )
+        self.assertTrue(self.repo.exists())
+        self.assertIsNone(self.remote_head())
 
 
 if __name__ == "__main__":

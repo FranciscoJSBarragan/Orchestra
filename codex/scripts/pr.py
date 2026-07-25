@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -20,6 +21,7 @@ CAPSULE_PATTERN = re.compile(
     re.escape(CAPSULE_START) + r".*?" + re.escape(CAPSULE_END), re.DOTALL
 )
 REPOSITORY_PATTERN = re.compile(r"[^/\s]+/[^/\s]+\Z")
+REMOTE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*\Z")
 GRAPHQL_QUERY = """
 query($owner:String!, $name:String!, $number:Int!) {
   repository(owner:$owner, name:$name) {
@@ -72,6 +74,26 @@ def _resolve_commit(repo: Path, revision: str) -> str | None:
     result = _git(repo, "rev-parse", "--verify", f"{revision}^{{commit}}")
     sha = result.stdout.strip()
     return sha if not result.returncode and SHA_PATTERN.fullmatch(sha) else None
+
+
+def _current_branch(repo: Path) -> str | None:
+    result = _git(repo, "symbolic-ref", "--quiet", "--short", "HEAD")
+    branch = result.stdout.strip()
+    return branch if not result.returncode and branch else None
+
+
+def _common_dir(repo: Path) -> Path | None:
+    result = _git(repo, "rev-parse", "--git-common-dir")
+    if result.returncode or not result.stdout.strip():
+        return None
+    common = Path(result.stdout.strip())
+    return (common if common.is_absolute() else repo / common).resolve()
+
+
+def _valid_branch(repo: Path, branch: str) -> bool:
+    return bool(branch) and not _git(
+        repo, "check-ref-format", "--branch", branch
+    ).returncode
 
 
 def _upsert_capsule(body: str, capsule: str) -> tuple[str | None, str | None]:
@@ -416,6 +438,10 @@ def observe_pr(
 
 def merge_pr(
     repo: Path,
+    base_worktree: Path,
+    task_branch: str,
+    base_branch: str,
+    remote: str,
     repository: str,
     pr_number: int,
     clean_head: str,
@@ -430,6 +456,29 @@ def merge_pr(
     if error:
         return error
     assert repo is not None
+    base, error = _repository_root(base_worktree)
+    if error:
+        return blocked("base worktree is invalid")
+    assert base is not None
+    if repo == base:
+        return blocked("task and base must be distinct Git worktree roots")
+    if _common_dir(repo) is None or _common_dir(repo) != _common_dir(base):
+        return blocked("task and base worktrees do not share a Git repository")
+    if (
+        not _valid_branch(repo, task_branch)
+        or not _valid_branch(base, base_branch)
+        or task_branch == base_branch
+    ):
+        return blocked("task and base branch names are invalid or identical")
+    if (
+        _current_branch(repo) != task_branch
+        or _current_branch(base) != base_branch
+    ):
+        return blocked("task or base worktree is on an unexpected branch")
+    if not REMOTE_PATTERN.fullmatch(remote):
+        return blocked("--remote is invalid")
+    if _git(repo, "remote", "get-url", remote).returncode:
+        return blocked("task remote is unavailable")
     if not REPOSITORY_PATTERN.fullmatch(repository):
         return blocked("--repository must be OWNER/REPO")
     if method not in {"merge", "squash", "rebase"}:
@@ -442,14 +491,18 @@ def merge_pr(
     if policy["mode"] not in {"pr-required", "hybrid"}:
         return blocked("delivery policy does not permit the PR lane")
 
-    preflight = _merge_preflight(repo, repository, pr_number, clean_head)
+    preflight = _merge_preflight(
+        repo, repository, pr_number, clean_head, task_branch, base_branch
+    )
     if preflight is not None:
         return preflight
 
     check_result = run_checks(repo, policy["checks"])
     if check_result["status"] != "ok":
         return check_result
-    preflight = _merge_preflight(repo, repository, pr_number, clean_head)
+    preflight = _merge_preflight(
+        repo, repository, pr_number, clean_head, task_branch, base_branch
+    )
     if preflight is not None:
         return preflight
 
@@ -472,15 +525,14 @@ def merge_pr(
         "--repo",
         repository,
         "--json",
-        "state,headRefOid,mergedAt",
+        "state,headRefOid,headRefName,baseRefName,mergedAt",
     )
     if post_result.returncode:
         detail = post_result.stderr.strip() or post_result.stdout.strip() or "no output"
-        return {
-            "status": "partial",
-            "reason": f"merge command succeeded but post-state query failed: {detail}"[:500],
-            "head": clean_head,
-        }
+        return _post_merge_partial(
+            f"merge command succeeded but post-state query failed: {detail}",
+            clean_head,
+        )
     try:
         post = json.loads(post_result.stdout)
     except json.JSONDecodeError:
@@ -489,15 +541,16 @@ def merge_pr(
         not isinstance(post, dict)
         or post.get("state") != "MERGED"
         or post.get("headRefOid") != clean_head
+        or post.get("headRefName") != task_branch
+        or post.get("baseRefName") != base_branch
         or not isinstance(post.get("mergedAt"), str)
         or not post["mergedAt"].strip()
     ):
-        return {
-            "status": "partial",
-            "reason": "merge command succeeded but merged post-state is unverified",
-            "head": clean_head,
-        }
-    return {
+        return _post_merge_partial(
+            "merge command succeeded but merged post-state is unverified",
+            clean_head,
+        )
+    result: dict[str, Any] = {
         "status": "ok",
         "action": "merged",
         "pr": pr_number,
@@ -506,10 +559,23 @@ def merge_pr(
         "checks": check_result["checks"],
         "merged_at": post["mergedAt"],
     }
+    cleanup = _cleanup_merged_task(
+        repo, base, task_branch, base_branch, remote, clean_head
+    )
+    result.update(cleanup)
+    if cleanup["retained_resources"]:
+        result["status"] = "partial"
+        result["reason"] = "merge succeeded but task cleanup is incomplete"
+    return result
 
 
 def _merge_preflight(
-    repo: Path, repository: str, pr_number: int, clean_head: str
+    repo: Path,
+    repository: str,
+    pr_number: int,
+    clean_head: str,
+    task_branch: str,
+    base_branch: str,
 ) -> dict[str, Any] | None:
     if not _worktree_clean(repo):
         return blocked("local worktree must be clean before merge checks")
@@ -524,7 +590,7 @@ def _merge_preflight(
         "--repo",
         repository,
         "--json",
-        "state,headRefOid,mergeStateStatus",
+        "state,headRefOid,headRefName,baseRefName,mergeStateStatus",
     )
     view, error = _json_output("gh pr view", view_result)
     if error:
@@ -533,9 +599,164 @@ def _merge_preflight(
         return blocked("PR state is closed or invalid")
     if view.get("headRefOid") != clean_head:
         return blocked("PR head changed after clean observation")
+    if (
+        view.get("headRefName") != task_branch
+        or view.get("baseRefName") != base_branch
+    ):
+        return blocked("PR task or base branch changed after clean observation")
     if view.get("mergeStateStatus") != "CLEAN":
         return blocked("PR merge state is not clean")
     return None
+
+
+def _retained(resource: str, reason: str) -> dict[str, str]:
+    return {"resource": resource, "reason": reason[:500]}
+
+
+def _post_merge_partial(reason: str, clean_head: str) -> dict[str, Any]:
+    return {
+        "status": "partial",
+        "reason": reason[:500],
+        "head": clean_head,
+        "cleanup": [],
+        "retained_resources": [
+            _retained(resource, "merge post-state is unverified")
+            for resource in ("remote_branch", "worktree", "local_branch")
+        ],
+    }
+
+
+def _cleanup_merged_task(
+    task: Path,
+    base: Path,
+    task_branch: str,
+    base_branch: str,
+    remote: str,
+    clean_head: str,
+) -> dict[str, Any]:
+    cleaned: list[str] = []
+    retained: list[dict[str, str]] = []
+    all_resources = ("remote_branch", "worktree", "local_branch")
+
+    if (
+        not _worktree_clean(task)
+        or _resolve_commit(task, "HEAD") != clean_head
+        or _current_branch(task) != task_branch
+        or _current_branch(base) != base_branch
+        or _common_dir(task) is None
+        or _common_dir(task) != _common_dir(base)
+    ):
+        reason = "post-merge task or base worktree identity changed"
+        return {
+            "cleanup": cleaned,
+            "retained_resources": [
+                _retained(resource, reason) for resource in all_resources
+            ],
+        }
+
+    task_ref = f"refs/heads/{task_branch}"
+    branch_head = _resolve_commit(task, task_ref)
+    if branch_head != clean_head:
+        reason = "local task branch moved after merge"
+        return {
+            "cleanup": cleaned,
+            "retained_resources": [
+                _retained(resource, reason) for resource in all_resources
+            ],
+        }
+
+    remote_state = _git(task, "ls-remote", "--heads", remote, task_ref)
+    if remote_state.returncode:
+        detail = (
+            remote_state.stderr.strip()
+            or remote_state.stdout.strip()
+            or "no output"
+        )
+        retained.append(_retained("remote_branch", f"remote lookup failed: {detail}"))
+    else:
+        lines = [
+            line.split()
+            for line in remote_state.stdout.splitlines()
+            if line.strip()
+        ]
+        if not lines:
+            cleaned.append("remote_branch")
+        elif (
+            len(lines) != 1
+            or len(lines[0]) != 2
+            or lines[0][1] != task_ref
+            or lines[0][0] != clean_head
+        ):
+            retained.append(
+                _retained("remote_branch", "remote task branch is ambiguous or moved")
+            )
+        else:
+            delete_remote = _git(
+                task,
+                "push",
+                f"--force-with-lease={task_ref}:{clean_head}",
+                remote,
+                f":{task_ref}",
+            )
+            if delete_remote.returncode:
+                detail = (
+                    delete_remote.stderr.strip()
+                    or delete_remote.stdout.strip()
+                    or "no output"
+                )
+                retained.append(
+                    _retained(
+                        "remote_branch",
+                        f"lease-protected deletion failed: {detail}",
+                    )
+                )
+            else:
+                cleaned.append("remote_branch")
+
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        current = None
+    if current == task or (current is not None and task in current.parents):
+        try:
+            os.chdir(base)
+        except OSError as error:
+            retained.extend(
+                [
+                    _retained("worktree", f"cannot leave task worktree: {error}"),
+                    _retained("local_branch", "task worktree was not removed"),
+                ]
+            )
+            return {"cleanup": cleaned, "retained_resources": retained}
+
+    remove = _git(base, "worktree", "remove", str(task))
+    if remove.returncode:
+        detail = remove.stderr.strip() or remove.stdout.strip() or "no output"
+        retained.extend(
+            [
+                _retained("worktree", f"git worktree remove failed: {detail}"),
+                _retained("local_branch", "task worktree was not removed"),
+            ]
+        )
+        return {"cleanup": cleaned, "retained_resources": retained}
+    cleaned.append("worktree")
+
+    delete_local = _git(base, "update-ref", "-d", task_ref, clean_head)
+    if delete_local.returncode:
+        detail = (
+            delete_local.stderr.strip() or delete_local.stdout.strip() or "no output"
+        )
+        retained.append(
+            _retained("local_branch", f"expected-SHA deletion failed: {detail}")
+        )
+    elif _resolve_commit(base, task_ref) is not None:
+        retained.append(
+            _retained("local_branch", "local task branch still exists after deletion")
+        )
+    else:
+        cleaned.append("local_branch")
+
+    return {"cleanup": cleaned, "retained_resources": retained}
 
 
 def _worktree_clean(repo: Path) -> bool:
@@ -566,6 +787,10 @@ def parse_args() -> argparse.Namespace:
 
     merge_parser = subparsers.add_parser("merge")
     merge_parser.add_argument("--repo", type=Path, required=True)
+    merge_parser.add_argument("--base-worktree", type=Path, required=True)
+    merge_parser.add_argument("--task-branch", required=True)
+    merge_parser.add_argument("--base-branch", required=True)
+    merge_parser.add_argument("--remote", required=True)
     merge_parser.add_argument("--repository", required=True)
     merge_parser.add_argument("--pr", type=int, required=True)
     merge_parser.add_argument("--clean-head", required=True)
@@ -596,6 +821,10 @@ def main() -> int:
     else:
         result = merge_pr(
             args.repo,
+            args.base_worktree,
+            args.task_branch,
+            args.base_branch,
+            args.remote,
             args.repository,
             args.pr,
             args.clean_head,

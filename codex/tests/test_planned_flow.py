@@ -280,6 +280,138 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(invariant, architecture)
         self.assertIn("relevant references and revision identity", self.skill)
 
+    def test_new_formal_task_requires_fresh_worktree_before_discovery(self) -> None:
+        isolation = self.skill.index("## Isolate every new formal task")
+        repository_dispatch = self.skill.index(
+            "dispatch `repository_context` to an `analyst`"
+        )
+        self.assertLess(isolation, repository_dispatch)
+        normalized = " ".join(self.skill.split())
+        for invariant in (
+            "Never adopt the current worktree for a new task",
+            "task and base paths and branches differ",
+            "task `HEAD` equals the captured base revision",
+            "Formal planning remains read-only",
+            "Block instead of falling back to the current checkout",
+            "same live pre-approval task",
+            "approved local plan, objective, task branch, base, and worktree",
+        ):
+            self.assertIn(invariant, normalized)
+
+    def test_git_worktree_contract_isolated_collision_and_safe_cancel(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = root / "repo"
+            unrelated = root / "repo-example"
+            task = root / "repo-example-2"
+            subprocess.run(
+                ["git", "init", "-b", "main", str(base)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "config", "user.email", "test@example.com"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "config", "user.name", "Test"], check=True
+            )
+            seed = base / "seed.txt"
+            seed.write_text("seed\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(base), "add", "seed.txt"], check=True)
+            subprocess.run(
+                ["git", "-C", str(base), "commit", "-m", "seed"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            base_sha = subprocess.run(
+                ["git", "-C", str(base), "rev-parse", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(base),
+                    "worktree",
+                    "add",
+                    "-b",
+                    "orchestra/example",
+                    str(unrelated),
+                    base_sha,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            seed.write_text("uncommitted user work\n", encoding="utf-8")
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(base),
+                    "worktree",
+                    "add",
+                    "-b",
+                    "orchestra/example-2",
+                    str(task),
+                    base_sha,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            task_head = subprocess.run(
+                ["git", "-C", str(task), "rev-parse", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            task_status = subprocess.run(
+                ["git", "-C", str(task), "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertEqual(task_head, base_sha)
+            self.assertEqual(task_status, "")
+            self.assertEqual(seed.read_text(encoding="utf-8"), "uncommitted user work\n")
+            self.assertTrue(unrelated.exists())
+
+            subprocess.run(
+                ["git", "-C", str(base), "worktree", "remove", str(task)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(base), "branch", "-d", "orchestra/example-2"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertFalse(task.exists())
+            self.assertTrue(unrelated.exists())
+            branch = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(base),
+                    "branch",
+                    "--list",
+                    "orchestra/example-2",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(branch.stdout, "")
+
     def test_local_plan_path_is_per_worktree_and_root_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary) / "repo"

@@ -10,7 +10,8 @@ flowchart TD
     NPM["Native Codex Plan Mode"] --> PX["Native planning and later direct execution"]
     S --> C["Confirm compact specification"]
     C --> T{"Standard or critical"}
-    T --> P["Bounded context and formal technical plan"]
+    T --> I["Create a new task branch and dedicated worktree"]
+    I --> P["Bounded context and formal technical plan"]
     P --> A["User approves implementation"]
     A --> W["Write approved plan directly as active"]
     W --> F["Execute the next phase"]
@@ -104,23 +105,34 @@ After explicit activation in normal chat:
    Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
    Decisions, and Open questions with the user. No artifact is persisted.
 2. The root classifies the settled work as standard or critical.
-3. An `analyst` with `repository_context` inspects only the domains needed for
+3. The root resolves the intended base branch and committed revision, then uses
+   Git directly to create a collision-free `orchestra/<task-slug>[-N]` branch
+   and dedicated sibling worktree. A new task never reuses the current
+   worktree, even when it is already linked to the repository. The root verifies
+   distinct task/base paths and branches, the captured base revision at task
+   `HEAD`, and a clean task worktree before any capability dispatch.
+4. An `analyst` with `repository_context` inspects only the domains needed for
    the request. The root may skip or reduce this dispatch only when it cites the
    specific prior evidence it reuses (artifact and HEAD, same session);
    otherwise dispatch. A reduced dispatch requests only the targeted context
    delta.
-4. The orchestrator merges evidence into the settled specification.
-5. The root writes the formal plan in conversation or system temporary storage,
+5. The orchestrator merges evidence into the settled specification.
+6. The root writes the formal plan in conversation or system temporary storage,
    dispatching `technical_planning` (or
    `architecture_analysis` for a bounded named architecture question) when
    useful; for a small single-phase standard task the root may write the
    compact plan directly. A single-phase standard plan is explicitly compact:
    objective, one phase contract, verification, nothing else.
-6. A critical plan audit is an independent `reviewer` dispatch only when its
+7. A critical plan audit is an independent `reviewer` dispatch only when its
    packet names a measurable risk, supporting evidence and affected area, and
    an independently detectable defect class. Complexity alone is insufficient.
-7. The root reviews the plan, summarizes it at the user's altitude, and requests
+8. The root reviews the plan, summarizes it at the user's altitude, and requests
    implementation approval.
+
+Every planning, implementation, review, verification, plan, and commit operation
+for the task uses the exact dedicated worktree. Formal planning remains
+read-only. Uncommitted changes in the base worktree are preserved and never
+copied, stashed, or treated as task input.
 
 Standard and critical implementation does not begin until the user explicitly
 approves the aligned plan. That approval covers implementation and successful
@@ -206,19 +218,35 @@ Do not cycle on:
 
 ## Worktrees and branches
 
-New implementations normally start in a task branch and dedicated worktree so
-multiple tasks can proceed independently. The task records its base branch and
-worktree path without creating a global workflow database.
+Every new formal Orchestra task owns a new task branch and dedicated worktree
+created from its intended committed base revision. Existing worktrees belong to
+their existing tasks and are never adopted merely because they are current or
+clean. The root chooses the first available `orchestra/<task-slug>[-N]` branch
+and sibling path, records the exact base branch, base revision, task branch, and
+worktree path in its transient context, and creates no global registry.
+
+Reuse is allowed only for the same live pre-approval task or when the approved
+local plan, objective, task branch, base, and worktree all identify the same
+resumed task. Missing or conflicting identity blocks reuse. If planning is
+rejected or canceled, the root may remove the worktree and branch only after
+proving that the worktree is clean, its branch still points to the captured
+base revision, and it contains no unique work. Otherwise it preserves the
+resources and reports them.
 
 After authorized integration:
 
-1. verify the exact task revision;
+1. verify the exact task revision and selected delivery result;
 2. integrate using the selected local or PR path;
-3. confirm the target branch contains the expected commit;
-4. remove the task worktree and its local plan;
-5. delete the merged task branch when safe.
+3. confirm either the exact local fast-forward or the exact merged PR head;
+4. remove the clean task worktree and its local plan;
+5. delete the unchanged local task branch;
+6. for a merged PR, delete the remote task branch only when it still points to
+   the merged head.
 
-Unmerged or dirty worktrees are never removed automatically.
+`hold`, an open PR, or pending delivery authority intentionally retains the task
+resources. Dirty, moved, ambiguous, or unverified resources are never removed.
+Cleanup after a completed mutation returns `partial` and names every retained
+resource when it cannot finish safely.
 
 ## Commit path
 
@@ -284,6 +312,14 @@ to the same implementation owner.
 `Open a PR` authorizes opening, review processing, fixes, commits, and pushes
 needed to make that PR clean. It does not authorize merge unless the user said
 `merge when clean` or separately requests merge later.
+
+After an authorized merge, the PR helper verifies the `MERGED` state against the
+exact reviewed head and performs conservative cleanup. It removes only a still
+clean task worktree whose branch remains at that head, deletes the local branch
+with an expected-value guard, and uses lease-protected deletion for an unchanged
+remote task branch. This exact merged-head proof permits cleanup after merge,
+squash, or rebase without pretending that all three preserve commit ancestry.
+An absent remote branch is already clean; a moved branch is retained.
 
 ## Local integration path
 

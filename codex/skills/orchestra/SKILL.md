@@ -25,6 +25,29 @@ Use `standard` for ordinary planned features and fixes. Select `critical` for se
 
 Tier exemplars: standard covers ordinary planned features and fixes; critical covers schema migrations, auth/payment/credential changes, unrecoverable deletion, and production mutation.
 
+## Isolate every new formal task
+
+After tiering and before any capability dispatch, resolve the intended base
+worktree, base branch, and committed base revision without inheriting the
+current task's branch. Use Git directly to choose the first available
+`orchestra/<task-slug>[-N]` branch and sibling worktree path, then create a new
+dedicated worktree from the captured base revision with `git worktree add`.
+Never adopt the current worktree for a new task, even when it is clean or
+already linked.
+
+Verify that task and base paths and branches differ, task `HEAD` equals the
+captured base revision, and the task worktree is clean. Pass that exact
+worktree, branch, base, and revision to every capability packet and run every
+planning, implementation, verification, review, plan, and commit operation
+there. Formal planning remains read-only and base-worktree changes are never
+copied, stashed, or treated as task input. Block instead of falling back to the current checkout.
+
+Reuse is limited to the same live pre-approval task or to a resumed task whose
+approved local plan, objective, task branch, base, and worktree all match Git.
+If planning is rejected or canceled, remove only a clean worktree whose branch
+still equals the captured base revision and has no unique work; otherwise
+preserve and report the resources.
+
 ## Resolve assignments and references
 
 Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Read `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only machine-readable assignment matrix. Resolve exactly `tiers.<tier>.<capability>` and require that entry to contain only `profile`, `model`, and `reasoning_effort`. Load `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the packet, and use the assignment's explicit model and reasoning overrides when spawning. A profile never selects its capability or assignment.
@@ -68,7 +91,7 @@ Only the root writes the plan. On resume, resolve the Git path again and reconci
 
 ## Route standard and critical work
 
-1. Dispatch `repository_context` to an `analyst` with focused discovery questions. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. A reduced dispatch requests only the targeted context delta. Add `web_research` only for necessary time-sensitive external evidence.
+1. Complete the mandatory new-task worktree isolation gate, then dispatch `repository_context` to an `analyst` with focused discovery questions from that exact worktree. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. A reduced dispatch requests only the targeted context delta. Add `web_research` only for necessary time-sensitive external evidence.
 2. Have the root synthesize evidence against the confirmed specification.
 3. The root drafts the plan in conversation or system temporary storage, dispatching `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
 4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient.
