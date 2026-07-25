@@ -232,14 +232,16 @@ The loop is:
    safety, and materially defect-prone design.
 4. Accepted findings return to the same owner.
 5. Re-run affected verification and review the meaningful delta.
-6. The root commits directly or through the narrow commit helper when the phase
-   passes.
+6. When the phase passes, the root commits with direct Git by default. It may
+   use the narrow commit helper when exact-path staging is useful.
 
 When either the same failure repeats (its second occurrence) or two fix-review
 rounds with distinct legitimate findings fail to converge, stop blind retries
 and choose: reassess the phase approach, dispatch `difficult_debugging` when
 the pattern suggests a deeper cause, or ask the user when an authority boundary
-is crossed.
+is crossed. An isolated mechanical Git failure stays with the root: inspect the
+current status and latest commit once, make an obvious safe correction when
+available, and do not dispatch an agent merely to operate or explain Git.
 
 ## Review policy
 
@@ -304,19 +306,19 @@ resource when it cannot finish safely.
 ## Commit path
 
 Plan approval covers commits at successful phase boundaries. Commit execution
-is a root responsibility, not an agent profile or capability. The root uses Git
-directly or the narrow deterministic commit helper; it does not rediscover the
-repository or reopen product decisions.
+is a root responsibility, not an agent profile or capability. The default path
+is one direct pass: inspect status and the relevant diff, stage only the accepted
+paths, create a file-based commit with a concise title plus useful intent and
+validation, then read the resulting SHA and status once. Do not require empty
+ceremonial sections, byte-for-byte message equality, repeated authority checks,
+or an agent dispatch.
 
-The commit implementation should preserve the useful `commitbot` behavior:
-
-- inspect scope and relevant diff;
-- use a structured message that captures why, acceptance, invariants,
-  validation, and risks;
-- stage only intended paths;
-- use `git commit -F`;
-- verify the stored commit message and resulting SHA;
-- return success or a stable failure reason.
+The optional narrow helper exists only when exact-path staging is useful. It
+preserves unrelated work, rejects staged paths outside the accepted scope,
+commits the selected paths, and verifies that any created commit contains no
+other paths. A legitimate commit-message hook may add trailers. If Git created
+the intended commit, its SHA is success evidence even when an auxiliary command
+reported a failure; do not retry, amend, or manufacture another commit.
 
 Git provides atomic commit and reflog behavior. Local commits do not require an
 isolated index, crash journal, authority bundle, or repeated subprocess

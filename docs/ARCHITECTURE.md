@@ -126,17 +126,19 @@ They should remain readable and route to deeper references only when needed.
 
 ### Mechanical helpers
 
-Scripts perform operations that benefit from deterministic behavior: parsing
-Git status, validating structured messages, loading delivery policy, running
-configured argv checks, opening or observing a PR through direct `gh`, merging
-an authorized clean PR with guarded task-resource cleanup, integrating a local
+Scripts perform operations that demonstrably benefit from deterministic
+behavior: bounded Git inspection, loading delivery policy, running configured
+argv checks, opening or observing a PR through direct `gh`, merging an
+authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
 validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
-spawn agents, or own parallel approval systems. The root commits directly or
-through the narrow commit helper and invokes the PR helper directly to observe
-GitHub state.
+spawn agents, or own parallel approval systems. A helper must reduce the total
+agent, tool, time, and repair cost of its operation; deterministic behavior is
+not a reason to duplicate Git or the root's judgment. The root commits with
+direct Git by default, may use the narrow exact-path helper, and invokes the PR
+helper directly to observe GitHub state.
 
 ## Minimal contracts
 
@@ -145,8 +147,9 @@ Orchestra may persist only contracts with direct consumers:
 - repository delivery policy;
 - one root-owned approved task plan per Orchestra worktree, resolved with
   `git rev-parse --git-path orchestra/plan.md`;
-- structured commit message;
-- compact commit result (`sha` or stable failure reason);
+- concise commit intent and validation in Git history;
+- compact optional-helper result (`committed` with `sha`,
+  `nothing_to_commit`, or `blocked` with the observed reason);
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
 
@@ -290,7 +293,10 @@ helper, agent profile, or capability playbook, document:
 - why a smaller direct implementation does not suffice.
 
 Review only the delta after a finding. If a mechanism fails this gate, stop and
-simplify it.
+simplify it. Count root and delegated-agent context, tool calls, wall time, and
+failure-repair loops in that cost. Do not harden against speculative
+concurrency, crashes, adversarial inputs, or exotic filesystems without a
+consumer requirement or reproducible risk.
 
 The design explicitly rejects a global workflow event ledger, authority-bundle
 chain, duplicate Git index, commit recovery journal, plan CLI, Kanban board,
@@ -305,7 +311,8 @@ observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
 never clean. Worktree creation remains a direct root Git operation. Scoped
 dirty adoption uses `adopt_worktree.py` as a one-shot selected-path import.
-Phase commits use direct Git or the existing narrow commit helper, not an agent.
+Phase commits use direct Git by default or the existing narrow exact-path helper
+when useful, never an agent.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:

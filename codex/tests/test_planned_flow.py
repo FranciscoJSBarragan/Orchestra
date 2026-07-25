@@ -495,12 +495,11 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("Never claim acceptance of your own work", frontend)
         self.assertIn("browser acceptance is an independent verifier dispatch", self.skill)
 
-    def test_commit_and_pr_observation_are_direct_root_helper_operations(self) -> None:
+    def test_commit_and_pr_observation_remain_root_owned(self) -> None:
         commit_skill = (
             ROOT / "codex/skills/orchestra-phase-commit/SKILL.md"
         ).read_text()
         review_skill = (ROOT / "codex/skills/orchestra-pr-review/SKILL.md").read_text()
-        self.assertIn("root directly run", commit_skill)
         self.assertIn("commit_phase.py", commit_skill)
         self.assertIn("without a committer profile or capability", commit_skill)
         self.assertIn("root directly run", review_skill)
@@ -532,8 +531,6 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertNotIn(rejected, helper)
         self.assertIn("alternate index", commit_skill)
-        self.assertIn("Git is the commit truth", commit_skill)
-        self.assertIn("root directly run", commit_skill)
         self.assertIn("Do not resolve an assignment", commit_skill)
 
     def test_extra_review_and_debugging_are_proportional(self) -> None:

@@ -12,13 +12,13 @@ import sys
 from _common import SHA_PATTERN
 
 
-def _git(repo: Path, *args: str, text: bool = True) -> subprocess.CompletedProcess:
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "--literal-pathspecs", *args],
         cwd=repo,
         check=False,
         capture_output=True,
-        text=text,
+        text=True,
     )
 
 
@@ -90,10 +90,10 @@ def commit_phase(repo: Path, paths: list[str], message_file: Path) -> dict[str, 
         return _blocked(path_error)
 
     try:
-        expected_message = message_file.read_bytes()
-    except OSError as error:
+        message = message_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
         return _blocked(f"cannot read message file: {error}")
-    if not expected_message.strip():
+    if not message.strip():
         return _blocked("commit message file is empty")
 
     staged_paths, staged_error = _staged_paths(repo)
@@ -137,25 +137,16 @@ def commit_phase(repo: Path, paths: list[str], message_file: Path) -> dict[str, 
         *paths,
     )
     after_sha = _head_sha(repo)
-    if commit.returncode:
+    commit_created = after_sha is not None and after_sha != before_sha
+    if not commit_created:
+        if not commit.returncode:
+            return _blocked(
+                "git commit reported success but no commit was created; "
+                "authorized changes remain staged"
+            )
         detail = commit.stderr.strip() or commit.stdout.strip() or "git commit failed"
-        if after_sha is not None and after_sha != before_sha:
-            return _blocked(
-                f"git commit reported failure but commit exists: {detail}", after_sha
-            )
-        remaining_paths, _ = _staged_paths(repo)
-        if remaining_paths is None or not staged_paths.issubset(remaining_paths):
-            return _blocked(
-                "git commit failed; no commit was created; the authorized staged "
-                f"set changed during failure: {detail}"
-            )
-        return _blocked(
-            f"git commit failed; no commit was created; authorized changes remain staged: {detail}"
-        )
-    if after_sha is None or after_sha == before_sha:
-        return _blocked(
-            "git commit reported success but no commit was created; authorized changes remain staged"
-        )
+        return _blocked(f"git commit failed; no commit was created: {detail}")
+    assert after_sha is not None
 
     changed = _git(
         repo,
@@ -181,19 +172,12 @@ def commit_phase(repo: Path, paths: list[str], message_file: Path) -> dict[str, 
             "commit exists but contains unauthorized paths: " + ", ".join(unexpected),
             after_sha,
         )
-
-    stored = _git(repo, "cat-file", "commit", after_sha, text=False)
-    if stored.returncode:
-        return _blocked(
-            "commit exists but its stored message could not be read", after_sha
-        )
-    separator = stored.stdout.find(b"\n\n")
-    actual_message = stored.stdout[separator + 2 :] if separator >= 0 else b""
-    if actual_message != expected_message:
-        return _blocked(
-            "commit exists but stored message verification failed", after_sha
-        )
-    return {"status": "committed", "sha": after_sha}
+    result = {"status": "committed", "sha": after_sha}
+    if commit.returncode:
+        detail = commit.stderr.strip() or commit.stdout.strip()
+        if detail:
+            result["warning"] = " ".join(detail.split())[:500]
+    return result
 
 
 def parse_args() -> argparse.Namespace:

@@ -140,6 +140,23 @@ sessions, and reports observed behavior with reproducible steps and evidence.
 It returns blocked when Computer Use or Chrome is unavailable. The root may use
 the in-app Browser separately.
 
+## Autonomy and proportionality
+
+Treat the root orchestrator's engineering judgment as part of the control
+system. Optimize quality, tokens, tool calls, wall time, and workflow-repair
+cost together. Routine reversible operations should stay direct and one-pass:
+inspect the relevant evidence, act once, and verify the material outcome once.
+Do not delegate an isolated mechanical failure or encode every hypothetical
+failure into prompts, helpers, state, or tests.
+
+Add a hard gate only for an authority boundary, realistic data-loss or security
+risk, acceptance requirement, or demonstrated reproducible failure. Reject
+review findings that add machinery without such evidence. Prompts should state
+outcomes, invariants, authority, and stop conditions while leaving ordinary
+technical judgment to the capable agent. Tests should cover representative
+realistic behavior rather than combinatorial, adversarial, concurrency, crash,
+or exotic-filesystem scenarios without evidence that the product needs them.
+
 ## Anti-overengineering rules
 
 - One canonical source for each fact.

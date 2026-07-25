@@ -1,19 +1,18 @@
 ---
 name: orchestra-phase-commit
-description: Let the root commit one accepted Orchestra phase within an exact path scope using direct Git or the narrow commit helper. Use after implementation, targeted verification, and independent review pass; preserve unrelated work, verify the structured message and resulting SHA, and return a compact result without a committer profile or capability.
+description: Let the root commit one accepted Orchestra phase directly, with the narrow exact-path helper available when useful. Use after implementation, targeted verification, and independent review pass; preserve unrelated work and return the resulting SHA without a committer profile or capability.
 ---
 
 # Commit an accepted phase
 
-Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require exact repository-relative authorized paths, passed review and verification evidence for the current revision, and a structured message covering why, acceptance, invariants, validation, and risks.
+Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require accepted repository-relative paths and passed review and verification evidence for the current revision. Use a concise title plus useful intent and validation; include risks only when material.
 
 ## Execute the direct path
 
-1. Have the root inspect Git status and the relevant diff for the exact authorized paths. Return `blocked` if an unrelated path is staged or the relevant diff exceeds authority.
-2. Write the structured message to a temporary file outside the repository and arrange cleanup.
-3. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/commit_phase.py" --repo <root> --message-file <file> --path <path> [--path <path> ...]`.
-4. Require exact literal final-commit pathspecs and changed-path verification with rename detection disabled.
-5. Read the helper's compact JSON result. For `committed`, require the verified SHA and stored-message confirmation. For `nothing_to_commit`, make no commit. For `blocked`, report one stable reason and any SHA proving a commit exists.
-6. When a blocked result contains a SHA, report that the commit already exists and do not retry, amend, reset, or recover it. Remove the temporary file in every path.
+1. Inspect Git status and the relevant diff once. Stop if unrelated work is already staged or the phase exceeds authority.
+2. Write the message to a temporary file outside the repository, stage only the accepted paths, run `git commit -F <file>`, and read the resulting SHA and status once.
+3. Use `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/commit_phase.py` instead when exact-path staging benefits from a compact structured result. Pass `--repo`, `--message-file`, and each exact `--path`.
+4. Accept `committed` with its SHA or `nothing_to_commit`. For `blocked`, inspect current status and the latest commit once. If the intended commit exists and contains no paths outside scope, accept it and do not retry or amend.
+5. Keep an isolated mechanical failure root-local. Make one obvious safe correction when available; delegate only when repeated evidence points to a deeper implementation problem. Remove the temporary message file.
 
-The root may use direct Git instead only when it preserves the same scope, structured-message, `git commit -F`, changed-path, stored-message, and SHA checks. Do not edit source, stage unrelated paths, create an alternate index, add a crash journal or recovery state, merge, push, release, deploy, or infer authority. Git is the commit truth.
+Do not stage unrelated paths, create an alternate index, add a crash journal or recovery state, merge, push, release, deploy, or infer authority. Do not require byte-for-byte stored-message equality or empty ceremonial sections. Git and the root's observed scope are the commit truth.

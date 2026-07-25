@@ -69,6 +69,13 @@ They should not be consumed by repeated validation of unchanged authority,
 duplicate state stores, whole-run restarts, or ceremonial agents for mechanical
 Git operations.
 
+Quality per token includes the complete cost of a mechanism: root and delegated
+agent context, tool calls, wall time, and workflow repair when the mechanism
+fails. More checks are not automatically safer. A helper or gate is an
+improvement only when it reduces expected total cost while protecting a
+demonstrated requirement or realistic risk. The root's engineering judgment is
+part of that control surface, not a gap that must be replaced with machinery.
+
 ### Bounded autonomy
 
 Within an approved objective and scope, the orchestrator may make reversible

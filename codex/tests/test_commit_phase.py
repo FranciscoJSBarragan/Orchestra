@@ -32,11 +32,8 @@ class CommitPhaseTests(unittest.TestCase):
         self.message_file = Path(self.temporary_directory.name) / "message.txt"
         self.message_file.write_text(
             "Implement bounded phase\n\n"
-            "Why: exercise the exact-path contract.\n"
-            "Acceptance: target content is committed.\n"
-            "Invariants: unrelated work is preserved.\n"
-            "Validation: unit test observed Git state.\n"
-            "Risks: none known.\n",
+            "Commit the accepted target path while preserving unrelated work.\n"
+            "Validated by the focused helper tests.\n",
             encoding="utf-8",
         )
 
@@ -75,7 +72,7 @@ class CommitPhaseTests(unittest.TestCase):
         )
         return result, json.loads(result.stdout)
 
-    def test_commits_exact_path_and_verifies_message_and_sha(self) -> None:
+    def test_commits_exact_path_and_returns_sha(self) -> None:
         self.write("target.txt", "changed\n")
 
         result, payload = self.run_helper("target.txt")
@@ -83,13 +80,6 @@ class CommitPhaseTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "committed")
         self.assertEqual(payload["sha"], self.git("rev-parse", "HEAD").stdout.strip())
-        commit = subprocess.run(
-            ["git", "cat-file", "commit", payload["sha"]],
-            cwd=self.root,
-            check=True,
-            capture_output=True,
-        ).stdout
-        self.assertEqual(commit.split(b"\n\n", 1)[1], self.message_file.read_bytes())
         self.assertEqual(self.git("show", "HEAD:target.txt").stdout, "changed\n")
 
     def test_returns_nothing_to_commit_for_unchanged_path(self) -> None:
@@ -194,7 +184,6 @@ class CommitPhaseTests(unittest.TestCase):
         self.assertEqual(payload["status"], "blocked")
         self.assertIn("intentional-hook-failure", payload["reason"])
         self.assertIn("no commit was created", payload["reason"])
-        self.assertIn("authorized changes remain staged", payload["reason"])
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
         self.assertEqual(self.git("diff", "--cached", "--name-only").stdout, "target.txt\n")
 
@@ -232,7 +221,7 @@ class CommitPhaseTests(unittest.TestCase):
             "2",
         )
 
-    def test_commit_message_hook_mismatch_reports_existing_commit_sha(self) -> None:
+    def test_commit_message_hook_trailer_is_accepted(self) -> None:
         hook = self.root / ".git/hooks/commit-msg"
         hook.write_text("#!/bin/sh\nprintf '\\nHook trailer\\n' >> \"$1\"\n")
         hook.chmod(0o755)
@@ -240,12 +229,11 @@ class CommitPhaseTests(unittest.TestCase):
 
         result, payload = self.run_helper("target.txt")
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(payload["status"], "blocked")
-        self.assertIn("commit exists", payload["reason"])
-        self.assertIn("stored message verification failed", payload["reason"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "committed")
         self.assertEqual(payload["sha"], self.git("rev-parse", "HEAD").stdout.strip())
         self.assertNotEqual(payload["sha"], self.initial_sha)
+        self.assertIn("Hook trailer", self.git("log", "-1", "--pretty=%B").stdout)
 
 
 if __name__ == "__main__":

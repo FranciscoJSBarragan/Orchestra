@@ -631,7 +631,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "Block instead of falling back to the current checkout",
             "same live pre-approval task",
         ),
-        "orchestra-phase-commit": ("commit_phase.py", "root directly run"),
+        "orchestra-phase-commit": ("commit_phase.py",),
         "orchestra-pr-review": (
             "pr.py",
             "observe",
