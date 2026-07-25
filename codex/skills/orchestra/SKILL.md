@@ -1,6 +1,6 @@
 ---
 name: orchestra
-description: Use only for explicit planned work in normal chat: align the specification, create an approved standard or critical implementation plan, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
+description: Use only for an explicit `$orchestra` invocation or an unequivocal imperative to use or start Orchestra; align the specification, create an approved standard or critical implementation plan, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
 ---
 
 # Route an Orchestra change
@@ -9,11 +9,28 @@ Keep the root orchestrator responsible for specification alignment, tier selecti
 
 ## Activate explicitly and align the specification
 
-Native Codex Plan Mode and Orchestra are mutually exclusive. If Plan Mode is active, do not start Orchestra, even for an explicit `$orchestra` request; tell the user to leave Plan Mode first. A plan created in native Plan Mode is implemented later through ordinary direct execution.
+Orchestra activates only through an explicit `$orchestra` invocation or an
+unequivocal imperative to use or start Orchestra. Ordinary requests to create a
+plan, descriptive mentions of Orchestra, and direct change, fix, or
+implementation work do not activate it.
 
-In normal chat, direct change, fix, implementation, and implementation of a prior native Codex plan remain ordinary work outside Orchestra. Start Orchestra only when the user explicitly requests `$orchestra` or asks to create, prepare, or write the implementation plan.
+If Orchestra is explicitly invoked in a planning-only host mode (any harness or
+session mode intended for planning that prohibits or postpones implementation
+mutations), reuse the preceding conversation, identify the latest candidate
+checkpoint, and pause before formal task setup. Do not create a branch or
+worktree, persist a plan, dispatch implementation, commit, or cross another
+mutation boundary. Ask the user to switch to an execution-capable mode. When
+the host becomes execution-capable, continue from the adopted context without
+requiring another `$orchestra` invocation or recreating the analysis or plan.
 
-Reuse the preceding conversation and ask only genuine gaps. Before tiering, present and confirm a compact specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Do not persist it.
+In an execution-capable mode, reuse the preceding conversation, inspect Git
+state, classify the internal checkpoint (exploration, candidate specification,
+candidate plan, adopted implementation, or resumable Orchestra task), and state
+concisely what Orchestra is adopting. Ask only genuine gaps. Before tiering,
+present and confirm a compact specification containing Objective, User-visible
+behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions.
+Do not persist it. A plan created before activation remains a candidate plan
+until Orchestra validates it.
 
 ## Classify after specification confirmation
 
@@ -31,22 +48,28 @@ After tiering and before any capability dispatch, resolve the intended base
 worktree, base branch, and committed base revision without inheriting the
 current task's branch. Use Git directly to choose the first available
 `orchestra/<task-slug>[-N]` branch and sibling worktree path, then create a new
-dedicated worktree from the captured base revision with `git worktree add`.
-Never adopt the current worktree for a new task, even when it is clean or
-already linked.
+dedicated worktree with `git worktree add`. Never adopt the current worktree for a new task, even when it is clean or already linked. Never switch, clean,
+stash, commit, or otherwise mutate the source checkout for a new task.
 
-Verify that task and base paths and branches differ, task `HEAD` equals the
-captured base revision, and the task worktree is clean. Pass that exact
-worktree, branch, base, and revision to every capability packet and run every
-planning, implementation, verification, review, plan, and commit operation
-there. Formal planning remains read-only and base-worktree changes are never
-copied, stashed, or treated as task input. Block instead of falling back to the current checkout.
+Fresh work starts at the captured base revision. Prior committed work creates
+the task branch and sibling worktree at the adopted source HEAD while recording
+the intended integration base. Scoped dirty paths import through
+`adopt_worktree.py`; imported changes may remain unstaged. Preserve existing
+commits without rewriting. If dirty-path ownership is ambiguous, pause for
+exact path selection rather than inferring hunk splits.
+
+Verify that task and base paths and branches differ. Pass that exact worktree,
+branch, base, adopted revision when applicable, and revision identity to every
+capability packet and run every planning, implementation, verification, review,
+plan, and commit operation there. Formal planning remains read-only against the
+source checkout. Block instead of falling back to the current checkout.
 
 Reuse is limited to the same live pre-approval task or to a resumed task whose
 approved local plan, objective, task branch, base, and worktree all match Git.
 If planning is rejected or canceled, remove only a clean worktree whose branch
-still equals the captured base revision and has no unique work; otherwise
-preserve and report the resources.
+still equals the captured base or adopted revision and has no unique work;
+otherwise preserve and report the resources. If adopted committed work later
+passes unchanged, allow completion without an artificial commit.
 
 ## Resolve assignments and references
 
@@ -79,7 +102,7 @@ Request outcome-first, lossless structured returns: omit packet and routine proc
 
 ## Maintain the local task plan
 
-Before approval, keep the formal-plan draft in conversation or system temporary storage. After approval, the root resolves `git rev-parse --git-path orchestra/plan.md` in the task worktree and writes the exact approved plan directly as `active`. Record objective, tier, branch, base revision, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note.
+Before approval, keep the formal-plan draft in conversation or system temporary storage. After approval, the root resolves `git rev-parse --git-path orchestra/plan.md` in the task worktree and writes the exact approved plan directly as `active`. Record objective, tier, branch, base revision, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note. When adoption applies, also record the adopted source revision, imported paths, existing commit range, and remaining phases.
 
 Use only these statuses:
 

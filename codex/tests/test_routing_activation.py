@@ -6,6 +6,15 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CANONICAL = (
+    ROOT / "README.md",
+    ROOT / "VISION.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs/WORKFLOW.md",
+    ROOT / "docs/ARCHITECTURE.md",
+    ROOT / "codex/skills/orchestra/SKILL.md",
+    ROOT / "codex/runtime/AGENTS.orchestra.md",
+)
 
 
 class RoutingActivationContractTests(unittest.TestCase):
@@ -14,23 +23,81 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.workflow = (ROOT / "docs/WORKFLOW.md").read_text()
         self.agents = (ROOT / "AGENTS.md").read_text()
         self.runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        self.canonical = {
+            path.name: path.read_text(encoding="utf-8") for path in CANONICAL
+        }
 
-    def test_native_plan_mode_and_orchestra_are_mutually_exclusive(self) -> None:
+    @staticmethod
+    def _flat(text: str) -> str:
+        return " ".join(text.split())
+
+    def test_activation_requires_explicit_orchestra_invocation(self) -> None:
         for text in (self.skill, self.workflow, self.agents, self.runtime):
-            self.assertIn("Plan Mode", text)
-            self.assertIn("mutually exclusive", text)
-        self.assertIn("even for an explicit `$orchestra` request", self.skill)
-        self.assertIn("tell the user to leave Plan Mode", self.skill)
+            self.assertIn("$orchestra", text)
+            self.assertIn("use or start Orchestra", self._flat(text))
+        self.assertIn(
+            "Ordinary requests to create a plan, descriptive mentions of Orchestra",
+            self._flat(self.skill),
+        )
+        self.assertNotIn(
+            "asks to create, prepare, or write the implementation plan",
+            self.skill,
+        )
+        self.assertNotIn(
+            "asks to create, prepare, or write the implementation plan",
+            self.runtime,
+        )
 
-    def test_direct_implementation_stays_outside_orchestra(self) -> None:
-        for text in (self.skill, self.workflow, self.runtime):
-            self.assertIn("direct", text.lower())
-            self.assertIn("outside Orchestra", text)
-        self.assertIn("implementation of a prior native Codex plan", self.skill)
+    def test_skill_frontmatter_activates_only_for_explicit_orchestra(self) -> None:
+        lines = self.skill.splitlines()
+        self.assertEqual(lines[0], "---")
+        end = lines.index("---", 1)
+        frontmatter = "\n".join(lines[1:end])
+        self.assertIn("name: orchestra", frontmatter)
+        description_line = next(
+            line for line in lines[1:end] if line.startswith("description:")
+        )
+        description = description_line.split(":", 1)[1].strip()
+        flat = self._flat(description)
+        self.assertIn("explicit `$orchestra` invocation", flat)
+        self.assertIn("unequivocal imperative to use or start Orchestra", flat)
+        self.assertNotIn("explicit planned work in normal chat", description)
+        vision = self.canonical["VISION.md"]
+        readme = self.canonical["README.md"]
+        self.assertIn("explicitly activated Orchestra request", vision)
+        self.assertIn("exploration or a candidate specification", vision)
+        self.assertIn("explicitly activated Orchestra request", readme)
+        self.assertIn("exploration or a candidate specification", readme)
+        self.assertNotIn("explicitly requested implementation plan", vision)
+        self.assertNotIn("explicitly planned software change", readme)
 
-    def test_explicit_planning_intent_starts_specification_gate(self) -> None:
-        for phrase in ("create", "prepare", "write"):
-            self.assertIn(phrase, self.skill)
+    def test_planning_only_host_mode_is_vendor_neutral(self) -> None:
+        for text in (self.skill, self.workflow, self.agents, self.runtime):
+            self.assertIn("planning-only host mode", text)
+        for name, text in self.canonical.items():
+            self.assertNotIn("Plan Mode", text, name)
+            self.assertNotIn("mutually exclusive", text.lower(), name)
+
+    def test_planning_only_mode_preserves_context_without_mutation(self) -> None:
+        flat_skill = self._flat(self.skill)
+        for phrase in (
+            "pause before formal task setup",
+            "Do not create a branch or worktree, persist a plan, dispatch implementation, commit",
+            "continue from the adopted context without requiring another `$orchestra` invocation",
+        ):
+            self.assertIn(phrase, flat_skill)
+        self.assertIn("without a second invocation", self._flat(self.workflow))
+        self.assertIn("without a second invocation", self._flat(self.agents))
+
+    def test_ordinary_requests_do_not_activate_orchestra(self) -> None:
+        self.assertIn("do not activate it", self.skill.lower())
+        self.assertIn("remain outside Orchestra", self.workflow)
+        self.assertIn("remain outside Orchestra", self.runtime)
+        self.assertIn("descriptive mentions", self.skill)
+        self.assertIn("Ordinary plan requests", self._flat(self.workflow))
+
+    def test_explicit_specification_gate_fields_remain(self) -> None:
+        flat_skill = self._flat(self.skill)
         for field in (
             "Objective",
             "User-visible behavior",
@@ -40,8 +107,9 @@ class RoutingActivationContractTests(unittest.TestCase):
             "Decisions",
             "Open questions",
         ):
-            self.assertIn(field, self.skill)
-        self.assertIn("ask only genuine gaps", self.skill)
+            self.assertIn(field, flat_skill)
+        self.assertIn("Ask only genuine gaps", self.skill)
+        self.assertIn("candidate plan", self.skill)
 
     def test_only_standard_and_critical_assignments_exist(self) -> None:
         for modelconfig in ("native", "external"):

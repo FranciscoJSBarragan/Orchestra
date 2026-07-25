@@ -40,7 +40,14 @@ LEGACY_AGENTS = (
     "repo_context_explorer",
     "web_researcher",
 )
-HELPERS = ("commit_phase.py", "policy.py", "pr.py", "integrate_local.py", "_common.py")
+HELPERS = (
+    "commit_phase.py",
+    "adopt_worktree.py",
+    "policy.py",
+    "pr.py",
+    "integrate_local.py",
+    "_common.py",
+)
 MODELCONFIGS = ("native", "external")
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"

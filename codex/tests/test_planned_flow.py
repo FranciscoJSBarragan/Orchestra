@@ -300,11 +300,13 @@ class PlannedFlowContractTests(unittest.TestCase):
         for invariant in (
             "Never adopt the current worktree for a new task",
             "task and base paths and branches differ",
-            "task `HEAD` equals the captured base revision",
+            "adopted source HEAD while recording the intended integration base",
+            "adopt_worktree.py",
             "Formal planning remains read-only",
             "Block instead of falling back to the current checkout",
             "same live pre-approval task",
             "approved local plan, objective, task branch, base, and worktree",
+            "completion without an artificial commit",
         ):
             self.assertIn(invariant, normalized)
 

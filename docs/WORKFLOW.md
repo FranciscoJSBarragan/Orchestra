@@ -5,12 +5,12 @@
 ```mermaid
 flowchart TD
     U["Normal chat"] --> Q{"User intent"}
-    Q -->|"Direct change or implementation"| DX["Ordinary direct execution outside Orchestra"]
-    Q -->|"Create the plan or explicit Orchestra"| S["Root-led specification gate"]
-    NPM["Native Codex Plan Mode"] --> PX["Native planning and later direct execution"]
+    Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
+    Q -->|"Explicit $orchestra or use/start Orchestra"| S["Root-led specification gate"]
+    POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     S --> C["Confirm compact specification"]
     C --> T{"Standard or critical"}
-    T --> I["Create a new task branch and dedicated worktree"]
+    T --> I["Create a new task branch and dedicated sibling worktree"]
     I --> P["Bounded context and formal technical plan"]
     P --> A["User approves implementation"]
     A --> W["Write approved plan directly as active"]
@@ -30,12 +30,15 @@ flowchart TD
 
 ## Orchestrator behavior
 
-Orchestra is an explicit planned-work route. Native Codex Plan Mode and
-Orchestra are mutually exclusive; an Orchestra request made while Plan Mode is
-active must wait until the user leaves Plan Mode. In normal chat, ordinary
-change, fix, implementation, and implementation of a prior native plan remain
-direct work. Explicit intent to create, prepare, or write the implementation
-plan starts Orchestra.
+Orchestra is an explicit planned-work route. It activates only through
+`$orchestra` or an unequivocal imperative to use or start Orchestra. Ordinary
+plan requests, descriptive mentions, and direct change, fix, or implementation
+work remain outside Orchestra.
+
+If Orchestra is invoked in a planning-only host mode, reuse the conversation,
+identify the latest candidate checkpoint, and pause before branch, worktree,
+plan persistence, implementation, or commit mutations. Ask the user to switch
+to an execution-capable mode, then continue without a second invocation.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -126,18 +129,27 @@ role.
 
 ## Context and planning
 
-After explicit activation in normal chat:
+After explicit activation in an execution-capable mode:
 
-1. The root reuses the prior conversation, asks only genuine gaps, and confirms
-   Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
-   Decisions, and Open questions with the user. No artifact is persisted.
+1. The root reuses the prior conversation, classifies the internal checkpoint
+   (exploration, candidate specification, candidate plan, adopted
+   implementation, or resumable Orchestra task), asks only genuine gaps, and
+   confirms Objective, User-visible behavior, Constraints, Acceptance,
+   Exclusions, Decisions, and Open questions with the user. No artifact is
+   persisted. A plan created before activation remains a candidate until
+   Orchestra validates it.
 2. The root classifies the settled work as standard or critical.
 3. The root resolves the intended base branch and committed revision, then uses
    Git directly to create a collision-free `orchestra/<task-slug>[-N]` branch
-   and dedicated sibling worktree. A new task never reuses the current
-   worktree, even when it is already linked to the repository. The root verifies
-   distinct task/base paths and branches, the captured base revision at task
-   `HEAD`, and a clean task worktree before any capability dispatch.
+   and dedicated sibling worktree. Never mutate, switch, clean, stash, commit,
+   or repurpose the source checkout. For prior committed work, create the task
+   worktree at the adopted source HEAD while recording the integration base.
+   For scoped uncommitted work, import selected non-ignored paths through
+   `adopt_worktree.py` into the clean task worktree. The root verifies
+   distinct task/base paths and branches before any capability dispatch. A
+   fresh task `HEAD` equals the captured base revision; an adopted task `HEAD`
+   equals the adopted source revision while the earlier integration base
+   remains recorded.
 4. An `analyst` with `repository_context` inspects only the domains needed for
    the request. The root may skip or reduce this dispatch only when it cites the
    specific prior evidence it reuses (artifact and HEAD, same session);
@@ -158,13 +170,16 @@ After explicit activation in normal chat:
 
 Every planning, implementation, review, verification, plan, and commit operation
 for the task uses the exact dedicated worktree. Formal planning remains
-read-only. Uncommitted changes in the base worktree are preserved and never
-copied, stashed, or treated as task input.
+read-only against the source checkout. Source branch, index, and uncommitted
+content stay unchanged; scoped dirty adoption copies selected paths into the
+task worktree only.
 
 Standard and critical implementation does not begin until the user explicitly
 approves the aligned plan. That approval covers implementation and successful
 commits at the approved phase boundaries; it does not authorize merge, release,
-deployment, production mutation, or another delivery action.
+deployment, production mutation, or another delivery action. If adopted
+committed work passes unchanged, completion does not require an artificial
+commit.
 
 ### Local task plan
 
@@ -175,6 +190,8 @@ directly as `active` to
 intent and resume aid for the root, not a workflow database. It records the
 objective, tier, branch, base revision, decisions, phase contracts,
 verification, current phase, blocker, next action, and uncommitted-work note.
+When adoption applies, also record the adopted source revision, imported
+paths, existing commit range, and remaining phases.
 
 Its statuses are:
 
@@ -245,20 +262,29 @@ Do not cycle on:
 
 ## Worktrees and branches
 
-Every new formal Orchestra task owns a new task branch and dedicated worktree
-created from its intended committed base revision. Existing worktrees belong to
-their existing tasks and are never adopted merely because they are current or
-clean. The root chooses the first available `orchestra/<task-slug>[-N]` branch
-and sibling path, records the exact base branch, base revision, task branch, and
+Every new formal Orchestra task owns a new task branch and dedicated sibling
+worktree. Existing source checkouts belong to their owners and are never
+repurposed, cleaned, stashed, committed, or otherwise mutated for a new task.
+The root chooses the first available `orchestra/<task-slug>[-N]` branch and
+sibling path, records the exact base branch, base revision, task branch, and
 worktree path in its transient context, and creates no global registry.
+
+For a fresh task, create the worktree from the intended committed base revision
+so task `HEAD` equals that base. For adopted committed work, create the
+worktree at the adopted source HEAD while retaining the earlier integration
+base. For scoped uncommitted work, keep the source unchanged and import selected
+non-ignored paths through `adopt_worktree.py` into the clean task worktree;
+imported content may remain unstaged there. Preserve existing commits without
+rewriting. If ownership of dirty paths is ambiguous, pause for exact path
+selection rather than inferring hunk splits.
 
 Reuse is allowed only for the same live pre-approval task or when the approved
 local plan, objective, task branch, base, and worktree all identify the same
 resumed task. Missing or conflicting identity blocks reuse. If planning is
 rejected or canceled, the root may remove the worktree and branch only after
 proving that the worktree is clean, its branch still points to the captured
-base revision, and it contains no unique work. Otherwise it preserves the
-resources and reports them.
+base or adopted revision, and it contains no unique work. Otherwise it
+preserves the resources and reports them.
 
 After authorized integration:
 

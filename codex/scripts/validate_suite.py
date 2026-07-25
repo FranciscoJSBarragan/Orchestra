@@ -27,6 +27,7 @@ REQUIRED_PATHS = (
     "codex/scripts/validate_suite.py",
     "codex/scripts/sync.py",
     "codex/scripts/commit_phase.py",
+    "codex/scripts/adopt_worktree.py",
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
@@ -61,6 +62,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/SKILL.md",
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
+    "codex/tests/test_adopt_worktree.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
@@ -731,12 +733,13 @@ def check_direct_sync(root: Path) -> list[str]:
         )
     if tuple(constants.get("HELPERS", ())) != (
         "commit_phase.py",
+        "adopt_worktree.py",
         "policy.py",
         "pr.py",
         "integrate_local.py",
         "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly five helpers")
+        failures.append("sync-contract: sync inventory must name exactly six helpers")
     if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external"):
         failures.append(
             "sync-contract: modelconfig choices must be exactly native and external"

@@ -50,10 +50,12 @@ Git provide repository context; project tests, runtime evidence, and independent
 review provide correctness evidence without a separate repository index.
 
 After specification confirmation, the orchestrator creates a new task branch
-and dedicated worktree from the intended committed base before dispatching
-repository analysis. It never adopts the current worktree for a new task. The
-root uses Git directly, keeps the task identity in transient context before plan
-approval, and passes the exact worktree to every capability.
+and dedicated sibling worktree before dispatching repository analysis. It never
+adopts the current worktree for a new task. Fresh work starts at the intended
+integration base. Adopted committed work starts at the adopted source HEAD while
+retaining that base for later delivery. The root uses Git directly, keeps the
+task identity in transient context before plan approval, and passes the exact
+worktree to every capability.
 
 ### Base profiles and capabilities
 
@@ -171,7 +173,9 @@ no local PR state file.
 Do not introduce a global workflow event ledger, authority-bundle chain,
 duplicate Git index, commit recovery journal, plan CLI, Kanban board, benchmark
 control plane, or general-purpose workflow state engine unless real usage later
-demonstrates a requirement Git/GitHub cannot meet.
+demonstrates a requirement Git/GitHub cannot meet. The root uses the one-shot
+`adopt_worktree.py` helper only because Git does not carry selected dirty paths
+into a sibling worktree; the helper keeps no state.
 
 ## Model and reasoning configuration
 
@@ -250,11 +254,20 @@ implement three competing rule sets.
 
 Tests protect the few important invariants:
 
-- native Plan Mode and direct implementation do not activate Orchestra;
-- explicit planning intent in normal chat activates the specification gate;
+- only explicit `$orchestra` or an unequivocal use/start Orchestra imperative
+  activates the workflow;
+- planning-only host mode reuses context without mutation and continues when
+  execution-capable without a second invocation;
+- ordinary plan requests, direct implementation, and descriptive mentions do
+  not activate Orchestra;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
-- every new formal task creates a dedicated worktree before repository analysis;
+- every new formal task creates a dedicated sibling worktree before repository
+  analysis and never mutates the source checkout;
+- scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
+  import into the clean task worktree;
+- fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
+  adopted source revision while retaining the integration base;
 - task-worktree reuse requires exact same-task identity;
 - local plan resume reconciles against Git instead of overriding it;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
@@ -290,9 +303,9 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Worktree preparation remains a direct root Git operation rather
-than a sixth helper. Phase commits use direct Git or the existing narrow commit
-helper, not an agent.
+never clean. Worktree creation remains a direct root Git operation. Scoped
+dirty adoption uses `adopt_worktree.py` as a one-shot selected-path import.
+Phase commits use direct Git or the existing narrow commit helper, not an agent.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:

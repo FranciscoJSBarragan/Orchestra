@@ -2,8 +2,9 @@
 
 ## Mission
 
-Help an individual developer turn an explicitly requested implementation plan
-into verified delivery with strong engineering judgment, useful multi-agent
+Help an individual developer turn an explicitly activated Orchestra request —
+from exploration or a candidate specification through an approved plan — into
+verified delivery with strong engineering judgment, useful multi-agent
 specialization, and a favorable quality-to-cost ratio.
 
 ## Vision
@@ -13,12 +14,11 @@ Codex orchestrator and trust it to reach a correct, reviewed, and committed
 result. The user remains the product owner and final authority; the
 orchestrator acts as the technical lead responsible for execution.
 
-The desired experience is not maximum process. Direct implementation and native
-Codex Plan Mode remain available outside Orchestra. When the user explicitly
-requests a formal plan in normal chat, Orchestra supplies the smallest
-dependable process that puts intelligence where it has leverage: confirming the
-specification, planning the work, implementing carefully, finding real bugs,
-and verifying behavior.
+The desired experience is not maximum process. Direct implementation and any
+planning-only host mode remain available outside Orchestra. When the user
+explicitly invokes Orchestra, it supplies the smallest dependable process that
+puts intelligence where it has leverage: confirming the specification, planning
+the work, implementing carefully, finding real bugs, and verifying behavior.
 
 ## Primary users
 
@@ -48,10 +48,11 @@ from the root.
 
 ### Explicit, proportional workflow
 
-Workflow selection belongs to the user. Native Plan Mode never invokes
-Orchestra, and ordinary change or implementation requests remain direct work.
-In normal chat, explicit planning intent starts Orchestra. Orchestra then uses
-standard execution by default and adds critical scrutiny only for actual
+Workflow selection belongs to the user. A planning-only host mode never mutates
+through Orchestra, and ordinary change, plan, or implementation requests remain
+direct work. Only an explicit `$orchestra` invocation or an unequivocal
+imperative to use or start Orchestra activates the workflow. Orchestra then
+uses standard execution by default and adds critical scrutiny only for actual
 high-impact risk.
 
 ### Quality per token
@@ -108,9 +109,11 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
-Each formal task receives its own branch and worktree before repository
-analysis. Current worktrees are never repurposed for new tasks, and completed
-task resources are removed only after exact integration evidence proves cleanup
+Each formal task receives its own branch and sibling worktree before repository
+analysis. Current source checkouts are never repurposed, cleaned, or mutated
+for new tasks. Scoped prior work may be adopted into the dedicated task
+worktree while preserving source state and existing commits. Completed task
+resources are removed only after exact integration evidence proves cleanup
 safe.
 
 ## Success criteria

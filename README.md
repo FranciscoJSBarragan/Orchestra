@@ -2,15 +2,15 @@
 
 Orchestra is a Codex-native, cost-efficient, multi-agent software-delivery workflow.
 
-It helps an individual developer move an explicitly planned software change
-from a confirmed specification to a reviewed, verified, and committed result.
-Native Codex Plan Mode and direct implementation remain separate. In normal
-chat, asking to create the implementation plan starts Orchestra. The root
-orchestrator acts as the technical lead: it confirms the specification, selects
-a standard or critical workflow,
-composes focused capabilities with four base agent profiles, resolves ordinary
-blockers, and makes the final technical judgment. The user remains the product
-owner and final authority.
+It helps an individual developer move an explicitly activated Orchestra request
+from exploration or a candidate specification through confirmation, planning,
+and reviewed delivery. Direct implementation and any planning-only host mode
+remain separate. Orchestra starts only from an explicit `$orchestra` invocation
+or an unequivocal imperative to use or start Orchestra. The root orchestrator
+acts as the technical lead: it confirms the specification, selects a standard
+or critical workflow, composes focused capabilities with four base agent
+profiles, resolves ordinary blockers, and makes the final technical judgment.
+The user remains the product owner and final authority.
 
 ## Product sources
 
@@ -28,12 +28,13 @@ together.
 
 ## Delivery model
 
-Orchestra starts only from explicit planning intent in normal chat. It reuses
-the conversation, confirms a compact specification, creates a new branch and
-dedicated worktree for the formal task, and then prepares the plan there. After
-approval it scales implementation, review, and verification to task risk. It
-supports both direct local integration and GitHub PR delivery when repository
-policy and user authority allow them.
+Orchestra starts only from explicit activation. It reuses the conversation,
+classifies any prior candidate checkpoint, confirms a compact specification,
+creates a new branch and dedicated sibling worktree for the formal task, and
+may adopt scoped prior work into that worktree without mutating the source
+checkout. After approval it scales implementation, review, and verification to
+task risk. It supports both direct local integration and GitHub PR delivery
+when repository policy and user authority allow them.
 
 The four profiles are `analyst`, `implementation_worker`, `reviewer`, and
 `verifier`. The root selects explicit capability assignments and their

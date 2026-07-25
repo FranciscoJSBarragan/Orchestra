@@ -27,25 +27,29 @@ expansion.
 ## Activation and specification gate
 
 Orchestra is an explicit planned-work route, not the default implementation
-route. Native Codex Plan Mode and Orchestra are mutually exclusive. While Plan
-Mode is active, never start Orchestra, even for an explicit `$orchestra`
-request; tell the user to leave Plan Mode first. A plan produced in native Plan
-Mode is implemented later through ordinary direct execution.
+route. Activate it only through `$orchestra` or an unequivocal imperative to
+use or start Orchestra. Ordinary plan requests, descriptive mentions, and
+direct change, fix, or implementation work do not activate it.
 
-In normal chat, direct change, fix, and implementation requests remain outside
-Orchestra. Start Orchestra only when the user explicitly requests `$orchestra`
-or asks to create, prepare, or write the implementation plan. Reuse the prior
-conversation, ask only genuine gaps, and confirm a compact specification with
-Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
+If Orchestra is invoked in a planning-only host mode, reuse the conversation,
+identify the latest candidate checkpoint, and pause before formal task setup.
+Do not create a branch or worktree, persist a plan, dispatch implementation,
+commit, or cross another mutation boundary. Ask the user to switch to an
+execution-capable mode, then continue from the adopted context without a second
+invocation.
+
+In an execution-capable mode, reuse the prior conversation, classify the
+internal checkpoint, ask only genuine gaps, and confirm a compact specification
+with Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
 Decisions, and Open questions before selecting a tier.
 
-After specification confirmation and tier selection, resolve the intended base
-branch and committed revision, then create a new collision-free task branch and
-dedicated sibling worktree before repository analysis. Never adopt the current
-worktree for a new task. Use the exact task worktree for every capability,
-approved plan write, implementation, verification, review, and phase commit.
-Only the same live pre-approval task or an exact approved-plan/Git identity match
-may reuse an existing worktree.
+After specification confirmation and tier selection, create a new collision-free
+task branch and dedicated sibling worktree before repository analysis. Never
+mutate the source checkout. Fresh work starts at the integration base; adopted
+committed work starts at the adopted source HEAD while retaining that base;
+scoped dirty paths import through `adopt_worktree.py`. Use the exact task
+worktree for every capability and task mutation. Reuse only the same live
+pre-approval task or an exact approved-plan/Git identity match.
 
 ## Tier selection
 
@@ -107,8 +111,9 @@ out-of-scope suggestions without entering a review loop.
   reviewed phase boundaries unless the user limits that authority.
 - The root commits each reviewed phase directly or through the narrow commit
   helper; commit execution is not an agent profile.
-- Do not create commit journals, replace the Git index, hash the whole worktree,
-  or revalidate unchanged authority repeatedly.
+- Do not create commit journals, persistent or authoritative parallel Git
+  indexes, hash the whole worktree, or revalidate unchanged authority
+  repeatedly.
 - Preserve unrelated and uncommitted user work.
 
 ## Delivery
