@@ -175,17 +175,25 @@ demonstrates a requirement Git/GitHub cannot meet.
 
 ## Model and reasoning configuration
 
-The approved capability matrix is documented in `WORKFLOW.md`. The user selects
-the root's current Sol medium or Sol high session outside Orchestra, and the
-root has no machine-readable assignment. `codex/config/roles.toml` contains
-assignments only for spawned capabilities. Skills pass those explicit overrides
-when spawning a profile. Profiles contain behavior; playbooks contain capability
-instructions only for the seven capabilities listed above, and architecture
-guidance remains one shared reference.
+The approved capability matrices are documented in `WORKFLOW.md`. The user
+selects the root's current Sol medium or Sol high session outside Orchestra, and
+the root has no machine-readable assignment. The source contains complete
+`native` and `external` role matrices. Direct sync installs exactly one of them
+at the canonical `$CODEX_HOME/orchestra/roles.toml` path and records the global
+selection in the install manifest. Orchestra reads only that canonical path; it
+has no task-level model selector or configuration state.
 
-Standard and critical use the exact matrix in `WORKFLOW.md`; a second critical
-review requires a named measurable risk. No Orchestra assignment uses Sol
-xhigh. Frontend work and browser acceptance remain separate dispatches.
+The two configurations differ only in their standard assignments and share one
+critical matrix. Skills pass the installed explicit overrides when spawning a
+profile. Profiles contain behavior; playbooks contain capability instructions
+only for the seven capabilities listed above, and architecture guidance remains
+one shared reference. Switching the installed matrix is an explicit sync
+operation outside ordinary task execution and must not occur while an Orchestra
+task is active.
+
+A second critical review requires a named measurable risk. No Orchestra
+assignment uses Sol xhigh. Frontend work and browser acceptance remain separate
+dispatches.
 
 ## Browser testing constraint
 

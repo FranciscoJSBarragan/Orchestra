@@ -58,11 +58,19 @@ Run synchronization explicitly from a trusted Orchestra checkout. It is outside
 ordinary task execution:
 
 ```sh
+python3 codex/scripts/sync.py status --modelconfig native
+python3 codex/scripts/sync.py apply --dry-run --modelconfig native
+python3 codex/scripts/sync.py apply --modelconfig native
 python3 codex/scripts/sync.py status
-python3 codex/scripts/sync.py apply --dry-run
 python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
+
+Choose `native` or `external` on the first apply. The install manifest records
+that global choice, so later status and apply calls may omit `--modelconfig`.
+Passing the other value previews or applies an atomic configuration switch.
+Do not switch configurations while an Orchestra task is active: every dispatch
+reads the one installed runtime matrix.
 
 Skills and their internal playbook references install under
 `$HOME/.agents/skills/`. Four agent profiles install under
@@ -70,7 +78,8 @@ Skills and their internal playbook references install under
 `$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
 `$HOME/.codex`. The tool owns only destinations recorded in
 `$CODEX_HOME/orchestra/install-manifest.json` and the exactly marked Orchestra
-block in `$CODEX_HOME/AGENTS.md`.
+block in `$CODEX_HOME/AGENTS.md`. Only the selected source matrix is installed,
+always at `$CODEX_HOME/orchestra/roles.toml`.
 
 Before replacing or removing an existing owned destination, the tool writes one
 current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.

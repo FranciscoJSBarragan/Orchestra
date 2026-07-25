@@ -31,7 +31,8 @@ REQUIRED_PATHS = (
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
     "codex/scripts/_common.py",
-    "codex/config/roles.toml",
+    "codex/config/roles.native.toml",
+    "codex/config/roles.external.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/analyst.toml",
     "codex/agents/implementation_worker.toml",
@@ -180,7 +181,15 @@ SKILL_NAMES = (
     "orchestra-pr-merge",
     "orchestra-local-integrate",
 )
-VALID_MODELS = {"gpt-5.6-sol", "gpt-5.6-terra"}
+VALID_MODELS = {
+    "antigravity/gemini-3.6-flash-high",
+    "cursor/composer-2.5-fast",
+    "cursor/grok-4.5",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "opencode/glm-5.2",
+}
 
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present."""
@@ -191,7 +200,11 @@ def check_required_paths(root: Path) -> list[str]:
     ]
 
 
-_ASSIGNMENT_TABLE_HEADER = "## Tier flows and models"
+_ASSIGNMENT_TABLE_HEADERS = {
+    "native": "### Native standard configuration",
+    "external": "### External standard configuration",
+    "critical": "### Shared critical configuration",
+}
 _ASSIGNMENT_COLUMN_LABELS = (
     "Tier",
     "Capability",
@@ -204,93 +217,106 @@ _ASSIGNMENT_ROW = re.compile(
 )
 
 
-def parse_assignment_table(path: Path) -> dict[str, dict[str, tuple[str, str, str]]]:
-    """Parse the canonical tier assignment table from docs/WORKFLOW.md.
-
-    Returns a mapping ``{tier: {capability: (profile, model, reasoning_effort)}}``.
-    Fails closed on a missing section, malformed rows, duplicates, or an empty
-    result by raising ``ValueError``.
-    """
+def parse_assignment_matrices(
+    path: Path,
+) -> dict[str, dict[str, dict[str, tuple[str, str, str]]]]:
+    """Parse both standard matrices and their shared critical matrix."""
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
         raise ValueError(f"cannot read {path}: {error}") from error
 
     lines = text.splitlines()
-    section_start: int | None = None
-    for index, line in enumerate(lines):
-        if line.strip() == _ASSIGNMENT_TABLE_HEADER:
-            section_start = index
-            break
-    if section_start is None:
-        raise ValueError(f"{path}: assignment table section is missing")
 
     def fail(line_no: int, message: str) -> NoReturn:
         raise ValueError(f"{path}:{line_no}: {message}")
 
-    assignments: dict[str, dict[str, tuple[str, str, str]]] = {}
-    seen_keys: set[tuple[str, str]] = set()
-    header_seen = False
-    separator_seen = False
-    for offset, line in enumerate(lines[section_start + 1 :], start=section_start + 2):
-        stripped = line.strip()
-        if stripped.startswith("## "):
-            break
-        if not stripped:
-            if separator_seen:
+    def parse_section(
+        heading: str, expected_tier: str
+    ) -> dict[str, tuple[str, str, str]]:
+        section_start: int | None = None
+        for index, line in enumerate(lines):
+            if line.strip() == heading:
+                section_start = index
                 break
-            continue
-        if stripped.startswith("|") and set(stripped.replace("|", "").strip()) <= {
-            "-",
-            ":",
-            " ",
-        }:
-            if not header_seen:
-                fail(offset, "assignment table separator before header")
-            separator_seen = True
-            continue
-        if not stripped.startswith("|"):
-            if separator_seen:
+        if section_start is None:
+            raise ValueError(f"{path}: assignment table section is missing: {heading}")
+
+        assignments: dict[str, tuple[str, str, str]] = {}
+        header_seen = False
+        separator_seen = False
+        for offset, line in enumerate(
+            lines[section_start + 1 :], start=section_start + 2
+        ):
+            stripped = line.strip()
+            if stripped.startswith("#"):
                 break
-            continue
-        match = _ASSIGNMENT_ROW.match(stripped)
-        if not match:
-            fail(offset, "assignment table has a malformed row")
-        cells = tuple(
-            match.group(index).strip().strip("`").strip() for index in range(1, 6)
-        )
-        if not separator_seen:
-            if header_seen:
-                fail(offset, "assignment table has multiple header rows")
-            if cells != _ASSIGNMENT_COLUMN_LABELS:
+            if not stripped:
+                if separator_seen:
+                    break
+                continue
+            if stripped.startswith("|") and set(
+                stripped.replace("|", "").strip()
+            ) <= {"-", ":", " "}:
+                if not header_seen:
+                    fail(offset, "assignment table separator before header")
+                separator_seen = True
+                continue
+            if not stripped.startswith("|"):
+                if separator_seen:
+                    break
+                continue
+            match = _ASSIGNMENT_ROW.match(stripped)
+            if not match:
+                fail(offset, "assignment table has a malformed row")
+            cells = tuple(
+                match.group(index).strip().strip("`").strip()
+                for index in range(1, 6)
+            )
+            if not separator_seen:
+                if header_seen:
+                    fail(offset, "assignment table has multiple header rows")
+                if cells != _ASSIGNMENT_COLUMN_LABELS:
+                    fail(
+                        offset,
+                        "assignment table header must be "
+                        + " | ".join(_ASSIGNMENT_COLUMN_LABELS),
+                    )
+                header_seen = True
+                continue
+            tier, capability, profile, model, reasoning = cells
+            tier = tier.lower()
+            if not tier or not capability or not profile or not model or not reasoning:
+                fail(offset, "assignment table has an empty cell")
+            if tier != expected_tier:
                 fail(
                     offset,
-                    "assignment table header must be "
-                    + " | ".join(_ASSIGNMENT_COLUMN_LABELS),
+                    f"assignment table row must use tier {expected_tier}: {tier}",
                 )
-            header_seen = True
-            continue
-        tier, capability, profile, model, reasoning = cells
-        tier = tier.lower()
-        if not tier or not capability or not profile or not model or not reasoning:
-            fail(offset, "assignment table has an empty cell")
-        if tier not in {"standard", "critical"}:
-            fail(offset, f"assignment table has an unknown tier: {tier}")
-        key = (tier, capability)
-        if key in seen_keys:
-            fail(offset, f"assignment table has a duplicate row: {tier}.{capability}")
-        seen_keys.add(key)
-        assignments.setdefault(tier, {})[capability] = (profile, model, reasoning)
+            if capability in assignments:
+                fail(
+                    offset,
+                    f"assignment table has a duplicate row: {tier}.{capability}",
+                )
+            assignments[capability] = (profile, model, reasoning)
 
-    if not header_seen:
-        raise ValueError(f"{path}: assignment table header is missing")
-    if not separator_seen:
-        raise ValueError(f"{path}: assignment table separator is missing")
-    if not assignments:
-        raise ValueError(f"{path}: assignment table is empty")
-    if set(assignments) != {"standard", "critical"}:
-        raise ValueError(f"{path}: assignment table must define standard and critical")
-    return assignments
+        if not header_seen:
+            raise ValueError(f"{path}: assignment table header is missing: {heading}")
+        if not separator_seen:
+            raise ValueError(f"{path}: assignment table separator is missing: {heading}")
+        if not assignments:
+            raise ValueError(f"{path}: assignment table is empty: {heading}")
+        return assignments
+
+    critical = parse_section(_ASSIGNMENT_TABLE_HEADERS["critical"], "critical")
+    return {
+        name: {
+            "standard": parse_section(heading, "standard"),
+            "critical": dict(critical),
+        }
+        for name, heading in _ASSIGNMENT_TABLE_HEADERS.items()
+        if name != "critical"
+    }
 
 
 
@@ -336,35 +362,48 @@ def check_delivery_config(root: Path) -> list[str]:
 
 def check_roles_and_profiles(root: Path) -> list[str]:
     """Keep assignments canonical and profiles limited to behavior contracts."""
-    roles_path = root / "codex/config/roles.toml"
-    if not roles_path.is_file():
+    roles_paths = {
+        "native": root / "codex/config/roles.native.toml",
+        "external": root / "codex/config/roles.external.toml",
+    }
+    if not all(path.is_file() for path in roles_paths.values()):
         return []
-    try:
-        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeError) as error:
-        return [f"role-contract: codex/config/roles.toml is invalid: {error}"]
 
     workflow_path = root / "docs/WORKFLOW.md"
     try:
-        expected_assignments = parse_assignment_table(workflow_path)
+        expected_matrices = parse_assignment_matrices(workflow_path)
     except (OSError, UnicodeError, ValueError) as error:
-        return [f"role-contract: cannot parse docs/WORKFLOW.md assignment table: {error}"]
+        return [
+            f"role-contract: cannot parse docs/WORKFLOW.md assignment tables: {error}"
+        ]
 
     failures: list[str] = []
-    if set(roles) != {"tiers"}:
-        failures.append("role-contract: roles.toml must contain tiers only")
-    tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
-        failures.append(
-            "role-contract: roles.toml must define standard and critical"
-        )
-    else:
+    tiers_by_config: dict[str, dict[str, object]] = {}
+    for modelconfig, roles_path in roles_paths.items():
+        relative = roles_path.relative_to(root).as_posix()
+        try:
+            roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, UnicodeError) as error:
+            failures.append(f"role-contract: {relative} is invalid: {error}")
+            continue
+        if set(roles) != {"tiers"}:
+            failures.append(f"role-contract: {relative} must contain tiers only")
+        tiers = roles.get("tiers")
+        expected_assignments = expected_matrices[modelconfig]
+        if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
+            failures.append(
+                f"role-contract: {relative} must define standard and critical"
+            )
+            continue
+        tiers_by_config[modelconfig] = tiers
         for tier, expected_tier_assignments in expected_assignments.items():
             actual_assignments = tiers.get(tier)
             if not isinstance(actual_assignments, dict) or set(
                 actual_assignments
             ) != set(expected_tier_assignments):
-                failures.append(f"role-contract: unexpected {tier} capability set")
+                failures.append(
+                    f"role-contract: unexpected {modelconfig}.{tier} capability set"
+                )
                 continue
             for capability, expected in expected_tier_assignments.items():
                 assignment = actual_assignments[capability]
@@ -374,8 +413,8 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                     "reasoning_effort",
                 }:
                     failures.append(
-                        f"role-contract: {tier}.{capability} needs profile, model, "
-                        "and reasoning_effort"
+                        f"role-contract: {modelconfig}.{tier}.{capability} needs "
+                        "profile, model, and reasoning_effort"
                     )
                     continue
                 actual = (
@@ -385,16 +424,18 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                 )
                 if actual != expected:
                     failures.append(
-                        f"role-contract: {tier}.{capability} does not match the "
-                        "approved assignment matrix"
+                        f"role-contract: {modelconfig}.{tier}.{capability} does "
+                        "not match the approved assignment matrix"
                     )
                 if assignment["profile"] not in PROFILE_NAMES:
                     failures.append(
-                        f"role-contract: {tier}.{capability} has invalid profile"
+                        f"role-contract: {modelconfig}.{tier}.{capability} has "
+                        "invalid profile"
                     )
                 if assignment["model"] not in VALID_MODELS:
                     failures.append(
-                        f"role-contract: {tier}.{capability} has invalid model"
+                        f"role-contract: {modelconfig}.{tier}.{capability} has "
+                        "invalid model"
                     )
                 if assignment["reasoning_effort"] not in {
                     "low",
@@ -404,19 +445,31 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                     "max",
                 }:
                     failures.append(
-                        f"role-contract: {tier}.{capability} has invalid reasoning_effort"
+                        f"role-contract: {modelconfig}.{tier}.{capability} has "
+                        "invalid reasoning_effort"
                     )
                 if (
                     assignment["model"] == "gpt-5.6-sol"
                     and assignment["reasoning_effort"] == "xhigh"
                 ):
                     failures.append(
-                        f"role-contract: {tier}.{capability} must not use Sol xhigh"
+                        f"role-contract: {modelconfig}.{tier}.{capability} must "
+                        "not use Sol xhigh"
                     )
                 if capability in {"root", "orchestrator"} or assignment[
                     "profile"
                 ] in {"root", "orchestrator"}:
                     failures.append("role-contract: root must have no assignment")
+
+    if (
+        "native" in tiers_by_config
+        and "external" in tiers_by_config
+        and tiers_by_config["native"].get("critical")
+        != tiers_by_config["external"].get("critical")
+    ):
+        failures.append(
+            "role-contract: native and external must share the critical matrix"
+        )
 
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
@@ -462,22 +515,25 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     for path in behavior_sources:
         if path.is_file() and "gpt-5." in path.read_text(encoding="utf-8"):
             failures.append(
-                "role-contract: model assignments must exist only in roles.toml; "
+                "role-contract: model assignments must exist only in roles.*.toml; "
                 f"found one in {path.relative_to(root)}"
             )
 
     routing_path = root / "codex/skills/orchestra/SKILL.md"
-    if routing_path.is_file() and isinstance(tiers, dict):
+    if routing_path.is_file() and tiers_by_config:
         routing = routing_path.read_text(encoding="utf-8")
-        for tier, capabilities in tiers.items():
-            if not isinstance(capabilities, dict):
-                continue
-            for capability in capabilities:
-                if f"`{capability}`" not in routing:
-                    failures.append(
-                        f"role-contract: {tier}.{capability} is not consumed by "
-                        "orchestra routing"
-                    )
+        capabilities = {
+            capability
+            for tiers in tiers_by_config.values()
+            for assignments in tiers.values()
+            if isinstance(assignments, dict)
+            for capability in assignments
+        }
+        for capability in capabilities:
+            if f"`{capability}`" not in routing:
+                failures.append(
+                    f"role-contract: {capability} is not consumed by orchestra routing"
+                )
     return failures
 
 
@@ -647,6 +703,7 @@ def check_direct_sync(root: Path) -> list[str]:
                 "AGENTS",
                 "LEGACY_AGENTS",
                 "HELPERS",
+                "MODELCONFIGS",
             }:
                 try:
                     constants[node.targets[0].id] = ast.literal_eval(node.value)
@@ -680,6 +737,12 @@ def check_direct_sync(root: Path) -> list[str]:
         "_common.py",
     ):
         failures.append("sync-contract: sync inventory must name exactly five helpers")
+    if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external"):
+        failures.append(
+            "sync-contract: modelconfig choices must be exactly native and external"
+        )
+    if '"--modelconfig"' not in text:
+        failures.append("sync-contract: CLI must expose --modelconfig")
     for destination in (
         ".agents/skills/",
         "agents/",
@@ -698,6 +761,13 @@ def check_direct_sync(root: Path) -> list[str]:
     profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
     if profiles != sorted(PROFILE_NAMES):
         failures.append("sync-contract: source must contain exactly four agent profiles")
+    role_sources = sorted(
+        path.name for path in (root / "codex/config").glob("roles.*.toml")
+    )
+    if role_sources != ["roles.external.toml", "roles.native.toml"]:
+        failures.append(
+            "sync-contract: source must contain exactly native and external role matrices"
+        )
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():
         runtime_text = runtime.read_text(encoding="utf-8")

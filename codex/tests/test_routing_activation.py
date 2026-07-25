@@ -44,11 +44,16 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("ask only genuine gaps", self.skill)
 
     def test_only_standard_and_critical_assignments_exist(self) -> None:
-        roles = tomllib.loads((ROOT / "codex/config/roles.toml").read_text())
-        self.assertEqual(set(roles), {"tiers"})
-        self.assertEqual(set(roles["tiers"]), {"standard", "critical"})
-        self.assertEqual(len(roles["tiers"]["standard"]), 10)
-        self.assertEqual(len(roles["tiers"]["critical"]), 10)
+        for modelconfig in ("native", "external"):
+            roles = tomllib.loads(
+                (
+                    ROOT / f"codex/config/roles.{modelconfig}.toml"
+                ).read_text()
+            )
+            self.assertEqual(set(roles), {"tiers"})
+            self.assertEqual(set(roles["tiers"]), {"standard", "critical"})
+            self.assertEqual(len(roles["tiers"]["standard"]), 10)
+            self.assertEqual(len(roles["tiers"]["critical"]), 10)
         self.assertNotIn("Tier: light", self.skill)
 
     def test_plan_is_first_persisted_as_active(self) -> None:

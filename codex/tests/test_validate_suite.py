@@ -179,11 +179,14 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("hook-contract", result.stdout)
 
     def test_invalid_role_toml_is_actionable(self) -> None:
-        roles = self.root / "codex/config/roles.toml"
+        roles = self.root / "codex/config/roles.native.toml"
         roles.write_text("[tiers.standard\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("role-contract: codex/config/roles.toml is invalid", result.stdout)
+        self.assertIn(
+            "role-contract: codex/config/roles.native.toml is invalid",
+            result.stdout,
+        )
 
     def test_model_assignment_in_profile_is_rejected(self) -> None:
         profile = self.root / "codex/agents/reviewer.toml"
@@ -196,7 +199,7 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("profile-contract: reviewer must contain only", result.stdout)
 
     def test_invalid_role_model_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.toml"
+        roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
                 'model = "gpt-5.6-sol"', 'model = "unsupported"', 1
@@ -230,11 +233,11 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "standard.difficult_debugging is not consumed", result.stdout
+            "difficult_debugging is not consumed", result.stdout
         )
 
     def test_speculative_pr_role_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.toml"
+        roles = self.root / "codex/config/roles.external.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
             + '\n[tiers.standard.pr_poll]\nprofile = "reviewer"\n'
@@ -244,10 +247,10 @@ class FullModeFixtureTest(unittest.TestCase):
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpected standard capability set", result.stdout)
+        self.assertIn("unexpected external.standard capability set", result.stdout)
 
     def test_assignment_without_profile_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.toml"
+        roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
                 'profile = "implementation_worker"\n', "", 1
@@ -259,11 +262,15 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("needs profile, model, and reasoning_effort", result.stdout)
 
     def test_wrong_profile_mapping_and_sol_xhigh_are_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.toml"
+        roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
             .replace('profile = "analyst"', 'profile = "reviewer"', 1)
-            .replace('reasoning_effort = "high"', 'reasoning_effort = "xhigh"', 1),
+            .replace(
+                'model = "gpt-5.6-sol"\nreasoning_effort = "high"',
+                'model = "gpt-5.6-sol"\nreasoning_effort = "xhigh"',
+                1,
+            ),
             encoding="utf-8",
         )
         result = self.run_validator()
@@ -309,7 +316,7 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(full.returncode, 0)
         self.assertIn("python-syntax: codex/tests/invalid_fixture.py", full.stdout)
 
-    def test_parse_assignment_table_reads_real_workflow(self) -> None:
+    def test_parse_assignment_matrices_reads_real_workflow(self) -> None:
         import importlib.util
 
         spec = importlib.util.spec_from_file_location(
@@ -318,21 +325,22 @@ class FullModeFixtureTest(unittest.TestCase):
         assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        assignments = module.parse_assignment_table(
+        matrices = module.parse_assignment_matrices(
             self.root / "docs/WORKFLOW.md"
         )
+        self.assertEqual(set(matrices), {"native", "external"})
+        for assignments in matrices.values():
+            self.assertEqual(len(assignments["standard"]), 10)
+            self.assertEqual(len(assignments["critical"]), 10)
         self.assertEqual(
-            len(assignments["standard"]) + len(assignments["critical"]),
-            20,
+            matrices["native"]["critical"], matrices["external"]["critical"]
         )
-        self.assertEqual(len(assignments["standard"]), 10)
-        self.assertEqual(len(assignments["critical"]), 10)
 
     def test_mutated_workflow_model_cell_is_rejected_against_roles(self) -> None:
         workflow = self.root / "docs/WORKFLOW.md"
         workflow.write_text(
             workflow.read_text(encoding="utf-8").replace(
-                "| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |",
+                "| Standard | `general_implementation` | `implementation_worker` | `cursor/grok-4.5` | `high` |",
                 "| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
                 1,
             ),
@@ -377,7 +385,7 @@ class FullModeFixtureTest(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         with self.assertRaises(ValueError) as raised:
-            module.parse_assignment_table(workflow)
+            module.parse_assignment_matrices(workflow)
         self.assertRegex(
             str(raised.exception),
             r"WORKFLOW\.md:\d+: assignment table header must be",
@@ -385,6 +393,22 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("role-contract:", result.stdout)
+
+    def test_native_and_external_critical_matrices_must_match(self) -> None:
+        roles = self.root / "codex/config/roles.external.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8").replace(
+                '[tiers.critical.repository_context]\nprofile = "analyst"\n'
+                'model = "gpt-5.6-sol"\nreasoning_effort = "medium"',
+                '[tiers.critical.repository_context]\nprofile = "analyst"\n'
+                'model = "gpt-5.6-sol"\nreasoning_effort = "high"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("must share the critical matrix", result.stdout)
 
 
 if __name__ == "__main__":

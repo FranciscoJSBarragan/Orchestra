@@ -25,9 +25,12 @@ PLAYBOOK_NAMES = {
 class PlannedFlowContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
-        self.roles = tomllib.loads(
-            (ROOT / "codex/config/roles.toml").read_text()
-        )["tiers"]
+        self.role_matrices = {
+            modelconfig: tomllib.loads(
+                (ROOT / f"codex/config/roles.{modelconfig}.toml").read_text()
+            )["tiers"]
+            for modelconfig in ("native", "external")
+        }
         self.profiles = {
             path.stem: tomllib.loads(path.read_text())
             for path in (ROOT / "codex/agents").glob("*.toml")
@@ -72,22 +75,29 @@ class PlannedFlowContractTests(unittest.TestCase):
             "browser_acceptance": "verifier",
             "runtime_verification": "verifier",
         }
-        self.assertEqual(set(self.roles), {"standard", "critical"})
-        for tier in ("standard", "critical"):
-            self.assertEqual(
-                {name: value["profile"] for name, value in self.roles[tier].items()},
-                standard,
-            )
-        for assignments in self.roles.values():
-            for assignment in assignments.values():
+        for roles in self.role_matrices.values():
+            self.assertEqual(set(roles), {"standard", "critical"})
+            for tier in ("standard", "critical"):
                 self.assertEqual(
-                    set(assignment), {"profile", "model", "reasoning_effort"}
+                    {name: value["profile"] for name, value in roles[tier].items()},
+                    standard,
                 )
-                self.assertNotEqual(
-                    (assignment["model"], assignment["reasoning_effort"]),
-                    ("gpt-5.6-sol", "xhigh"),
-                )
-                self.assertNotIn(assignment["profile"], {"root", "orchestrator"})
+            for assignments in roles.values():
+                for assignment in assignments.values():
+                    self.assertEqual(
+                        set(assignment), {"profile", "model", "reasoning_effort"}
+                    )
+                    self.assertNotEqual(
+                        (assignment["model"], assignment["reasoning_effort"]),
+                        ("gpt-5.6-sol", "xhigh"),
+                    )
+                    self.assertNotIn(
+                        assignment["profile"], {"root", "orchestrator"}
+                    )
+        self.assertEqual(
+            self.role_matrices["native"]["critical"],
+            self.role_matrices["external"]["critical"],
+        )
 
     def test_seven_playbooks_and_shared_architecture_reference_are_composed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {

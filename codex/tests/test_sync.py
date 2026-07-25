@@ -33,8 +33,21 @@ class SyncTests(unittest.TestCase):
         self.assertNotEqual(self.home.resolve(), Path.home().resolve())
         self.assertNotEqual(self.codex_home.resolve(), (Path.home() / ".codex").resolve())
 
-    def run_sync(self, action: str, *, dry_run: bool = False) -> dict[str, object]:
-        return sync.synchronize(ROOT, self.home, self.codex_home, action, dry_run=dry_run)
+    def run_sync(
+        self,
+        action: str,
+        *,
+        dry_run: bool = False,
+        modelconfig: str | None = "external",
+    ) -> dict[str, object]:
+        return sync.synchronize(
+            ROOT,
+            self.home,
+            self.codex_home,
+            action,
+            dry_run=dry_run,
+            modelconfig=modelconfig,
+        )
 
     def manifest(self) -> dict[str, object]:
         return json.loads((self.codex_home / "orchestra/install-manifest.json").read_text())
@@ -44,7 +57,11 @@ class SyncTests(unittest.TestCase):
         for directory in ("skills", "agents"):
             shutil.copytree(ROOT / "codex" / directory, fixture / "codex" / directory)
         (fixture / "codex/config").mkdir(parents=True)
-        shutil.copy2(ROOT / "codex/config/roles.toml", fixture / "codex/config/roles.toml")
+        for modelconfig in sync.MODELCONFIGS:
+            shutil.copy2(
+                ROOT / f"codex/config/roles.{modelconfig}.toml",
+                fixture / f"codex/config/roles.{modelconfig}.toml",
+            )
         (fixture / "codex/scripts").mkdir(parents=True)
         for helper in sync.HELPERS:
             shutil.copy2(ROOT / "codex/scripts" / helper, fixture / "codex/scripts" / helper)
@@ -80,18 +97,28 @@ class SyncTests(unittest.TestCase):
                 }
             )
         manifest_path.write_text(
-            json.dumps({"entries": sorted(entries, key=lambda entry: (entry["root"], entry["path"]))}, indent=2, sort_keys=True)
+            json.dumps(
+                {
+                    "entries": sorted(
+                        entries, key=lambda entry: (entry["root"], entry["path"])
+                    )
+                },
+                indent=2,
+                sort_keys=True,
+            )
             + "\n"
         )
 
     def test_clean_install_status_and_uninstall(self) -> None:
         status = self.run_sync("status")
         self.assertEqual(status["status"], "partial")
+        self.assertEqual(status["modelconfig"], "external")
         self.assertFalse(self.home.exists())
         self.assertFalse(self.codex_home.exists())
 
         applied = self.run_sync("apply")
         self.assertEqual(applied["status"], "ok")
+        self.assertEqual(applied["modelconfig"], "external")
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(self.codex_home.joinpath("agents/reviewer.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("agents/analyst.toml").is_file())
@@ -113,6 +140,17 @@ class SyncTests(unittest.TestCase):
             {f"agents/{name}.toml" for name in sync.AGENTS},
         )
         self.assertEqual(len(installed_agents), 4)
+        self.assertEqual(self.manifest()["modelconfig"], "external")
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
+            ROOT.joinpath("codex/config/roles.external.toml").read_bytes(),
+        )
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/roles.external.toml").exists()
+        )
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/roles.native.toml").exists()
+        )
         second = self.run_sync("apply")
         self.assertEqual(second["status"], "ok")
         self.assertEqual(second["changes"], [])
@@ -137,6 +175,148 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
         self.assertFalse(self.codex_home.joinpath("agents/analyst.toml").exists())
         self.assertFalse(self.codex_home.joinpath("agents/verifier.toml").exists())
+
+    def test_fresh_install_requires_explicit_modelconfig(self) -> None:
+        status = self.run_sync("status", modelconfig=None)
+        self.assertEqual(status["status"], "partial")
+        self.assertIn("--modelconfig native", status["detail"])
+
+        for dry_run in (False, True):
+            result = self.run_sync(
+                "apply", dry_run=dry_run, modelconfig=None
+            )
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn("--modelconfig external", result["detail"])
+        self.assertFalse(self.home.exists())
+        self.assertFalse(self.codex_home.exists())
+
+    def test_native_install_persists_and_switches_atomically_to_external(self) -> None:
+        installed = self.run_sync("apply", modelconfig="native")
+        self.assertEqual(installed["status"], "ok")
+        self.assertEqual(installed["modelconfig"], "native")
+        roles = self.codex_home / "orchestra/roles.toml"
+        native = ROOT / "codex/config/roles.native.toml"
+        external = ROOT / "codex/config/roles.external.toml"
+        self.assertEqual(roles.read_bytes(), native.read_bytes())
+        self.assertEqual(self.manifest()["modelconfig"], "native")
+
+        reused = self.run_sync("status", modelconfig=None)
+        self.assertEqual(reused["status"], "ok")
+        self.assertEqual(reused["modelconfig"], "native")
+
+        preview = self.run_sync(
+            "apply", dry_run=True, modelconfig="external"
+        )
+        self.assertEqual(preview["status"], "partial")
+        self.assertEqual(preview["modelconfig"], "external")
+        self.assertEqual(
+            [
+                change
+                for change in preview["changes"]
+                if change["path"] == "orchestra/roles.toml"
+            ],
+            [
+                {
+                    "operation": "update",
+                    "path": "orchestra/roles.toml",
+                    "root": "codex_home",
+                }
+            ],
+        )
+        self.assertEqual(roles.read_bytes(), native.read_bytes())
+        self.assertEqual(self.manifest()["modelconfig"], "native")
+
+        switched = self.run_sync("apply", modelconfig="external")
+        self.assertEqual(switched["status"], "ok")
+        self.assertEqual(switched["modelconfig"], "external")
+        self.assertEqual(roles.read_bytes(), external.read_bytes())
+        self.assertEqual(self.manifest()["modelconfig"], "external")
+        self.assertEqual(
+            self.codex_home.joinpath(
+                "orchestra/backups/codex_home/orchestra/roles.toml"
+            ).read_bytes(),
+            native.read_bytes(),
+        )
+        self.assertEqual(
+            self.run_sync("status", modelconfig=None)["status"], "ok"
+        )
+
+    def test_legacy_manifest_requires_one_explicit_selection(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        manifest = self.manifest()
+        manifest.pop("modelconfig")
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        status = self.run_sync("status", modelconfig=None)
+        self.assertEqual(status["status"], "blocked")
+        self.assertIn("model configuration is not selected", status["detail"])
+        self.assertEqual(
+            self.run_sync("apply", modelconfig=None)["status"], "blocked"
+        )
+
+        migrated = self.run_sync("apply", modelconfig="external")
+        self.assertEqual(migrated["status"], "ok")
+        self.assertEqual(migrated["changes"], [])
+        self.assertEqual(self.manifest()["modelconfig"], "external")
+
+    def test_legacy_manifest_remains_uninstallable_without_selection(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        manifest = self.manifest()
+        manifest.pop("modelconfig")
+        (self.codex_home / "orchestra/install-manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        removed = sync.uninstall(self.home, self.codex_home)
+        self.assertEqual(removed["status"], "ok")
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/install-manifest.json").exists()
+        )
+
+    def test_invalid_modelconfig_and_manifest_selection_block(self) -> None:
+        invalid = self.run_sync("status", modelconfig="unsupported")
+        self.assertEqual(invalid["status"], "blocked")
+        self.assertIn("unknown model configuration", invalid["detail"])
+
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        manifest = self.manifest()
+        manifest["modelconfig"] = "unsupported"
+        (self.codex_home / "orchestra/install-manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        status = self.run_sync("status")
+        self.assertEqual(status["status"], "blocked")
+        self.assertIn("invalid install manifest modelconfig", status["detail"])
+
+    def test_failed_switch_restores_roles_and_persisted_selection(self) -> None:
+        self.assertEqual(
+            self.run_sync("apply", modelconfig="native")["status"], "ok"
+        )
+        roles = self.codex_home / "orchestra/roles.toml"
+        roles_before = roles.read_bytes()
+        manifest_before = (
+            self.codex_home / "orchestra/install-manifest.json"
+        ).read_bytes()
+
+        with mock.patch.object(
+            sync, "_write_manifest", side_effect=OSError("injected switch failure")
+        ):
+            switched = self.run_sync("apply", modelconfig="external")
+        self.assertEqual(switched["status"], "blocked")
+        self.assertEqual(roles.read_bytes(), roles_before)
+        self.assertEqual(
+            (self.codex_home / "orchestra/install-manifest.json").read_bytes(),
+            manifest_before,
+        )
+        self.assertEqual(
+            self.run_sync("status", modelconfig=None)["modelconfig"], "native"
+        )
 
     def test_dry_run_is_a_zero_mutation_full_preview(self) -> None:
         preview = self.run_sync("apply", dry_run=True)
@@ -258,8 +438,10 @@ class SyncTests(unittest.TestCase):
         env["CODEX_HOME"] = str(self.codex_home)
         commands = (
             ("status",),
-            ("apply", "--dry-run"),
-            ("apply",),
+            ("status", "--modelconfig", "external"),
+            ("apply", "--dry-run", "--modelconfig", "external"),
+            ("apply", "--modelconfig", "external"),
+            ("status",),
             ("uninstall",),
         )
         statuses = []
@@ -274,14 +456,22 @@ class SyncTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             statuses.append(json.loads(result.stdout)["status"])
-        self.assertEqual(statuses, ["partial", "partial", "ok", "ok"])
+        self.assertEqual(
+            statuses, ["partial", "partial", "partial", "ok", "ok", "ok"]
+        )
 
     def test_subprocess_defaults_codex_home_and_installed_helper_resolves(self) -> None:
         env = os.environ.copy()
         env["HOME"] = str(self.home)
         env.pop("CODEX_HOME", None)
         applied = subprocess.run(
-            [sys.executable, str(SYNC_PATH), "apply"],
+            [
+                sys.executable,
+                str(SYNC_PATH),
+                "apply",
+                "--modelconfig",
+                "external",
+            ],
             cwd=ROOT,
             env=env,
             check=False,
@@ -345,7 +535,13 @@ class SyncTests(unittest.TestCase):
         extra_source = source / "codex/skills/orchestra/notes.txt"
         extra_source.write_text("owned extra\n")
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         installed_skill = self.home / ".agents/skills/orchestra/SKILL.md"
@@ -354,14 +550,27 @@ class SyncTests(unittest.TestCase):
         skill_source.write_bytes(previous + b"\nUpgrade fixture.\n")
         extra_source.unlink()
 
-        preview = sync.synchronize(source, self.home, self.codex_home, "apply", dry_run=True)
+        preview = sync.synchronize(
+            source,
+            self.home,
+            self.codex_home,
+            "apply",
+            dry_run=True,
+            modelconfig="external",
+        )
         self.assertEqual(preview["status"], "partial")
         self.assertEqual(
             {(change["operation"], change["path"]) for change in preview["changes"]},
             {("update", ".agents/skills/orchestra/SKILL.md"), ("delete", ".agents/skills/orchestra/notes.txt")},
         )
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         backup = self.codex_home / "orchestra/backups/home/.agents/skills/orchestra/SKILL.md"
@@ -373,7 +582,16 @@ class SyncTests(unittest.TestCase):
                 "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
             ).exists()
         )
-        self.assertEqual(sync.synchronize(source, self.home, self.codex_home, "status")["status"], "ok")
+        self.assertEqual(
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "status",
+                modelconfig="external",
+            )["status"],
+            "ok",
+        )
 
     def test_twelve_to_four_upgrade_removes_only_stale_owned_profiles(self) -> None:
         self.convert_current_install_to_twelve_profile_manifest()
@@ -436,14 +654,26 @@ class SyncTests(unittest.TestCase):
         target = Path(self.temporary.name) / "outside-source"
         target.write_text("outside")
         (source / "codex/skills/orchestra/link.txt").symlink_to(target)
-        result = sync.synchronize(source, self.home, self.codex_home, "apply")
+        result = sync.synchronize(
+            source,
+            self.home,
+            self.codex_home,
+            "apply",
+            modelconfig="external",
+        )
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(self.home.exists())
         (source / "codex/skills/orchestra/link.txt").unlink()
 
         runtime = source / "codex/runtime/AGENTS.orchestra.md"
         runtime.write_bytes(sync.START + b"\n" + sync.START + b"\n" + sync.END + b"\n")
-        result = sync.synchronize(source, self.home, self.codex_home, "apply")
+        result = sync.synchronize(
+            source,
+            self.home,
+            self.codex_home,
+            "apply",
+            modelconfig="external",
+        )
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(self.home.exists())
 
@@ -455,7 +685,13 @@ class SyncTests(unittest.TestCase):
         agents.write_bytes(original)
         agents.chmod(0o640)
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         agents.write_bytes(agents.read_bytes() + b"Later outside edit.\n")
@@ -463,7 +699,13 @@ class SyncTests(unittest.TestCase):
         runtime.write_bytes(runtime.read_bytes().replace(sync.END, b"New routing line.\n" + sync.END))
 
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         current = agents.read_bytes()
@@ -547,7 +789,13 @@ class SyncTests(unittest.TestCase):
         extra_source = source / "codex/skills/orchestra/notes.txt"
         extra_source.write_text("owned extra\n")
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         destination = self.home / ".agents/skills/orchestra/notes.txt"
@@ -568,7 +816,13 @@ class SyncTests(unittest.TestCase):
             "_cleanup_operation_backup",
             side_effect=cleanup_then_fail,
         ):
-            result = sync.synchronize(source, self.home, self.codex_home, "apply")
+            result = sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(destination.read_bytes(), destination_before)
         self.assertEqual(manifest.read_bytes(), manifest_before)
@@ -579,12 +833,24 @@ class SyncTests(unittest.TestCase):
         extra_source = source / "codex/skills/orchestra/notes.txt"
         extra_source.write_text("version one\n")
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         extra_source.write_text("version two\n")
         self.assertEqual(
-            sync.synchronize(source, self.home, self.codex_home, "apply")["status"],
+            sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )["status"],
             "ok",
         )
         destination = self.home / ".agents/skills/orchestra/notes.txt"
@@ -598,7 +864,13 @@ class SyncTests(unittest.TestCase):
         with mock.patch.object(
             sync, "_write_manifest", side_effect=OSError("persistent manifest failure")
         ):
-            result = sync.synchronize(source, self.home, self.codex_home, "apply")
+            result = sync.synchronize(
+                source,
+                self.home,
+                self.codex_home,
+                "apply",
+                modelconfig="external",
+            )
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(destination.read_bytes(), destination_before)
         self.assertEqual(backup.read_bytes(), backup_before)

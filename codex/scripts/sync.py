@@ -41,6 +41,7 @@ LEGACY_AGENTS = (
     "web_researcher",
 )
 HELPERS = ("commit_phase.py", "policy.py", "pr.py", "integrate_local.py", "_common.py")
+MODELCONFIGS = ("native", "external")
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 MANIFEST_PATH = "orchestra/install-manifest.json"
@@ -54,10 +55,19 @@ def _digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _result(status: str, action: str, changes: list[dict[str, str]], detail: str = "") -> dict[str, Any]:
+def _result(
+    status: str,
+    action: str,
+    changes: list[dict[str, str]],
+    detail: str = "",
+    *,
+    modelconfig: str | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {"action": action, "changes": changes, "status": status}
     if detail:
         payload["detail"] = detail
+    if modelconfig is not None:
+        payload["modelconfig"] = modelconfig
     return payload
 
 
@@ -116,7 +126,11 @@ def _entry(root: str, path: str, kind: str, content: bytes) -> dict[str, Any]:
     return {"root": root, "path": path, "type": kind, "content": content}
 
 
-def _inventory(source_root: Path) -> dict[tuple[str, str], dict[str, Any]]:
+def _inventory(
+    source_root: Path, modelconfig: str
+) -> dict[tuple[str, str], dict[str, Any]]:
+    if modelconfig not in MODELCONFIGS:
+        raise SyncError(f"unknown model configuration: {modelconfig}")
     entries: dict[tuple[str, str], dict[str, Any]] = {}
     skill_root = source_root / "codex" / "skills"
     if skill_root.is_symlink() or not skill_root.is_dir():
@@ -155,7 +169,10 @@ def _inventory(source_root: Path) -> dict[tuple[str, str], dict[str, Any]]:
         )
 
     fixed = (
-        (source_root / "codex/config/roles.toml", "orchestra/roles.toml"),
+        (
+            source_root / f"codex/config/roles.{modelconfig}.toml",
+            "orchestra/roles.toml",
+        ),
         *(
             (source_root / "codex/scripts" / helper, f"orchestra/scripts/{helper}")
             for helper in HELPERS
@@ -213,10 +230,15 @@ def _manifest_entry(entry: dict[str, Any], backup: str | None = None) -> dict[st
 
 def _load_manifest(
     codex_home: Path,
-) -> tuple[dict[tuple[str, str], dict[str, str]], bool, list[str]]:
+) -> tuple[
+    dict[tuple[str, str], dict[str, str]],
+    bool,
+    list[str],
+    str | None,
+]:
     path = _safe_path(codex_home, MANIFEST_PATH)
     if not path.exists():
-        return {}, False, []
+        return {}, False, [], None
     data = _read_file(path, MANIFEST_PATH)
     def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -229,8 +251,15 @@ def _load_manifest(
         payload = json.loads(data, object_pairs_hook=reject_duplicate_keys)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SyncError(f"invalid install manifest: {exc}") from exc
-    if not isinstance(payload, dict) or set(payload) != {"entries"} or not isinstance(payload["entries"], list):
+    if (
+        not isinstance(payload, dict)
+        or set(payload) not in ({"entries"}, {"entries", "modelconfig"})
+        or not isinstance(payload["entries"], list)
+    ):
         raise SyncError("invalid install manifest structure")
+    modelconfig = payload.get("modelconfig")
+    if modelconfig is not None and modelconfig not in MODELCONFIGS:
+        raise SyncError("invalid install manifest modelconfig")
     result: dict[tuple[str, str], dict[str, str]] = {}
     auxiliary_drift: list[str] = []
     for raw in payload["entries"]:
@@ -258,7 +287,7 @@ def _load_manifest(
             elif not backup.is_file():
                 raise SyncError(f"referenced backup is not a regular file: {raw['backup']}")
         result[key] = dict(raw)
-    return result, True, auxiliary_drift
+    return result, True, auxiliary_drift, modelconfig
 
 
 def _block_span(data: bytes) -> tuple[int, int] | None:
@@ -298,14 +327,19 @@ def _operation(kind: str, entry: dict[str, Any], before: bytes | None) -> dict[s
     return {"kind": kind, "entry": entry, "before": before}
 
 
-def _analyze(source_root: Path, home: Path, codex_home: Path) -> tuple[
+def _analyze(
+    source_root: Path,
+    home: Path,
+    codex_home: Path,
+    modelconfig: str,
+    installed: dict[tuple[str, str], dict[str, str]],
+    auxiliary_drift: list[str],
+) -> tuple[
     dict[tuple[str, str], dict[str, Any]],
-    dict[tuple[str, str], dict[str, str]],
     list[dict[str, Any]],
     list[str],
 ]:
-    desired = _inventory(source_root)
-    installed, _, auxiliary_drift = _load_manifest(codex_home)
+    desired = _inventory(source_root, modelconfig)
     roots = _roots(home, codex_home)
     operations: list[dict[str, Any]] = []
 
@@ -363,7 +397,7 @@ def _analyze(source_root: Path, home: Path, codex_home: Path) -> tuple[
         if backup.exists() and (owner is None or owner.get("backup") != backup_rel):
             raise SyncError(f"unmanaged backup collision: {backup_rel}")
     operations.sort(key=lambda item: (item["entry"]["root"], item["entry"]["path"], item["kind"]))
-    return desired, installed, operations, auxiliary_drift
+    return desired, operations, auxiliary_drift
 
 
 def _mkdir_parent(path: Path, root: Path) -> None:
@@ -412,13 +446,23 @@ def _atomic_write(path: Path, data: bytes, root: Path, *, new_mode: int = 0o644)
             os.unlink(temporary)
 
 
-def _write_manifest(codex_home: Path, entries: dict[tuple[str, str], dict[str, str]]) -> None:
+def _write_manifest(
+    codex_home: Path,
+    entries: dict[tuple[str, str], dict[str, str]],
+    modelconfig: str | None,
+) -> None:
     path = _safe_path(codex_home, MANIFEST_PATH)
     if not entries:
         if path.exists():
             path.unlink()
         return
-    payload = {"entries": [entries[key] for key in sorted(entries)]}
+    payload: dict[str, Any] = {
+        "entries": [entries[key] for key in sorted(entries)]
+    }
+    if modelconfig is not None:
+        if modelconfig not in MODELCONFIGS:
+            raise SyncError(f"unknown model configuration: {modelconfig}")
+        payload["modelconfig"] = modelconfig
     data = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
     _atomic_write(path, data, codex_home, new_mode=0o600)
 
@@ -557,27 +601,67 @@ def _cleanup_empty(path: Path, stop: Path) -> None:
         current = current.parent
 
 
-def synchronize(source_root: Path, home: Path, codex_home: Path, action: str, *, dry_run: bool = False) -> dict[str, Any]:
+def synchronize(
+    source_root: Path,
+    home: Path,
+    codex_home: Path,
+    action: str,
+    *,
+    dry_run: bool = False,
+    modelconfig: str | None = None,
+) -> dict[str, Any]:
     """Run one synchronization action against explicit destination roots."""
     source_root = Path(os.path.abspath(source_root))
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
     label = "apply --dry-run" if action == "apply" and dry_run else action
     try:
-        desired, installed, operations, auxiliary_drift = _analyze(
-            source_root, home, codex_home
+        installed, manifest_present, auxiliary_drift, installed_modelconfig = (
+            _load_manifest(codex_home)
+        )
+        if modelconfig is not None and modelconfig not in MODELCONFIGS:
+            raise SyncError(f"unknown model configuration: {modelconfig}")
+        effective_modelconfig = modelconfig or installed_modelconfig
+        if effective_modelconfig is None:
+            detail = (
+                "model configuration is not selected; pass "
+                "--modelconfig native or --modelconfig external"
+            )
+            if action == "status" and not manifest_present:
+                return _result("partial", label, [], detail)
+            raise SyncError(detail)
+        desired, operations, auxiliary_drift = _analyze(
+            source_root,
+            home,
+            codex_home,
+            effective_modelconfig,
+            installed,
+            auxiliary_drift,
         )
     except (OSError, SyncError) as exc:
         return _result("blocked", label, [], str(exc))
     changes = _preview(operations)
     if action == "status" or dry_run:
         detail = "; ".join(auxiliary_drift)
-        return _result("partial" if operations or auxiliary_drift else "ok", label, changes, detail)
+        return _result(
+            "partial" if operations or auxiliary_drift else "ok",
+            label,
+            changes,
+            detail,
+            modelconfig=effective_modelconfig,
+        )
     if action != "apply":
-        return _result("blocked", label, [], f"unsupported action: {action}")
+        return _result(
+            "blocked",
+            label,
+            [],
+            f"unsupported action: {action}",
+            modelconfig=effective_modelconfig,
+        )
 
     roots = _roots(home, codex_home)
     current = dict(installed)
+    current_modelconfig = installed_modelconfig
     completed: list[dict[str, str]] = []
     for operation in operations:
         entry = operation["entry"]
@@ -592,7 +676,10 @@ def synchronize(source_root: Path, home: Path, codex_home: Path, action: str, *,
                     desired[key],
                     state["backup_rel"] or current.get(key, {}).get("backup"),
                 )
-            _write_manifest(codex_home, next_current)
+            next_modelconfig = current_modelconfig
+            if key == ("codex_home", "orchestra/roles.toml"):
+                next_modelconfig = effective_modelconfig
+            _write_manifest(codex_home, next_current, next_modelconfig)
         except (OSError, SyncError) as exc:
             if "state" in locals():
                 try:
@@ -601,17 +688,49 @@ def synchronize(source_root: Path, home: Path, codex_home: Path, action: str, *,
                     exc = SyncError(f"{exc}; local compensation failed: {restore_exc}")
                 del state
             status = "partial" if completed else "blocked"
-            return _result(status, label, completed, str(exc))
+            return _result(
+                status,
+                label,
+                completed,
+                str(exc),
+                modelconfig=current_modelconfig,
+            )
         current = next_current
+        current_modelconfig = next_modelconfig
         completed.extend(_preview([operation]))
         del state
 
+    if current and current_modelconfig != effective_modelconfig:
+        try:
+            _write_manifest(codex_home, current, effective_modelconfig)
+        except (OSError, SyncError) as exc:
+            return _result(
+                "partial" if completed else "blocked",
+                label,
+                completed,
+                str(exc),
+                modelconfig=current_modelconfig,
+            )
+        current_modelconfig = effective_modelconfig
+
     try:
-        _, _, remaining_drift = _load_manifest(codex_home)
+        _, _, remaining_drift, persisted_modelconfig = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
-        return _result("partial", label, completed, str(exc))
+        return _result(
+            "partial",
+            label,
+            completed,
+            str(exc),
+            modelconfig=current_modelconfig,
+        )
     detail = "; ".join(remaining_drift)
-    return _result("partial" if remaining_drift else "ok", label, completed, detail)
+    return _result(
+        "partial" if remaining_drift else "ok",
+        label,
+        completed,
+        detail,
+        modelconfig=persisted_modelconfig,
+    )
 
 
 def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
@@ -619,7 +738,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
     try:
-        installed, present, auxiliary_drift = _load_manifest(codex_home)
+        installed, present, auxiliary_drift, modelconfig = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
         return _result("blocked", "uninstall", [], str(exc))
     if not present:
@@ -659,7 +778,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             next_current = dict(current)
             next_current.pop(key)
             try:
-                _write_manifest(codex_home, next_current)
+                _write_manifest(codex_home, next_current, modelconfig)
             except (OSError, SyncError) as exc:
                 try:
                     _restore_operation(state, codex_home)
@@ -676,7 +795,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             detail = "; ".join([*drift, *auxiliary_drift, f"{owner['path']}: {exc}"])
             return _result(status, "uninstall", changes, detail)
     try:
-        _, _, remaining_auxiliary = _load_manifest(codex_home)
+        _, _, remaining_auxiliary, _ = _load_manifest(codex_home)
         _cleanup_empty((codex_home / "orchestra/backups"), codex_home)
         _cleanup_empty((codex_home / "orchestra"), codex_home)
     except (OSError, SyncError) as exc:
@@ -689,9 +808,11 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("status")
+    status_parser = subparsers.add_parser("status")
+    status_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
     apply_parser = subparsers.add_parser("apply")
     apply_parser.add_argument("--dry-run", action="store_true")
+    apply_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
     subparsers.add_parser("uninstall")
     return parser
 
@@ -704,7 +825,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "uninstall":
         payload = uninstall(home, codex_home)
     else:
-        payload = synchronize(source_root, home, codex_home, args.command, dry_run=getattr(args, "dry_run", False))
+        payload = synchronize(
+            source_root,
+            home,
+            codex_home,
+            args.command,
+            dry_run=getattr(args, "dry_run", False),
+            modelconfig=getattr(args, "modelconfig", None),
+        )
     print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     return 2 if payload["status"] == "blocked" else 0
 

@@ -53,11 +53,16 @@ configuration outside Orchestra. The root has no machine-readable assignment,
 and Orchestra never changes its model or reasoning effort.
 
 For every spawned dispatch, the root selects the explicit capability, base
-profile, model, and reasoning effort below. Profiles contain behavior only;
-public skill names remain unchanged. `general_implementation` and
-`independent_review` are assignment keys whose behavior remains in the base
-`implementation_worker` and `reviewer` prompts; neither has an internal
-playbook.
+profile, model, and reasoning effort from the one globally installed
+configuration. Direct sync selects `native` or `external` outside Orchestra and
+installs only that matrix at the canonical runtime path. Orchestra does not ask
+for, persist, or override the selection per task. Do not switch the installed
+configuration while an Orchestra task is active.
+
+Profiles contain behavior only; public skill names remain unchanged.
+`general_implementation` and `independent_review` are assignment keys whose
+behavior remains in the base `implementation_worker` and `reviewer` prompts;
+neither has an internal playbook.
 
 The only internal playbooks are `repository_context`, `web_research`,
 `technical_planning`, `difficult_debugging`, `frontend_implementation`,
@@ -66,18 +71,40 @@ the shared architecture guidance reference also used with `technical_planning`
 or `independent_review` when architecture is named; it has no dedicated
 playbook.
 
+### Native standard configuration
+
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
-| Standard | `repository_context` | `analyst` | `gpt-5.6-terra` | `xhigh` |
-| Standard | `web_research` | `analyst` | `gpt-5.6-terra` | `xhigh` |
+| Standard | `repository_context` | `analyst` | `gpt-5.6-terra` | `high` |
+| Standard | `web_research` | `analyst` | `gpt-5.6-terra` | `high` |
 | Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `architecture_analysis` | `analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-terra` | `max` |
+| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `medium` |
 | Standard | `frontend_implementation` | `implementation_worker` | `gpt-5.6-sol` | `medium` |
 | Standard | `independent_review` | `reviewer` | `gpt-5.6-sol` | `medium` |
-| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-terra` | `xhigh` |
-| Standard | `runtime_verification` | `verifier` | `gpt-5.6-terra` | `max` |
+| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-terra` | `high` |
+| Standard | `runtime_verification` | `verifier` | `gpt-5.6-terra` | `high` |
+
+### External standard configuration
+
+| Tier | Capability | Base profile | Model | Reasoning |
+| --- | --- | --- | --- | --- |
+| Standard | `repository_context` | `analyst` | `cursor/composer-2.5-fast` | `high` |
+| Standard | `web_research` | `analyst` | `antigravity/gemini-3.6-flash-high` | `high` |
+| Standard | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `architecture_analysis` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
+| Standard | `general_implementation` | `implementation_worker` | `cursor/grok-4.5` | `high` |
+| Standard | `frontend_implementation` | `implementation_worker` | `opencode/glm-5.2` | `max` |
+| Standard | `independent_review` | `reviewer` | `gpt-5.6-terra` | `max` |
+| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-luna` | `xhigh` |
+| Standard | `runtime_verification` | `verifier` | `gpt-5.6-terra` | `high` |
+
+### Shared critical configuration
+
+| Tier | Capability | Base profile | Model | Reasoning |
+| --- | --- | --- | --- | --- |
 | Critical | `repository_context` | `analyst` | `gpt-5.6-sol` | `medium` |
 | Critical | `web_research` | `analyst` | `gpt-5.6-sol` | `medium` |
 | Critical | `technical_planning` | `analyst` | `gpt-5.6-sol` | `high` |
