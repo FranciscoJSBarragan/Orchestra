@@ -42,25 +42,27 @@ Orchestra/
 
 ### Orchestrator
 
-Owns user dialogue, tiering, product clarification, capability routing,
+Owns user dialogue, tier recommendation, product clarification, capability routing,
 synthesis, the local task plan, in-scope decisions, blocker resolution, phase
 commits, PR synthesis and observation, delivery choice, and final judgment. It
 holds compact context and delegates repository-wide reading. Current source and
 Git provide repository context; project tests, runtime evidence, and independent
 review provide correctness evidence without a separate repository index.
 
-After obtaining a bounded minimum brief, the orchestrator declares an initial
-tier and creates a new task branch and dedicated sibling worktree before
-dispatching repository analysis. It never adopts the current worktree for a new
-task. Fresh work starts at the intended integration base. Adopted committed work
-starts at the adopted source HEAD while retaining that base for later delivery.
-The root uses Git directly, keeps the task identity in transient context before
-plan approval, and passes the exact worktree to every capability.
+After obtaining a bounded minimum brief, the orchestrator recommends an initial
+tier with concise risk and cost-benefit evidence, and the user chooses the
+active tier. It performs a short read-only Git and execution-readiness preflight.
+It recommends and asks the user to confirm one execution mode before dispatching repository analysis:
+`current_branch`, `orchestra_worktree`, or `codex_worktree`. The root uses Git
+directly, keeps the selected checkout identity in transient context before plan
+approval, and passes that exact checkout to every capability. It creates no
+classifier or execution-environment registry.
 
-The first repository-context pass grounds the continuing specification dialogue.
-Later passes answer only newly material factual questions through targeted
-deltas. The root confirms the complete specification and revalidates the tier
-after consuming that evidence, before formal planning.
+The first repository-context pass grounds the continuing specification dialogue
+and feasibility-determining facts. Later passes answer only newly material
+factual questions through targeted deltas. The root confirms the complete
+specification and recommends any justified tier change after consuming that
+evidence, before formal planning; the user chooses.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, one verifier per used verification capability,
@@ -73,22 +75,22 @@ registry, helper, or persisted workflow state.
 
 Orchestra has exactly four behavior-only base profiles:
 
-- `analyst` gathers bounded evidence, researches, plans, analyzes architecture,
+- `orchestra_analyst` gathers bounded evidence, researches, plans, analyzes architecture,
   or diagnoses difficult failures. It does not edit implementation files,
   commit, route agents, or claim product authority.
-- `implementation_worker` owns scoped code and test changes for an approved
+- `orchestra_implementation_worker` owns scoped code and test changes for an approved
   packet. It may implement general or frontend work, but does not independently
   review itself, commit, or manage delivery.
-- `reviewer` independently examines plans, architecture, code, and meaningful
+- `orchestra_reviewer` independently examines plans, architecture, code, and meaningful
   deltas. It reports evidence-backed findings and never silently implements
   them.
-- `verifier` runs targeted checks, runtime acceptance, or browser acceptance
+- `orchestra_verifier` runs targeted checks, runtime acceptance, or browser acceptance
   and reports observed evidence. It does not edit source code or reinterpret a
   failing result as success.
 
 Each dispatch composes one profile with one explicit named capability selected
 by the root. `general_implementation` and `independent_review` are assignment
-keys whose behavior stays in the base `implementation_worker` and `reviewer`
+keys whose behavior stays in the base `orchestra_implementation_worker` and `orchestra_reviewer`
 prompts; they have no internal playbooks. Internal playbooks exist only for
 `repository_context`, `web_research`, `technical_planning`,
 `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and
@@ -96,7 +98,8 @@ prompts; they have no internal playbooks. Internal playbooks exist only for
 `technical_planning` or `independent_review` when named; the
 `architecture_analysis` assignment has no separate playbook. Playbooks are
 internal references, not public skills or additional personas. Public skill
-identifiers remain unchanged.
+identifiers remain stable except for the additive implicit
+`orchestra-project-start` greenfield entry point.
 
 Frontend implementation and browser acceptance are independent capabilities on
 different profiles. Root-owned planning, commits, PR observation, routing, and
@@ -106,6 +109,12 @@ The implementation owner, reviewer, and each capability verifier form a bounded
 phase cohort. One-shot analysts close after their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
 without carrying implementation state across phases.
+
+At a user-directed tier transition, the root waits for the active tool call,
+collects the exact worktree state, progress, evidence, and owned resources,
+closes only agents whose immutable assignment changes, and creates replacements
+only when needed. The worktree and valid evidence provide continuity; there is
+no workflow restart, transition commit, or tier-history subsystem.
 
 Profiles share only minimal conventions: explicit capability, input packet,
 outcome-first output status, evidence references, scope boundaries, and stop
@@ -130,7 +139,8 @@ not establish a finding.
 Skills describe the behavioral route and call deterministic helpers. Expected
 public lanes are:
 
-- orchestration and discovery;
+- implicit greenfield project start;
+- explicit orchestration and discovery;
 - planned delivery;
 - phase commit;
 - PR open;
@@ -162,7 +172,7 @@ helper directly to observe GitHub state.
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
-- one root-owned approved task plan per Orchestra worktree, resolved with
+- one root-owned approved task plan per confirmed checkout, resolved with
   `git rev-parse --git-path orchestra/plan.md`;
 - concise commit intent and validation in Git history;
 - compact optional-helper result (`committed` with `sha`,
@@ -174,17 +184,20 @@ The provisional specification and unapproved formal plan remain in conversation
 or system temporary storage. The local plan is first written after approval as
 `active` and is never versioned. Its consumer is the root, its purpose is
 continuity across implementation or resumed sessions, and its lifecycle ends
-with task worktree cleanup. It records `active`, `blocked`, or `completed` plus
-a resume note. Git remains authoritative for branch, HEAD,
+with mode-appropriate delivery cleanup. It records `active`, `blocked`, or
+`completed`, the execution mode and exact Git identity, plus a resume note. Git
+remains authoritative for branch, HEAD,
 commits, and worktree state; the plan carries intent and progress, not delivery
 authority.
 
-The branch and worktree are Git resources, not a new Orchestra state store. A
-new task always creates new resources with collision-free names. The same live
-pre-approval task may continue in memory; later reuse requires the approved plan
-and Git identity to agree. Rejected planning removes only a clean branch still
-equal to its captured base. Completed delivery removes only resources proven to
-belong to the exact integrated or merged task head.
+Branches and worktrees are Git resources, not a new Orchestra state store. A
+new task uses one confirmed environment: the current branch without new
+resources, an Orchestra-owned collision-free sibling worktree, or a validated
+Codex-owned native worktree with an in-place collision-free task branch when
+detached. The same live preapproval task may continue in memory; later reuse
+requires the approved plan's execution mode, checkout path, branch, base, and
+HEAD to agree with Git. Rejected planning and completed delivery clean only
+resources that the selected mode owns and that exact Git evidence proves safe.
 
 The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
@@ -195,7 +208,7 @@ duplicate Git index, commit recovery journal, plan CLI, Kanban board, benchmark
 control plane, or general-purpose workflow state engine unless real usage later
 demonstrates a requirement Git/GitHub cannot meet. The root uses the one-shot
 `adopt_worktree.py` helper only because Git does not carry selected dirty paths
-into a sibling worktree; the helper keeps no state.
+into an Orchestra sibling worktree; the helper keeps no state.
 
 ## Model and reasoning configuration
 
@@ -215,6 +228,12 @@ one shared reference. Switching the installed matrix is an explicit sync
 operation outside ordinary task execution and must not occur while an Orchestra
 task is active.
 
+The task's active tier is a user-selected lookup key into that one installed
+matrix. It may change in either direction without changing the matrix itself.
+Because spawned agents cannot change model or reasoning effort, a safe
+transition replaces only live agents whose assignment differs and passes them a
+compact continuation packet.
+
 Assignment resolution still prefers the exact installed model. A narrow runtime
 compatibility rule permits only `repository_context` to retry internally with
 `gpt-5.6-luna` reasoning `high` when its assigned model is rejected as
@@ -229,14 +248,17 @@ dispatches.
 ## Verification environment and browser routing
 
 Tests use ordinary sandboxing unless the packet declares a concrete elevated
-need. Any failed test is repeated once with the exact command, arguments, and
-working directory under elevated permission before broader verification or
-diagnosis. A pass records a sandbox dependency; a repeated failure is
-trustworthy failure evidence; unavailable or unsafe elevation returns
-`blocked`.
+need. A failed test receives one exact elevated retry only when sandboxing,
+permissions, filesystem, network, sockets, services, protected caches, or
+genuinely ambiguous evidence could explain it. Deterministic syntax, type,
+compile, lint, import, assertion, validation-contract, and CLI-usage failures
+are classified directly. A pass records a sandbox dependency; unavailable or
+unsafe required elevation returns `blocked`.
 
 Browser packets use the transient `browser_route` value `auto`, `in_app`, or
-`chrome`. An explicit user route is fixed unless fallback is also authorized.
+`chrome`. An explicit user route is attempted even as a tool canary and fixed
+unless fallback is also authorized; an agent may report its technical blocker
+but may not veto or substitute it.
 Without an explicit route, `auto` selects Codex's in-app Browser first and uses
 Computer Use with Chrome only for a technical availability or capability gap.
 The root may select Chrome directly when the named scenario requires existing
@@ -311,32 +333,45 @@ Tests protect the few important invariants:
 - the skill never changes the host into a planning-only mode;
 - ordinary plan requests, direct implementation, and descriptive mentions do
   not activate Orchestra;
-- initial routing follows minimum brief, task worktree, focused repository
-  context, final specification, then formal plan;
+- initial routing follows minimum brief, tier, read-only execution-mode
+  preflight and user confirmation, focused repository context, final
+  specification, then formal plan;
 - repeated repository context requests only targeted deltas and every one-shot
   analyst closes after its result;
 - only repository context may use the transient Luna-high unsupported-model
   fallback, after attempting the installed assignment first;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
-- every new formal task creates a dedicated sibling worktree before repository
-  analysis and never mutates the source checkout;
+- a small clean feature-branch task may use `current_branch`, while direct base
+  branch use requires explicit confirmation and unrelated dirty work blocks it;
+- an explicitly requested `orchestra_worktree` preserves sibling-worktree
+  isolation, and a validated `codex_worktree` is reused without creating a
+  second worktree;
+- native worktrees outside the default Codex root or with dirty, ambiguous, or
+  conflicting identity block before mutation;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
 - fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
   adopted source revision while retaining the integration base;
-- task-worktree reuse requires exact same-task identity;
+- task resume requires exact execution mode, plan, path, branch, base, and HEAD;
 - local plan resume reconciles against Git instead of overriding it;
 - phase owners, reviewers, and capability verifiers are reused only within one
   phase and close before its commit;
-- test failures receive one exact elevated retry before broader diagnosis;
+- only plausibly environment-dependent or genuinely ambiguous test failures
+  receive one exact elevated retry before broader diagnosis;
+- the root recommends a tier, the user selects it, and a user-directed tier
+  transition preserves unchanged work and evidence;
 - browser routing honors explicit selection and otherwise prefers the in-app
   Browser with capability-based Chrome fallback;
+- the first review covers the bounded target while delta reviews stay focused;
+- the implicit greenfield skill never silently activates Orchestra;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
 - hooks call the validator without adding policy;
-- local integration cleans only safely merged branches and worktrees;
+- local integration rejects `current_branch`, removes safely merged
+  Orchestra-owned resources, and leaves Codex-owned worktrees clean and
+  detached without removing their directories;
 - rejected authority/journal machinery is not introduced.
 
 ## Complexity safeguards
@@ -368,8 +403,9 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Worktree creation remains a direct root Git operation. Scoped
-dirty adoption uses `adopt_worktree.py` as a one-shot selected-path import.
+never clean. Execution-mode selection and worktree creation remain direct root
+Git operations. Scoped dirty adoption uses `adopt_worktree.py` as a one-shot
+selected-path import for `orchestra_worktree`.
 Phase commits use direct Git by default or the existing narrow exact-path helper
 when useful, never an agent.
 

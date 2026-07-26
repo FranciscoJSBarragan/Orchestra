@@ -72,17 +72,18 @@ class SyncTests(unittest.TestCase):
         )
         return fixture
 
-    def convert_current_install_to_twelve_profile_manifest(self) -> None:
-        """Model a pre-composition install without depending on retired sources."""
+    def convert_current_install_to_legacy_profile_manifest(self) -> None:
+        """Model an owned pre-namespace install without retired source files."""
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         manifest_path = self.codex_home / "orchestra/install-manifest.json"
         payload = self.manifest()
+        current_paths = {f"agents/{name}.toml" for name in sync.AGENTS}
         entries = [
             entry
             for entry in payload["entries"]
-            if entry["path"] not in {"agents/analyst.toml", "agents/verifier.toml"}
+            if entry["path"] not in current_paths
         ]
-        for name in ("analyst", "verifier"):
+        for name in sync.AGENTS:
             (self.codex_home / f"agents/{name}.toml").unlink()
         for name in sync.LEGACY_AGENTS:
             content = f"retired owned profile: {name}\n".encode()
@@ -120,9 +121,13 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(applied["status"], "ok")
         self.assertEqual(applied["modelconfig"], "external")
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
-        self.assertTrue(self.codex_home.joinpath("agents/reviewer.toml").is_file())
-        self.assertTrue(self.codex_home.joinpath("agents/analyst.toml").is_file())
-        self.assertTrue(self.codex_home.joinpath("agents/verifier.toml").is_file())
+        self.assertTrue(
+            self.home.joinpath(
+                ".agents/skills/orchestra-project-start/SKILL.md"
+            ).is_file()
+        )
+        for name in sync.AGENTS:
+            self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
         installed_guidance = self.codex_home.joinpath("AGENTS.md").read_text()
@@ -163,7 +168,10 @@ class SyncTests(unittest.TestCase):
             0o644,
         )
         self.assertEqual(
-            self.codex_home.joinpath("agents/reviewer.toml").stat().st_mode & 0o777,
+            self.codex_home.joinpath(
+                "agents/orchestra_reviewer.toml"
+            ).stat().st_mode
+            & 0o777,
             0o644,
         )
         self.assertEqual(
@@ -177,8 +185,8 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra").exists())
         self.assertFalse(self.codex_home.joinpath("install-manifest.json").exists())
         self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
-        self.assertFalse(self.codex_home.joinpath("agents/analyst.toml").exists())
-        self.assertFalse(self.codex_home.joinpath("agents/verifier.toml").exists())
+        for name in sync.AGENTS:
+            self.assertFalse(self.codex_home.joinpath(f"agents/{name}.toml").exists())
 
     def test_fresh_install_requires_explicit_modelconfig(self) -> None:
         status = self.run_sync("status", modelconfig=None)
@@ -193,6 +201,27 @@ class SyncTests(unittest.TestCase):
             self.assertIn("--modelconfig external", result["detail"])
         self.assertFalse(self.home.exists())
         self.assertFalse(self.codex_home.exists())
+
+    def test_fresh_install_preserves_unmanaged_generic_agent_profiles(self) -> None:
+        generic = self.codex_home / "agents/analyst.toml"
+        generic.parent.mkdir(parents=True)
+        generic.write_text("user-owned generic analyst\n")
+
+        result = self.run_sync("apply")
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(generic.read_text(), "user-owned generic analyst\n")
+        self.assertTrue(
+            self.codex_home.joinpath(
+                "agents/orchestra_analyst.toml"
+            ).is_file()
+        )
+        owned_paths = {
+            entry["path"]
+            for entry in self.manifest()["entries"]
+            if entry["root"] == "codex_home"
+        }
+        self.assertNotIn("agents/analyst.toml", owned_paths)
 
     def test_native_install_persists_and_switches_atomically_to_external(self) -> None:
         installed = self.run_sync("apply", modelconfig="native")
@@ -373,7 +402,7 @@ class SyncTests(unittest.TestCase):
 
     def test_owned_drift_blocks_apply_and_is_preserved_by_uninstall(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
-        drifted = self.codex_home / "agents/reviewer.toml"
+        drifted = self.codex_home / "agents/orchestra_reviewer.toml"
         drifted.write_text("user edit\n")
         self.assertEqual(self.run_sync("status")["status"], "blocked")
         self.assertEqual(self.run_sync("apply")["status"], "blocked")
@@ -382,7 +411,10 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(result["status"], "partial")
         self.assertEqual(drifted.read_text(), "user edit\n")
         remaining = self.manifest()["entries"]
-        self.assertEqual([entry["path"] for entry in remaining], ["agents/reviewer.toml"])
+        self.assertEqual(
+            [entry["path"] for entry in remaining],
+            ["agents/orchestra_reviewer.toml"],
+        )
 
     def test_uninstall_retains_missing_entry_and_removes_all_safe_entries(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
@@ -390,16 +422,18 @@ class SyncTests(unittest.TestCase):
         retained = next(
             entry
             for entry in manifest_before
-            if entry["path"] == "agents/analyst.toml"
+            if entry["path"] == "agents/orchestra_analyst.toml"
         )
         missing = self.codex_home / retained["path"]
         missing.unlink()
 
         result = sync.uninstall(self.home, self.codex_home)
         self.assertEqual(result["status"], "partial")
-        self.assertIn("agents/analyst.toml", result["detail"])
+        self.assertIn("agents/orchestra_analyst.toml", result["detail"])
         self.assertEqual(self.manifest()["entries"], [retained])
-        self.assertFalse(self.codex_home.joinpath("agents/reviewer.toml").exists())
+        self.assertFalse(
+            self.codex_home.joinpath("agents/orchestra_reviewer.toml").exists()
+        )
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra/SKILL.md").exists())
 
     def test_uninstall_retains_malformed_block_and_removes_safe_files(self) -> None:
@@ -416,7 +450,9 @@ class SyncTests(unittest.TestCase):
         self.assertIn("markers must appear exactly once", result["detail"])
         self.assertEqual(agents.read_bytes(), malformed)
         self.assertEqual(self.manifest()["entries"], [retained])
-        self.assertFalse(self.codex_home.joinpath("agents/reviewer.toml").exists())
+        self.assertFalse(
+            self.codex_home.joinpath("agents/orchestra_reviewer.toml").exists()
+        )
 
     def test_invalid_manifest_paths_and_destination_symlinks_block(self) -> None:
         manifest = self.codex_home / "orchestra/install-manifest.json"
@@ -597,21 +633,16 @@ class SyncTests(unittest.TestCase):
             "ok",
         )
 
-    def test_twelve_to_four_upgrade_removes_only_stale_owned_profiles(self) -> None:
-        self.convert_current_install_to_twelve_profile_manifest()
+    def test_legacy_to_namespaced_upgrade_removes_only_owned_profiles(self) -> None:
+        self.convert_current_install_to_legacy_profile_manifest()
         installed_agents = {
             entry["path"]
             for entry in self.manifest()["entries"]
             if entry["path"].startswith("agents/")
         }
-        self.assertEqual(len(installed_agents), 12)
         self.assertEqual(
             installed_agents,
-            {
-                "agents/implementation_worker.toml",
-                "agents/reviewer.toml",
-                *(f"agents/{name}.toml" for name in sync.LEGACY_AGENTS),
-            },
+            {f"agents/{name}.toml" for name in sync.LEGACY_AGENTS},
         )
 
         preview = self.run_sync("apply", dry_run=True)
@@ -624,8 +655,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(
             agent_changes,
             {
-                ("create", "agents/analyst.toml"),
-                ("create", "agents/verifier.toml"),
+                *(("create", f"agents/{name}.toml") for name in sync.AGENTS),
                 *(("delete", f"agents/{name}.toml") for name in sync.LEGACY_AGENTS),
             },
         )
@@ -642,14 +672,14 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(unowned.read_text(), "unowned user file\n")
 
     def test_drifted_retired_profile_blocks_upgrade_without_partial_deletion(self) -> None:
-        self.convert_current_install_to_twelve_profile_manifest()
+        self.convert_current_install_to_legacy_profile_manifest()
         drifted = self.codex_home / "agents/browser_acceptance_tester.toml"
         drifted.write_text("user edit\n")
         result = self.run_sync("apply")
         self.assertEqual(result["status"], "blocked")
         self.assertIn("owned destination drift", result["detail"])
-        self.assertFalse(self.codex_home.joinpath("agents/analyst.toml").exists())
-        self.assertFalse(self.codex_home.joinpath("agents/verifier.toml").exists())
+        for name in sync.AGENTS:
+            self.assertFalse(self.codex_home.joinpath(f"agents/{name}.toml").exists())
         for name in sync.LEGACY_AGENTS:
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").exists())
 
@@ -730,12 +760,17 @@ class SyncTests(unittest.TestCase):
         self.home.unlink()
 
         self.assertEqual(self.run_sync("apply")["status"], "ok")
-        backup = self.codex_home / "orchestra/backups/codex_home/agents/reviewer.toml"
+        backup = (
+            self.codex_home
+            / "orchestra/backups/codex_home/agents/orchestra_reviewer.toml"
+        )
         backup.parent.mkdir(parents=True)
         backup.write_text("unmanaged backup")
         result = sync.uninstall(self.home, self.codex_home)
         self.assertEqual(result["status"], "partial")
-        self.assertTrue(self.codex_home.joinpath("agents/reviewer.toml").exists())
+        self.assertTrue(
+            self.codex_home.joinpath("agents/orchestra_reviewer.toml").exists()
+        )
         self.assertEqual(backup.read_text(), "unmanaged backup")
 
     def test_persistent_first_manifest_failure_restores_unowned_destination(self) -> None:
@@ -765,7 +800,9 @@ class SyncTests(unittest.TestCase):
         entries = self.manifest()["entries"]
         self.assertEqual([entry["path"] for entry in entries], ["AGENTS.md"])
         self.assertTrue(self.codex_home.joinpath("AGENTS.md").is_file())
-        self.assertFalse(self.codex_home.joinpath("agents/analyst.toml").exists())
+        self.assertFalse(
+            self.codex_home.joinpath("agents/orchestra_analyst.toml").exists()
+        )
         self.assertEqual(self.run_sync("status")["status"], "partial")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())

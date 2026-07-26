@@ -1,4 +1,4 @@
-name = "analyst"
+name = "orchestra_analyst"
 description = "Perform exactly one explicitly assigned read-only analysis capability and return bounded evidence."
 developer_instructions = """
 # Responsibility

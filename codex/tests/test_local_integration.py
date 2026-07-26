@@ -64,7 +64,11 @@ class LocalIntegrationTests(unittest.TestCase):
         self.git(self.task, "commit", "-q", "-m", "adjust check")
         self.task_sha = self.git(self.task, "rev-parse", "HEAD").stdout.strip()
 
-    def run_helper(self, authorized: bool = True) -> tuple[subprocess.CompletedProcess[str], dict]:
+    def run_helper(
+        self,
+        authorized: bool = True,
+        execution_mode: str = "orchestra_worktree",
+    ) -> tuple[subprocess.CompletedProcess[str], dict]:
         command = [
             sys.executable,
             str(HELPER),
@@ -76,6 +80,8 @@ class LocalIntegrationTests(unittest.TestCase):
             "task",
             "--base-branch",
             "main",
+            "--execution-mode",
+            execution_mode,
         ]
         if authorized:
             command.append("--authorized")
@@ -98,6 +104,45 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertEqual((self.base / "feature.txt").read_text(), "feature\n")
         self.assertFalse(self.task.exists())
         self.assertEqual(self.git(self.base, "branch", "--list", "task").stdout, "")
+        self.assertEqual(payload["execution_mode"], "orchestra_worktree")
+        self.assertEqual(payload["cleanup"], ["worktree", "branch"])
+
+    def test_codex_worktree_integrates_but_preserves_detached_checkout(self) -> None:
+        plan_result = self.git(
+            self.task, "rev-parse", "--git-path", "orchestra/plan.md"
+        )
+        plan_path = Path(plan_result.stdout.strip())
+        if not plan_path.is_absolute():
+            plan_path = self.task / plan_path
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text("status: completed\n", encoding="utf-8")
+
+        result, payload = self.run_helper(execution_mode="codex_worktree")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["execution_mode"], "codex_worktree")
+        self.assertEqual(payload["cleanup"], ["plan", "branch"])
+        self.assertTrue(self.task.exists())
+        self.assertFalse(plan_path.exists())
+        self.assertEqual(
+            self.git(self.task, "rev-parse", "HEAD").stdout.strip(), self.task_sha
+        )
+        detached = self.git(
+            self.task, "symbolic-ref", "--quiet", "--short", "HEAD", fail_test=False
+        )
+        self.assertNotEqual(detached.returncode, 0)
+        self.assertEqual(self.git(self.base, "branch", "--list", "task").stdout, "")
+
+    def test_current_branch_rejects_local_integration_without_mutation(self) -> None:
+        base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
+
+        result, payload = self.run_helper(execution_mode="current_branch")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("does not apply", payload["reason"])
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
+        self.assertTrue(self.task.exists())
 
     def test_explicit_authority_is_required_without_mutation(self) -> None:
         base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()

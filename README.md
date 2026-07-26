@@ -2,15 +2,20 @@
 
 Orchestra is a Codex-native, cost-efficient, multi-agent software-delivery workflow.
 
-It helps an individual developer move an explicitly activated Orchestra request
-from exploration or a candidate specification through confirmation, planning,
-and reviewed delivery. Direct implementation and any planning-only host mode
-remain separate. Orchestra starts only from an explicit `$orchestra` invocation
-or an unequivocal imperative to use or start Orchestra. The root orchestrator
-acts as the technical lead: it confirms the specification, selects a standard
-or critical workflow, composes focused capabilities with four base agent
-profiles, resolves ordinary blockers, and makes the final technical judgment.
-The user remains the product owner and final authority.
+It helps an individual developer move from an idea or an explicitly activated
+Orchestra request through a runnable foundation, confirmed specification,
+planning, implementation, review, verification, and authorized delivery. Direct
+implementation and any planning-only host mode remain separate.
+
+`orchestra-project-start` may activate implicitly for a new project, empty
+directory, stack decision, or idea without a repository. It prepares a small
+runnable foundation after confirmation, then offers Orchestra without silently
+activating it. The full Orchestra workflow starts only from an explicit
+`$orchestra` invocation or an unequivocal imperative to use or start Orchestra.
+The root acts as technical lead, recommends a tier, composes focused
+capabilities, resolves ordinary blockers, and makes the final technical
+judgment. The user chooses the tier and remains the product owner and final
+authority.
 
 ## Product sources
 
@@ -29,16 +34,31 @@ together.
 ## Delivery model
 
 Orchestra starts only from explicit activation. It reuses the conversation,
-classifies any prior candidate checkpoint, confirms a compact specification,
-creates a new branch and dedicated sibling worktree for the formal task, and
-may adopt scoped prior work into that worktree without mutating the source
-checkout. After approval it scales implementation, review, and verification to
-task risk. It supports both direct local integration and GitHub PR delivery
-when repository policy and user authority allow them.
+classifies any prior candidate checkpoint, recommends a standard or critical
+tier, confirms a compact specification, and asks the user to choose one
+execution environment:
 
-The four profiles are `analyst`, `implementation_worker`, `reviewer`, and
-`verifier`. The root selects explicit capability assignments and their
-applicable internal references; public skill names stay stable. The approved
+- `current_branch`: lowest bootstrap cost for a small task on a clean feature
+  branch. Work on the integration base requires an explicit warning. It can be
+  held or delivered through PR, but Orchestra does not locally integrate it.
+- `orchestra_worktree`: strongest isolation and a separate sibling worktree,
+  with additional dependency/bootstrap cost. It supports hold, PR, or local
+  integration when policy allows.
+- `codex_worktree`: reuses a clean native Codex worktree already attached to the
+  chat. It supports hold, PR, or local integration while Codex retains the
+  physical directory.
+
+After plan approval, Orchestra scales implementation, review, and verification
+to the active tier. The user may direct a safe tier change in either direction
+without restarting the workflow or discarding valid work. Tier choice changes
+model and scrutiny intensity; it never waives separate authority for production,
+security, payments, destructive operations, merge, release, or deployment.
+
+The four profiles are `orchestra_analyst`,
+`orchestra_implementation_worker`, `orchestra_reviewer`, and
+`orchestra_verifier`. Namespacing prevents Orchestra from intercepting ordinary
+Codex agents. The root selects explicit capability assignments and their
+applicable internal references. The approved
 formal plan is written directly as `active` to one root-owned, unversioned path
 resolved by `git rev-parse --git-path orchestra/plan.md`. Provisional specs and
 unapproved plans are not persisted. Git, not the plan, remains authoritative
@@ -52,6 +72,42 @@ verification uses ordered argument arrays, not shell command strings.
 The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
 to unrelated Codex configuration.
+
+## First task quickstart
+
+For an existing repository:
+
+1. Ask: `Use Orchestra to add <visible behavior>.`
+2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
+   asks you to choose the tier and execution environment.
+3. It inspects the selected checkout read-only, proposes observable acceptance,
+   and asks you to confirm the final specification and implementation plan.
+4. After approval it implements, verifies, reviews, and commits accepted phases.
+5. It reports `implementation complete; delivery pending` and asks whether to
+   hold, open a PR, or integrate locally when policy and execution mode allow.
+
+For a new project, describe the idea normally. `orchestra-project-start`
+activates implicitly, helps select a proportional stack, confirms the target
+location and mutations, creates a runnable vertical foundation, and offers to
+continue through Orchestra. Accepting that offer explicitly activates the full
+workflow without repeating the greenfield discovery.
+
+Use direct implementation instead when the change is small and you do not want
+formal planning, independent review, phase commits, or delivery coordination.
+
+## Prerequisites
+
+- Python 3 for source synchronization and validation.
+- Git for task branches, plans, commits, and worktrees.
+- The project runtime and dependency manager needed by the consumer repository.
+- GitHub CLI only when using PR delivery.
+- Required local services and credentials for the project; Orchestra identifies
+  their categories but does not print or persist secret values.
+
+Choose `native` for the supported Codex model assignments. Choose `external`
+only when the configured external providers and model identifiers are available
+in the current Codex environment. The selection is global for the installed
+runtime and may be switched explicitly when no Orchestra task is active.
 
 ## Direct sync
 
@@ -73,7 +129,15 @@ Passing the other value previews or applies an atomic configuration switch.
 Do not switch configurations while an Orchestra task is active: every dispatch
 reads the one installed runtime matrix.
 
-Skills and their internal playbook references install under
+Sync results use:
+
+- `ok`: requested state is complete.
+- `partial`: no unsafe mutation occurred, but setup, cleanup, or requested state
+  is incomplete; read `detail` and the reported changes.
+- `blocked`: safety, ownership, drift, configuration, or validation prevented
+  the operation; resolve the named blocker before retrying.
+
+Eight skills and their internal playbook references install under
 `$HOME/.agents/skills/`. Four agent profiles install under
 `$CODEX_HOME/agents/`; capability assignments and runtime helpers install under
 `$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to

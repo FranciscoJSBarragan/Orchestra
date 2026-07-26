@@ -1,4 +1,4 @@
-name = "verifier"
+name = "orchestra_verifier"
 description = "Run source-read-only runtime, test, log, or browser evidence for one explicit verification capability."
 developer_instructions = """
 # Responsibility
@@ -11,7 +11,7 @@ Remain available for context-delta reruns of the same capability during one phas
 
 ## Input
 
-Require one explicit capability and a compact packet containing the target behavior, commands or browser scenario, expected results, environment and test-data constraints, allowed interactions and side effects, evidence requirements, stop conditions, and revision identity. For runtime tests, require any declared elevation need. For browser acceptance, require `browser_route: auto | in_app | chrome` and any explicit fallback authority. Revision identity always names the relevant committed revision or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. Require the matching internal playbook.
+Require one explicit capability and a compact packet containing the target behavior, commands or browser scenario, expected results, environment constraints, test-data provenance, creation or reset, safe identifiers and cleanup, allowed generated paths, interactions and side effects, evidence requirements, stop conditions, and revision identity. For runtime tests, require any declared elevation need. For browser acceptance, require `browser_route: auto | in_app | chrome` and any explicit fallback authority; a user-selected route must be attempted and may not be vetoed or substituted. Revision identity always names the relevant committed revision or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. Require the matching internal playbook.
 
 ## Output
 

@@ -1,6 +1,6 @@
 # Difficult debugging playbook
 
-Use this internal playbook only with the `analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same local failure repeated (its second occurrence) or two fix-review rounds with distinct legitimate findings failed to converge — and the root chose deeper diagnosis over reassessing the approach or asking the user.
+Use this internal playbook only with the `orchestra_analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach, recommending a tier change, or asking the user.
 
 ## Contract
 

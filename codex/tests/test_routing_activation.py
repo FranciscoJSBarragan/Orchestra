@@ -64,10 +64,10 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertNotIn("explicit planned work in normal chat", description)
         vision = self.canonical["VISION.md"]
         readme = self.canonical["README.md"]
-        self.assertIn("explicitly activated Orchestra request", vision)
-        self.assertIn("exploration or a candidate specification", vision)
-        self.assertIn("explicitly activated Orchestra request", readme)
-        self.assertIn("exploration or a candidate specification", readme)
+        self.assertIn("explicitly activated Orchestra request", self._flat(vision))
+        self.assertIn("exploration, or a candidate specification", self._flat(vision))
+        self.assertIn("explicitly activated Orchestra request", self._flat(readme))
+        self.assertIn("confirmed specification", self._flat(readme))
         self.assertNotIn("explicitly requested implementation plan", vision)
         self.assertNotIn("explicitly planned software change", readme)
 
@@ -135,6 +135,23 @@ class RoutingActivationContractTests(unittest.TestCase):
             self.assertNotIn("`draft`", text)
         self.assertIn("system temporary storage", self.skill)
         self.assertNotIn(".orchestra/", (ROOT / ".gitignore").read_text())
+
+    def test_greenfield_skill_is_implicit_without_activating_orchestra(self) -> None:
+        skill_dir = ROOT / "codex/skills/orchestra-project-start"
+        skill = (skill_dir / "SKILL.md").read_text()
+        metadata = (skill_dir / "agents/openai.yaml").read_text()
+        frontmatter = skill.split("---", 2)[1]
+        normalized_skill = self._flat(skill)
+        for trigger in (
+            "create a new project",
+            "empty directory",
+            "choosing a stack",
+            "initial project scaffolding",
+        ):
+            self.assertIn(trigger, frontmatter)
+        self.assertIn("allow_implicit_invocation: true", metadata)
+        self.assertIn("Do not activate `$orchestra` automatically", normalized_skill)
+        self.assertIn("explicitly accepts", normalized_skill)
 
 
 if __name__ == "__main__":

@@ -35,12 +35,14 @@ REQUIRED_PATHS = (
     "codex/config/roles.native.toml",
     "codex/config/roles.external.toml",
     "codex/runtime/AGENTS.orchestra.md",
-    "codex/agents/analyst.toml",
-    "codex/agents/implementation_worker.toml",
-    "codex/agents/reviewer.toml",
-    "codex/agents/verifier.toml",
+    "codex/agents/orchestra_analyst.toml",
+    "codex/agents/orchestra_implementation_worker.toml",
+    "codex/agents/orchestra_reviewer.toml",
+    "codex/agents/orchestra_verifier.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
+    "codex/skills/orchestra-project-start/SKILL.md",
+    "codex/skills/orchestra-project-start/agents/openai.yaml",
     "codex/skills/orchestra/references/repository_context.md",
     "codex/skills/orchestra/references/web_research.md",
     "codex/skills/orchestra/references/technical_planning.md",
@@ -145,10 +147,10 @@ exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
 """
 
 PROFILE_NAMES = (
-    "analyst",
-    "implementation_worker",
-    "reviewer",
-    "verifier",
+    "orchestra_analyst",
+    "orchestra_implementation_worker",
+    "orchestra_reviewer",
+    "orchestra_verifier",
 )
 
 PLAYBOOK_NAMES = (
@@ -162,20 +164,25 @@ PLAYBOOK_NAMES = (
 )
 ARCHITECTURE_REFERENCE = "architecture_guidance"
 LEGACY_PROFILE_NAMES = (
+    "analyst",
     "browser_acceptance_tester",
     "debugging_investigator",
     "frontend_implementation_worker",
+    "implementation_worker",
     "phase_committer",
     "plan_scope_auditor",
     "planner",
     "pr_polling_specialist",
     "pr_triage_specialist",
     "repo_context_explorer",
+    "reviewer",
+    "verifier",
     "web_researcher",
 )
 
 SKILL_NAMES = (
     "orchestra",
+    "orchestra-project-start",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -583,6 +590,12 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                 failures.append(
                     f"skill-contract: {name} default_prompt must mention ${name}"
                 )
+            if name == "orchestra-project-start" and (
+                "allow_implicit_invocation: true" not in ui
+            ):
+                failures.append(
+                    "skill-contract: orchestra-project-start must allow implicit invocation"
+                )
 
     references = root / "codex/skills/orchestra/references"
     expected_references = {
@@ -627,9 +640,12 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     direct_consumers = {
         "orchestra": (
             "git worktree add",
-            "Never adopt the current worktree for a new task",
-            "Block instead of falling back to the current checkout",
-            "same live pre-approval task",
+            "current_branch",
+            "orchestra_worktree",
+            "codex_worktree",
+            "${CODEX_HOME:-$HOME/.codex}/worktrees",
+            "without silently creating another worktree",
+            "same live preapproval task",
         ),
         "orchestra-phase-commit": ("commit_phase.py",),
         "orchestra-pr-review": (
@@ -642,9 +658,16 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "--base-worktree",
             "--task-branch",
             "--base-branch",
+            "--execution-mode",
             "--remote",
             "lease",
             "retained resource",
+        ),
+        "orchestra-local-integrate": (
+            "--execution-mode",
+            "current_branch",
+            "orchestra_worktree",
+            "codex_worktree",
         ),
     }
     for name, required_text in direct_consumers.items():
@@ -670,13 +693,16 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "$orchestra-delivery-policy",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
-            "Never adopt the current worktree for a new task",
-            "incomplete post-mutation cleanup is `partial`",
+            "`current_branch`",
+            "`orchestra_worktree`",
+            "`codex_worktree`",
+            "${CODEX_HOME:-$HOME/.codex}/worktrees",
+            "intentional retention is success",
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")
     fallback = "${CODEX_HOME:-$HOME/.codex}"
-    for name in SKILL_NAMES:
+    for name in (skill for skill in SKILL_NAMES if skill != "orchestra-project-start"):
         skill = root / f"codex/skills/{name}/SKILL.md"
         if skill.is_file() and fallback not in skill.read_text(encoding="utf-8"):
             failures.append(f"runtime-contract: {name} must state the Codex home fallback")
@@ -723,13 +749,13 @@ def check_direct_sync(root: Path) -> list[str]:
     if commands != {"status", "apply", "uninstall"}:
         failures.append("sync-contract: CLI must expose exactly status, apply, and uninstall")
     if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly seven skills")
+        failures.append("sync-contract: sync inventory must name exactly eight skills")
     if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
         failures.append("sync-contract: sync inventory must name exactly four agents")
     if set(constants.get("LEGACY_AGENTS", ())) != set(LEGACY_PROFILE_NAMES):
         failures.append(
-            "sync-contract: stale-profile cleanup must be limited to the ten "
-            "retired agent names"
+            "sync-contract: stale-profile cleanup must be limited to the "
+            f"{len(LEGACY_PROFILE_NAMES)} retired agent names"
         )
     if tuple(constants.get("HELPERS", ())) != (
         "commit_phase.py",
@@ -760,7 +786,7 @@ def check_direct_sync(root: Path) -> list[str]:
         path.name for path in (root / "codex/skills").iterdir() if path.is_dir()
     )
     if skill_dirs != sorted(SKILL_NAMES):
-        failures.append("sync-contract: source must contain exactly seven skill directories")
+        failures.append("sync-contract: source must contain exactly eight skill directories")
     profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
     if profiles != sorted(PROFILE_NAMES):
         failures.append("sync-contract: source must contain exactly four agent profiles")

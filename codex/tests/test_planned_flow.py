@@ -10,7 +10,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PROFILE_NAMES = {"analyst", "implementation_worker", "reviewer", "verifier"}
+PROFILE_NAMES = {"orchestra_analyst", "orchestra_implementation_worker", "orchestra_reviewer", "orchestra_verifier"}
 PLAYBOOK_NAMES = {
     "repository_context",
     "web_research",
@@ -64,16 +64,16 @@ class PlannedFlowContractTests(unittest.TestCase):
 
     def test_capability_inventory_and_profile_mapping_are_exact(self) -> None:
         standard = {
-            "repository_context": "analyst",
-            "web_research": "analyst",
-            "technical_planning": "analyst",
-            "architecture_analysis": "analyst",
-            "difficult_debugging": "analyst",
-            "general_implementation": "implementation_worker",
-            "frontend_implementation": "implementation_worker",
-            "independent_review": "reviewer",
-            "browser_acceptance": "verifier",
-            "runtime_verification": "verifier",
+            "repository_context": "orchestra_analyst",
+            "web_research": "orchestra_analyst",
+            "technical_planning": "orchestra_analyst",
+            "architecture_analysis": "orchestra_analyst",
+            "difficult_debugging": "orchestra_analyst",
+            "general_implementation": "orchestra_implementation_worker",
+            "frontend_implementation": "orchestra_implementation_worker",
+            "independent_review": "orchestra_reviewer",
+            "browser_acceptance": "orchestra_verifier",
+            "runtime_verification": "orchestra_verifier",
         }
         for roles in self.role_matrices.values():
             self.assertEqual(set(roles), {"standard", "critical"})
@@ -126,17 +126,17 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertNotIn("# Route an Orchestra change", self.skill)
 
     def test_profile_responsibilities_are_bounded(self) -> None:
-        analyst = self.instructions("analyst")
+        analyst = self.instructions("orchestra_analyst")
         self.assertIn("Perform exactly one named analysis capability", analyst)
         self.assertIn("Remain read-only with respect to repository source", analyst)
-        worker = self.instructions("implementation_worker")
+        worker = self.instructions("orchestra_implementation_worker")
         self.assertIn("approved paths and accepted fixes", worker)
         self.assertIn("same implementation owner", self.skill)
-        reviewer = self.instructions("reviewer")
+        reviewer = self.instructions("orchestra_reviewer")
         for target in ("plan", "architecture", "code revision", "PR feedback"):
             self.assertIn(target, reviewer)
         self.assertIn("Remain read-only and report-only", reviewer)
-        verifier = self.instructions("verifier")
+        verifier = self.instructions("orchestra_verifier")
         self.assertIn("runtime, test, log, or visible-browser checks", verifier)
         self.assertIn("Remain read-only with respect to repository source", verifier)
         for name in PROFILE_NAMES:
@@ -165,10 +165,10 @@ class PlannedFlowContractTests(unittest.TestCase):
             "remaining risk",
         )
         existing_output_fields = {
-            "analyst": ("evidence", "planned", "diagnosed", "blocked", "capability name", "observed facts", "unresolved questions", "source references"),
-            "implementation_worker": ("implemented", "blocked", "capability name", "changed paths", "implementation notes", "tests changed", "verification commands", "owned temporary resources", "remaining risks"),
-            "reviewer": ("accepted", "findings", "blocked", "review target", "material findings", "verification or authority gaps", "rejected pr feedback"),
-            "verifier": ("passed", "failed", "blocked", "capability name", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
+            "orchestra_analyst": ("evidence", "planned", "diagnosed", "blocked", "capability name", "observed facts", "unresolved questions", "source references"),
+            "orchestra_implementation_worker": ("implemented", "blocked", "capability name", "changed paths", "implementation notes", "tests changed", "verification commands", "owned temporary resources", "remaining risks"),
+            "orchestra_reviewer": ("accepted", "findings", "blocked", "review target", "material findings", "verification or authority gaps", "rejected pr feedback"),
+            "orchestra_verifier": ("passed", "failed", "blocked", "capability name", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
         }
         for name in PROFILE_NAMES:
             output = self.output_instructions(name).lower().strip()
@@ -200,9 +200,9 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_worker_minimality_requires_focused_comprehension_and_supported_cause(
         self,
     ) -> None:
-        worker = self.instructions("implementation_worker").lower()
+        worker = self.instructions("orchestra_implementation_worker").lower()
         responsibility = worker.split("## input", 1)[0]
-        worker_input = self.input_instructions("implementation_worker").lower()
+        worker_input = self.input_instructions("orchestra_implementation_worker").lower()
         for requirement in (
             "before editing",
             "affected flow",
@@ -255,7 +255,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(packet_field, worker_input)
 
     def test_reviewer_complexity_is_material_not_metric_scoring(self) -> None:
-        reviewer = self.instructions("reviewer").lower()
+        reviewer = self.instructions("orchestra_reviewer").lower()
         for requirement in (
             "unsupported consumer, requirement, or reproducible risk",
             "recommend deletion, an existing primitive, or a smaller direct implementation",
@@ -265,14 +265,14 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn(requirement, reviewer)
 
     def test_dispatch_packet_pins_phase_acceptance_and_scope_stop_conditions(self) -> None:
-        reviewer_input = self.input_instructions("reviewer").lower()
+        reviewer_input = self.input_instructions("orchestra_reviewer").lower()
         self.assertIn("the acceptance criteria", reviewer_input)
-        reviewer_stop = self.instructions("reviewer").split("## Stop conditions", 1)[1].lower()
+        reviewer_stop = self.instructions("orchestra_reviewer").split("## Stop conditions", 1)[1].lower()
         self.assertIn(
             "stop and return `blocked` when acceptance criteria are missing from the packet",
             reviewer_stop,
         )
-        worker_stop = self.instructions("implementation_worker").split(
+        worker_stop = self.instructions("orchestra_implementation_worker").split(
             "## Stop conditions", 1
         )[1].lower()
         self.assertIn(
@@ -297,24 +297,36 @@ class PlannedFlowContractTests(unittest.TestCase):
             "reproducible risk",
         ):
             self.assertIn(invariant, architecture)
-        self.assertIn("relevant references and revision identity", self.skill)
-
-    def test_new_formal_task_requires_fresh_worktree_before_discovery(self) -> None:
-        isolation = self.skill.index("## Isolate every new formal task")
-        repository_dispatch = self.skill.index(
-            "dispatch `repository_context` to an `analyst`"
+        self.assertIn(
+            "relevant references and revision identity",
+            " ".join(self.skill.split()),
         )
-        self.assertLess(isolation, repository_dispatch)
+
+    def test_new_formal_task_confirms_execution_environment_before_discovery(
+        self,
+    ) -> None:
+        selection = self.skill.index(
+            "## Confirm one proportional execution environment"
+        )
+        repository_dispatch = self.skill.index(
+            "dispatch `repository_context` to an `orchestra_analyst`"
+        )
+        self.assertLess(selection, repository_dispatch)
         normalized = " ".join(self.skill.split())
         for invariant in (
-            "Never adopt the current worktree for a new task",
-            "task and base paths and branches differ",
-            "adopted source HEAD while recording the intended integration base",
+            "`current_branch` for a small bounded task",
+            "one active Orchestra plan in that checkout",
+            "directly on the integration base",
+            "every preexisting change belongs unambiguously",
+            "`orchestra_worktree` when the user requests isolation",
+            "`codex_worktree` when the current chat checkout",
+            "${CODEX_HOME:-$HOME/.codex}/worktrees",
+            "without silently creating another worktree",
+            "Adopted committed work starts at its source HEAD",
             "adopt_worktree.py",
-            "Formal planning remains read-only",
-            "Block instead of falling back to the current checkout",
-            "same live pre-approval task",
-            "approved local plan, objective, task branch, base, and worktree",
+            "same live preapproval task",
+            "execution mode, checkout path, branch, base, and HEAD",
+            "preserving the physical directory",
             "completion without an artificial commit",
         ):
             self.assertIn(invariant, normalized)
@@ -322,16 +334,20 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_initial_context_precedes_final_specification_and_plan(self) -> None:
         normalized = " ".join(self.skill.split())
         brief = normalized.index("minimum brief with objective")
-        worktree = normalized.index("## Isolate every new formal task")
-        context = normalized.index("dispatch `repository_context` to an `analyst`")
+        environment = normalized.index(
+            "## Confirm one proportional execution environment"
+        )
+        context = normalized.index(
+            "dispatch `repository_context` to an `orchestra_analyst`"
+        )
         final_specification = normalized.index(
             "present and confirm the complete specification"
         )
         plan = normalized.index(
             "Final specification confirmation is the checkpoint to draft the plan"
         )
-        self.assertLess(brief, worktree)
-        self.assertLess(worktree, context)
+        self.assertLess(brief, environment)
+        self.assertLess(environment, context)
         self.assertLess(context, final_specification)
         self.assertLess(final_specification, plan)
         for contract in (
@@ -339,7 +355,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "before creating resources",
             "explicitly limits the request to brainstorming",
             "remain read-only",
-            "revalidate the tier",
+            "Recommend any justified tier change",
             "do not require a second literal request to make a plan",
             "Specification confirmation authorizes plan drafting, not implementation",
         ):
@@ -353,9 +369,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             "newly material factual question",
             "request only the targeted context delta",
             "close each one-shot analyst and its descendants",
-            "rejected, canceled, or abandoned before approval",
-            "still equals the captured base or adopted revision",
-            "has no unique work",
+            "On preapproval abandonment",
+            "never discard unique work",
+            "removes only a no-unique-work task branch",
             "No plan is persisted before approval",
         ):
             self.assertIn(contract, normalized)
@@ -369,7 +385,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertEqual(
             external_context,
             {
-                "profile": "analyst",
+                "profile": "orchestra_analyst",
                 "model": "cursor/composer-2.5-fast",
                 "reasoning_effort": "high",
             },
@@ -558,6 +574,14 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertNotIn("`draft`", self.skill)
         self.assertIn("Only the root writes the plan", self.skill)
         self.assertIn("Git is authoritative", self.skill)
+        for field in (
+            "`execution_mode`",
+            "checkout path",
+            "initial branch and HEAD",
+            "base branch and revision",
+            "authorized preexisting changes",
+        ):
+            self.assertIn(field, self.skill)
 
     def test_browser_routing_prefers_in_app_and_honors_explicit_selection(
         self,
@@ -575,6 +599,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "preserve all unrelated tabs",
         ):
             self.assertIn(contract, browser)
+        normalized_frontend = " ".join(frontend.split())
         for contract in (
             "`browser_route: auto | in_app | chrome`",
             "Codex's in-app Browser first",
@@ -583,7 +608,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "repeat the complete visual scenario",
             "separate from independent acceptance",
         ):
-            self.assertIn(contract, frontend)
+            self.assertIn(contract, normalized_frontend)
         self.assertIn("Never claim acceptance of your own work", frontend)
         self.assertIn("browser acceptance is an independent verifier dispatch", self.skill)
 
@@ -617,32 +642,22 @@ class PlannedFlowContractTests(unittest.TestCase):
         for excluded in ("close_agent", "browser_route", "kill unrelated"):
             self.assertNotIn(excluded, commit_skill)
 
-    def test_failed_tests_receive_one_exact_elevated_retry(self) -> None:
+    def test_failed_tests_use_selective_exact_elevation(self) -> None:
         runtime = (self.references / "runtime_verification.md").read_text()
-        worker = self.instructions("implementation_worker")
-        for contract in (
-            "ordinary sandbox",
-            "exact same command, arguments, and working directory once with elevated permission",
-            "record the sandbox dependency",
-            "Return `blocked` when elevation is unavailable or unsafe",
-        ):
-            self.assertIn(contract, runtime)
-        for contract in (
-            "Run tests sandboxed unless",
-            "exact command, arguments, and working directory once with elevated permission",
-            "sandbox dependency",
-            "return `blocked` when elevation is unavailable or unsafe",
-        ):
-            self.assertIn(contract, worker)
-        self.assertIn(
-            "Before broader verification or diagnosis of any failed test",
-            self.skill,
-        )
+        worker = self.instructions("orchestra_implementation_worker")
+        for text in (runtime, worker, self.skill):
+            normalized = " ".join(text.split())
+            self.assertIn("Classify a failure from", normalized)
+            self.assertIn("sandbox", normalized)
+            self.assertIn("sockets", normalized)
+            self.assertIn("CLI-usage failures", normalized)
+            self.assertIn("one exact elevated retry", normalized)
+        self.assertNotIn("any failed test", self.skill)
 
     def test_phase_resource_ownership_is_transient_and_bounded(self) -> None:
-        verifier = self.instructions("verifier")
-        worker = self.instructions("implementation_worker")
-        analyst = self.instructions("analyst")
+        verifier = self.instructions("orchestra_verifier")
+        worker = self.instructions("orchestra_implementation_worker")
+        analyst = self.instructions("orchestra_analyst")
         for profile in (verifier, worker):
             for contract in (
                 "Retain only explicitly permitted temporary processes",
@@ -651,11 +666,12 @@ class PlannedFlowContractTests(unittest.TestCase):
             ):
                 self.assertIn(contract, profile)
         self.assertIn("analysts are one-shot agents", analyst)
+        normalized_skill = " ".join(self.skill.split())
         for contract in (
             "Keep agent and resource handles only in root memory",
             "Do not persist packets, agent transitions, resource registries",
         ):
-            self.assertIn(contract, self.skill)
+            self.assertIn(contract, normalized_skill)
         self.assertIn(
             "an unclosed source-read-only task tab is partial cleanup",
             self.skill.lower(),
@@ -712,8 +728,12 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("records the blocked reason in the review evidence", self.skill)
         debugging = (self.references / "difficult_debugging.md").read_text()
         self.assertIn("escalation trigger fired", debugging)
-        self.assertIn("the same local failure repeated (its second occurrence)", debugging)
-        self.assertIn("two fix-review rounds with distinct legitimate findings failed to converge", debugging)
+        self.assertIn("the same causal failure repeated", debugging)
+        self.assertIn("correction cycles demonstrably failed to converge", debugging)
+        self.assertNotIn(
+            "two fix-review rounds with distinct legitimate findings",
+            debugging,
+        )
         self.assertIn("same implementation owner", debugging)
         self.assertIn("or the whole workflow", debugging)
 
@@ -724,6 +744,54 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("delivery authority remains separate", self.skill)
         self.assertIn("merge without separate authority", self.skill)
         self.assertIn("orchestra-delivery-policy", self.skill)
+
+    def test_user_selects_and_can_transition_tier_without_restart(self) -> None:
+        routing = " ".join(self.skill.split())
+        for contract in (
+            "The user may choose `standard` after a `critical` recommendation",
+            "never waives separate authority gates",
+            "active tier may change in either direction",
+            "Never change tier unilaterally",
+            "Do not revert, restart, or create a transition commit",
+            "replacement worker owns the remaining phase",
+            "Preserve evidence for the unchanged revision",
+        ):
+            self.assertIn(contract, routing)
+
+    def test_planning_requires_feasibility_and_execution_readiness(self) -> None:
+        context = (self.references / "repository_context.md").read_text()
+        planning = (self.references / "technical_planning.md").read_text()
+        combined = " ".join((context + planning).split())
+        for contract in (
+            "persisted types",
+            "schema versions",
+            "transactions",
+            "downstream consumers",
+            "fixtures",
+            "canonical verification commands",
+            "test-data provenance",
+            "generated or cache paths",
+            "feasibility-determining fact",
+        ):
+            self.assertIn(contract, combined)
+
+    def test_review_browser_and_confirmation_canaries_are_explicit(self) -> None:
+        reviewer = self.instructions("orchestra_reviewer")
+        browser = (self.references / "browser_acceptance.md").read_text()
+        routing = " ".join(self.skill.split())
+        normalized_browser = " ".join(browser.split())
+        self.assertIn("complete the entire bounded target", reviewer)
+        self.assertIn("all known material findings together", reviewer)
+        self.assertIn("canary for a previously failing tool", normalized_browser)
+        self.assertIn(
+            "Do not veto or substitute a user-selected route",
+            normalized_browser,
+        )
+        self.assertIn("Do not ask for the same confirmation twice", routing)
+        self.assertIn(
+            "Distinct legitimate findings alone are not an escalation trigger",
+            routing,
+        )
 
 if __name__ == "__main__":
     unittest.main()

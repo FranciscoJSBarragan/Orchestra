@@ -1,6 +1,6 @@
 # Web research playbook
 
-Use this internal playbook only with the `analyst` profile and the explicit `web_research` capability.
+Use this internal playbook only with the `orchestra_analyst` profile and the explicit `web_research` capability.
 
 ## Contract
 

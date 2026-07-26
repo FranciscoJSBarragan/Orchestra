@@ -230,6 +230,7 @@ else:
         method: str = "merge",
         clean_head: str | None = None,
         authorized: bool = True,
+        execution_mode: str = "orchestra_worktree",
     ) -> list[str]:
         args = [
             "merge",
@@ -251,6 +252,8 @@ else:
             clean_head or self.head,
             "--method",
             method,
+            "--execution-mode",
+            execution_mode,
         ]
         if authorized:
             args.append("--authorized")
@@ -652,6 +655,73 @@ else:
         self.assertIsNone(self.remote_head())
         merge = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "merge"])
         self.assertIn("--rebase", merge)
+
+    def test_merge_codex_worktree_cleans_refs_but_preserves_checkout(self) -> None:
+        self.write_policy(passing=True)
+        plan_path_result = self.git("rev-parse", "--git-path", "orchestra/plan.md")
+        plan_path = Path(plan_path_result.stdout.strip())
+        if not plan_path.is_absolute():
+            plan_path = self.repo / plan_path
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text("status: completed\n", encoding="utf-8")
+
+        result, payload = self.run_pr(
+            *self.merge_args("squash", execution_mode="codex_worktree")
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["execution_mode"], "codex_worktree")
+        self.assertEqual(
+            payload["cleanup"], ["remote_branch", "plan", "local_branch"]
+        )
+        self.assertEqual(payload["retained_resources"], [])
+        self.assertTrue(self.repo.exists())
+        self.assertFalse(plan_path.exists())
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.head)
+        detached = subprocess.run(
+            ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+            cwd=self.repo,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(detached.returncode, 0)
+        local_branch = subprocess.run(
+            ["git", "branch", "--list", "feature"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(local_branch.stdout, "")
+        self.assertIsNone(self.remote_head())
+
+    def test_merge_current_branch_preserves_checkout_and_local_branch(self) -> None:
+        self.write_policy(passing=True)
+        plan_path_result = self.git("rev-parse", "--git-path", "orchestra/plan.md")
+        plan_path = Path(plan_path_result.stdout.strip())
+        if not plan_path.is_absolute():
+            plan_path = self.repo / plan_path
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text("status: completed\n", encoding="utf-8")
+
+        result, payload = self.run_pr(
+            *self.merge_args("merge", execution_mode="current_branch")
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["execution_mode"], "current_branch")
+        self.assertEqual(payload["cleanup"], ["remote_branch", "plan"])
+        self.assertTrue(self.repo.exists())
+        self.assertFalse(plan_path.exists())
+        self.assertEqual(
+            self.git("symbolic-ref", "--quiet", "--short", "HEAD").stdout.strip(),
+            "feature",
+        )
+        self.assertTrue(self.git("branch", "--list", "feature").stdout.strip())
+        self.assertIsNone(self.remote_head())
 
     def test_merge_cleanup_accepts_an_absent_remote_branch(self) -> None:
         self.write_policy(passing=True)

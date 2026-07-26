@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Project Start"
+  short_description: "Turn a new idea into a runnable project base"
+  default_prompt: "Use $orchestra-project-start to turn my idea into a runnable project foundation."
+policy:
+  allow_implicit_invocation: true

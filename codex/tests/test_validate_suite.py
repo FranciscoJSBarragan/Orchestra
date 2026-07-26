@@ -189,14 +189,17 @@ class FullModeFixtureTest(unittest.TestCase):
         )
 
     def test_model_assignment_in_profile_is_rejected(self) -> None:
-        profile = self.root / "codex/agents/reviewer.toml"
+        profile = self.root / "codex/agents/orchestra_reviewer.toml"
         profile.write_text(
             profile.read_text(encoding="utf-8") + '\nmodel = "gpt-5.6-terra"\n',
             encoding="utf-8",
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("profile-contract: reviewer must contain only", result.stdout)
+        self.assertIn(
+            "profile-contract: orchestra_reviewer must contain only",
+            result.stdout,
+        )
 
     def test_invalid_role_model_is_rejected(self) -> None:
         roles = self.root / "codex/config/roles.native.toml"
@@ -211,16 +214,35 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("has invalid model", result.stdout)
 
     def test_duplicate_profile_name_is_rejected(self) -> None:
-        analyst = self.root / "codex/agents/analyst.toml"
+        analyst = self.root / "codex/agents/orchestra_analyst.toml"
         analyst.write_text(
             analyst.read_text(encoding="utf-8").replace(
-                'name = "analyst"', 'name = "reviewer"', 1
+                'name = "orchestra_analyst"',
+                'name = "orchestra_reviewer"',
+                1,
             ),
             encoding="utf-8",
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("profile names must be unique", result.stdout)
+
+    def test_sync_legacy_inventory_diagnostic_tracks_contract_count(self) -> None:
+        sync_script = self.root / "codex/scripts/sync.py"
+        sync_script.write_text(
+            sync_script.read_text(encoding="utf-8").replace(
+                '    "web_researcher",\n',
+                "",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "stale-profile cleanup must be limited to the 14 retired agent names",
+            result.stdout,
+        )
 
     def test_unconsumed_matrix_role_is_rejected(self) -> None:
         skill = self.root / "codex/skills/orchestra/SKILL.md"
@@ -240,7 +262,7 @@ class FullModeFixtureTest(unittest.TestCase):
         roles = self.root / "codex/config/roles.external.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
-            + '\n[tiers.standard.pr_poll]\nprofile = "reviewer"\n'
+            + '\n[tiers.standard.pr_poll]\nprofile = "orchestra_reviewer"\n'
             + 'model = "gpt-5.6-terra"\n'
             + 'reasoning_effort = "xhigh"\n',
             encoding="utf-8",
@@ -253,7 +275,7 @@ class FullModeFixtureTest(unittest.TestCase):
         roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
-                'profile = "implementation_worker"\n', "", 1
+                'profile = "orchestra_implementation_worker"\n', "", 1
             ),
             encoding="utf-8",
         )
@@ -265,7 +287,11 @@ class FullModeFixtureTest(unittest.TestCase):
         roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
-            .replace('profile = "analyst"', 'profile = "reviewer"', 1)
+            .replace(
+                'profile = "orchestra_analyst"',
+                'profile = "orchestra_reviewer"',
+                1,
+            )
             .replace(
                 'model = "gpt-5.6-sol"\nreasoning_effort = "high"',
                 'model = "gpt-5.6-sol"\nreasoning_effort = "xhigh"',
@@ -340,8 +366,8 @@ class FullModeFixtureTest(unittest.TestCase):
         workflow = self.root / "docs/WORKFLOW.md"
         workflow.write_text(
             workflow.read_text(encoding="utf-8").replace(
-                "| Standard | `general_implementation` | `implementation_worker` | `cursor/grok-4.5` | `high` |",
-                "| Standard | `general_implementation` | `implementation_worker` | `gpt-5.6-sol` | `max` |",
+                "| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.5` | `high` |",
+                "| Standard | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `max` |",
                 1,
             ),
             encoding="utf-8",
@@ -398,9 +424,9 @@ class FullModeFixtureTest(unittest.TestCase):
         roles = self.root / "codex/config/roles.external.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
-                '[tiers.critical.repository_context]\nprofile = "analyst"\n'
+                '[tiers.critical.repository_context]\nprofile = "orchestra_analyst"\n'
                 'model = "gpt-5.6-sol"\nreasoning_effort = "medium"',
-                '[tiers.critical.repository_context]\nprofile = "analyst"\n'
+                '[tiers.critical.repository_context]\nprofile = "orchestra_analyst"\n'
                 'model = "gpt-5.6-sol"\nreasoning_effort = "high"',
                 1,
             ),

@@ -14,8 +14,10 @@ documents; they do not redefine them independently.
 
 ## Orchestrator responsibility
 
-The root orchestrator owns specification alignment, tier selection, capability
-routing, compact synthesis, blocker resolution, and final technical judgment.
+The root orchestrator owns specification alignment, tier recommendation,
+capability routing, compact synthesis, blocker resolution, and final technical
+judgment. The user chooses the active tier and remains the final authority after
+receiving a concise recommendation and any applicable warning.
 It may make reversible in-scope
 technical decisions needed to complete an approved objective.
 
@@ -40,6 +42,13 @@ invocation.
 Orchestra observes the current host mode and never changes it into a
 planning-only mode.
 
+`orchestra-project-start` may activate implicitly for a new project, empty
+directory, stack decision, or idea without a meaningful repository. It prepares
+a proportional runnable foundation after the ordinary mutation-confirmation
+gate, then offers Orchestra. It never activates the full Orchestra workflow
+without an explicit user choice and yields to normal repository work when
+meaningful application code already exists.
+
 In an execution-capable mode, reuse the prior conversation, classify the
 internal checkpoint, and obtain a minimum brief with objective, visible result,
 approximate repository area, known critical risks, and bounded factual open
@@ -47,24 +56,37 @@ questions. If no objective was supplied, ask for it before creating resources.
 An explicitly brainstorming-only request stays read-only until the user
 authorizes formal task setup.
 
-Declare an initial tier from the brief, then create a new collision-free task
-branch and dedicated sibling worktree before repository analysis. Never mutate
-the source checkout. Fresh work starts at the integration base; adopted
-committed work starts at the adopted source HEAD while retaining that base;
-scoped dirty paths import through `adopt_worktree.py`. Use focused
-`repository_context` evidence to continue the dialogue, then confirm Objective,
-User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open
-questions and revalidate the tier before formal planning. Later context passes
-request only new factual deltas and close each one-shot analyst after consuming
-its result. Reuse only the same live pre-approval task or an exact approved-plan
-and Git identity match.
+An explicit instruction given after the corresponding scope, warning, plan, or
+pending action was presented satisfies that checkpoint while the material facts
+remain unchanged. Do not ask for the same confirmation twice.
+
+Recommend an initial tier from the brief and obtain the user's explicit choice,
+then perform a short read-only Git and execution-readiness preflight. Read
+repository delivery policy, recommend `current_branch`, `orchestra_worktree`,
+or `codex_worktree` with compatible delivery paths and bootstrap cost, and
+obtain the user's explicit environment choice before repository analysis or
+resource creation. A small clean feature-branch task may
+stay on its current branch; direct work on the integration base requires an
+explicit warning and confirmation. Unrelated or ambiguous dirty work blocks
+`current_branch`, which permits only one active Orchestra plan per checkout. An
+Orchestra worktree preserves the existing collision-free sibling flow. A
+native worktree is reusable only when it is a clean registered
+worktree under `${CODEX_HOME:-$HOME/.codex}/worktrees`, belongs to the same
+repository as a distinct base checkout, and has unambiguous identity; otherwise
+block without creating a hidden fallback. Use the exact confirmed checkout for
+focused `repository_context`, specification, planning, implementation, review,
+verification, and commits. Reuse requires exact approved-plan agreement on
+execution mode, path, branch, base, and HEAD.
 
 ## Tier selection
 
-Declare `Tier: <tier> — <matching condition>: <one-line evidence>` before
-execution. The declaration must cite the exact gating condition that places the
-work in the selected tier with one line of supporting evidence. If the cited
-condition is disproven by evidence, reclassify before dispatching.
+Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` before
+execution. Explain the material risk and expected scrutiny or cost in one short
+user-facing summary, then obtain the user's explicit tier choice. The user may
+choose `standard` after a `critical` recommendation; that choice changes model
+and workflow intensity but never waives separate authority gates for production,
+migrations, data, security, payments, destructive actions, or other high-impact
+mutations.
 
 Destructive means irreversible loss of unique data or work. An operation whose
 reversibility is proven by a cheap preflight (for example `git branch --contains`
@@ -83,10 +105,26 @@ Tier exemplars:
 - critical: schema migration; auth/payment/credential changes; deleting
   unrecoverable data; production mutation.
 
+The active tier may change in either direction after explicit user direction.
+Recommend reconsideration when a newly discovered risk materially changes the
+cost-benefit tradeoff, the same causal failure repeats, or correction cycles
+demonstrably fail to converge. Never change tier unilaterally.
+
+An active agent's model and reasoning effort are immutable. At a safe tier
+transition, finish the current tool call, collect the exact worktree and diff
+state, evidence, progress, pending work, and owned resources, then stop those
+resources and close only phase agents whose assignment changes. Do not revert,
+restart the workflow, or create an artificial commit. Update the active tier and
+user decision in the local plan, then spawn replacements only when needed with a
+compact continuation packet. The replacement implementation worker owns the
+rest of the phase. Evidence remains valid only for the unchanged revision and
+conditions; inspect and reverify the targeted delta introduced by a new risk.
+
 ## Default agent flow
 
-- Orchestra has four base profiles: `analyst`, `implementation_worker`,
-  `reviewer`, and `verifier`.
+- Orchestra has four namespaced base profiles: `orchestra_analyst`,
+  `orchestra_implementation_worker`, `orchestra_reviewer`, and
+  `orchestra_verifier`.
 - The root composes each dispatch with a capability and the exact tier
   assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
 - Attempt the installed assignment first. Only `repository_context` may fall
@@ -99,6 +137,11 @@ Tier exemplars:
 - Critical: standard flow plus plan audit or a second independent review only
   for a named measurable risk and detectable defect class.
 - Use a detailed phase subplan only when the phase itself is complex.
+- Before plan approval, establish read-only execution readiness from repository
+  evidence: canonical setup and verification commands, runtime and dependency
+  availability, required services and permissions, credential categories
+  without reading secrets, test-data provenance, and generated or cache paths.
+  Add a preparation phase only when the approved task actually needs one.
 - Accepted findings return to the same implementation owner.
 - Keep that implementation owner, the independent reviewer, and one verifier
   per used verification capability open for the whole phase; reuse them for
@@ -106,13 +149,16 @@ Tier exemplars:
 - Close one-shot analysts after consuming their result. Before phase commit,
   stop only Orchestra-owned temporary processes and task tabs, consume cleanup
   results, and close every phase agent and its descendants.
-- Reviewers report; they do not silently implement their own findings.
+- The reviewer's first pass covers the complete bounded target and returns all
+  known material findings together. Later passes review only the meaningful
+  delta and its interactions. Reviewers report; they do not silently implement
+  their own findings.
 
-Frontend implementation composes `implementation_worker`; browser acceptance
-composes `verifier`. They remain independent, and named browser acceptance is
-standard or critical according to the settled risk. No Orchestra assignment
-uses Sol xhigh. The user selects the
-root's Sol medium or Sol high session outside Orchestra.
+Frontend implementation composes `orchestra_implementation_worker`; browser
+acceptance composes `orchestra_verifier`. They remain independent, and named
+browser acceptance uses the active user-selected tier. No Orchestra assignment
+uses Sol xhigh. The user selects the root's Sol medium or Sol high session
+outside Orchestra.
 
 Fix correctness, security, regression, acceptance, and defect-prone
 maintainability findings. Record or reject cosmetic, speculative, or
@@ -126,6 +172,8 @@ out-of-scope suggestions without entering a review loop.
 - After formal-plan approval, the root writes the exact approved plan directly
   as `active` at `git rev-parse --git-path orchestra/plan.md`; valid statuses are
   only `active`, `blocked`, and `completed`. Git is authoritative on resume.
+  Record the current active tier and any different root recommendation in the
+  existing Decisions section; do not add a tier-history store.
 - Plan approval authorizes implementation and automatic commits at successfully
   reviewed phase boundaries unless the user limits that authority.
 - The root commits each reviewed phase directly or through the narrow commit
@@ -149,30 +197,49 @@ out-of-scope suggestions without entering a review loop.
 - Merge remains separately authorized unless the user already said to merge
   when clean.
 - Local integration requires explicit user direction, fresh verification,
-  clean integration, and branch/worktree cleanup.
-- Authorized PR merge includes guarded cleanup of the exact clean task
-  worktree, local branch, and unchanged remote branch; incomplete cleanup is
-  `partial`, never silently successful.
+  clean integration, and mode-aware cleanup; it does not apply to
+  `current_branch`.
+- Authorized delivery cleanup removes Orchestra-owned worktrees, but leaves a
+  Codex-owned worktree clean and detached for Codex and preserves an active
+  current-branch checkout. Incomplete intended cleanup is `partial`; intentional
+  retention is success.
 - Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Browser acceptance
 
 Browser interaction packets carry `browser_route: auto | in_app | chrome`.
-Explicit user selection wins and does not fall back unless authorized. `auto`
-uses Codex's in-app Browser first and falls back to Computer Use with Chrome
-only for a technical availability or capability gap, never for a functional
-failure, timeout, or selector problem. An allowed fallback closes the dedicated
-in-app tab and repeats the full scenario in a new Chrome tab. Frontend iteration
-and independent acceptance use separate task tabs and preserve unrelated tabs,
-sessions, and user state.
+Explicit user selection wins, must be attempted even when the purpose is to
+canary a previously failing tool, and does not fall back unless authorized. A
+profile may report the selected route unavailable but may not veto or substitute
+it. `auto` uses Codex's in-app Browser first and falls back to Computer Use with
+Chrome only for a technical availability or capability gap, never for a
+functional failure, timeout, or selector problem. An allowed fallback closes
+the dedicated in-app tab and repeats the full scenario in a new Chrome tab.
+Frontend iteration and independent acceptance use separate task tabs and
+preserve unrelated tabs, sessions, and user state.
 
 ## Test permissions
 
-Run tests in the sandbox unless a concrete elevated need is declared. Before
-broader verification or diagnosis of any failed test, repeat the exact command,
-arguments, and working directory once with elevated permission. Accept a pass
-with the sandbox dependency recorded; treat a repeated failure as real evidence;
-return `blocked` when elevation is unavailable or unsafe.
+Run tests in the sandbox unless a concrete elevated need is declared. Classify a
+failure from its direct evidence before requesting elevation. Repeat the exact
+command, arguments, and working directory once with elevated permission only
+when sandboxing, permissions, filesystem access, network access, sockets, local
+services, or protected caches could plausibly explain it. Do not elevate
+deterministic syntax, type, compile, lint, import, assertion, validation-contract,
+or CLI-usage failures. If the cause is genuinely ambiguous, one exact elevated
+retry is allowed. Accept a pass with the sandbox dependency recorded; otherwise
+treat trustworthy deterministic or repeated evidence as real failure. Return
+`blocked` when required elevation is unavailable or unsafe.
+
+## User-facing progress
+
+Report only material phase transitions, findings or decisions, blockers, fresh
+verification results, and authority requests. Use one compact update containing
+current state, user-visible result or evidence, and next action. Do not narrate
+unchanged waits, profile/model plumbing, or routine internal coordination unless
+it changes the outcome. At handoff, distinguish implementation-complete from
+delivered and state the result location, how to run or demonstrate it, fresh
+verification, safe test data, limitations, delivery state, and next authority.
 
 ## Autonomy and proportionality
 

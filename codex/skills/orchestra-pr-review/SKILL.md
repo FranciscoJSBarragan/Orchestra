@@ -11,12 +11,12 @@ Keep the root responsible for GitHub observation, feedback decisions, routing, b
 
 1. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/pr.py" observe --repo <root> --repository <OWNER/REPO> --pr <number> [--previous-clean-head <sha>]`.
 2. Read the helper's factual current head, checks, review decision, merge state, unresolved non-outdated feedback, pagination completeness, and clean-observation result. Treat malformed or incomplete evidence as `partial` or `blocked`, never clean.
-3. When feedback needs code-review judgment, resolve `tiers.<tier>.independent_review` from `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` and dispatch the configured `reviewer` with explicit model and reasoning overrides. Supply the observation, exact head, PR-CONTEXT capsule, complete current base..HEAD diff, approved intent and scope, the acceptance criteria from the open-time packet or PR-CONTEXT, relevant source, and verification evidence.
+3. When feedback needs code-review judgment, resolve `tiers.<tier>.independent_review` from `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` and dispatch the configured `orchestra_reviewer` with explicit model and reasoning overrides. Supply the observation, exact head, PR-CONTEXT capsule, complete current base..HEAD diff, approved intent and scope, the acceptance criteria from the open-time packet or PR-CONTEXT, relevant source, and verification evidence.
 4. Require the reviewer to report evidence-backed accepted and rejected feedback without editing. The root decides disposition from current intent, code, and scope.
 
 ## Fix and converge
 
-1. Return every accepted finding to the same `implementation_worker` that owned the affected implementation, preserving its original `general_implementation` or `frontend_implementation` capability and playbook. Do not silently transfer ownership.
+1. Return every accepted finding to the same `orchestra_implementation_worker` that owned the affected implementation, preserving its original `general_implementation` or `frontend_implementation` capability and playbook. Do not silently transfer ownership.
 2. Run affected `runtime_verification` and any required `browser_acceptance`, then send only the meaningful delta to `independent_review`.
 3. Commit accepted fixes through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then have the root push the current branch directly under the existing `open PR` authority.
 4. Clear any remembered clean head after a push or observed head change. Resume with direct observation; do not restart discovery, planning, or unaffected verification.

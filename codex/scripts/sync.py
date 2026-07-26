@@ -15,6 +15,7 @@ from typing import Any
 
 SKILLS = (
     "orchestra",
+    "orchestra-project-start",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -23,21 +24,25 @@ SKILLS = (
     "orchestra-local-integrate",
 )
 AGENTS = (
-    "analyst",
-    "implementation_worker",
-    "reviewer",
-    "verifier",
+    "orchestra_analyst",
+    "orchestra_implementation_worker",
+    "orchestra_reviewer",
+    "orchestra_verifier",
 )
 LEGACY_AGENTS = (
+    "analyst",
     "browser_acceptance_tester",
     "debugging_investigator",
     "frontend_implementation_worker",
+    "implementation_worker",
     "phase_committer",
     "plan_scope_auditor",
     "planner",
     "pr_polling_specialist",
     "pr_triage_specialist",
     "repo_context_explorer",
+    "reviewer",
+    "verifier",
     "web_researcher",
 )
 HELPERS = (
@@ -148,7 +153,7 @@ def _inventory(
             raise SyncError(f"unexpected skill source entry: {child}")
         actual_skills.append(child.name)
     if tuple(actual_skills) != tuple(sorted(SKILLS)):
-        raise SyncError("skill source inventory does not match the seven supported skills")
+        raise SyncError("skill source inventory does not match the eight supported skills")
     for skill in SKILLS:
         directory = skill_root / skill
         for source in _walk_files(directory):
