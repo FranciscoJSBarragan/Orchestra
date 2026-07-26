@@ -6,18 +6,20 @@
 flowchart TD
     U["Normal chat"] --> Q{"User intent"}
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
-    Q -->|"Explicit $orchestra or use/start Orchestra"| S["Root-led specification gate"]
+    Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
-    S --> C["Confirm compact specification"]
-    C --> T{"Standard or critical"}
+    B --> T{"Initial standard or critical tier"}
     T --> I["Create a new task branch and dedicated sibling worktree"]
-    I --> P["Bounded context and formal technical plan"]
+    I --> RC["Focused repository context"]
+    RC --> C["Evidence-grounded final specification and tier revalidation"]
+    C --> P["Formal technical plan"]
     P --> A["User approves implementation"]
     A --> W["Write approved plan directly as active"]
     W --> F["Execute the next phase"]
     F --> R["Review and verify"]
     R -->|"Material finding"| F
-    R -->|"Accepted"| M["Root commits the phase"]
+    R -->|"Accepted"| X["Close phase agents and owned temporary resources"]
+    X --> M["Root commits the phase"]
     M --> N{"More phases?"}
     N -->|"Yes"| F
     N -->|"No"| D["Delivery-ready implementation"]
@@ -39,6 +41,8 @@ If Orchestra is invoked in a planning-only host mode, reuse the conversation,
 identify the latest candidate checkpoint, and pause before branch, worktree,
 plan persistence, implementation, or commit mutations. Ask the user to switch
 to an execution-capable mode, then continue without a second invocation.
+Orchestra observes the host mode; it never changes the host into a
+planning-only mode.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -62,7 +66,16 @@ installs only that matrix at the canonical runtime path. Orchestra does not ask
 for, persist, or override the selection per task. Do not switch the installed
 configuration while an Orchestra task is active.
 
-Profiles contain behavior only; public skill names remain unchanged.
+The installed assignment is always attempted first. The only runtime
+compatibility exception is `repository_context`: when its assigned model is
+rejected before execution because the internal subagent runtime does not support
+that model, the root may spawn the same `analyst` packet with `gpt-5.6-luna`
+reasoning `high`. Record that substitution only in live root memory. Do not
+create a visible Codex task, modify either source or installed matrices, persist
+fallback state, or apply the fallback to another capability. An unsupported
+assigned model for any other capability returns `blocked`.
+
+Profiles contain behavior only; public skill identifiers remain unchanged.
 `general_implementation` and `independent_review` are assignment keys whose
 behavior remains in the base `implementation_worker` and `reviewer` prompts;
 neither has an internal playbook.
@@ -100,8 +113,8 @@ playbook.
 | Standard | `difficult_debugging` | `analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `general_implementation` | `implementation_worker` | `cursor/grok-4.5` | `high` |
 | Standard | `frontend_implementation` | `implementation_worker` | `opencode/glm-5.2` | `max` |
-| Standard | `independent_review` | `reviewer` | `gpt-5.6-terra` | `max` |
-| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-luna` | `xhigh` |
+| Standard | `independent_review` | `reviewer` | `gpt-5.6-terra` | `high` |
+| Standard | `browser_acceptance` | `verifier` | `gpt-5.6-terra` | `medium` |
 | Standard | `runtime_verification` | `verifier` | `gpt-5.6-terra` | `high` |
 
 ### Shared critical configuration
@@ -133,12 +146,13 @@ After explicit activation in an execution-capable mode:
 
 1. The root reuses the prior conversation, classifies the internal checkpoint
    (exploration, candidate specification, candidate plan, adopted
-   implementation, or resumable Orchestra task), asks only genuine gaps, and
-   confirms Objective, User-visible behavior, Constraints, Acceptance,
-   Exclusions, Decisions, and Open questions with the user. No artifact is
-   persisted. A plan created before activation remains a candidate until
-   Orchestra validates it.
-2. The root classifies the settled work as standard or critical.
+   implementation, or resumable Orchestra task), and obtains a minimum brief:
+   objective, visible result, approximate repository area, known critical
+   risks, and bounded factual open questions. If `$orchestra` arrives without
+   an objective, ask for it before creating resources. If the user explicitly
+   limits the request to brainstorming, remain read-only until the user
+   authorizes formal task setup.
+2. From that brief, the root declares an initial standard or critical tier.
 3. The root resolves the intended base branch and committed revision, then uses
    Git directly to create a collision-free `orchestra/<task-slug>[-N]` branch
    and dedicated sibling worktree. Never mutate, switch, clean, stash, commit,
@@ -150,22 +164,31 @@ After explicit activation in an execution-capable mode:
    fresh task `HEAD` equals the captured base revision; an adopted task `HEAD`
    equals the adopted source revision while the earlier integration base
    remains recorded.
-4. An `analyst` with `repository_context` inspects only the domains needed for
-   the request. The root may skip or reduce this dispatch only when it cites the
-   specific prior evidence it reuses (artifact and HEAD, same session);
-   otherwise dispatch. A reduced dispatch requests only the targeted context
-   delta.
-5. The orchestrator merges evidence into the settled specification.
-6. The root writes the formal plan in conversation or system temporary storage,
-   dispatching `technical_planning` (or
+4. An `analyst` with `repository_context` answers the brief's bounded factual
+   questions from the exact task worktree. The root may skip or reduce this
+   dispatch only when it cites the specific prior evidence it reuses (artifact
+   and HEAD, same session); otherwise dispatch. Consume the result and close the
+   one-shot analyst.
+5. The orchestrator continues the user dialogue using that evidence. Additional
+   `repository_context` dispatches are allowed only for newly material factual
+   questions and request only the targeted context delta; consume and close each
+   one-shot analyst before continuing.
+6. The root confirms the final specification with Objective, User-visible
+   behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
+   then revalidates the tier. If evidence changes the tier, use the new tier for
+   every later dispatch and request only the context delta tied to the newly
+   discovered risk.
+7. Final specification confirmation is the checkpoint for the root to write the
+   formal plan in conversation or system temporary storage; no second literal
+   request to make a plan is required. Dispatch `technical_planning` (or
    `architecture_analysis` for a bounded named architecture question) when
    useful; for a small single-phase standard task the root may write the
    compact plan directly. A single-phase standard plan is explicitly compact:
    objective, one phase contract, verification, nothing else.
-7. A critical plan audit is an independent `reviewer` dispatch only when its
+8. A critical plan audit is an independent `reviewer` dispatch only when its
    packet names a measurable risk, supporting evidence and affected area, and
    an independently detectable defect class. Complexity alone is insufficient.
-8. The root reviews the plan, summarizes it at the user's altitude, and requests
+9. The root reviews the plan, summarizes it at the user's altitude, and requests
    implementation approval.
 
 Every planning, implementation, review, verification, plan, and commit operation
@@ -180,6 +203,12 @@ commits at the approved phase boundaries; it does not authorize merge, release,
 deployment, production mutation, or another delivery action. If adopted
 committed work passes unchanged, completion does not require an artificial
 commit.
+
+If the user rejects or abandons the task before plan approval, preserve any
+resource that contains unique work. Remove only a demonstrably clean task
+worktree whose branch is still at the captured base or adopted revision, using
+the existing safe cancellation contract. No plan has been persisted at this
+point.
 
 ### Local task plan
 
@@ -222,18 +251,26 @@ delegated from the main plan.
 The loop is:
 
 1. The root selects one `implementation_worker` with `general_implementation`
-   or `frontend_implementation`.
-2. A `verifier` runs applicable checks and reports their observed results. If
-   verification returns `failed`, return findings to the same implementation
-   owner and re-verify before dispatching `independent_review`. If it returns
-   `blocked`, the root decides whether review proceeds on source alone and,
-   when it does, records the blocked reason in the review evidence.
+   or `frontend_implementation` and keeps that owner available for the whole
+   phase.
+2. The root creates at most one `verifier` for each applicable capability,
+   `runtime_verification` and `browser_acceptance`, and reuses the corresponding
+   verifier for affected reruns during the phase. If verification returns
+   `failed`, return findings to the same implementation owner and re-verify
+   before dispatching `independent_review`. If it returns `blocked`, the root
+   decides whether review proceeds on source alone and, when it does, records
+   the blocked reason in the review evidence.
 3. One independent `reviewer` checks specification, correctness, regressions,
-   safety, and materially defect-prone design.
-4. Accepted findings return to the same owner.
-5. Re-run affected verification and review the meaningful delta.
-6. When the phase passes, the root commits with direct Git by default. It may
-   use the narrow commit helper when exact-path staging is useful.
+   safety, and materially defect-prone design and remains available for delta
+   review during the phase.
+4. Accepted findings return to the same implementation owner.
+5. Re-run affected verification with the same capability verifier and send the
+   meaningful delta to the same reviewer.
+6. After final evidence is consumed, the root performs the phase teardown
+   described below.
+7. When teardown permits the phase to close, the root commits with direct Git
+   by default. It may use the narrow commit helper when exact-path staging is
+   useful.
 
 When either the same failure repeats (its second occurrence) or two fix-review
 rounds with distinct legitimate findings fail to converge, stop blind retries
@@ -242,6 +279,60 @@ the pattern suggests a deeper cause, or ask the user when an authority boundary
 is crossed. An isolated mechanical Git failure stays with the root: inspect the
 current status and latest commit once, make an obvious safe correction when
 available, and do not dispatch an agent merely to operate or explain Git.
+
+### Phase teardown
+
+The root keeps only an in-memory list of the agents and temporary resources it
+created for the current phase. It closes one-shot repository, planning, plan
+audit, web research, or difficult-debugging agents after consuming their
+result. The implementation owner, independent reviewer, and each capability
+verifier remain open through the phase so fixes, reruns, and delta review reuse
+their relevant context.
+
+After final review and verification pass, but before phase commit, the root:
+
+1. asks resource-owning phase agents to stop only the exact servers or processes
+   they started and close only their task-dedicated browser tabs;
+2. stops any shared temporary process the root itself started;
+3. consumes the teardown results, then calls `close_agent` for every phase
+   agent, which also closes its descendants;
+4. confirms that no known agent or owned process with worktree write access
+   remains active.
+
+An active write-capable agent or owned process blocks the commit. Failure to
+close a source-read-only browser tab is reported as partial cleanup but does not
+invalidate otherwise accepted evidence or the Git commit. Orchestra never scans
+for or kills unrelated processes, closes unrelated tabs or sessions, persists a
+resource registry, or adds cleanup behavior to the phase-commit helper.
+
+### Test permissions and browser routing
+
+Test commands run in the ordinary sandbox unless their packet declares a
+specific elevated requirement. Before broadening verification, diagnosing, or
+returning any failed test as product evidence, rerun the exact same command,
+arguments, and working directory once with elevated permission. If it passes,
+record the sandbox dependency and accept the elevated evidence. If it fails
+again, treat the repeated result as trustworthy failure evidence. If elevation
+is unavailable or unsafe, return `blocked`. Do not turn the retry into a shell
+wrapper or a broader command.
+
+Packets for `frontend_implementation` browser work and `browser_acceptance`
+carry `browser_route: auto | in_app | chrome`:
+
+- `auto` explicitly selects Codex's in-app Browser first. After supported
+  connection recovery, it may fall back to Computer Use with Chrome only when
+  the in-app Browser is unavailable or cannot provide required authentication,
+  extension, native-dialog, browser-specific, or system-integration behavior.
+- `in_app` selects only the in-app Browser.
+- `chrome` selects only Computer Use with Chrome.
+
+An explicit route from the user, relayed by the root or given directly in the
+agent conversation, wins and remains fixed unless that instruction also permits
+fallback. A functional failure, application timeout, or selector problem never
+causes a switch. On an allowed fallback, close the in-app task tab, open an
+independent Chrome task tab, and repeat the complete scenario so evidence from
+different browser surfaces is never combined into one pass. Frontend iteration
+and independent browser acceptance use separate tabs and evidence.
 
 ## Review policy
 
@@ -323,6 +414,9 @@ reported a failure; do not retry, amend, or manufacture another commit.
 Git provides atomic commit and reflog behavior. Local commits do not require an
 isolated index, crash journal, authority bundle, or repeated subprocess
 validation.
+
+Phase-agent and temporary-resource teardown is complete before this path starts;
+it is not part of direct Git or `commit_phase.py`.
 
 ## Delivery policy
 

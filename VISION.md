@@ -35,10 +35,12 @@ organization-wide approval bureaucracy.
 ### Intelligent orchestration
 
 The orchestrator is not a brainless dispatcher. It reuses the preceding
-conversation, closes genuine specification gaps, synthesizes evidence, confirms
-scope with the user, selects the tier, chooses
-the next capability dispatch, handles ordinary blockers, and makes the final
-technical judgment from fresh evidence.
+conversation, obtains a bounded minimum brief, selects an initial tier, and
+creates the isolated task resources needed to gather focused repository
+evidence. It then closes genuine specification gaps, synthesizes that evidence,
+confirms the final scope with the user, revalidates the tier, chooses the next
+capability dispatch, handles ordinary blockers, and makes the final technical
+judgment from fresh evidence.
 
 The root owns the task plan and composes focused capabilities with four stable
 agent responsibilities: analysis, implementation, independent review, and
@@ -93,6 +95,12 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
+Tests run with ordinary sandboxing unless their packet declares a concrete need
+for elevation. Before broadening verification or diagnosing any failed test,
+Orchestra repeats that exact command once with elevated permission. A pass
+records an environment dependency; a repeated failure is trustworthy failure
+evidence; unavailable or unsafe elevation is a blocker.
+
 Current source and Git provide repository context. Project tests, runtime
 evidence, and independent review provide the complementary correctness signals;
 Orchestra does not maintain a separate repository index or control plane.
@@ -109,6 +117,31 @@ additional personas; some assignment keys use only base-profile behavior.
 The profile boundary follows responsibility and independence, while the
 capability boundary follows the work being performed. New recurring knowledge
 should normally become a playbook, not a profile.
+
+Repository context is an early, focused conversation aid rather than a late
+planning formality. Orchestra never dispatches it without a minimum objective
+and bounded factual questions. Additional passes answer only newly discovered
+questions through context deltas, and every context analyst closes after its
+result is consumed.
+
+The installed assignment remains authoritative. When the external standard
+matrix assigns `repository_context` to Composer Fast but the internal subagent
+runtime cannot accept that model, only that capability may use Luna high as a
+transient fallback. The substitution is remembered only for the live task and
+does not create a visible task, alter the installed matrix, or establish a
+fallback for any other capability.
+
+Within a phase, Orchestra keeps the implementation owner, independent reviewer,
+and one verifier for each used verification capability available for fixes,
+reruns, and delta review. One-shot analysis agents close after their result is
+consumed. Before the phase commit, the root closes the phase cohort and cleans
+only its known temporary processes and browser tabs; those handles remain
+transient and never become a registry.
+
+Browser work defaults to Codex's isolated in-app Browser. An explicit route may
+select it or Computer Use with Chrome from the start; otherwise Chrome is a
+fallback only when the in-app Browser is unavailable or lacks a capability
+required by the scenario. A product failure never triggers a browser switch.
 
 ### Simple Git, strong delivery
 
@@ -128,6 +161,7 @@ safe.
 Orchestra succeeds when:
 
 - ordinary tasks finish without workflow repair or manual state cleanup;
+- accepted phases leave no active write-capable agent or owned test process;
 - phase commits are routine and traceable;
 - review effort finds or prevents meaningful defects;
 - failures explain the cause and the next useful action;

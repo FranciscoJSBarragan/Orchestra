@@ -88,6 +88,11 @@ class RoutingActivationContractTests(unittest.TestCase):
             self.assertIn(phrase, flat_skill)
         self.assertIn("without a second invocation", self._flat(self.workflow))
         self.assertIn("without a second invocation", self._flat(self.agents))
+        for text in (self.skill, self.workflow, self.agents, self.runtime):
+            self.assertIn(
+                "never changes",
+                self._flat(text),
+            )
 
     def test_ordinary_requests_do_not_activate_orchestra(self) -> None:
         self.assertIn("do not activate it", self.skill.lower())

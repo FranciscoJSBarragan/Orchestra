@@ -3,7 +3,7 @@ name: orchestra
 description: Use only for an explicit `$orchestra` invocation or an unequivocal imperative to use or start Orchestra; align the specification, create an approved standard or critical implementation plan, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
 ---
 
-# Route an Orchestra change
+# Orchestra
 
 Keep the root orchestrator responsible for specification alignment, tier selection, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. Use the root's current session configuration selected outside Orchestra; the root has no assignment in `roles.toml` and is never respawned.
 
@@ -22,19 +22,30 @@ worktree, persist a plan, dispatch implementation, commit, or cross another
 mutation boundary. Ask the user to switch to an execution-capable mode. When
 the host becomes execution-capable, continue from the adopted context without
 requiring another `$orchestra` invocation or recreating the analysis or plan.
+Orchestra observes the host mode and never changes the host into a
+planning-only mode.
 
 In an execution-capable mode, reuse the preceding conversation, inspect Git
 state, classify the internal checkpoint (exploration, candidate specification,
 candidate plan, adopted implementation, or resumable Orchestra task), and state
-concisely what Orchestra is adopting. Ask only genuine gaps. Before tiering,
-present and confirm a compact specification containing Objective, User-visible
-behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions.
-Do not persist it. A plan created before activation remains a candidate plan
-until Orchestra validates it.
+concisely what Orchestra is adopting. Ask only genuine gaps while obtaining a
+minimum brief with objective,
+visible result, approximate repository area, known critical risks, and bounded
+factual open questions. If `$orchestra` is invoked without an objective, ask for
+it before creating resources. If the user explicitly limits the request to
+brainstorming, remain read-only until the user authorizes formal task setup. Do
+not persist the brief. A plan created before activation remains a candidate plan
+until Orchestra validates it against repository evidence.
 
-## Classify after specification confirmation
+## Classify initially and revalidate after context
 
-Declare `Tier: standard|critical — <matching condition>: <one-line evidence>` before dispatch. If the cited condition is disproven, reclassify before dispatching.
+Declare `Tier: standard|critical — <matching condition>: <one-line evidence>`
+from the minimum brief before creating the formal task resources. This is the
+initial tier used for the first repository-context assignment. After focused
+repository evidence and final specification confirmation, revalidate the tier.
+If the cited condition is disproven or a critical risk is discovered,
+reclassify before any later dispatch and request only the context delta tied to
+that risk.
 
 Destructive means irreversible loss of unique data or work. An operation whose reversibility is proven by a cheap preflight (for example `git branch --contains` showing the commits exist in the base, or state that is regenerable) is not destructive and does not force critical.
 
@@ -44,7 +55,7 @@ Tier exemplars: standard covers ordinary planned features and fixes; critical co
 
 ## Isolate every new formal task
 
-After tiering and before any capability dispatch, resolve the intended base
+After initial tiering and before any capability dispatch, resolve the intended base
 worktree, base branch, and committed base revision without inheriting the
 current task's branch. Use Git directly to choose the first available
 `orchestra/<task-slug>[-N]` branch and sibling worktree path, then create a new
@@ -66,14 +77,24 @@ source checkout. Block instead of falling back to the current checkout.
 
 Reuse is limited to the same live pre-approval task or to a resumed task whose
 approved local plan, objective, task branch, base, and worktree all match Git.
-If planning is rejected or canceled, remove only a clean worktree whose branch
-still equals the captured base or adopted revision and has no unique work;
-otherwise preserve and report the resources. If adopted committed work later
-passes unchanged, allow completion without an artificial commit.
+If planning is rejected, canceled, or abandoned before approval, remove only a
+clean worktree whose branch still equals the captured base or adopted revision
+and has no unique work; otherwise preserve and report the resources. No plan is
+persisted before approval. If adopted committed work later passes unchanged,
+allow completion without an artificial commit.
 
 ## Resolve assignments and references
 
 Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Read `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only machine-readable assignment matrix. Resolve exactly `tiers.<tier>.<capability>` and require that entry to contain only `profile`, `model`, and `reasoning_effort`. Load `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the packet, and use the assignment's explicit model and reasoning overrides when spawning. A profile never selects its capability or assignment.
+
+Always attempt the installed assignment first. Only when a
+`repository_context` spawn is rejected before execution because the internal
+subagent runtime does not support the assigned model, retry that same `analyst`
+packet internally with Luna and reasoning `high`. Record the
+substitution only in root memory for the live task. Do not create a visible
+Codex task, persist fallback state, edit the source or installed matrix, or use
+this fallback for another capability. If any other capability's assigned model
+is unsupported, return `blocked`.
 
 Compose assignments as follows:
 
@@ -96,7 +117,7 @@ Standard and critical may use all ten capabilities. Do not dispatch a capability
 
 ## Keep compact context
 
-Keep one compact in-memory packet with: explicit capability; objective; known decisions and context delta; allowed paths or interactions; acceptance; verification; exclusions; stop conditions; relevant references and revision identity. Reuse still-valid evidence and send only changed context deltas after the first pass. Do not persist packets, agent transitions, previous clean PR heads, authority bundles, or workflow logs.
+Keep one compact in-memory packet with: explicit capability; objective; known decisions and context delta; allowed paths or interactions; acceptance; verification; exclusions; stop conditions; relevant references and revision identity. When applicable, include `browser_route: auto | in_app | chrome`, test elevation requirements, and ownership of exact temporary processes or task tabs. Reuse still-valid evidence and send only changed context deltas after the first pass. Keep agent and resource handles only in root memory. Do not persist packets, agent transitions, resource registries, previous clean PR heads, authority bundles, or workflow logs.
 
 Request outcome-first, lossless structured returns: omit packet and routine process replay, preserve material evidence appropriate to the capability, and never impose a token, line, file, finding, test, or explanation cap.
 
@@ -114,23 +135,26 @@ Only the root writes the plan. On resume, resolve the Git path again and reconci
 
 ## Route standard and critical work
 
-1. Complete the mandatory new-task worktree isolation gate, then dispatch `repository_context` to an `analyst` with focused discovery questions from that exact worktree. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. A reduced dispatch requests only the targeted context delta. Add `web_research` only for necessary time-sensitive external evidence.
-2. Have the root synthesize evidence against the confirmed specification.
-3. The root drafts the plan in conversation or system temporary storage, dispatching `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
-4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient.
-5. Have the root review and summarize the plan and request explicit user approval. Stop before implementation. On approval, write the exact approved plan directly as `active`.
-6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase.
-7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. If verification returns `failed`, return findings to the same implementation owner and re-verify before dispatching `independent_review`. If it returns `blocked`, the root decides whether review proceeds on source alone and, when it does, records the blocked reason in the review evidence. Then dispatch `independent_review` against the exact revision and evidence.
+1. Complete the mandatory new-task worktree isolation gate from the minimum brief, then dispatch `repository_context` to an `analyst` with bounded factual questions from that exact worktree. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and HEAD, same session); otherwise dispatch. Consume the one-shot result and close that agent and its descendants before continuing.
+2. Continue the specification dialogue using the repository evidence. Dispatch additional `repository_context` only for a newly material factual question, request only the targeted context delta, and close each one-shot analyst and its descendants after consuming its result. Add `web_research` only for necessary time-sensitive external evidence. Then present and confirm the complete specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Revalidate the tier; if it changes, use the new tier for every later assignment and request only the context delta related to the newly discovered risk.
+3. Final specification confirmation is the checkpoint to draft the plan in conversation or system temporary storage; do not require a second literal request to make a plan. Dispatch `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
+4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient. Consume the one-shot audit result and close that reviewer and its descendants.
+5. Have the root review and summarize the plan and request explicit user approval. Stop before implementation. Specification confirmation authorizes plan drafting, not implementation. On approval, write the exact approved plan directly as `active`.
+6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase.
+7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Create at most one verifier per used verification capability and reuse that verifier for affected reruns. If verification returns `failed`, return findings to the same implementation owner and re-verify before dispatching `independent_review`. If it returns `blocked`, the root decides whether review proceeds on source alone and, when it does, records the blocked reason in the review evidence. Then dispatch one `independent_review` agent against the exact revision and evidence and keep it open for meaningful delta review.
 8. For a second critical review, reuse `independent_review` with the critical assignment only for a named measurable risk and independently detectable defect class.
-9. Return accepted findings to the same implementation owner, preserve its original implementation capability and playbook, rerun affected verification, and review the meaningful delta.
-10. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update phase progress in the local plan.
-11. When either the same local failure repeats (its second occurrence) or two fix-review rounds with distinct legitimate findings fail to converge, stop blind retries and choose: reassess the phase approach, dispatch `difficult_debugging` with only the failure evidence and context delta when the pattern suggests a deeper cause, or ask the user when an authority boundary is crossed. Return the diagnosis to the same owner and resume the failed local step, not the whole workflow.
-12. After every phase is reviewed, verified, and committed, set the local plan to `completed`.
+9. Return accepted findings to the same implementation owner, preserve its original implementation capability and playbook, rerun affected verification with the same capability verifier, and send the meaningful delta to the same phase reviewer.
+10. After final evidence is consumed, ask each phase resource owner to stop only its exact owned temporary processes and close only its task tabs. Stop root-owned shared test processes. Consume the cleanup results, then call `close_agent` on the implementation owner, reviewer, and every verifier so their descendants close as well. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. Never scan for or kill unrelated processes or close unrelated browser state.
+11. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update phase progress in the local plan. Phase teardown is complete before this commit skill starts and never becomes part of its Git path.
+12. When either the same local failure repeats (its second occurrence) or two fix-review rounds with distinct legitimate findings fail to converge, stop blind retries and choose: reassess the phase approach, dispatch `difficult_debugging` with only the failure evidence and context delta when the pattern suggests a deeper cause, or ask the user when an authority boundary is crossed. Consume a debugging result, close that one-shot agent and its descendants, return the diagnosis to the same implementation owner, and resume the failed local step, not the whole workflow.
+13. After every phase is reviewed, verified, torn down, and committed, set the local plan to `completed`.
 
-Frontend visual iteration and browser acceptance use Computer Use with Chrome only when their references require browser interaction. Neither path may invoke, probe, or fall back to Codex's in-app Browser. The frontend owner never accepts its own work; browser acceptance is an independent verifier dispatch and returns `blocked` if Computer Use or Chrome is unavailable.
+Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, remains fixed unless fallback is also authorized. `auto` explicitly selects Codex's in-app Browser first and may use Computer Use with Chrome only for a technical availability or capability gap. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed fallback, close the in-app task tab and repeat the complete scenario in a separate Chrome task tab. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
+
+Tests run sandboxed unless the packet declares a concrete elevated need. Before broader verification or diagnosis of any failed test, rerun the exact command, arguments, and working directory once with elevated permission. Record a sandbox dependency when the elevated retry passes, treat a repeated failure as trustworthy evidence, and return `blocked` when elevation is unavailable or unsafe.
 
 ## Root-owned mechanical operations
 
-Phase commit is not a profile or capability. After review and verification pass, the root uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
+Phase commit and phase teardown are not profiles or capabilities. After review and verification pass, the root performs teardown with the runtime's existing agent-close primitive and exact resource handles, then uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
 
 Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. After all phase commits are complete, route only through [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). Do not infer delivery policy, merge without separate authority, deploy, release, synchronize, or install.

@@ -49,13 +49,25 @@ holds compact context and delegates repository-wide reading. Current source and
 Git provide repository context; project tests, runtime evidence, and independent
 review provide correctness evidence without a separate repository index.
 
-After specification confirmation, the orchestrator creates a new task branch
-and dedicated sibling worktree before dispatching repository analysis. It never
-adopts the current worktree for a new task. Fresh work starts at the intended
-integration base. Adopted committed work starts at the adopted source HEAD while
-retaining that base for later delivery. The root uses Git directly, keeps the
-task identity in transient context before plan approval, and passes the exact
-worktree to every capability.
+After obtaining a bounded minimum brief, the orchestrator declares an initial
+tier and creates a new task branch and dedicated sibling worktree before
+dispatching repository analysis. It never adopts the current worktree for a new
+task. Fresh work starts at the intended integration base. Adopted committed work
+starts at the adopted source HEAD while retaining that base for later delivery.
+The root uses Git directly, keeps the task identity in transient context before
+plan approval, and passes the exact worktree to every capability.
+
+The first repository-context pass grounds the continuing specification dialogue.
+Later passes answer only newly material factual questions through targeted
+deltas. The root confirms the complete specification and revalidates the tier
+after consuming that evidence, before formal planning.
+
+For each implementation phase, the root also keeps transient handles for the
+implementation owner, reviewer, one verifier per used verification capability,
+and only the temporary processes or tabs created for that phase. It reuses the
+phase agents for fixes, reruns, and delta review, then tears down those known
+resources before commit. This is in-memory lifecycle coordination, not a
+registry, helper, or persisted workflow state.
 
 ### Base profiles and capabilities
 
@@ -84,11 +96,16 @@ prompts; they have no internal playbooks. Internal playbooks exist only for
 `technical_planning` or `independent_review` when named; the
 `architecture_analysis` assignment has no separate playbook. Playbooks are
 internal references, not public skills or additional personas. Public skill
-names remain unchanged.
+identifiers remain unchanged.
 
 Frontend implementation and browser acceptance are independent capabilities on
 different profiles. Root-owned planning, commits, PR observation, routing, and
 final judgment add no agent profile or capability key.
+
+The implementation owner, reviewer, and each capability verifier form a bounded
+phase cohort. One-shot analysts close after their result is consumed. The cohort
+closes only after final phase evidence is consumed, preserving relevant context
+without carrying implementation state across phases.
 
 Profiles share only minimal conventions: explicit capability, input packet,
 outcome-first output status, evidence references, scope boundaries, and stop
@@ -198,24 +215,53 @@ one shared reference. Switching the installed matrix is an explicit sync
 operation outside ordinary task execution and must not occur while an Orchestra
 task is active.
 
+Assignment resolution still prefers the exact installed model. A narrow runtime
+compatibility rule permits only `repository_context` to retry internally with
+`gpt-5.6-luna` reasoning `high` when its assigned model is rejected as
+unsupported before execution. The root records the substitution only in memory
+for the live task. It creates no visible Codex task, persists no fallback,
+changes no matrix, and blocks unsupported models for every other capability.
+
 A second critical review requires a named measurable risk. No Orchestra
 assignment uses Sol xhigh. Frontend work and browser acceptance remain separate
 dispatches.
 
-## Browser testing constraint
+## Verification environment and browser routing
 
-The `verifier` composed with `browser_acceptance` uses Computer Use with Chrome
-as its exclusive browser-control path:
+Tests use ordinary sandboxing unless the packet declares a concrete elevated
+need. Any failed test is repeated once with the exact command, arguments, and
+working directory under elevated permission before broader verification or
+diagnosis. A pass records a sandbox dependency; a repeated failure is
+trustworthy failure evidence; unavailable or unsafe elevation returns
+`blocked`.
 
-1. Open a new Chrome tab for the target application.
-2. Preserve unrelated existing tabs and sessions.
-3. Execute the acceptance scenario through visible interaction.
-4. Capture concise evidence and reproducible failure steps.
-5. Return findings without editing source code.
+Browser packets use the transient `browser_route` value `auto`, `in_app`, or
+`chrome`. An explicit user route is fixed unless fallback is also authorized.
+Without an explicit route, `auto` selects Codex's in-app Browser first and uses
+Computer Use with Chrome only for a technical availability or capability gap.
+The root may select Chrome directly when the named scenario requires existing
+Chrome state, an extension, a native dialog, browser-specific behavior, or
+system integration.
 
-It never invokes, probes, or falls back to Codex's in-app Browser and returns
-blocked when Computer Use or Chrome is unavailable. The parent orchestrator may
-use the in-app Browser separately when appropriate.
+Frontend iteration and independent browser acceptance use separate task tabs.
+An allowed fallback closes the in-app task tab and repeats the complete scenario
+in a new Chrome task tab. Product failures, timeouts, and selector errors remain
+evidence on the selected surface and never trigger fallback. Unrelated tabs,
+windows, authenticated sessions, processes, and user state are preserved.
+
+## Phase resource lifecycle
+
+Phase agents may retain exact owned test processes and task tabs for reuse
+within their phase. Before commit, the root requests teardown from each resource
+owner, stops root-owned shared test processes, consumes those results, and calls
+`close_agent` on every phase agent so descendants close as well. An active agent
+or process capable of writing the worktree blocks commit; an unclosed
+source-read-only task tab is reported as partial cleanup without invalidating
+the commit.
+
+No helper discovers or kills processes globally. Resource handles exist only in
+root memory, apply only to resources Orchestra created, and expire at phase
+teardown. Commit execution remains a separate direct Git operation.
 
 ## Lightweight conformance and hooks
 
@@ -259,10 +305,18 @@ Tests protect the few important invariants:
 
 - only explicit `$orchestra` or an unequivocal use/start Orchestra imperative
   activates the workflow;
+- the visible primary skill name is `Orchestra`;
 - planning-only host mode reuses context without mutation and continues when
   execution-capable without a second invocation;
+- the skill never changes the host into a planning-only mode;
 - ordinary plan requests, direct implementation, and descriptive mentions do
   not activate Orchestra;
+- initial routing follows minimum brief, task worktree, focused repository
+  context, final specification, then formal plan;
+- repeated repository context requests only targeted deltas and every one-shot
+  analyst closes after its result;
+- only repository context may use the transient Luna-high unsupported-model
+  fallback, after attempting the installed assignment first;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
 - every new formal task creates a dedicated sibling worktree before repository
@@ -273,6 +327,11 @@ Tests protect the few important invariants:
   adopted source revision while retaining the integration base;
 - task-worktree reuse requires exact same-task identity;
 - local plan resume reconciles against Git instead of overriding it;
+- phase owners, reviewers, and capability verifiers are reused only within one
+  phase and close before its commit;
+- test failures receive one exact elevated retry before broader diagnosis;
+- browser routing honors explicit selection and otherwise prefers the in-app
+  Browser with capability-based Chrome fallback;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;

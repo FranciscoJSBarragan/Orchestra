@@ -36,12 +36,12 @@ reasoning_effort = "max"
 [tiers.standard.independent_review]
 profile = "reviewer"
 model = "gpt-5.6-terra"
-reasoning_effort = "max"
+reasoning_effort = "high"
 
 [tiers.standard.browser_acceptance]
 profile = "verifier"
-model = "gpt-5.6-luna"
-reasoning_effort = "xhigh"
+model = "gpt-5.6-terra"
+reasoning_effort = "medium"
 
 [tiers.standard.runtime_verification]
 profile = "verifier"

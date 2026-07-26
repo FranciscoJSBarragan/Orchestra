@@ -1,4 +1,4 @@
 interface:
-  display_name: "Orchestra Change Routing"
+  display_name: "Orchestra"
   short_description: "Explicit reviewed software delivery through Orchestra"
   default_prompt: "Use $orchestra to confirm the specification, create an approved plan, and deliver the reviewed implementation."

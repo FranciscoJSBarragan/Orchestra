@@ -37,19 +37,27 @@ Do not create a branch or worktree, persist a plan, dispatch implementation,
 commit, or cross another mutation boundary. Ask the user to switch to an
 execution-capable mode, then continue from the adopted context without a second
 invocation.
+Orchestra observes the current host mode and never changes it into a
+planning-only mode.
 
 In an execution-capable mode, reuse the prior conversation, classify the
-internal checkpoint, ask only genuine gaps, and confirm a compact specification
-with Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
-Decisions, and Open questions before selecting a tier.
+internal checkpoint, and obtain a minimum brief with objective, visible result,
+approximate repository area, known critical risks, and bounded factual open
+questions. If no objective was supplied, ask for it before creating resources.
+An explicitly brainstorming-only request stays read-only until the user
+authorizes formal task setup.
 
-After specification confirmation and tier selection, create a new collision-free
-task branch and dedicated sibling worktree before repository analysis. Never
-mutate the source checkout. Fresh work starts at the integration base; adopted
+Declare an initial tier from the brief, then create a new collision-free task
+branch and dedicated sibling worktree before repository analysis. Never mutate
+the source checkout. Fresh work starts at the integration base; adopted
 committed work starts at the adopted source HEAD while retaining that base;
-scoped dirty paths import through `adopt_worktree.py`. Use the exact task
-worktree for every capability and task mutation. Reuse only the same live
-pre-approval task or an exact approved-plan/Git identity match.
+scoped dirty paths import through `adopt_worktree.py`. Use focused
+`repository_context` evidence to continue the dialogue, then confirm Objective,
+User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open
+questions and revalidate the tier before formal planning. Later context passes
+request only new factual deltas and close each one-shot analyst after consuming
+its result. Reuse only the same live pre-approval task or an exact approved-plan
+and Git identity match.
 
 ## Tier selection
 
@@ -81,12 +89,23 @@ Tier exemplars:
   `reviewer`, and `verifier`.
 - The root composes each dispatch with a capability and the exact tier
   assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
+- Attempt the installed assignment first. Only `repository_context` may fall
+  back to Luna with reasoning `high` when its assigned model is rejected
+  before execution as unsupported by the internal subagent runtime. Keep that
+  substitution only in memory, create no visible task, change no matrix, and
+  block unsupported models for every other capability.
 - Standard: bounded analysis and root-owned planning, implementation, one
   high-signal independent review, and verification.
 - Critical: standard flow plus plan audit or a second independent review only
   for a named measurable risk and detectable defect class.
 - Use a detailed phase subplan only when the phase itself is complex.
 - Accepted findings return to the same implementation owner.
+- Keep that implementation owner, the independent reviewer, and one verifier
+  per used verification capability open for the whole phase; reuse them for
+  fixes, reruns, and delta review.
+- Close one-shot analysts after consuming their result. Before phase commit,
+  stop only Orchestra-owned temporary processes and task tabs, consume cleanup
+  results, and close every phase agent and its descendants.
 - Reviewers report; they do not silently implement their own findings.
 
 Frontend implementation composes `implementation_worker`; browser acceptance
@@ -111,6 +130,11 @@ out-of-scope suggestions without entering a review loop.
   reviewed phase boundaries unless the user limits that authority.
 - The root commits each reviewed phase directly or through the narrow commit
   helper; commit execution is not an agent profile.
+- An active agent or owned process that can write the task worktree blocks the
+  phase commit. A source-read-only tab cleanup failure is reported as partial
+  without moving cleanup into the commit helper.
+- Keep agent and temporary-resource handles only in root memory. Never discover
+  or kill unrelated processes or close unrelated browser state.
 - Do not create commit journals, persistent or authoritative parallel Git
   indexes, hash the whole worktree, or revalidate unchanged authority
   repeatedly.
@@ -133,12 +157,22 @@ out-of-scope suggestions without entering a review loop.
 
 ## Browser acceptance
 
-The delegated `verifier` with `browser_acceptance` uses Computer Use with Chrome
-as its exclusive browser path. It must never invoke, probe, or fall back to
-Codex's in-app Browser. It opens a new Chrome tab, preserves unrelated tabs and
-sessions, and reports observed behavior with reproducible steps and evidence.
-It returns blocked when Computer Use or Chrome is unavailable. The root may use
-the in-app Browser separately.
+Browser interaction packets carry `browser_route: auto | in_app | chrome`.
+Explicit user selection wins and does not fall back unless authorized. `auto`
+uses Codex's in-app Browser first and falls back to Computer Use with Chrome
+only for a technical availability or capability gap, never for a functional
+failure, timeout, or selector problem. An allowed fallback closes the dedicated
+in-app tab and repeats the full scenario in a new Chrome tab. Frontend iteration
+and independent acceptance use separate task tabs and preserve unrelated tabs,
+sessions, and user state.
+
+## Test permissions
+
+Run tests in the sandbox unless a concrete elevated need is declared. Before
+broader verification or diagnosis of any failed test, repeat the exact command,
+arguments, and working directory once with elevated permission. Accept a pass
+with the sandbox dependency recorded; treat a repeated failure as real evidence;
+return `blocked` when elevation is unavailable or unsafe.
 
 ## Autonomy and proportionality
 
