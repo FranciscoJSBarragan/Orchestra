@@ -35,18 +35,10 @@ together.
 
 Orchestra starts only from explicit activation. It reuses the conversation,
 classifies any prior candidate checkpoint, recommends a standard or critical
-tier, confirms a compact specification, and asks the user to choose one
-execution environment:
-
-- `current_branch`: lowest bootstrap cost for a small task on a clean feature
-  branch. Work on the integration base requires an explicit warning. It can be
-  held or delivered through PR, but Orchestra does not locally integrate it.
-- `orchestra_worktree`: strongest isolation and a separate sibling worktree,
-  with additional dependency/bootstrap cost. It supports hold, PR, or local
-  integration when policy allows.
-- `codex_worktree`: reuses a clean native Codex worktree already attached to the
-  chat. It supports hold, PR, or local integration while Codex retains the
-  physical directory.
+tier, and creates one collision-free `orchestra/<task-slug>[-N]` branch in a
+dedicated sibling Git worktree before repository analysis. Every formal task
+uses that isolated checkout regardless of the CLI or host that activated
+Orchestra. It supports hold, PR, or local integration when policy allows.
 
 After plan approval, Orchestra scales implementation, review, and verification
 to the active tier. The user may direct a safe tier change in either direction
@@ -79,12 +71,13 @@ For an existing repository:
 
 1. Ask: `Use Orchestra to add <visible behavior>.`
 2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
-   asks you to choose the tier and execution environment.
-3. It inspects the selected checkout read-only, proposes observable acceptance,
-   and asks you to confirm the final specification and implementation plan.
+   asks you to choose the tier.
+3. It creates an isolated sibling worktree, inspects it, proposes observable
+   acceptance, and asks you to confirm the final specification and
+   implementation plan.
 4. After approval it implements, verifies, reviews, and commits accepted phases.
 5. It reports `implementation complete; delivery pending` and asks whether to
-   hold, open a PR, or integrate locally when policy and execution mode allow.
+   hold, open a PR, or integrate locally when repository policy allows.
 
 For a new project, describe the idea normally. `orchestra-project-start`
 activates implicitly, helps select a proportional stack, confirms the target

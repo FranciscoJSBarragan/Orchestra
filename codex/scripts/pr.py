@@ -22,7 +22,6 @@ CAPSULE_PATTERN = re.compile(
 )
 REPOSITORY_PATTERN = re.compile(r"[^/\s]+/[^/\s]+\Z")
 REMOTE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*\Z")
-EXECUTION_MODES = ("current_branch", "orchestra_worktree", "codex_worktree")
 GRAPHQL_QUERY = """
 query($owner:String!, $name:String!, $number:Int!) {
   repository(owner:$owner, name:$name) {
@@ -77,7 +76,7 @@ def _resolve_commit(repo: Path, revision: str) -> str | None:
     return sha if not result.returncode and SHA_PATTERN.fullmatch(sha) else None
 
 
-def _current_branch(repo: Path) -> str | None:
+def _checked_out_branch(repo: Path) -> str | None:
     result = _git(repo, "symbolic-ref", "--quiet", "--short", "HEAD")
     branch = result.stdout.strip()
     return branch if not result.returncode and branch else None
@@ -449,13 +448,10 @@ def merge_pr(
     method: str,
     authorized: bool,
     policy_path: Path | None,
-    execution_mode: str = "orchestra_worktree",
 ) -> dict[str, Any]:
     """Merge only an explicitly authorized, freshly checked current PR head."""
     if not authorized:
         return blocked("separate explicit merge authorization is required")
-    if execution_mode not in EXECUTION_MODES:
-        return blocked("--execution-mode is invalid")
     repo, error = _repository_root(repo)
     if error:
         return error
@@ -464,7 +460,7 @@ def merge_pr(
     if error:
         return blocked("base worktree is invalid")
     assert base is not None
-    if repo == base and execution_mode != "current_branch":
+    if repo == base:
         return blocked("task and base must be distinct Git worktree roots")
     if _common_dir(repo) is None or _common_dir(repo) != _common_dir(base):
         return blocked("task and base worktrees do not share a Git repository")
@@ -474,8 +470,9 @@ def merge_pr(
         or task_branch == base_branch
     ):
         return blocked("task and base branch names are invalid or identical")
-    if _current_branch(repo) != task_branch or (
-        repo != base and _current_branch(base) != base_branch
+    if (
+        _checked_out_branch(repo) != task_branch
+        or _checked_out_branch(base) != base_branch
     ):
         return blocked("task or base worktree is on an unexpected branch")
     if not REMOTE_PATTERN.fullmatch(remote):
@@ -535,7 +532,6 @@ def merge_pr(
         return _post_merge_partial(
             f"merge command succeeded but post-state query failed: {detail}",
             clean_head,
-            execution_mode,
         )
     try:
         post = json.loads(post_result.stdout)
@@ -553,7 +549,6 @@ def merge_pr(
         return _post_merge_partial(
             "merge command succeeded but merged post-state is unverified",
             clean_head,
-            execution_mode,
         )
     result: dict[str, Any] = {
         "status": "ok",
@@ -561,18 +556,11 @@ def merge_pr(
         "pr": pr_number,
         "head": clean_head,
         "method": method,
-        "execution_mode": execution_mode,
         "checks": check_result["checks"],
         "merged_at": post["mergedAt"],
     }
     cleanup = _cleanup_merged_task(
-        repo,
-        base,
-        task_branch,
-        base_branch,
-        remote,
-        clean_head,
-        execution_mode,
+        repo, base, task_branch, base_branch, remote, clean_head
     )
     result.update(cleanup)
     if cleanup["retained_resources"]:
@@ -625,23 +613,15 @@ def _retained(resource: str, reason: str) -> dict[str, str]:
     return {"resource": resource, "reason": reason[:500]}
 
 
-def _post_merge_partial(
-    reason: str, clean_head: str, execution_mode: str
-) -> dict[str, Any]:
-    resources = {
-        "current_branch": ("remote_branch", "plan"),
-        "orchestra_worktree": ("remote_branch", "worktree", "local_branch"),
-        "codex_worktree": ("remote_branch", "plan", "local_branch"),
-    }[execution_mode]
+def _post_merge_partial(reason: str, clean_head: str) -> dict[str, Any]:
     return {
         "status": "partial",
         "reason": reason[:500],
         "head": clean_head,
-        "execution_mode": execution_mode,
         "cleanup": [],
         "retained_resources": [
             _retained(resource, "merge post-state is unverified")
-            for resource in resources
+            for resource in ("remote_branch", "worktree", "local_branch")
         ],
     }
 
@@ -653,21 +633,16 @@ def _cleanup_merged_task(
     base_branch: str,
     remote: str,
     clean_head: str,
-    execution_mode: str,
 ) -> dict[str, Any]:
     cleaned: list[str] = []
     retained: list[dict[str, str]] = []
-    all_resources = {
-        "current_branch": ("remote_branch", "plan"),
-        "orchestra_worktree": ("remote_branch", "worktree", "local_branch"),
-        "codex_worktree": ("remote_branch", "plan", "local_branch"),
-    }[execution_mode]
+    all_resources = ("remote_branch", "worktree", "local_branch")
 
     if (
         not _worktree_clean(task)
         or _resolve_commit(task, "HEAD") != clean_head
-        or _current_branch(task) != task_branch
-        or (task != base and _current_branch(base) != base_branch)
+        or _checked_out_branch(task) != task_branch
+        or _checked_out_branch(base) != base_branch
         or _common_dir(task) is None
         or _common_dir(task) != _common_dir(base)
     ):
@@ -738,85 +713,50 @@ def _cleanup_merged_task(
             else:
                 cleaned.append("remote_branch")
 
-    plan_path = _local_plan_path(task)
-    if execution_mode == "orchestra_worktree":
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        current = None
+    if current == task or (current is not None and task in current.parents):
         try:
-            current = Path.cwd().resolve()
-        except OSError:
-            current = None
-        if current == task or (current is not None and task in current.parents):
-            try:
-                os.chdir(base)
-            except OSError as error:
-                retained.extend(
-                    [
-                        _retained("worktree", f"cannot leave task worktree: {error}"),
-                        _retained("local_branch", "task worktree was not removed"),
-                    ]
-                )
-                return {"cleanup": cleaned, "retained_resources": retained}
-
-        remove = _git(base, "worktree", "remove", str(task))
-        if remove.returncode:
-            detail = remove.stderr.strip() or remove.stdout.strip() or "no output"
+            os.chdir(base)
+        except OSError as error:
             retained.extend(
                 [
-                    _retained("worktree", f"git worktree remove failed: {detail}"),
+                    _retained("worktree", f"cannot leave task worktree: {error}"),
                     _retained("local_branch", "task worktree was not removed"),
                 ]
             )
             return {"cleanup": cleaned, "retained_resources": retained}
-        cleaned.append("worktree")
-    elif execution_mode == "codex_worktree":
-        detach = _git(task, "switch", "--detach", clean_head)
-        if detach.returncode:
-            detail = detach.stderr.strip() or detach.stdout.strip() or "no output"
-            retained.extend(
-                [
-                    _retained("plan", "task checkout could not be detached"),
-                    _retained("local_branch", f"detach failed: {detail}"),
-                ]
-            )
-            return {"cleanup": cleaned, "retained_resources": retained}
 
-    if execution_mode != "orchestra_worktree" and plan_path is not None:
-        try:
-            plan_path.unlink()
-        except FileNotFoundError:
-            pass
-        except OSError as error:
-            retained.append(_retained("plan", f"local plan removal failed: {error}"))
-        else:
-            cleaned.append("plan")
+    remove = _git(base, "worktree", "remove", str(task))
+    if remove.returncode:
+        detail = remove.stderr.strip() or remove.stdout.strip() or "no output"
+        retained.extend(
+            [
+                _retained("worktree", f"git worktree remove failed: {detail}"),
+                _retained("local_branch", "task worktree was not removed"),
+            ]
+        )
+        return {"cleanup": cleaned, "retained_resources": retained}
+    cleaned.append("worktree")
 
-    if execution_mode != "current_branch":
-        delete_local = _git(base, "update-ref", "-d", task_ref, clean_head)
-        if delete_local.returncode:
-            detail = (
-                delete_local.stderr.strip()
-                or delete_local.stdout.strip()
-                or "no output"
-            )
-            retained.append(
-                _retained("local_branch", f"expected-SHA deletion failed: {detail}")
-            )
-        elif _resolve_commit(base, task_ref) is not None:
-            retained.append(
-                _retained("local_branch", "local task branch still exists after deletion")
-            )
-        else:
-            cleaned.append("local_branch")
+    delete_local = _git(base, "update-ref", "-d", task_ref, clean_head)
+    if delete_local.returncode:
+        detail = (
+            delete_local.stderr.strip() or delete_local.stdout.strip() or "no output"
+        )
+        retained.append(
+            _retained("local_branch", f"expected-SHA deletion failed: {detail}")
+        )
+    elif _resolve_commit(base, task_ref) is not None:
+        retained.append(
+            _retained("local_branch", "local task branch still exists after deletion")
+        )
+    else:
+        cleaned.append("local_branch")
 
     return {"cleanup": cleaned, "retained_resources": retained}
-
-
-def _local_plan_path(repo: Path) -> Path | None:
-    result = _git(repo, "rev-parse", "--git-path", "orchestra/plan.md")
-    if result.returncode or not result.stdout.strip():
-        return None
-    path = Path(result.stdout.strip())
-    resolved = path.resolve() if path.is_absolute() else (repo / path).resolve()
-    return resolved if resolved.exists() else None
 
 
 def _worktree_clean(repo: Path) -> bool:
@@ -855,11 +795,6 @@ def parse_args() -> argparse.Namespace:
     merge_parser.add_argument("--pr", type=int, required=True)
     merge_parser.add_argument("--clean-head", required=True)
     merge_parser.add_argument("--method", choices=("merge", "squash", "rebase"), required=True)
-    merge_parser.add_argument(
-        "--execution-mode",
-        choices=EXECUTION_MODES,
-        default="orchestra_worktree",
-    )
     merge_parser.add_argument("--authorized", action="store_true")
     merge_parser.add_argument("--policy", type=Path)
     return parser.parse_args()
@@ -896,7 +831,6 @@ def main() -> int:
             args.method,
             args.authorized,
             args.policy,
-            args.execution_mode,
         )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

@@ -40,12 +40,12 @@ organization-wide approval bureaucracy.
 The orchestrator is not a brainless dispatcher. It reuses the preceding
 conversation, obtains a bounded minimum brief, recommends an initial tier with
 its material risk and cost-benefit, and performs a short read-only preflight
-before recommending a proportional execution environment. The user chooses the
-active tier and environment. Orchestra then gathers focused repository evidence,
-closes genuine specification gaps, synthesizes that evidence, confirms the
-final scope with the user, recommends any justified tier change, chooses the
-next capability dispatch, handles ordinary blockers, and makes the final
-technical judgment from fresh evidence.
+before creating an isolated sibling worktree. The user chooses the active tier.
+Orchestra then gathers focused repository evidence, closes genuine
+specification gaps, synthesizes that evidence, confirms the final scope with
+the user, recommends any justified tier change, chooses the next capability
+dispatch, handles ordinary blockers, and makes the final technical judgment
+from fresh evidence.
 
 The root owns the task plan and composes focused capabilities with four stable
 agent responsibilities: analysis, implementation, independent review, and
@@ -171,15 +171,12 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
-Each formal task uses exactly one user-confirmed execution environment before
-repository analysis: the current branch, a sibling worktree managed by
-Orchestra, or a native Codex worktree already associated with the chat. The
-root recommends isolation when risk, breadth, uncertainty, parallelism, or
-unrelated local work makes it valuable, but does not impose it on a small clean
-branch task. Existing work is never cleaned, stashed, or rewritten implicitly.
-Completed resources are removed only when their execution mode and exact
-integration evidence make that cleanup safe; Codex-owned worktree directories
-remain physically owned by Codex.
+Each formal task creates one collision-free sibling worktree managed by
+Orchestra before repository analysis. The source checkout remains read-only,
+which isolates parallel chats and keeps the workflow portable across CLIs and
+hosts. Existing work is never cleaned, stashed, or rewritten implicitly.
+Completed resources are removed only when exact Git and integration evidence
+make that cleanup safe.
 
 ## Success criteria
 
@@ -190,8 +187,7 @@ Orchestra succeeds when:
 - phase commits are routine and traceable;
 - review effort finds or prevents meaningful defects;
 - failures explain the cause and the next useful action;
-- local integration leaves Orchestra-owned resources removed and Codex-owned
-  worktrees clean, detached, and available to Codex;
+- local integration removes only exact, safely merged task resources;
 - the PR path can open, review, fix, push, converge, merge when authorized, and
   clean exact task resources without losing intent;
 - the root context remains focused and user communication stays clear;

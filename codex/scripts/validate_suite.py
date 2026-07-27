@@ -640,11 +640,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     direct_consumers = {
         "orchestra": (
             "git worktree add",
-            "current_branch",
-            "orchestra_worktree",
-            "codex_worktree",
-            "${CODEX_HOME:-$HOME/.codex}/worktrees",
-            "without silently creating another worktree",
+            "orchestra/<task-slug>[-N]",
+            "Never implement in, switch, or reuse the source checkout",
             "same live preapproval task",
         ),
         "orchestra-phase-commit": ("commit_phase.py",),
@@ -658,16 +655,14 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "--base-worktree",
             "--task-branch",
             "--base-branch",
-            "--execution-mode",
             "--remote",
             "lease",
             "retained resource",
         ),
         "orchestra-local-integrate": (
-            "--execution-mode",
-            "current_branch",
-            "orchestra_worktree",
-            "codex_worktree",
+            "--task-worktree",
+            "--base-worktree",
+            "distinct task and base worktree roots",
         ),
     }
     for name, required_text in direct_consumers.items():
@@ -693,11 +688,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "$orchestra-delivery-policy",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
-            "`current_branch`",
-            "`orchestra_worktree`",
-            "`codex_worktree`",
-            "${CODEX_HOME:-$HOME/.codex}/worktrees",
-            "intentional retention is success",
+            "collision-free sibling worktree is the only task checkout",
+            "Incomplete intended post-mutation cleanup is `partial`",
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")

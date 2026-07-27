@@ -62,21 +62,13 @@ remain unchanged. Do not ask for the same confirmation twice.
 
 Recommend an initial tier from the brief and obtain the user's explicit choice,
 then perform a short read-only Git and execution-readiness preflight. Read
-repository delivery policy, recommend `current_branch`, `orchestra_worktree`,
-or `codex_worktree` with compatible delivery paths and bootstrap cost, and
-obtain the user's explicit environment choice before repository analysis or
-resource creation. A small clean feature-branch task may
-stay on its current branch; direct work on the integration base requires an
-explicit warning and confirmation. Unrelated or ambiguous dirty work blocks
-`current_branch`, which permits only one active Orchestra plan per checkout. An
-Orchestra worktree preserves the existing collision-free sibling flow. A
-native worktree is reusable only when it is a clean registered
-worktree under `${CODEX_HOME:-$HOME/.codex}/worktrees`, belongs to the same
-repository as a distinct base checkout, and has unambiguous identity; otherwise
-block without creating a hidden fallback. Use the exact confirmed checkout for
-focused `repository_context`, specification, planning, implementation, review,
-verification, and commits. Reuse requires exact approved-plan agreement on
-execution mode, path, branch, base, and HEAD.
+repository delivery policy, resolve the intended base branch and revision, then
+create the first available `orchestra/<task-slug>[-N]` branch and sibling
+worktree before repository analysis or capability dispatch. Never implement in
+or switch the source checkout, and never reuse a host-managed worktree as the
+task checkout. Use the exact task worktree for focused `repository_context`,
+specification, planning, implementation, review, verification, and commits.
+Reuse requires exact approved-plan agreement on path, branch, base, and HEAD.
 
 ## Tier selection
 
@@ -197,12 +189,9 @@ out-of-scope suggestions without entering a review loop.
 - Merge remains separately authorized unless the user already said to merge
   when clean.
 - Local integration requires explicit user direction, fresh verification,
-  clean integration, and mode-aware cleanup; it does not apply to
-  `current_branch`.
-- Authorized delivery cleanup removes Orchestra-owned worktrees, but leaves a
-  Codex-owned worktree clean and detached for Codex and preserves an active
-  current-branch checkout. Incomplete intended cleanup is `partial`; intentional
-  retention is success.
+  clean integration, and guarded task-worktree cleanup.
+- Authorized delivery cleanup removes only the exact clean Orchestra task
+  worktree and safe task branches. Incomplete intended cleanup is `partial`.
 - Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Browser acceptance

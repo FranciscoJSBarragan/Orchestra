@@ -64,54 +64,37 @@ Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
 demonstrably fail to converge. Never change tier unilaterally.
 
-## Confirm one proportional execution environment
+## Create the isolated task worktree
 
 After the user chooses the initial tier and before resource creation or any
 capability dispatch, resolve the intended base branch and revision and perform a
 short read-only Git preflight. Read repository delivery policy and identify the
 canonical runtime, dependency setup, services, permissions, credential
 categories without reading secrets, verification commands, test-data
-provenance, and generated paths relevant to the task. Recommend one mode,
-explain compatible delivery paths and bootstrap cost, and obtain the user's
-explicit choice:
+provenance, and generated paths relevant to the task.
 
-- `current_branch` for a small bounded task on a clean non-base branch without
-  parallel work. Create or switch neither branches nor worktrees. Working
-  directly on the integration base, including `main`, requires a concrete
-  warning and explicit confirmation. A dirty checkout is eligible only when
-  every preexisting change belongs unambiguously to the confirmed objective;
-  otherwise block without cleaning, stashing, or rewriting it. Allow only one
-  active Orchestra plan in that checkout.
-- `orchestra_worktree` when the user requests isolation from a Local chat or
-  when breadth, risk, uncertainty, parallel work, or unrelated local changes
-  warrant it. Use Git directly to choose the first available
-  `orchestra/<task-slug>[-N]` branch and sibling path and create it with
-  `git worktree add`. Fresh work starts at the captured base revision. Adopted
-  committed work starts at its source HEAD while retaining the integration
-  base; selected dirty paths import only through `adopt_worktree.py`.
-- `codex_worktree` when the current chat checkout is a registered linked
-  worktree whose resolved path is below
-  `${CODEX_HOME:-$HOME/.codex}/worktrees`, shares a repository with a distinct
-  base checkout, and is clean and unambiguous. If detached, create the first
-  available `orchestra/<task-slug>[-N]` branch in that directory. Reuse an
-  existing branch only by explicit user request or exact resume identity.
-  Custom roots, dirty state, prior conflicting plans, wrong-repository state,
-  or ambiguous ownership block without silently creating another worktree.
+Use Git directly to choose the first available
+`orchestra/<task-slug>[-N]` branch and sibling path and create it with
+`git worktree add`. Never implement in, switch, or reuse the source checkout or
+a host-managed worktree. Fresh work starts at the captured base revision.
+Adopted committed work starts at its source HEAD while retaining the
+integration base; selected dirty paths import only through
+`adopt_worktree.py`.
 
-The user's explicit environment request wins after any necessary warning. Keep
-`execution_mode`, checkout path, initial branch and HEAD, base branch and
-revision, and authorized preexisting changes in root memory. Use that exact
-checkout for every capability, planning, implementation, verification, review,
-plan, and commit operation. Create no classifier, registry, or parallel state.
+Keep checkout path, initial branch and HEAD, base branch and revision, and
+authorized preexisting changes in root memory. Use that exact task worktree for
+every capability, planning, implementation, verification, review, plan, and
+commit operation. Create no classifier, registry, or parallel state.
 
 Reuse is limited to the same live preapproval task or to a resumed task whose
-approved plan, objective, execution mode, checkout path, branch, base, and HEAD
-all match Git. On preapproval abandonment, never discard unique work:
-`current_branch` remains unchanged, `orchestra_worktree` removes only proven
-clean owned resources, and `codex_worktree` removes only a no-unique-work task
-branch while preserving the physical directory. No plan is persisted before
-approval. If adopted committed work later passes unchanged, allow completion
-without an artificial commit.
+approved plan, objective, checkout path, branch, base, and HEAD all match Git.
+A legacy plan with a retired environment field blocks automatic resume unless
+the root explicitly verifies that it already identifies the exact Orchestra
+sibling worktree and the user authorizes adoption. On preapproval
+abandonment, never discard unique work; remove only proven-clean resources
+created for the live task. No plan is persisted before approval. If adopted
+committed work later passes unchanged, allow completion without an artificial
+commit.
 
 ## Resolve assignments and references
 
@@ -164,7 +147,7 @@ Request outcome-first, lossless structured returns: omit packet and routine proc
 
 ## Maintain the local task plan
 
-Before approval, keep the formal-plan draft in conversation or system temporary storage. After approval, the root resolves `git rev-parse --git-path orchestra/plan.md` in the confirmed checkout and writes the exact approved plan directly as `active`. Record objective, active tier, any different root recommendation in Decisions, `execution_mode`, checkout path, initial branch and HEAD, base branch and revision, authorized preexisting changes, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note. When adoption applies, also record the adopted source revision, imported paths, existing commit range, and remaining phases.
+Before approval, keep the formal-plan draft in conversation or system temporary storage. After approval, the root resolves `git rev-parse --git-path orchestra/plan.md` in the task worktree and writes the exact approved plan directly as `active`. Record objective, active tier, any different root recommendation in Decisions, checkout path, initial branch and HEAD, base branch and revision, authorized preexisting changes, decisions, phase contracts, verification, current phase, blocker, next action, and uncommitted-work note. When adoption applies, also record the adopted source revision, imported paths, existing commit range, and remaining phases.
 
 Use only these statuses:
 
@@ -172,7 +155,7 @@ Use only these statuses:
 - `blocked`: stopped at a named blocker with the next action recorded;
 - `completed`: all phases reviewed, verified, and committed; delivery authority remains separate.
 
-Only the root writes the plan. On resume, resolve the Git path again and require exact agreement between the plan and Git for execution mode, checkout path, initial identity, current branch, base, HEAD, relevant commits, and user authority. Git is authoritative for code and history; the plan carries approved intent and progress only. A missing or unreadable plan blocks automatic continuation until the root reconstructs it and realigns with the user. Remove it only with mode-appropriate safe cleanup. Do not add a plan CLI, global index, Kanban board, event log, or state engine.
+Only the root writes the plan. On resume, resolve the Git path again and require exact agreement between the plan and Git for checkout path, initial identity, current branch, base, HEAD, relevant commits, and user authority. Git is authoritative for code and history; the plan carries approved intent and progress only. A missing or unreadable plan blocks automatic continuation until the root reconstructs it and realigns with the user. Remove it only with guarded task-worktree cleanup. Do not add a plan CLI, global index, Kanban board, event log, or state engine.
 
 ## Route standard and critical work
 
@@ -222,4 +205,4 @@ plumbing. At completion, distinguish implementation-complete from delivered and
 state the result location, how to run or demonstrate it, fresh verification,
 safe test data, limitations, exact delivery state, and next authority.
 
-Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. After all phase commits are complete, route only through [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). Local integration does not apply to `current_branch`. Mode-aware delivery cleanup removes Orchestra-owned worktrees, preserves the current-branch checkout and active local branch, and leaves a Codex-owned worktree clean and detached while Codex retains physical ownership of its directory. Intentional retention is successful cleanup, not `partial`. Do not infer delivery policy, merge without separate authority, deploy, release, synchronize, or install.
+Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. After all phase commits are complete, route only through [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). Delivery cleanup removes only the exact clean Orchestra task worktree and safe task branches; incomplete intended cleanup is `partial`. Do not infer delivery policy, merge without separate authority, deploy, release, synchronize, or install.

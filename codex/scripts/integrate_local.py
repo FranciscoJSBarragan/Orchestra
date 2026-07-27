@@ -13,9 +13,6 @@ from policy import blocked, load_policy, run_checks
 from _common import SHA_PATTERN, _git
 
 
-EXECUTION_MODES = ("current_branch", "orchestra_worktree", "codex_worktree")
-
-
 def _command_reason(name: str, result: subprocess.CompletedProcess[str]) -> str:
     detail = result.stderr.strip() or result.stdout.strip() or "no output"
     return f"{name} failed: {detail}"
@@ -54,14 +51,6 @@ def _clean(repo: Path) -> bool:
     return not result.returncode and not result.stdout
 
 
-def _plan_path(repo: Path) -> Path | None:
-    result = _git(repo, "rev-parse", "--git-path", "orchestra/plan.md")
-    if result.returncode or not result.stdout.strip():
-        return None
-    path = Path(result.stdout.strip())
-    return path.resolve() if path.is_absolute() else (repo / path).resolve()
-
-
 def integrate_local(
     task_worktree: Path,
     base_worktree: Path,
@@ -69,15 +58,10 @@ def integrate_local(
     base_branch: str,
     authorized: bool,
     policy_path: Path | None,
-    execution_mode: str = "orchestra_worktree",
 ) -> dict[str, Any]:
     """Verify, fast-forward, confirm containment, and clean only safe resources."""
     if not authorized:
         return blocked("explicit task-level local integration authorization is required")
-    if execution_mode not in EXECUTION_MODES:
-        return blocked("--execution-mode is invalid")
-    if execution_mode == "current_branch":
-        return blocked("local integration does not apply to current_branch")
     task = _worktree_root(task_worktree)
     base = _worktree_root(base_worktree)
     if task is None or base is None or task == base:
@@ -142,84 +126,35 @@ def integrate_local(
             "task_sha": task_sha,
         }
 
-    cleanup: list[str] = []
-    if execution_mode == "orchestra_worktree":
-        remove = _git(base, "worktree", "remove", str(task))
-        if remove.returncode:
-            return {
-                "status": "partial",
-                "reason": _command_reason("git worktree remove", remove),
-                "task_sha": task_sha,
-                "execution_mode": execution_mode,
-            }
-        cleanup.append("worktree")
-        merged = _git(
-            base, "branch", "--merged", base_branch, "--format=%(refname:short)"
-        )
-        merged_branches = (
-            set(merged.stdout.splitlines()) if not merged.returncode else set()
-        )
-        if task_branch not in merged_branches:
-            return {
-                "status": "partial",
-                "reason": "task branch is not fully merged; branch deletion skipped",
-                "task_sha": task_sha,
-                "execution_mode": execution_mode,
-                "cleanup": cleanup,
-            }
-        delete = _git(base, "branch", "-d", task_branch)
-        if delete.returncode:
-            return {
-                "status": "partial",
-                "reason": _command_reason("git branch -d", delete),
-                "task_sha": task_sha,
-                "execution_mode": execution_mode,
-                "cleanup": cleanup,
-            }
-        cleanup.append("branch")
-    else:
-        plan_path = _plan_path(task)
-        detach = _git(task, "switch", "--detach", task_sha)
-        if detach.returncode:
-            return {
-                "status": "partial",
-                "reason": _command_reason("git switch --detach", detach),
-                "task_sha": task_sha,
-                "execution_mode": execution_mode,
-                "cleanup": cleanup,
-            }
-        if plan_path is not None and plan_path.exists():
-            try:
-                plan_path.unlink()
-            except OSError as error:
-                return {
-                    "status": "partial",
-                    "reason": f"local plan removal failed: {error}",
-                    "task_sha": task_sha,
-                    "execution_mode": execution_mode,
-                    "cleanup": cleanup,
-                }
-            cleanup.append("plan")
-        delete = _git(
-            base, "update-ref", "-d", f"refs/heads/{task_branch}", task_sha
-        )
-        if delete.returncode:
-            return {
-                "status": "partial",
-                "reason": _command_reason("expected-SHA branch deletion", delete),
-                "task_sha": task_sha,
-                "execution_mode": execution_mode,
-                "cleanup": cleanup,
-            }
-        cleanup.append("branch")
+    remove = _git(base, "worktree", "remove", str(task))
+    if remove.returncode:
+        return {
+            "status": "partial",
+            "reason": _command_reason("git worktree remove", remove),
+            "task_sha": task_sha,
+        }
+    merged = _git(base, "branch", "--merged", base_branch, "--format=%(refname:short)")
+    merged_branches = set(merged.stdout.splitlines()) if not merged.returncode else set()
+    if task_branch not in merged_branches:
+        return {
+            "status": "partial",
+            "reason": "task branch is not fully merged; branch deletion skipped",
+            "task_sha": task_sha,
+        }
+    delete = _git(base, "branch", "-d", task_branch)
+    if delete.returncode:
+        return {
+            "status": "partial",
+            "reason": _command_reason("git branch -d", delete),
+            "task_sha": task_sha,
+        }
     return {
         "status": "ok",
         "action": "integrated",
         "task_sha": task_sha,
         "base_branch": base_branch,
-        "execution_mode": execution_mode,
         "checks": check_result["checks"],
-        "cleanup": cleanup,
+        "cleanup": ["worktree", "branch"],
     }
 
 
@@ -229,11 +164,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-worktree", type=Path, required=True)
     parser.add_argument("--task-branch", required=True)
     parser.add_argument("--base-branch", required=True)
-    parser.add_argument(
-        "--execution-mode",
-        choices=EXECUTION_MODES,
-        default="orchestra_worktree",
-    )
     parser.add_argument("--authorized", action="store_true")
     parser.add_argument("--policy", type=Path)
     return parser.parse_args()
@@ -248,7 +178,6 @@ def main() -> int:
         args.base_branch,
         args.authorized,
         args.policy,
-        args.execution_mode,
     )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

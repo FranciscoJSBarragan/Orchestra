@@ -52,11 +52,11 @@ review provide correctness evidence without a separate repository index.
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
 active tier. It performs a short read-only Git and execution-readiness preflight.
-It recommends and asks the user to confirm one execution mode before dispatching repository analysis:
-`current_branch`, `orchestra_worktree`, or `codex_worktree`. The root uses Git
-directly, keeps the selected checkout identity in transient context before plan
-approval, and passes that exact checkout to every capability. It creates no
-classifier or execution-environment registry.
+The root uses Git directly to create a collision-free task branch and sibling
+worktree before dispatching repository analysis. It keeps that task-checkout
+identity in transient context before plan approval and passes the exact checkout
+to every capability. It creates no classifier or execution-environment
+registry.
 
 The first repository-context pass grounds the continuing specification dialogue
 and feasibility-determining facts. Later passes answer only newly material
@@ -184,20 +184,17 @@ The provisional specification and unapproved formal plan remain in conversation
 or system temporary storage. The local plan is first written after approval as
 `active` and is never versioned. Its consumer is the root, its purpose is
 continuity across implementation or resumed sessions, and its lifecycle ends
-with mode-appropriate delivery cleanup. It records `active`, `blocked`, or
-`completed`, the execution mode and exact Git identity, plus a resume note. Git
-remains authoritative for branch, HEAD,
+with guarded delivery cleanup. It records `active`, `blocked`, or `completed`,
+the exact Git identity, and a resume note. Git remains authoritative for branch, HEAD,
 commits, and worktree state; the plan carries intent and progress, not delivery
 authority.
 
-Branches and worktrees are Git resources, not a new Orchestra state store. A
-new task uses one confirmed environment: the current branch without new
-resources, an Orchestra-owned collision-free sibling worktree, or a validated
-Codex-owned native worktree with an in-place collision-free task branch when
-detached. The same live preapproval task may continue in memory; later reuse
-requires the approved plan's execution mode, checkout path, branch, base, and
-HEAD to agree with Git. Rejected planning and completed delivery clean only
-resources that the selected mode owns and that exact Git evidence proves safe.
+Branches and worktrees are Git resources, not a new Orchestra state store.
+Every new formal task uses an Orchestra-owned collision-free sibling worktree;
+the source checkout remains read-only. The same live preapproval task may
+continue in memory; later reuse requires the approved plan's checkout path,
+branch, base, and HEAD to agree with Git. Rejected planning and completed
+delivery clean only resources that exact Git evidence proves safe.
 
 The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
@@ -333,27 +330,22 @@ Tests protect the few important invariants:
 - the skill never changes the host into a planning-only mode;
 - ordinary plan requests, direct implementation, and descriptive mentions do
   not activate Orchestra;
-- initial routing follows minimum brief, tier, read-only execution-mode
-  preflight and user confirmation, focused repository context, final
-  specification, then formal plan;
+- initial routing follows minimum brief, tier, read-only preflight, sibling
+  worktree creation, focused repository context, final specification, then
+  formal plan;
 - repeated repository context requests only targeted deltas and every one-shot
   analyst closes after its result;
 - only repository context may use the transient Luna-high unsupported-model
   fallback, after attempting the installed assignment first;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
-- a small clean feature-branch task may use `current_branch`, while direct base
-  branch use requires explicit confirmation and unrelated dirty work blocks it;
-- an explicitly requested `orchestra_worktree` preserves sibling-worktree
-  isolation, and a validated `codex_worktree` is reused without creating a
-  second worktree;
-- native worktrees outside the default Codex root or with dirty, ambiguous, or
-  conflicting identity block before mutation;
+- every formal task creates one collision-free sibling worktree without
+  switching or mutating the source checkout;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
 - fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
   adopted source revision while retaining the integration base;
-- task resume requires exact execution mode, plan, path, branch, base, and HEAD;
+- task resume requires exact plan, path, branch, base, and HEAD;
 - local plan resume reconciles against Git instead of overriding it;
 - phase owners, reviewers, and capability verifiers are reused only within one
   phase and close before its commit;
@@ -369,9 +361,7 @@ Tests protect the few important invariants:
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
 - hooks call the validator without adding policy;
-- local integration rejects `current_branch`, removes safely merged
-  Orchestra-owned resources, and leaves Codex-owned worktrees clean and
-  detached without removing their directories;
+- local integration removes only safely merged Orchestra-owned resources;
 - rejected authority/journal machinery is not introduced.
 
 ## Complexity safeguards
@@ -403,9 +393,9 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Execution-mode selection and worktree creation remain direct root
-Git operations. Scoped dirty adoption uses `adopt_worktree.py` as a one-shot
-selected-path import for `orchestra_worktree`.
+never clean. Task worktree creation remains a direct root Git operation.
+Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
+import into the sibling task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
 when useful, never an agent.
 

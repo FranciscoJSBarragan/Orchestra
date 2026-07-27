@@ -10,14 +10,9 @@ flowchart TD
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     B --> TR["Root recommends standard or critical with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
-    T --> E["Read-only Git and readiness preflight plus execution-mode recommendation"]
-    E --> CFM{"User confirms environment"}
-    CFM -->|"Current branch"| CB["Use current branch and checkout"]
-    CFM -->|"Orchestra worktree"| OW["Create task branch and sibling worktree"]
-    CFM -->|"Codex worktree"| CW["Reuse validated native worktree"]
-    CB --> RC["Focused repository context"]
-    OW --> RC
-    CW --> RC
+    T --> E["Read-only Git and readiness preflight"]
+    E --> OW["Create task branch and sibling worktree"]
+    OW --> RC["Focused repository context"]
     RC --> C["Evidence-grounded final specification and tier recommendation"]
     C --> P["Formal technical plan"]
     P --> A["User approves implementation"]
@@ -169,22 +164,13 @@ After explicit activation in an execution-capable mode:
    read-only Git preflight. It also reads repository policy and identifies the
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
-   provenance, and generated paths relevant to the task. It recommends one
-   execution mode, explains compatible delivery paths and bootstrap cost, and
-   asks the user to confirm before creating resources or dispatching a
-   capability:
-   `current_branch` for a small bounded task on a clean non-base branch without
-   parallel work; `orchestra_worktree` when isolation is requested or warranted
-   and the chat is Local; or `codex_worktree` when the chat already runs in a
-   safely identifiable native Codex worktree. An explicit user choice wins
-   after a concrete warning. Direct work on the integration base, including
-   `main`, always requires explicit confirmation. A dirty checkout is eligible
-   for `current_branch` only when every existing change is unambiguously owned
-   by the confirmed objective; otherwise that mode blocks without cleaning,
-   stashing, or rewriting anything.
-4. The root establishes exactly one confirmed environment as described in
-   [Execution environments and branches](#execution-environments-and-branches).
-   It records its identity in memory before capability dispatch.
+   provenance, and generated paths relevant to the task. It then chooses the
+   first available `orchestra/<task-slug>[-N]` branch and sibling path and
+   creates the task worktree before dispatching a capability. The source
+   checkout remains read-only and is never switched or reused for execution.
+4. The root records the exact task-worktree identity in memory before capability
+   dispatch, as described in
+   [Task worktree and branch](#task-worktree-and-branch).
 5. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
    questions from the exact task worktree. The root may skip or reduce this
    dispatch only when it cites the specific prior evidence it reuses (artifact
@@ -212,10 +198,8 @@ After explicit activation in an execution-capable mode:
    implementation approval.
 
 Every planning, implementation, review, verification, plan, and commit operation
-uses the exact confirmed checkout. In worktree modes, the base checkout remains
-read-only and scoped dirty adoption copies selected paths only into an
-Orchestra-managed task worktree. In `current_branch`, the user has explicitly
-authorized that checkout and its task-owned preexisting changes.
+uses the exact task worktree. The base checkout remains read-only and scoped
+dirty adoption copies selected paths only into the task worktree.
 
 Standard and critical implementation does not begin until the user explicitly
 approves the aligned plan. That approval covers implementation and successful
@@ -225,11 +209,9 @@ committed work passes unchanged, completion does not require an artificial
 commit.
 
 If the user rejects or abandons the task before plan approval, preserve unique
-work. `current_branch` is reported without undoing changes.
-`orchestra_worktree` uses the existing safe cancellation contract.
-`codex_worktree` returns to the captured revision and removes only a task branch
-that contains no unique work; it never removes the physical directory. No plan
-has been persisted at this point.
+work. Remove the sibling worktree and task branch only when both still match
+their captured identity and contain no unique work. No plan has been persisted
+at this point.
 
 ### Local task plan
 
@@ -239,11 +221,11 @@ directly as `active` to
 `git rev-parse --git-path orchestra/plan.md`. It is never versioned and is an
 intent and resume aid for the root, not a workflow database. It records the
 objective, active tier, any different root recommendation in Decisions,
-`execution_mode`, checkout path, initial branch and HEAD, base branch and
-revision, authorized preexisting changes, decisions, phase contracts,
-verification, current phase, blocker, next action, and uncommitted-work note.
-When adoption applies, also record the adopted source revision, imported
-paths, existing commit range, and remaining phases.
+checkout path, initial branch and HEAD, base branch and revision, authorized
+preexisting changes, decisions, phase contracts, verification, current phase,
+blocker, next action, and uncommitted-work note. When adoption applies, also
+record the adopted source revision, imported paths, existing commit range, and
+remaining phases.
 
 Its statuses are:
 
@@ -401,56 +383,36 @@ Do not cycle on:
 - scope expansion disguised as review;
 - repeated restatements of an already rejected suggestion.
 
-## Execution environments and branches
+## Task worktree and branch
 
-Every formal Orchestra task uses exactly one confirmed execution environment:
+Every formal Orchestra task uses a dedicated sibling Git worktree. The root
+chooses the first available `orchestra/<task-slug>[-N]` branch and sibling path
+and creates it with `git worktree add`. It never implements in, switches, or
+reuses the source checkout or a host-managed worktree.
 
-- `current_branch` keeps the current checkout and branch. Orchestra creates or
-  switches neither branches nor worktrees. It permits one active Orchestra plan
-  per checkout, and direct use of the integration base requires explicit
-  confirmation. Preexisting changes must all be explicitly task-owned.
-- `orchestra_worktree` preserves the existing isolated flow. The root chooses
-  the first available `orchestra/<task-slug>[-N]` branch and sibling path and
-  creates it with `git worktree add`.
-- `codex_worktree` reuses the current linked worktree only when its resolved path
-  is below `${CODEX_HOME:-$HOME/.codex}/worktrees`, Git registers it against the
-  same repository as a distinct base checkout, and its identity is clean and
-  unambiguous. A detached checkout receives the first available
-  `orchestra/<task-slug>[-N]` branch in place. An existing branch is reused only
-  by explicit user direction or exact plan/Git resume identity. A custom root,
-  dirty checkout, conflicting plan, wrong repository, or ambiguous owner blocks
-  before mutation and never triggers a hidden sibling worktree.
-
-The root records `execution_mode`, checkout path, initial branch and HEAD, base
-branch and revision, and any authorized preexisting changes in transient
-context. It creates no classifier, registry, or additional workflow state.
-Fresh worktree tasks start at the intended committed base revision. Adopted
-committed work starts at the adopted source HEAD while retaining the integration
-base. Scoped dirty adoption applies only to `orchestra_worktree` and imports
-selected non-ignored paths through `adopt_worktree.py`; imported content may
-remain unstaged. Ambiguous dirty ownership always blocks.
+The root records checkout path, initial branch and HEAD, base branch and
+revision, and any authorized preexisting changes in transient context. It
+creates no classifier, registry, or additional workflow state. Fresh tasks
+start at the intended committed base revision. Adopted committed work starts at
+the adopted source HEAD while retaining the integration base. Scoped dirty
+adoption imports selected non-ignored paths through `adopt_worktree.py`;
+imported content may remain unstaged. Ambiguous dirty ownership always blocks.
 
 Reuse is allowed only for the same live pre-approval task or when the approved
-local plan, objective, execution mode, checkout path, branch, base, and HEAD all
-identify the same resumed task. Missing or conflicting identity blocks reuse.
-Preapproval cancellation never discards unique work: `current_branch` is left
-unchanged, `orchestra_worktree` removes only proven-clean owned resources, and
-`codex_worktree` removes only a no-unique-work task branch while retaining the
-physical checkout.
+local plan, objective, checkout path, branch, base, and HEAD all identify the
+same resumed task. Missing or conflicting identity blocks reuse. A legacy plan
+with a retired environment field blocks automatic resume unless the root
+verifies that it already identifies the exact sibling task worktree and the
+user authorizes adoption. Preapproval cancellation never discards unique work
+and removes only proven-clean task resources.
 
-After authorized integration or merge, cleanup follows the recorded mode.
-`orchestra_worktree` removes the exact clean task worktree, plan, and safe
-branches as before. `codex_worktree` removes the plan and safe task references,
-leaves the checkout clean at detached HEAD, and retains its directory for Codex;
-intentional directory retention is success, not `partial`. `current_branch`
-does not support automatic local integration. Hold and an open PR intentionally
-retain its checkout and branch; an authorized PR merge may remove the completed
-plan and unchanged remote ref but does not switch or delete the active local
-branch.
+After authorized integration or merge, cleanup removes the exact clean task
+worktree, plan, and safe branches. Hold and an open PR intentionally retain the
+task worktree and branch.
 
 Dirty, moved, ambiguous, or unverified resources are never removed. Cleanup
-after a completed mutation returns `partial` only for resources that the
-selected mode intended to clean but could not clean safely.
+after a completed mutation returns `partial` for resources that could not be
+cleaned safely.
 
 ## Commit path
 
@@ -521,16 +483,12 @@ needed to make that PR clean. It does not authorize merge unless the user said
 `merge when clean` or separately requests merge later.
 
 After an authorized merge, the PR helper verifies the `MERGED` state against the
-exact reviewed head and performs mode-aware conservative cleanup. It uses
-lease-protected deletion for an unchanged remote task branch. For
-`orchestra_worktree`, it removes the still-clean task worktree and deletes the
-local branch with an expected-value guard. For `codex_worktree`, it removes the
-plan, detaches the clean checkout at that head, deletes the guarded local branch,
-and preserves the directory. For `current_branch`, it removes the completed
-plan but preserves the active checkout and local branch. This exact merged-head
-proof permits cleanup after merge, squash, or rebase without pretending that
-all three preserve commit ancestry. An absent remote branch is already clean; a
-moved branch is retained.
+exact reviewed head and performs conservative cleanup. It uses lease-protected
+deletion for an unchanged remote task branch, removes the still-clean task
+worktree, and deletes the local branch with an expected-value guard. This exact
+merged-head proof permits cleanup after merge, squash, or rebase without
+pretending that all three preserve commit ancestry. An absent remote branch is
+already clean; a moved branch is retained.
 
 ## Local integration path
 
@@ -546,10 +504,7 @@ Local integration is a direct alternative, not a degraded PR path. It requires:
 The mechanical path runs configured checks in the clean task worktree, permits
 only conservative fast-forward integration, verifies that the base contains the
 captured task SHA, and removes only a still-clean integrated worktree and fully
-merged task branch. In `codex_worktree`, it instead removes the local plan,
-detaches the preserved checkout at the integrated SHA, and deletes the exact
-task branch. `current_branch` is not eligible for this helper. Divergence
-returns to the root for resolution.
+merged task branch. Divergence returns to the root for resolution.
 
 It does not authorize release, deployment, or production mutation.
 

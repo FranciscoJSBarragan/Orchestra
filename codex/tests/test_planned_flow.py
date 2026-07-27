@@ -282,6 +282,25 @@ class PlannedFlowContractTests(unittest.TestCase):
             worker_stop,
         )
 
+    def test_retired_environment_identifiers_and_bridge_marker_stay_absent(self) -> None:
+        sources = [
+            self.skill,
+            (ROOT / "VISION.md").read_text(),
+            (ROOT / "docs/WORKFLOW.md").read_text(),
+            (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+            (ROOT / "codex/scripts/integrate_local.py").read_text(),
+            (ROOT / "codex/scripts/pr.py").read_text(),
+        ]
+        combined = "\n".join(sources)
+        for removed in (
+            "current" + "_branch",
+            "codex" + "_worktree",
+            "execution" + "_mode",
+            "CODEX_EXECUTION" + "_WORKSPACE",
+        ):
+            self.assertNotIn(removed, combined)
+
     def test_compact_context_requests_lossless_returns_without_hard_caps(self) -> None:
         self.assertIn("Request outcome-first, lossless structured returns", self.skill)
         self.assertIn(
@@ -302,31 +321,24 @@ class PlannedFlowContractTests(unittest.TestCase):
             " ".join(self.skill.split()),
         )
 
-    def test_new_formal_task_confirms_execution_environment_before_discovery(
+    def test_new_formal_task_creates_sibling_worktree_before_discovery(
         self,
     ) -> None:
-        selection = self.skill.index(
-            "## Confirm one proportional execution environment"
-        )
+        isolation = self.skill.index("## Create the isolated task worktree")
         repository_dispatch = self.skill.index(
             "dispatch `repository_context` to an `orchestra_analyst`"
         )
-        self.assertLess(selection, repository_dispatch)
+        self.assertLess(isolation, repository_dispatch)
         normalized = " ".join(self.skill.split())
         for invariant in (
-            "`current_branch` for a small bounded task",
-            "one active Orchestra plan in that checkout",
-            "directly on the integration base",
-            "every preexisting change belongs unambiguously",
-            "`orchestra_worktree` when the user requests isolation",
-            "`codex_worktree` when the current chat checkout",
-            "${CODEX_HOME:-$HOME/.codex}/worktrees",
-            "without silently creating another worktree",
+            "first available `orchestra/<task-slug>[-N]` branch and sibling path",
+            "create it with `git worktree add`",
+            "Never implement in, switch, or reuse the source checkout",
             "Adopted committed work starts at its source HEAD",
             "adopt_worktree.py",
             "same live preapproval task",
-            "execution mode, checkout path, branch, base, and HEAD",
-            "preserving the physical directory",
+            "checkout path, branch, base, and HEAD",
+            "remove only proven-clean resources",
             "completion without an artificial commit",
         ):
             self.assertIn(invariant, normalized)
@@ -334,9 +346,7 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_initial_context_precedes_final_specification_and_plan(self) -> None:
         normalized = " ".join(self.skill.split())
         brief = normalized.index("minimum brief with objective")
-        environment = normalized.index(
-            "## Confirm one proportional execution environment"
-        )
+        worktree = normalized.index("## Create the isolated task worktree")
         context = normalized.index(
             "dispatch `repository_context` to an `orchestra_analyst`"
         )
@@ -346,8 +356,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         plan = normalized.index(
             "Final specification confirmation is the checkpoint to draft the plan"
         )
-        self.assertLess(brief, environment)
-        self.assertLess(environment, context)
+        self.assertLess(brief, worktree)
+        self.assertLess(worktree, context)
         self.assertLess(context, final_specification)
         self.assertLess(final_specification, plan)
         for contract in (
@@ -371,7 +381,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "close each one-shot analyst and its descendants",
             "On preapproval abandonment",
             "never discard unique work",
-            "removes only a no-unique-work task branch",
+            "remove only proven-clean resources",
             "No plan is persisted before approval",
         ):
             self.assertIn(contract, normalized)
@@ -575,7 +585,6 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("Only the root writes the plan", self.skill)
         self.assertIn("Git is authoritative", self.skill)
         for field in (
-            "`execution_mode`",
             "checkout path",
             "initial branch and HEAD",
             "base branch and revision",
