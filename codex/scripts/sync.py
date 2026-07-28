@@ -8,8 +8,10 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import stat
 import tempfile
+import tomllib
 from typing import Any
 
 
@@ -56,7 +58,10 @@ HELPERS = (
 MODELCONFIGS = ("native", "external")
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
+CONFIG_START = b"# orchestra-worktree-root:start"
+CONFIG_END = b"# orchestra-worktree-root:end"
 MANIFEST_PATH = "orchestra/install-manifest.json"
+WORKTREE_ROOT_PATH = "orchestra/worktree-root"
 
 
 class SyncError(Exception):
@@ -74,13 +79,43 @@ def _result(
     detail: str = "",
     *,
     modelconfig: str | None = None,
+    worktree_root: Path | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"action": action, "changes": changes, "status": status}
     if detail:
         payload["detail"] = detail
     if modelconfig is not None:
         payload["modelconfig"] = modelconfig
+    if worktree_root is not None:
+        payload["worktree_root"] = str(worktree_root)
     return payload
+
+
+def _resolve_worktree_root(home: Path, explicit: Path | str | None) -> Path:
+    raw = explicit
+    if raw is None:
+        raw = os.environ.get("ORCHESTRA_WORKTREE_ROOT")
+    if raw is None:
+        return Path(os.path.abspath(home / ".orchestra" / "worktrees"))
+    value = str(raw)
+    if not value:
+        raise SyncError("worktree root must not be empty")
+    if value == "~":
+        candidate = home
+    elif value.startswith("~/"):
+        candidate = home / value[2:]
+    elif value.startswith("~"):
+        raise SyncError("worktree root must not use another user's home")
+    else:
+        candidate = Path(value)
+    if not candidate.is_absolute():
+        raise SyncError("worktree root must be absolute")
+    resolved = Path(os.path.abspath(candidate))
+    if resolved == Path("/") or resolved == Path(os.path.abspath(home)):
+        raise SyncError("worktree root must be a dedicated directory below the user home")
+    if resolved.exists() and resolved.is_symlink():
+        raise SyncError("worktree root must not be a symlink")
+    return resolved
 
 
 def _relative(value: str) -> PurePosixPath:
@@ -139,7 +174,7 @@ def _entry(root: str, path: str, kind: str, content: bytes) -> dict[str, Any]:
 
 
 def _inventory(
-    source_root: Path, modelconfig: str
+    source_root: Path, modelconfig: str, worktree_root: Path
 ) -> dict[tuple[str, str], dict[str, Any]]:
     if modelconfig not in MODELCONFIGS:
         raise SyncError(f"unknown model configuration: {modelconfig}")
@@ -194,6 +229,9 @@ def _inventory(
         entries[("codex_home", destination)] = _entry(
             "codex_home", destination, "file", _read_file(source, str(source))
         )
+    entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
+        "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
+    )
 
     block_source = source_root / "codex/runtime/AGENTS.orchestra.md"
     block = _read_file(block_source, str(block_source))
@@ -214,12 +252,14 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
         return False
     if kind == "managed_block":
         return path == "AGENTS.md"
+    if kind == "managed_config":
+        return path == "config.toml"
     if kind != "file":
         return False
     if len(parts) == 2 and parts[0] == "agents":
         allowed_agents = {*AGENTS, *LEGACY_AGENTS}
         return parts[1] in {f"{name}.toml" for name in allowed_agents}
-    return path == "orchestra/roles.toml" or path in {
+    return path in {"orchestra/roles.toml", WORKTREE_ROOT_PATH} or path in {
         f"orchestra/scripts/{name}" for name in HELPERS
     }
 
@@ -302,29 +342,151 @@ def _load_manifest(
     return result, True, auxiliary_drift, modelconfig
 
 
-def _block_span(data: bytes) -> tuple[int, int] | None:
-    starts = data.count(START)
-    ends = data.count(END)
+def _managed_span(
+    data: bytes, start_marker: bytes, end_marker: bytes, label: str
+) -> tuple[int, int] | None:
+    starts = data.count(start_marker)
+    ends = data.count(end_marker)
     if starts == 0 and ends == 0:
         return None
     if starts != 1 or ends != 1:
-        raise SyncError("managed AGENTS markers must appear exactly once")
-    start = data.index(START)
-    end = data.index(END)
+        raise SyncError(f"managed {label} markers must appear exactly once")
+    start = data.index(start_marker)
+    end = data.index(end_marker)
     if start >= end:
-        raise SyncError("managed AGENTS markers are misordered")
+        raise SyncError(f"managed {label} markers are misordered")
     if (start and data[start - 1 : start] != b"\n") or data[
-        start + len(START) : start + len(START) + 1
+        start + len(start_marker) : start + len(start_marker) + 1
     ] != b"\n":
-        raise SyncError("managed AGENTS start marker must occupy its own line")
+        raise SyncError(f"managed {label} start marker must occupy its own line")
     if data[end - 1 : end] != b"\n":
-        raise SyncError("managed AGENTS end marker must occupy its own line")
-    end += len(END)
+        raise SyncError(f"managed {label} end marker must occupy its own line")
+    end += len(end_marker)
     if data[end : end + 1] not in {b"", b"\n"}:
-        raise SyncError("managed AGENTS end marker must occupy its own line")
+        raise SyncError(f"managed {label} end marker must occupy its own line")
     if data[end : end + 1] == b"\n":
         end += 1
     return start, end
+
+
+def _block_span(data: bytes) -> tuple[int, int] | None:
+    return _managed_span(data, START, END, "AGENTS")
+
+
+def _config_span(data: bytes) -> tuple[int, int] | None:
+    return _managed_span(data, CONFIG_START, CONFIG_END, "config")
+
+
+def _entry_span(entry: dict[str, Any], data: bytes) -> tuple[int, int] | None:
+    if entry["type"] == "managed_block":
+        return _block_span(data)
+    if entry["type"] == "managed_config":
+        return _config_span(data)
+    return None
+
+
+def _parse_config(data: bytes) -> dict[str, Any]:
+    try:
+        parsed = tomllib.loads(data.decode()) if data else {}
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise SyncError(f"invalid Codex config.toml: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise SyncError("invalid Codex config.toml structure")
+    return parsed
+
+
+def _config_block(worktree_root: Path, *, include_table: bool) -> bytes:
+    lines = [CONFIG_START]
+    if include_table:
+        lines.append(b"[sandbox_workspace_write]")
+    encoded = json.dumps(str(worktree_root), ensure_ascii=True).encode()
+    lines.extend((b"writable_roots = [" + encoded + b"]", CONFIG_END))
+    return b"\n".join(lines) + b"\n"
+
+
+def _normalized_config_root(value: str, home: Path) -> Path:
+    if value == "~":
+        candidate = home
+    elif value.startswith("~/"):
+        candidate = home / value[2:]
+    else:
+        candidate = Path(value)
+    return Path(os.path.abspath(candidate))
+
+
+def _desired_config_entry(
+    home: Path,
+    codex_home: Path,
+    worktree_root: Path,
+    installed: dict[tuple[str, str], dict[str, str]],
+) -> dict[str, Any] | None:
+    key = ("codex_home", "config.toml")
+    path = _safe_path(codex_home, "config.toml")
+    current = _read_file(path, "config.toml") if path.exists() else b""
+    owner = installed.get(key)
+    if owner is not None:
+        span = _config_span(current)
+        if span is None or _digest(current[span[0] : span[1]]) != owner["digest"]:
+            raise SyncError("owned managed block drift in config.toml")
+        include_table = b"[sandbox_workspace_write]" in current[span[0] : span[1]]
+        return _entry(
+            "codex_home",
+            "config.toml",
+            "managed_config",
+            _config_block(worktree_root, include_table=include_table),
+        )
+    if _config_span(current) is not None:
+        raise SyncError("unmanaged Orchestra markers in config.toml")
+    parsed = _parse_config(current)
+    sandbox = parsed.get("sandbox_workspace_write")
+    if sandbox is not None and not isinstance(sandbox, dict):
+        raise SyncError("sandbox_workspace_write must be a TOML table")
+    if isinstance(sandbox, dict) and "writable_roots" in sandbox:
+        roots = sandbox["writable_roots"]
+        if not isinstance(roots, list) or any(not isinstance(item, str) for item in roots):
+            raise SyncError("sandbox_workspace_write.writable_roots must be an array of strings")
+        normalized = {_normalized_config_root(item, home) for item in roots}
+        if worktree_root in normalized:
+            return None
+        raise SyncError(
+            "sandbox_workspace_write.writable_roots already exists without the "
+            f"Orchestra root {worktree_root}; add it explicitly and rerun sync"
+        )
+    include_table = sandbox is None
+    if not include_table and re.search(
+        rb"(?m)^[ \t]*\[sandbox_workspace_write\][ \t]*(?:#.*)?$", current
+    ) is None:
+        raise SyncError(
+            "sandbox_workspace_write exists without a directly editable table; "
+            "add writable_roots explicitly and rerun sync"
+        )
+    return _entry(
+        "codex_home",
+        "config.toml",
+        "managed_config",
+        _config_block(worktree_root, include_table=include_table),
+    )
+
+
+def _insert_config_block(data: bytes, block: bytes) -> bytes:
+    if b"[sandbox_workspace_write]" in block:
+        separator = b"" if not data or data.endswith(b"\n\n") else (b"\n" if data.endswith(b"\n") else b"\n\n")
+        result = data + separator + block
+        _parse_config(result)
+        return result
+    table = re.search(
+        rb"(?m)^[ \t]*\[sandbox_workspace_write\][ \t]*(?:#.*)?(?:\n|$)", data
+    )
+    if table is None:
+        raise SyncError("sandbox_workspace_write table changed during synchronization")
+    following = re.search(rb"(?m)^[ \t]*\[\[?[^\n]+$", data[table.end() :])
+    insertion = table.end() + (following.start() if following else len(data[table.end() :]))
+    prefix = data[:insertion]
+    suffix = data[insertion:]
+    separator = b"" if prefix.endswith(b"\n") else b"\n"
+    result = prefix + separator + block + suffix
+    _parse_config(result)
+    return result
 
 
 def _roots(home: Path, codex_home: Path) -> dict[str, Path]:
@@ -344,6 +506,7 @@ def _analyze(
     home: Path,
     codex_home: Path,
     modelconfig: str,
+    worktree_root: Path,
     installed: dict[tuple[str, str], dict[str, str]],
     auxiliary_drift: list[str],
 ) -> tuple[
@@ -351,7 +514,10 @@ def _analyze(
     list[dict[str, Any]],
     list[str],
 ]:
-    desired = _inventory(source_root, modelconfig)
+    desired = _inventory(source_root, modelconfig, worktree_root)
+    config_entry = _desired_config_entry(home, codex_home, worktree_root, installed)
+    if config_entry is not None:
+        desired[("codex_home", "config.toml")] = config_entry
     roots = _roots(home, codex_home)
     operations: list[dict[str, Any]] = []
 
@@ -372,25 +538,35 @@ def _analyze(
                 operations.append(_operation("update", entry, current))
         else:
             current = _read_file(path, entry["path"]) if path.exists() else b""
-            span = _block_span(current)
+            span = _entry_span(entry, current)
             if owner is None:
                 if span is not None:
-                    raise SyncError("unmanaged Orchestra markers in AGENTS.md")
-                operations.append(_operation("insert_block", entry, current if path.exists() else None))
+                    raise SyncError(f"unmanaged Orchestra markers in {entry['path']}")
+                kind = (
+                    "insert_config_block"
+                    if entry["type"] == "managed_config"
+                    else "insert_block"
+                )
+                operations.append(_operation(kind, entry, current if path.exists() else None))
                 continue
             if not path.exists() or span is None:
-                raise SyncError("owned managed block is missing from AGENTS.md")
+                raise SyncError(f"owned managed block is missing from {entry['path']}")
             if _digest(current[span[0] : span[1]]) != owner["digest"]:
-                raise SyncError("owned managed block drift in AGENTS.md")
+                raise SyncError(f"owned managed block drift in {entry['path']}")
             if current[span[0] : span[1]] != entry["content"]:
-                operations.append(_operation("update_block", entry, current))
+                kind = (
+                    "update_config_block"
+                    if entry["type"] == "managed_config"
+                    else "update_block"
+                )
+                operations.append(_operation(kind, entry, current))
 
     for key in sorted(set(installed) - set(desired)):
         owner = installed[key]
         path = _safe_path(roots[owner["root"]], owner["path"])
         current = _read_file(path, owner["path"])
-        if owner["type"] == "managed_block":
-            span = _block_span(current)
+        if owner["type"] in {"managed_block", "managed_config"}:
+            span = _entry_span(owner, current)
             if span is None or _digest(current[span[0] : span[1]]) != owner["digest"]:
                 raise SyncError(f"owned destination drift: {owner['path']}")
         elif _digest(current) != owner["digest"]:
@@ -540,14 +716,25 @@ def _apply_operation(
             span = _block_span(before)
             assert span is not None
             _atomic_write(path, before[: span[0]] + entry["content"] + before[span[1] :], roots[entry["root"]])
+        elif kind == "insert_config_block":
+            content = _insert_config_block(before or b"", entry["content"])
+            _atomic_write(path, content, roots[entry["root"]])
+        elif kind == "update_config_block":
+            span = _config_span(before)
+            assert span is not None
+            content = before[: span[0]] + entry["content"] + before[span[1] :]
+            _parse_config(content)
+            _atomic_write(path, content, roots[entry["root"]])
         elif kind == "delete":
-            if entry["type"] == "managed_block":
-                span = _block_span(before)
+            if entry["type"] in {"managed_block", "managed_config"}:
+                span = _entry_span(entry, before)
                 assert span is not None
                 end = span[1]
                 if before[end : end + 1] == b"\n":
                     end += 1
                 remaining = before[: span[0]] + before[end:]
+                if entry["type"] == "managed_config":
+                    _parse_config(remaining)
                 if remaining or entry.get("_keep_empty", False):
                     _atomic_write(path, remaining, roots[entry["root"]])
                 else:
@@ -621,6 +808,7 @@ def synchronize(
     *,
     dry_run: bool = False,
     modelconfig: str | None = None,
+    worktree_root: Path | str | None = None,
 ) -> dict[str, Any]:
     """Run one synchronization action against explicit destination roots."""
     source_root = Path(os.path.abspath(source_root))
@@ -628,6 +816,7 @@ def synchronize(
     codex_home = Path(os.path.abspath(codex_home))
     label = "apply --dry-run" if action == "apply" and dry_run else action
     try:
+        effective_worktree_root = _resolve_worktree_root(home, worktree_root)
         installed, manifest_present, auxiliary_drift, installed_modelconfig = (
             _load_manifest(codex_home)
         )
@@ -640,13 +829,20 @@ def synchronize(
                 "--modelconfig native or --modelconfig external"
             )
             if action == "status" and not manifest_present:
-                return _result("partial", label, [], detail)
+                return _result(
+                    "partial",
+                    label,
+                    [],
+                    detail,
+                    worktree_root=effective_worktree_root,
+                )
             raise SyncError(detail)
         desired, operations, auxiliary_drift = _analyze(
             source_root,
             home,
             codex_home,
             effective_modelconfig,
+            effective_worktree_root,
             installed,
             auxiliary_drift,
         )
@@ -661,6 +857,7 @@ def synchronize(
             changes,
             detail,
             modelconfig=effective_modelconfig,
+            worktree_root=effective_worktree_root,
         )
     if action != "apply":
         return _result(
@@ -669,6 +866,7 @@ def synchronize(
             [],
             f"unsupported action: {action}",
             modelconfig=effective_modelconfig,
+            worktree_root=effective_worktree_root,
         )
 
     roots = _roots(home, codex_home)
@@ -706,6 +904,7 @@ def synchronize(
                 completed,
                 str(exc),
                 modelconfig=current_modelconfig,
+                worktree_root=effective_worktree_root,
             )
         current = next_current
         current_modelconfig = next_modelconfig
@@ -722,6 +921,7 @@ def synchronize(
                 completed,
                 str(exc),
                 modelconfig=current_modelconfig,
+                worktree_root=effective_worktree_root,
             )
         current_modelconfig = effective_modelconfig
 
@@ -734,6 +934,7 @@ def synchronize(
             completed,
             str(exc),
             modelconfig=current_modelconfig,
+            worktree_root=effective_worktree_root,
         )
     detail = "; ".join(remaining_drift)
     return _result(
@@ -742,6 +943,7 @@ def synchronize(
         completed,
         detail,
         modelconfig=persisted_modelconfig,
+        worktree_root=effective_worktree_root,
     )
 
 
@@ -764,8 +966,8 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
         try:
             path = _safe_path(roots[owner["root"]], owner["path"])
             data = _read_file(path, owner["path"])
-            if owner["type"] == "managed_block":
-                span = _block_span(data)
+            if owner["type"] in {"managed_block", "managed_config"}:
+                span = _entry_span(owner, data)
                 matches = span is not None and _digest(data[span[0] : span[1]]) == owner["digest"]
             else:
                 matches = _digest(data) == owner["digest"]
@@ -784,7 +986,10 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
         try:
             stale = dict(owner)
             stale["content"] = b""
-            stale["_keep_empty"] = owner["type"] == "managed_block" and "backup" in owner
+            stale["_keep_empty"] = (
+                owner["type"] in {"managed_block", "managed_config"}
+                and "backup" in owner
+            )
             operation = _operation("delete", stale, data)
             state = _apply_operation(operation, roots, codex_home)
             next_current = dict(current)
@@ -822,9 +1027,11 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     status_parser = subparsers.add_parser("status")
     status_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
+    status_parser.add_argument("--worktree-root", type=Path)
     apply_parser = subparsers.add_parser("apply")
     apply_parser.add_argument("--dry-run", action="store_true")
     apply_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
+    apply_parser.add_argument("--worktree-root", type=Path)
     subparsers.add_parser("uninstall")
     return parser
 
@@ -844,6 +1051,7 @@ def main(argv: list[str] | None = None) -> int:
             args.command,
             dry_run=getattr(args, "dry_run", False),
             modelconfig=getattr(args, "modelconfig", None),
+            worktree_root=getattr(args, "worktree_root", None),
         )
     print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     return 2 if payload["status"] == "blocked" else 0

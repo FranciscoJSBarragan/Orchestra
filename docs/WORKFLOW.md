@@ -11,7 +11,7 @@ flowchart TD
     B --> TR["Root recommends standard or critical with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
-    E --> OW["Create task branch and sibling worktree"]
+    E --> OW["Create task branch and portable worktree"]
     OW --> RC["Focused repository context"]
     RC --> C["Evidence-grounded final specification and tier recommendation"]
     C --> P["Formal technical plan"]
@@ -164,9 +164,10 @@ After explicit activation in an execution-capable mode:
    read-only Git preflight. It also reads repository policy and identifies the
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
-   provenance, and generated paths relevant to the task. It then chooses the
-   first available `orchestra/<task-slug>[-N]` branch and sibling path and
-   creates the task worktree before dispatching a capability. The source
+   provenance, and generated paths relevant to the task. It then resolves the
+   portable worktree root, verifies a sandboxed write canary in the repository
+   directory, chooses the first matching available branch and checkout path,
+   and creates the task worktree before dispatching a capability. The source
    checkout remains read-only and is never switched or reused for execution.
 4. The root records the exact task-worktree identity in memory before capability
    dispatch, as described in
@@ -209,7 +210,7 @@ committed work passes unchanged, completion does not require an artificial
 commit.
 
 If the user rejects or abandons the task before plan approval, preserve unique
-work. Remove the sibling worktree and task branch only when both still match
+work. Remove the task worktree and task branch only when both still match
 their captured identity and contain no unique work. No plan has been persisted
 at this point.
 
@@ -258,23 +259,41 @@ The loop is:
 
 1. The root selects one `orchestra_implementation_worker` with `general_implementation`
    or `frontend_implementation` and keeps that owner available for the whole
-   phase.
-2. The root creates at most one `orchestra_verifier` for each applicable capability,
+   phase. While that owner is active and has not returned an outcome or blocker,
+   the task-worktree implementation is mutable: the root waits and limits
+   itself to user dialogue, agent/resource coordination, and root-owned setup
+   that does not inspect or exercise the evolving implementation. It does not
+   read the evolving diff, run speculative canaries against it, or send design
+   corrections.
+2. At each owner handoff, the root performs at most one bounded check of exact
+   Git identity, status, allowed-path scope, `git diff --check`, and the declared
+   evidence inventory. If it investigates a possible correctness defect
+   directly, it completes and confirms that investigation against the current
+   source and diff before contacting the owner or pausing the phase cohort. It
+   sends one consolidated finding packet containing evidence, impact, and
+   acceptance, never provisional or superseding directions.
+3. The root creates at most one `orchestra_verifier` for each applicable capability,
    `runtime_verification` and `browser_acceptance`, and reuses the corresponding
    verifier for affected reruns during the phase. If verification returns
    `failed`, return findings to the same implementation owner and re-verify
    before dispatching `independent_review`. If it returns `blocked`, the root
    decides whether review proceeds on source alone and, when it does, records
-   the blocked reason in the review evidence.
-3. One independent `orchestra_reviewer` checks specification, correctness, regressions,
+   the blocked reason in the review evidence. Once a stable revision packet is
+   under verification, the root stops speculative source review. It interrupts
+   only when the revision changed or a finding confirmed against the exact
+   current source and diff invalidates that packet.
+4. Only after every required verifier has returned `pass`, or a `blocked`
+   result explicitly accepted by the root, does one independent
+   `orchestra_reviewer` check specification, correctness, regressions,
    safety, and materially defect-prone design and remains available for delta
-   review during the phase.
-4. Accepted findings return to the same implementation owner.
-5. Re-run affected verification with the same capability verifier and send the
+   review during the phase. An active verifier or a failed verifier awaiting
+   rerun is not final evidence and blocks this dispatch.
+5. Accepted findings return to the same implementation owner.
+6. Re-run affected verification with the same capability verifier and send the
    meaningful delta to the same reviewer.
-6. After final evidence is consumed, the root performs the phase teardown
+7. After final evidence is consumed, the root performs the phase teardown
    described below.
-7. When teardown permits the phase to close, the root commits with direct Git
+8. When teardown permits the phase to close, the root commits with direct Git
    by default. It may use the narrow commit helper when exact-path staging is
    useful.
 
@@ -385,10 +404,20 @@ Do not cycle on:
 
 ## Task worktree and branch
 
-Every formal Orchestra task uses a dedicated sibling Git worktree. The root
-chooses the first available `orchestra/<task-slug>[-N]` branch and sibling path
-and creates it with `git worktree add`. It never implements in, switches, or
-reuses the source checkout or a host-managed worktree.
+Every formal Orchestra task uses a dedicated Git worktree below the effective
+root resolved from `ORCHESTRA_WORKTREE_ROOT`, the installed
+`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
+`$HOME/.orchestra/worktrees`, in that order. The root chooses the first matching
+available `orchestra/<task-slug>[-N]` branch and
+`<worktree-root>/<repository>/<task-slug>[-N]` path and creates it with
+`git worktree add`. It never implements in, switches, or reuses the source
+checkout or a host-managed worktree.
+
+Before `repository_context` or another capability dispatch, the root creates
+the repository directory and writes and removes one temporary canary there. A
+failure blocks the task with the exact path and sandbox evidence; elevation is
+not used as a persistent substitute for a writable checkout. Existing active
+tasks outside the configured root are not migrated automatically.
 
 The root records checkout path, initial branch and HEAD, base branch and
 revision, and any authorized preexisting changes in transient context. It
@@ -413,6 +442,16 @@ task worktree and branch.
 Dirty, moved, ambiguous, or unverified resources are never removed. Cleanup
 after a completed mutation returns `partial` for resources that could not be
 cleaned safely.
+
+## Agent waiting
+
+The root waits on live agents in non-interruptive ten-minute windows
+(`timeout_ms: 600000`). Completion returns immediately; `timed_out` only means
+the agent remains active, so the root waits again without sending a status
+request or using `interrupt: true`. After 30 accumulated minutes, the root may
+assess once for concrete blocker evidence, but elapsed time alone never marks
+the assignment failed. Interruptions are reserved for cancellation, material
+scope changes, or indispensable invalidating information.
 
 ## Commit path
 

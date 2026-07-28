@@ -641,6 +641,10 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "orchestra": (
             "git worktree add",
             "orchestra/<task-slug>[-N]",
+            "ORCHESTRA_WORKTREE_ROOT",
+            "<worktree-root>/<repository>/<task-slug>[-N]",
+            "temporary canary",
+            "timeout_ms: 600000",
             "Never implement in, switch, or reuse the source checkout",
             "same live preapproval task",
         ),
@@ -688,7 +692,9 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "$orchestra-delivery-policy",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
-            "collision-free sibling worktree is the only task checkout",
+            "collision-free Orchestra-root worktree is the only task checkout",
+            "${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root",
+            "timeout_ms: 600000",
             "Incomplete intended post-mutation cleanup is `partial`",
         ):
             if target not in text:
@@ -764,13 +770,17 @@ def check_direct_sync(root: Path) -> list[str]:
         )
     if '"--modelconfig"' not in text:
         failures.append("sync-contract: CLI must expose --modelconfig")
+    if '"--worktree-root"' not in text:
+        failures.append("sync-contract: CLI must expose --worktree-root")
     for destination in (
         ".agents/skills/",
         "agents/",
         "orchestra/roles.toml",
+        "orchestra/worktree-root",
         "orchestra/scripts/",
         "orchestra/install-manifest.json",
         "AGENTS.md",
+        "config.toml",
     ):
         if destination not in text:
             failures.append(f"sync-contract: missing destination contract {destination}")

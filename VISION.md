@@ -40,7 +40,7 @@ organization-wide approval bureaucracy.
 The orchestrator is not a brainless dispatcher. It reuses the preceding
 conversation, obtains a bounded minimum brief, recommends an initial tier with
 its material risk and cost-benefit, and performs a short read-only preflight
-before creating an isolated sibling worktree. The user chooses the active tier.
+before creating an isolated Orchestra-root worktree. The user chooses the active tier.
 Orchestra then gathers focused repository evidence, closes genuine
 specification gaps, synthesizes that evidence, confirms the final scope with
 the user, recommends any justified tier change, chooses the next capability
@@ -115,6 +115,19 @@ Current source and Git provide repository context. Project tests, runtime
 evidence, and independent review provide the complementary correctness signals;
 Orchestra does not maintain a separate repository index or control plane.
 
+Waiting is passive coordination, not a status interrogation. The root uses
+ten-minute wait windows that return immediately on completion, treats timeout
+as continued work, and never interrupts merely to request progress. Thirty
+minutes prompts at most one evidence-based blocker assessment.
+
+Implementation ownership is also a stable observation boundary. While the
+owner is active, the root does not inspect or exercise the evolving
+implementation. At each owner handoff, it may perform one bounded identity,
+scope, and evidence check, then completes any root-originated investigation
+before returning one consolidated, confirmed finding packet. Once verification
+starts against a stable revision, speculative root review stops; required
+verification finishes before independent review begins.
+
 ### Composable agents
 
 Orchestra keeps four namespaced behavior-only base profiles:
@@ -171,10 +184,14 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
-Each formal task creates one collision-free sibling worktree managed by
-Orchestra before repository analysis. The source checkout remains read-only,
-which isolates parallel chats and keeps the workflow portable across CLIs and
-hosts. Existing work is never cleaned, stashed, or rewritten implicitly.
+Each formal task creates one collision-free worktree managed by Orchestra under
+`${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}` before repository
+analysis. Direct synchronization records the effective absolute root and, when
+safe, adds it to Codex's workspace-write roots. The source checkout remains
+read-only, which isolates parallel chats and keeps the workflow portable across
+CLIs and hosts. Existing work is never cleaned, stashed, or rewritten
+implicitly. A real write canary must pass in the task's repository directory
+before any capability is dispatched.
 Completed resources are removed only when exact Git and integration evidence
 make that cleanup safe.
 

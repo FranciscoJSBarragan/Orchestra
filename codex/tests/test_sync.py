@@ -30,6 +30,7 @@ class SyncTests(unittest.TestCase):
         base = Path(self.temporary.name)
         self.home = base / "home"
         self.codex_home = base / "codex-home"
+        self.worktree_root = self.home / ".orchestra" / "worktrees"
         self.assertNotEqual(self.home.resolve(), Path.home().resolve())
         self.assertNotEqual(self.codex_home.resolve(), (Path.home() / ".codex").resolve())
 
@@ -47,6 +48,7 @@ class SyncTests(unittest.TestCase):
             action,
             dry_run=dry_run,
             modelconfig=modelconfig,
+            worktree_root=self.worktree_root,
         )
 
     def manifest(self) -> dict[str, object]:
@@ -130,6 +132,14 @@ class SyncTests(unittest.TestCase):
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/worktree-root").read_text(),
+            f"{self.worktree_root}\n",
+        )
+        config = self.codex_home.joinpath("config.toml").read_text()
+        self.assertIn("[sandbox_workspace_write]", config)
+        self.assertIn(str(self.worktree_root), config)
+        self.assertIn("# orchestra-worktree-root:start", config)
         installed_guidance = self.codex_home.joinpath("AGENTS.md").read_text()
         self.assertIn("planning-only host mode", installed_guidance)
         self.assertIn("unequivocal imperative to use or start Orchestra", installed_guidance)
@@ -187,6 +197,115 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
         for name in sync.AGENTS:
             self.assertFalse(self.codex_home.joinpath(f"agents/{name}.toml").exists())
+        self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+
+    def test_worktree_root_precedence_and_validation(self) -> None:
+        default = sync._resolve_worktree_root(self.home, None)
+        self.assertEqual(default, self.worktree_root)
+
+        environment = self.home / "environment-root"
+        explicit = self.home / "explicit-root"
+        with mock.patch.dict(
+            os.environ, {"ORCHESTRA_WORKTREE_ROOT": str(environment)}
+        ):
+            self.assertEqual(
+                sync._resolve_worktree_root(self.home, None), environment
+            )
+            self.assertEqual(
+                sync._resolve_worktree_root(self.home, explicit), explicit
+            )
+        with self.assertRaisesRegex(sync.SyncError, "must be absolute"):
+            sync._resolve_worktree_root(self.home, "relative/worktrees")
+        with self.assertRaisesRegex(sync.SyncError, "dedicated directory"):
+            sync._resolve_worktree_root(self.home, self.home)
+
+    def test_existing_sandbox_table_gets_only_managed_root_entry(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            'model = "test-model"\n\n'
+            "[sandbox_workspace_write]\n"
+            "network_access = false\n\n"
+            "[features]\n"
+            "example = true\n"
+        )
+        config.write_text(original)
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        installed = config.read_text()
+        self.assertIn("network_access = false", installed)
+        self.assertIn("[features]", installed)
+        self.assertEqual(installed.count("[sandbox_workspace_write]"), 1)
+        self.assertIn(str(self.worktree_root), installed)
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_existing_matching_writable_roots_are_respected_and_unowned(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            "[sandbox_workspace_write]\n"
+            f'writable_roots = ["{self.worktree_root}", "/tmp/other"]\n'
+        )
+        config.write_text(original)
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+        owned = {
+            (entry["path"], entry["type"])
+            for entry in self.manifest()["entries"]
+        }
+        self.assertNotIn(("config.toml", "managed_config"), owned)
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_conflicting_writable_roots_block_without_mutation(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            "[sandbox_workspace_write]\n"
+            'writable_roots = ["/tmp/user-owned"]\n'
+        )
+        config.write_text(original)
+
+        result = self.run_sync("apply")
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("already exists without the Orchestra root", result["detail"])
+        self.assertEqual(config.read_text(), original)
+        self.assertFalse(self.codex_home.joinpath("orchestra").exists())
+
+    def test_managed_root_switch_updates_and_uninstall_restores_config(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = "[sandbox_workspace_write]\nnetwork_access = true\n"
+        config.write_text(original)
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        replacement = self.home / "alternate" / "worktrees"
+
+        switched = sync.synchronize(
+            ROOT,
+            self.home,
+            self.codex_home,
+            "apply",
+            modelconfig="external",
+            worktree_root=replacement,
+        )
+
+        self.assertEqual(switched["status"], "ok")
+        self.assertEqual(switched["worktree_root"], str(replacement))
+        self.assertIn(str(replacement), config.read_text())
+        self.assertNotIn(str(self.worktree_root), config.read_text())
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/worktree-root").read_text(),
+            f"{replacement}\n",
+        )
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
 
     def test_fresh_install_requires_explicit_modelconfig(self) -> None:
         status = self.run_sync("status", modelconfig=None)
@@ -476,6 +595,7 @@ class SyncTests(unittest.TestCase):
         env = os.environ.copy()
         env["HOME"] = str(self.home)
         env["CODEX_HOME"] = str(self.codex_home)
+        env.pop("ORCHESTRA_WORKTREE_ROOT", None)
         commands = (
             ("status",),
             ("status", "--modelconfig", "external"),
@@ -504,6 +624,7 @@ class SyncTests(unittest.TestCase):
         env = os.environ.copy()
         env["HOME"] = str(self.home)
         env.pop("CODEX_HOME", None)
+        env.pop("ORCHESTRA_WORKTREE_ROOT", None)
         applied = subprocess.run(
             [
                 sys.executable,
@@ -545,6 +666,39 @@ class SyncTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(removed.returncode, 0, removed.stderr or removed.stdout)
+
+    def test_subprocess_worktree_root_flag_overrides_environment(self) -> None:
+        env = os.environ.copy()
+        env["HOME"] = str(self.home)
+        env["CODEX_HOME"] = str(self.codex_home)
+        environment_root = self.home / "from-environment"
+        explicit_root = self.home / "from-flag"
+        env["ORCHESTRA_WORKTREE_ROOT"] = str(environment_root)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SYNC_PATH),
+                "apply",
+                "--dry-run",
+                "--modelconfig",
+                "external",
+                "--worktree-root",
+                str(explicit_root),
+            ],
+            cwd=ROOT,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "partial")
+        self.assertEqual(payload["worktree_root"], str(explicit_root))
+        self.assertFalse(self.home.exists())
+        self.assertFalse(self.codex_home.exists())
 
     def test_mid_apply_failure_records_exact_successful_ownership(self) -> None:
         original = sync._apply_operation

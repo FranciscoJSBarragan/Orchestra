@@ -73,10 +73,21 @@ canonical runtime, dependency setup, services, permissions, credential
 categories without reading secrets, verification commands, test-data
 provenance, and generated paths relevant to the task.
 
-Use Git directly to choose the first available
-`orchestra/<task-slug>[-N]` branch and sibling path and create it with
-`git worktree add`. Never implement in, switch, or reuse the source checkout or
-a host-managed worktree. Fresh work starts at the captured base revision.
+Resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, then the single
+absolute line in
+`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, then
+`$HOME/.orchestra/worktrees`. Reject a relative, home-wide, root-wide, symlinked,
+or malformed value. Under that root, use the repository directory name and
+choose the first matching pair of available
+`orchestra/<task-slug>[-N]` branch and
+`<worktree-root>/<repository>/<task-slug>[-N]` checkout path. Create the
+repository directory, write and remove one temporary canary there, and block
+before any capability dispatch if that exact sandboxed write fails. Do not use
+an elevated edit path as a substitute for a writable task checkout.
+
+Create the selected checkout with `git worktree add`.
+Never implement in, switch, or reuse the source checkout or a host-managed
+worktree. Fresh work starts at the captured base revision.
 Adopted committed work starts at its source HEAD while retaining the
 integration base; selected dirty paths import only through
 `adopt_worktree.py`.
@@ -90,7 +101,8 @@ Reuse is limited to the same live preapproval task or to a resumed task whose
 approved plan, objective, checkout path, branch, base, and HEAD all match Git.
 A legacy plan with a retired environment field blocks automatic resume unless
 the root explicitly verifies that it already identifies the exact Orchestra
-sibling worktree and the user authorizes adoption. On preapproval
+task worktree and the user authorizes adoption. Do not migrate an active
+checkout from an older sibling location into the configured root. On preapproval
 abandonment, never discard unique work; remove only proven-clean resources
 created for the live task. No plan is persisted before approval. If adopted
 committed work later passes unchanged, allow completion without an artificial
@@ -164,14 +176,24 @@ Only the root writes the plan. On resume, resolve the Git path again and require
 3. Final specification confirmation is the checkpoint to draft the plan in conversation or system temporary storage; do not require a second literal request to make a plan. Dispatch `technical_planning` (or `architecture_analysis` for a bounded named architecture question) when useful; for a small single-phase standard task the root may write the compact plan directly. A single-phase standard plan is explicitly compact: objective, one phase contract, verification, nothing else.
 4. For a critical plan audit, dispatch `independent_review` only when the packet names a measurable risk, supporting evidence, affected area, and an independently detectable defect class. Complexity alone is insufficient. Consume the one-shot audit result and close that reviewer and its descendants.
 5. Have the root review and summarize the plan and request explicit user approval. Stop before implementation. Specification confirmation authorizes plan drafting, not implementation. On approval, write the exact approved plan directly as `active`.
-6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase.
-7. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Create at most one verifier per used verification capability and reuse that verifier for affected reruns. If verification returns `failed`, return findings to the same implementation owner and re-verify before dispatching `independent_review`. If it returns `blocked`, the root decides whether review proceeds on source alone and, when it does, records the blocked reason in the review evidence. Then dispatch one `independent_review` agent against the exact revision and evidence and keep it open for meaningful delta review.
-8. For a second critical review, reuse `independent_review` with the critical assignment only for a named measurable risk and independently detectable defect class.
-9. Return accepted findings to the same implementation owner, preserve its original implementation capability and playbook, rerun affected verification with the same capability verifier, and send the meaningful delta to the same phase reviewer.
-10. After final evidence is consumed, ask each phase resource owner to stop only its exact owned temporary processes and close only its task tabs. Stop root-owned shared test processes. Consume the cleanup results, then call `close_agent` on the implementation owner, reviewer, and every verifier so their descendants close as well. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. Never scan for or kill unrelated processes or close unrelated browser state.
-11. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update phase progress in the local plan. Phase teardown is complete before this commit skill starts and never becomes part of its Git path.
-12. When the same causal failure repeats, correction cycles demonstrably fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess the phase approach, recommend a tier change, dispatch `difficult_debugging` with only the failure evidence and context delta, or ask the user when an authority boundary is crossed. Distinct legitimate findings alone are not an escalation trigger. Consume a debugging result, close that one-shot agent and its descendants, return the diagnosis to the same implementation owner, and resume the failed local step, not the whole workflow.
-13. After every phase is reviewed, verified, torn down, and committed, set the local plan to `completed`.
+6. For each approved phase, select exactly one implementation capability and owner. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase. While the implementation owner is active and has not returned an outcome or blocker, treat the implementation state as mutable: wait without reading the evolving diff, running speculative canaries against it, or sending design corrections. Continue only user dialogue, agent/resource coordination, and root-owned setup that does not inspect or exercise the evolving implementation. Intervene only for an owner-reported blocker, a material user scope change, or indispensable external evidence that invalidates the assignment.
+7. At each implementation-owner handoff, perform at most one bounded check of exact Git identity, status, allowed-path scope, `git diff --check`, and the declared evidence inventory. If the root directly investigates a possible correctness defect, complete and confirm that investigation against the exact current source and diff before contacting the owner or pausing the phase cohort. Send one consolidated finding packet with evidence, impact, and acceptance; never send provisional or superseding directions.
+8. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Create at most one verifier per used verification capability and reuse that verifier for affected reruns. Once a stable revision packet is under verification, stop speculative root source review. Interrupt a verifier only when the revision changed or a finding confirmed against the exact current source and diff invalidates the packet. If verification returns `failed`, return findings to the same implementation owner and re-verify. If it returns `blocked`, the root decides whether review proceeds on source alone and records the blocked reason in the review evidence when accepted. Dispatch `independent_review` only after every required verifier has returned `pass` or a `blocked` result explicitly accepted by the root. An active verifier or a failed verifier awaiting rerun blocks reviewer dispatch.
+9. Then dispatch one `independent_review` agent against the exact revision and complete verification evidence and keep it open for meaningful delta review. For a second critical review, reuse `independent_review` with the critical assignment only for a named measurable risk and independently detectable defect class.
+10. Return accepted findings to the same implementation owner, preserve its original implementation capability and playbook, rerun affected verification with the same capability verifier, and send the meaningful delta to the same phase reviewer.
+11. After final evidence is consumed, ask each phase resource owner to stop only its exact owned temporary processes and close only its task tabs. Stop root-owned shared test processes. Consume the cleanup results, then call `close_agent` on the implementation owner, reviewer, and every verifier so their descendants close as well. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. Never scan for or kill unrelated processes or close unrelated browser state.
+12. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update phase progress in the local plan. Phase teardown is complete before this commit skill starts and never becomes part of its Git path.
+13. When the same causal failure repeats, correction cycles demonstrably fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess the phase approach, recommend a tier change, dispatch `difficult_debugging` with only the failure evidence and context delta, or ask the user when an authority boundary is crossed. Distinct legitimate findings alone are not an escalation trigger. Consume a debugging result, close that one-shot agent and its descendants, return the diagnosis to the same implementation owner, and resume the failed local step, not the whole workflow.
+14. After every phase is reviewed, verified, torn down, and committed, set the local plan to `completed`.
+
+Wait for live agents with `wait_agent` in non-interruptive ten-minute windows
+using `timeout_ms: 600000`. The wait returns as soon as an agent reaches a final
+state; `timed_out` means only that the agent is still working. After a timeout,
+wait again without `send_input`, a status request, restart, or
+`interrupt: true`. After 30 accumulated minutes without a final result, assess
+once for concrete blocker evidence; elapsed time alone is not a failure. Interrupt only
+for cancellation, a material scope change, or indispensable information that
+invalidates the current assignment.
 
 Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed unless fallback is also authorized. A profile may report that route's technical blocker but may not veto or substitute it. `auto` explicitly selects Codex's in-app Browser first and may use Computer Use with Chrome only for a technical availability or capability gap. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed fallback, close the in-app task tab and repeat the complete scenario in a separate Chrome task tab. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
 

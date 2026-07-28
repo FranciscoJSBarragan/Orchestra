@@ -52,11 +52,11 @@ review provide correctness evidence without a separate repository index.
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
 active tier. It performs a short read-only Git and execution-readiness preflight.
-The root uses Git directly to create a collision-free task branch and sibling
-worktree before dispatching repository analysis. It keeps that task-checkout
-identity in transient context before plan approval and passes the exact checkout
-to every capability. It creates no classifier or execution-environment
-registry.
+The root uses Git directly to create a collision-free task branch and portable
+Orchestra-root worktree before dispatching repository analysis. It keeps that
+task-checkout identity in transient context before plan approval and passes the
+exact checkout to every capability. It creates no classifier or
+execution-environment registry.
 
 The first repository-context pass grounds the continuing specification dialogue
 and feasibility-determining facts. Later passes answer only newly material
@@ -70,6 +70,15 @@ and only the temporary processes or tabs created for that phase. It reuses the
 phase agents for fixes, reruns, and delta review, then tears down those known
 resources before commit. This is in-memory lifecycle coordination, not a
 registry, helper, or persisted workflow state.
+
+The active implementation owner defines a stable observation boundary. Until
+that owner returns an outcome or blocker, the root coordinates without reading
+the evolving implementation diff, exercising it with speculative canaries, or
+sending design corrections. At each handoff the root may perform one bounded
+Git identity, status, allowed-scope, `diff --check`, and evidence-inventory
+check. A root-originated correctness investigation completes against the
+current source and diff before it produces one consolidated finding packet with
+evidence, impact, and acceptance.
 
 ### Base profiles and capabilities
 
@@ -190,7 +199,8 @@ commits, and worktree state; the plan carries intent and progress, not delivery
 authority.
 
 Branches and worktrees are Git resources, not a new Orchestra state store.
-Every new formal task uses an Orchestra-owned collision-free sibling worktree;
+Every new formal task uses an Orchestra-owned collision-free worktree below the
+effective portable root;
 the source checkout remains read-only. The same live preapproval task may
 continue in memory; later reuse requires the approved plan's checkout path,
 branch, base, and HEAD to agree with Git. Rejected planning and completed
@@ -205,7 +215,7 @@ duplicate Git index, commit recovery journal, plan CLI, Kanban board, benchmark
 control plane, or general-purpose workflow state engine unless real usage later
 demonstrates a requirement Git/GitHub cannot meet. The root uses the one-shot
 `adopt_worktree.py` helper only because Git does not carry selected dirty paths
-into an Orchestra sibling worktree; the helper keeps no state.
+into an Orchestra task worktree; the helper keeps no state.
 
 ## Model and reasoning configuration
 
@@ -278,6 +288,19 @@ or process capable of writing the worktree blocks commit; an unclosed
 source-read-only task tab is reported as partial cleanup without invalidating
 the commit.
 
+Live-agent observation uses `wait_agent` with a ten-minute maximum. Completion
+wakes the root immediately; timeout does not contact, interrupt, restart, or
+fail the agent. After 30 accumulated minutes, only concrete blocker evidence
+justifies intervention.
+
+Once the root gives a stable revision packet to a verifier, it stops
+speculative source review until that verification returns. It interrupts a
+verifier only when the revision changed or a finding was first confirmed
+against the exact current source and diff and invalidates the packet. Every
+required verifier must return `pass`, or a `blocked` result explicitly accepted
+by the root, before `independent_review` is dispatched. An active verifier or a
+failed verifier awaiting its rerun is not final evidence.
+
 No helper discovers or kills processes globally. Resource handles exist only in
 root memory, apply only to resources Orchestra created, and expire at phase
 teardown. Commit execution remains a separate direct Git operation.
@@ -339,7 +362,7 @@ Tests protect the few important invariants:
   fallback, after attempting the installed assignment first;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
-- every formal task creates one collision-free sibling worktree without
+- every formal task creates one collision-free Orchestra-root worktree without
   switching or mutating the source checkout;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
@@ -393,9 +416,14 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Task worktree creation remains a direct root Git operation.
+never clean. Task worktree creation remains a direct root Git operation. Its
+path is `<worktree-root>/<repository>/<task-slug>[-N]`, where synchronization
+records the absolute root and may add it to Codex's supported
+`sandbox_workspace_write.writable_roots` list through a marked reversible
+entry. The root proves write access with a temporary canary before dispatch;
+active worktrees in older locations are never migrated implicitly.
 Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
-import into the sibling task worktree.
+import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
 when useful, never an agent.
 

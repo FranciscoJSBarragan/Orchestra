@@ -321,7 +321,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             " ".join(self.skill.split()),
         )
 
-    def test_new_formal_task_creates_sibling_worktree_before_discovery(
+    def test_new_formal_task_creates_portable_worktree_before_discovery(
         self,
     ) -> None:
         isolation = self.skill.index("## Create the isolated task worktree")
@@ -331,8 +331,12 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertLess(isolation, repository_dispatch)
         normalized = " ".join(self.skill.split())
         for invariant in (
-            "first available `orchestra/<task-slug>[-N]` branch and sibling path",
-            "create it with `git worktree add`",
+            "`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`",
+            "`$HOME/.orchestra/worktrees`",
+            "`<worktree-root>/<repository>/<task-slug>[-N]` checkout path",
+            "write and remove one temporary canary",
+            "Create the selected checkout with `git worktree add`",
+            "Do not use an elevated edit path",
             "Never implement in, switch, or reuse the source checkout",
             "Adopted committed work starts at its source HEAD",
             "adopt_worktree.py",
@@ -342,6 +346,89 @@ class PlannedFlowContractTests(unittest.TestCase):
             "completion without an artificial commit",
         ):
             self.assertIn(invariant, normalized)
+
+    def test_agent_waiting_is_long_non_interruptive_and_timeout_is_not_failure(
+        self,
+    ) -> None:
+        normalized = " ".join(self.skill.split())
+        for contract in (
+            "`wait_agent` in non-interruptive ten-minute windows",
+            "`timeout_ms: 600000`",
+            "returns as soon as an agent reaches a final state",
+            "`timed_out` means only that the agent is still working",
+            "wait again without `send_input`",
+            "`interrupt: true`",
+            "After 30 accumulated minutes",
+            "elapsed time alone is not a failure",
+        ):
+            self.assertIn(contract, normalized)
+
+    def test_implementation_handoff_bounds_root_observation_and_findings(
+        self,
+    ) -> None:
+        normalized = " ".join(self.skill.split())
+        active_owner = normalized.index(
+            "While the implementation owner is active and has not returned "
+            "an outcome or blocker"
+        )
+        handoff = normalized.index("At each implementation-owner handoff")
+        verification = normalized.index("Dispatch `runtime_verification`")
+        self.assertLess(active_owner, handoff)
+        self.assertLess(handoff, verification)
+        for contract in (
+            "without reading the evolving diff",
+            "running speculative canaries against it",
+            "root-owned setup that does not inspect or exercise the evolving "
+            "implementation",
+            "at most one bounded check of exact Git identity, status, "
+            "allowed-path scope, `git diff --check`, and the declared evidence "
+            "inventory",
+            "complete and confirm that investigation against the exact current "
+            "source and diff",
+            "one consolidated finding packet with evidence, impact, and "
+            "acceptance",
+            "never send provisional or superseding directions",
+        ):
+            self.assertIn(contract, normalized)
+
+    def test_required_verification_finishes_before_independent_review(
+        self,
+    ) -> None:
+        normalized = " ".join(self.skill.split())
+        freeze = normalized.index(
+            "Once a stable revision packet is under verification"
+        )
+        gate = normalized.index(
+            "Dispatch `independent_review` only after every required verifier"
+        )
+        review = normalized.index(
+            "Then dispatch one `independent_review` agent"
+        )
+        self.assertLess(freeze, gate)
+        self.assertLess(gate, review)
+        for contract in (
+            "stop speculative root source review",
+            "a finding confirmed against the exact current source and diff "
+            "invalidates the packet",
+            "a `blocked` result explicitly accepted by the root",
+            "An active verifier or a failed verifier awaiting rerun blocks "
+            "reviewer dispatch",
+        ):
+            self.assertIn(contract, normalized)
+
+    def test_phase_observation_boundary_is_consistent_across_sources(self) -> None:
+        for path in (
+            "VISION.md",
+            "docs/WORKFLOW.md",
+            "docs/ARCHITECTURE.md",
+            "codex/runtime/AGENTS.orchestra.md",
+        ):
+            normalized = " ".join((ROOT / path).read_text().split())
+            self.assertIn("evolving implementation", normalized, path)
+            self.assertIn("consolidated", normalized, path)
+            self.assertIn("stable revision", normalized, path)
+            self.assertRegex(normalized, r"required (verification|verifier)", path)
+            self.assertRegex(normalized, r"independent[ _]review", path)
 
     def test_initial_context_precedes_final_specification_and_plan(self) -> None:
         normalized = " ".join(self.skill.split())
@@ -420,8 +507,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             base = root / "repo"
-            unrelated = root / "repo-example"
-            task = root / "repo-example-2"
+            worktree_root = root / "home" / ".orchestra" / "worktrees"
+            repository_root = worktree_root / base.name
+            unrelated = repository_root / "example"
+            task = repository_root / "example-2"
             subprocess.run(
                 ["git", "init", "-b", "main", str(base)],
                 check=True,
@@ -450,6 +539,10 @@ class PlannedFlowContractTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout.strip()
+            repository_root.mkdir(parents=True)
+            canary = repository_root / ".orchestra-write-canary"
+            canary.write_text("write-check\n", encoding="utf-8")
+            canary.unlink()
             subprocess.run(
                 [
                     "git",
@@ -499,6 +592,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertEqual(task_head, base_sha)
             self.assertEqual(task_status, "")
             self.assertEqual(seed.read_text(encoding="utf-8"), "uncommitted user work\n")
+            self.assertEqual(task.parent, worktree_root / "repo")
             self.assertTrue(unrelated.exists())
 
             subprocess.run(

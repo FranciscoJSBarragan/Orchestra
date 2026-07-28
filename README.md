@@ -36,7 +36,8 @@ together.
 Orchestra starts only from explicit activation. It reuses the conversation,
 classifies any prior candidate checkpoint, recommends a standard or critical
 tier, and creates one collision-free `orchestra/<task-slug>[-N]` branch in a
-dedicated sibling Git worktree before repository analysis. Every formal task
+dedicated Git worktree under a portable Orchestra root before repository
+analysis. Every formal task
 uses that isolated checkout regardless of the CLI or host that activated
 Orchestra. It supports hold, PR, or local integration when policy allows.
 
@@ -72,7 +73,9 @@ For an existing repository:
 1. Ask: `Use Orchestra to add <visible behavior>.`
 2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
    asks you to choose the tier.
-3. It creates an isolated sibling worktree, inspects it, proposes observable
+3. It creates an isolated worktree under
+   `${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}`, inspects it, and
+   proposes observable
    acceptance, and asks you to confirm the final specification and
    implementation plan.
 4. After approval it implements, verifies, reviews, and commits accepted phases.
@@ -111,6 +114,7 @@ ordinary task execution:
 python3 codex/scripts/sync.py status --modelconfig native
 python3 codex/scripts/sync.py apply --dry-run --modelconfig native
 python3 codex/scripts/sync.py apply --modelconfig native
+python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
 python3 codex/scripts/sync.py status
 python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
@@ -121,6 +125,14 @@ that global choice, so later status and apply calls may omit `--modelconfig`.
 Passing the other value previews or applies an atomic configuration switch.
 Do not switch configurations while an Orchestra task is active: every dispatch
 reads the one installed runtime matrix.
+
+The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
+sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
+to `$CODEX_HOME/orchestra/worktree-root`. When `config.toml` has no conflicting
+`sandbox_workspace_write.writable_roots`, sync adds a marked reversible entry.
+An existing list that omits the requested root blocks without rewriting user
+configuration. Restart the Codex host after changing sandbox roots so new agent
+sessions receive the updated permission.
 
 Sync results use:
 
@@ -136,8 +148,9 @@ Eight skills and their internal playbook references install under
 `$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
 `$HOME/.codex`. The tool owns only destinations recorded in
 `$CODEX_HOME/orchestra/install-manifest.json` and the exactly marked Orchestra
-block in `$CODEX_HOME/AGENTS.md`. Only the selected source matrix is installed,
-always at `$CODEX_HOME/orchestra/roles.toml`.
+blocks in `$CODEX_HOME/AGENTS.md` and `$CODEX_HOME/config.toml`. Only the
+selected source matrix is installed, always at
+`$CODEX_HOME/orchestra/roles.toml`.
 
 Before replacing or removing an existing owned destination, the tool writes one
 current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.

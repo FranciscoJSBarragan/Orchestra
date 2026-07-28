@@ -62,13 +62,19 @@ remain unchanged. Do not ask for the same confirmation twice.
 
 Recommend an initial tier from the brief and obtain the user's explicit choice,
 then perform a short read-only Git and execution-readiness preflight. Read
-repository delivery policy, resolve the intended base branch and revision, then
-create the first available `orchestra/<task-slug>[-N]` branch and sibling
-worktree before repository analysis or capability dispatch. Never implement in
-or switch the source checkout, and never reuse a host-managed worktree as the
-task checkout. Use the exact task worktree for focused `repository_context`,
+repository delivery policy and resolve the intended base branch and revision.
+Resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed
+`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
+`$HOME/.orchestra/worktrees`. Under `<root>/<repository>/`, prove sandboxed
+write access with a temporary canary, then create the first matching available
+`orchestra/<task-slug>[-N]` branch and
+`<root>/<repository>/<task-slug>[-N]` worktree before repository analysis or
+capability dispatch. Block rather than relying on elevated edits when the
+canary fails. Never implement in or switch the source checkout, and never reuse
+a host-managed worktree as the task checkout. Use the exact task worktree for focused `repository_context`,
 specification, planning, implementation, review, verification, and commits.
 Reuse requires exact approved-plan agreement on path, branch, base, and HEAD.
+Never migrate an active task from an older worktree location automatically.
 
 ## Tier selection
 
@@ -138,6 +144,20 @@ conditions; inspect and reverify the targeted delta introduced by a new risk.
 - Keep that implementation owner, the independent reviewer, and one verifier
   per used verification capability open for the whole phase; reuse them for
   fixes, reruns, and delta review.
+- Wait on live agents with `wait_agent` in non-interruptive ten-minute windows
+  using `timeout_ms: 600000`. Completion returns early; `timed_out` means wait
+  again without `send_input` or `interrupt: true`. After 30 accumulated
+  minutes, assess once only for concrete blocker evidence; elapsed time alone
+  is not a failure.
+- While the implementation owner is active without an outcome or blocker, do
+  not inspect or exercise its evolving implementation or send design
+  corrections. At each handoff, perform one bounded identity, scope,
+  `diff --check`, and evidence check. Finish any root-originated investigation
+  before sending one consolidated, confirmed finding packet.
+- Once verification starts against a stable revision, stop speculative root
+  review. Interrupt only for a changed revision or a confirmed invalidating
+  finding. Every required verifier must pass, or have its blocked result
+  explicitly accepted, before dispatching independent review.
 - Close one-shot analysts after consuming their result. Before phase commit,
   stop only Orchestra-owned temporary processes and task tabs, consume cleanup
   results, and close every phase agent and its descendants.
