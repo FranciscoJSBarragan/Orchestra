@@ -165,10 +165,10 @@ class PlannedFlowContractTests(unittest.TestCase):
             "remaining risk",
         )
         existing_output_fields = {
-            "orchestra_analyst": ("evidence", "planned", "diagnosed", "blocked", "capability name", "observed facts", "unresolved questions", "source references"),
-            "orchestra_implementation_worker": ("implemented", "blocked", "capability name", "changed paths", "implementation notes", "tests changed", "verification commands", "owned temporary resources", "remaining risks"),
-            "orchestra_reviewer": ("accepted", "findings", "blocked", "review target", "material findings", "verification or authority gaps", "rejected pr feedback"),
-            "orchestra_verifier": ("passed", "failed", "blocked", "capability name", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
+            "orchestra_analyst": ("evidence", "planned", "diagnosed", "blocked", "produced artifact identifiers", "candidate bundle", "blockers", "material risks", "decisions requested"),
+            "orchestra_implementation_worker": ("implemented", "blocked", "implementation-report", "changed paths", "tests changed", "verification commands", "owned temporary resources", "remaining risks"),
+            "orchestra_reviewer": ("accepted", "findings", "blocked", "review target", "stable identifier", "verification or authority gaps", "rejected pr feedback"),
+            "orchestra_verifier": ("passed", "failed", "blocked", "verification-report", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
         }
         for name in PROFILE_NAMES:
             output = self.output_instructions(name).lower().strip()
@@ -242,17 +242,22 @@ class PlannedFlowContractTests(unittest.TestCase):
             )
         self.assertNotIn("focused read-only inspection scope", worker_input)
         for packet_field in (
-            "approved objective",
-            "known decisions and context delta",
-            "allowed paths",
-            "acceptance criteria",
-            "verification",
-            "exclusions",
+            "explicit edit authority",
+            "worktree",
+            "approved plan-manifest path",
+            "exact `plan-overview` identifier",
+            "exact current `plan-phase` identifier",
             "stop conditions",
-            "references",
             "revision identity",
+            "accepted finding identifiers",
+            "only newly changed context",
         ):
             self.assertIn(packet_field, worker_input)
+        self.assertIn(
+            "read objective, allowed paths, acceptance, verification",
+            worker_input,
+        )
+        self.assertIn("do not require the root to replay them", worker_input)
 
     def test_reviewer_complexity_is_material_not_metric_scoring(self) -> None:
         reviewer = self.instructions("orchestra_reviewer").lower()
@@ -260,24 +265,30 @@ class PlannedFlowContractTests(unittest.TestCase):
             "unsupported consumer, requirement, or reproducible risk",
             "recommend deletion, an existing primitive, or a smaller direct implementation",
             "line count, file count, abstraction count, or unfamiliarity alone",
-            "severity, causal rationale, applicable locator, and correction rationale",
+            "stable identifier",
+            "severity, causal rationale, evidence and locator, and correction rationale",
         ):
             self.assertIn(requirement, reviewer)
 
     def test_dispatch_packet_pins_phase_acceptance_and_scope_stop_conditions(self) -> None:
         reviewer_input = self.input_instructions("orchestra_reviewer").lower()
-        self.assertIn("the acceptance criteria", reviewer_input)
+        self.assertIn(
+            "read objective, scope, acceptance, prior evidence, and plan details "
+            "directly from those artifacts",
+            reviewer_input,
+        )
         reviewer_stop = self.instructions("orchestra_reviewer").split("## Stop conditions", 1)[1].lower()
         self.assertIn(
-            "stop and return `blocked` when acceptance criteria are missing from the packet",
+            "stop and return `blocked` when acceptance criteria cannot be "
+            "resolved from the exact target artifacts",
             reviewer_stop,
         )
         worker_stop = self.instructions("orchestra_implementation_worker").split(
             "## Stop conditions", 1
         )[1].lower()
         self.assertIn(
-            "stop when the change materially expands the packet objective, "
-            "acceptance criteria, exclusions, or approved authority, even inside "
+            "stop when the change materially expands the approved phase "
+            "objective, acceptance criteria, exclusions, or explicit authority, even inside "
             "allowed paths",
             worker_stop,
         )
@@ -307,7 +318,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             "never impose a token, line, file, finding, test, or explanation cap",
             self.skill,
         )
-        architecture = (ROOT / "docs/ARCHITECTURE.md").read_text().lower()
+        architecture = " ".join(
+            (ROOT / "docs/ARCHITECTURE.md").read_text().lower().split()
+        )
         for invariant in (
             "outcome-first output status",
             "dirty worktree or diff state",
@@ -317,9 +330,85 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(invariant, architecture)
         self.assertIn(
-            "relevant references and revision identity",
+            "exact target artifact identifiers and their roles",
             " ".join(self.skill.split()),
         )
+
+    def test_coordination_artifacts_are_shared_but_never_authoritative(self) -> None:
+        normalized_skill = " ".join(self.skill.split())
+        workflow = " ".join((ROOT / "docs/WORKFLOW.md").read_text().split())
+        architecture = " ".join((ROOT / "docs/ARCHITECTURE.md").read_text().split())
+        for contract in (
+            "coordination.py",
+            "task create",
+            "artifact put",
+            "material start, final, or blocker",
+            "there are no heartbeats",
+            "complete report inline",
+            "never blocks a tier change",
+            "only the root writes the plan",
+        ):
+            self.assertIn(contract.lower(), normalized_skill.lower())
+        for contract in (
+            "$HOME/.orchestra/state.sqlite3",
+            "no transition graph",
+            "never runs mutating Git commands",
+            "worktree cleanup may make its artifact locators unavailable",
+        ):
+            self.assertIn(contract.lower(), workflow.lower())
+        for contract in (
+            "tasks, material agent activities, and artifact locators",
+            "telemetry loss, not workflow failure",
+            "no authority, event history, heartbeat requirement",
+        ):
+            self.assertIn(contract.lower(), architecture.lower())
+        for name in PROFILE_NAMES:
+            instructions = self.instructions(name)
+            self.assertIn("coordination.py", instructions, name)
+            self.assertIn("complete", instructions.lower(), name)
+            self.assertIn("inline", instructions.lower(), name)
+        context = (self.references / "repository_context.md").read_text()
+        planning = " ".join(
+            (self.references / "technical_planning.md").read_text().split()
+        )
+        self.assertIn("--kind repository-context", context)
+        self.assertIn("--kind plan-overview", planning)
+        self.assertIn("--kind plan-phase --phase <number>", planning)
+        self.assertIn("complete replacement", planning)
+
+    def test_document_handoffs_use_exact_bundle_members_without_root_replay(self) -> None:
+        normalized = " ".join(self.skill.split())
+        for contract in (
+            "exact target artifact identifiers and their roles",
+            "Do not replay objective, scope, acceptance, verification",
+            "one complete `plan-overview` artifact",
+            "one complete `plan-phase` artifact per phase",
+            "never by timestamp or list order",
+            "approved overview verbatim",
+            "does not duplicate detailed phase documents",
+            "exact overview identifier",
+            "exact current phase identifier",
+            "only prior outputs explicitly required by that phase",
+            "do not restate the findings",
+            "do not create a commit artifact",
+        ):
+            self.assertIn(contract.lower(), normalized.lower())
+
+    def test_plan_review_is_conditional_and_root_adjudicates_convergence(self) -> None:
+        normalized = " ".join(self.skill.split())
+        for contract in (
+            "After the complete formal bundle exists",
+            "trivial single-phase standard plan may skip review",
+            "non-trivial multi-phase or cross-component plan receives one review",
+            "critical plan receives a focused review",
+            "same planner",
+            "stable finding identifiers",
+            "after a second material review",
+            "before a third correction",
+            "marginal, contradictory, or out-of-scope findings",
+            "not a persisted counter or mechanical limit",
+        ):
+            self.assertIn(contract.lower(), normalized.lower())
 
     def test_new_formal_task_creates_portable_worktree_before_discovery(
         self,
@@ -408,11 +497,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertLess(gate, review)
         for contract in (
             "stop speculative root source review",
-            "a finding confirmed against the exact current source and diff "
-            "invalidates the packet",
-            "a `blocked` result explicitly accepted by the root",
-            "An active verifier or a failed verifier awaiting rerun blocks "
-            "reviewer dispatch",
+            "a confirmed finding invalidates the packet",
+            "its blocker is explicitly accepted",
         ):
             self.assertIn(contract, normalized)
 
@@ -469,7 +555,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             "On preapproval abandonment",
             "never discard unique work",
             "remove only proven-clean resources",
-            "No plan is persisted before approval",
+            "no approved `plan.md` is persisted before approval",
+            "clearly labeled private artifact",
         ):
             self.assertIn(contract, normalized)
 
@@ -679,9 +766,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("Only the root writes the plan", self.skill)
         self.assertIn("Git is authoritative", self.skill)
         for field in (
-            "checkout path",
-            "initial branch and HEAD",
-            "base branch and revision",
+            "task and Git identity",
+            "approved overview verbatim",
+            "exact phase manifest",
+            "artifact identifier, private path, revision",
             "authorized preexisting changes",
         ):
             self.assertIn(field, self.skill)
@@ -719,10 +807,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         routing = " ".join(self.skill.split())
         for contract in (
             "Keep this implementation agent open",
-            "Create at most one verifier per used verification capability",
-            "reuse that verifier for affected reruns",
-            "keep it open for meaningful delta review",
-            "same phase reviewer",
+            "Create at most one verifier per used capability",
+            "reuse it for affected reruns",
+            "Keep it open for meaningful delta review",
+            "same reviewer",
             "call `close_agent`",
             "so their descendants close as well",
             "Never scan for or kill unrelated processes",
@@ -736,7 +824,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "close that agent and its descendants before continuing", routing
         )
         self.assertIn(
-            "close that one-shot agent and its descendants", routing
+            "Close planner and plan reviewer after the bundle is accepted", routing
         )
 
         commit_skill = (
@@ -768,11 +856,21 @@ class PlannedFlowContractTests(unittest.TestCase):
                 "owned resources",
             ):
                 self.assertIn(contract, profile)
-        self.assertIn("analysts are one-shot agents", analyst)
+        self.assertIn(
+            "Repository-context, web-research, architecture-analysis, and "
+            "difficult-debugging analysts are one-shot agents",
+            analyst,
+        )
+        self.assertIn(
+            "technical-planning analyst remains available only through a "
+            "dispatched plan-review",
+            analyst,
+        )
         normalized_skill = " ".join(self.skill.split())
         for contract in (
             "Keep agent and resource handles only in root memory",
-            "Do not persist packets, agent transitions, resource registries",
+            "material start/final/blocker activities",
+            "never packets, resource handles",
         ):
             self.assertIn(contract, normalized_skill)
         self.assertIn(
@@ -792,9 +890,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("observe", review_skill)
         self.assertIn("tiers.<tier>.independent_review", review_skill)
         self.assertIn(
-            "the acceptance criteria from the open-time packet or PR-CONTEXT",
+            "exact approved overview and relevant phase identifiers",
             review_skill,
         )
+        self.assertIn("accepted identifiers without restating findings", review_skill)
         self.assertIn("same implementation owner", review_skill)
         for retired in ("phase_committer", "pr_polling_specialist", "pr_triage_specialist"):
             self.assertNotIn(retired, commit_skill + review_skill + self.skill)
@@ -828,7 +927,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(field, routing)
         self.assertIn("complexity alone is insufficient", routing)
-        self.assertIn("records the blocked reason in the review evidence", self.skill)
+        self.assertIn("records the reason in review evidence", self.skill)
         debugging = (self.references / "difficult_debugging.md").read_text()
         self.assertIn("escalation trigger fired", debugging)
         self.assertIn("the same causal failure repeated", debugging)
@@ -843,7 +942,10 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_standard_requires_approval_and_delivery_authority_stays_separate(self) -> None:
         self.assertIn("request explicit user approval", self.skill)
         self.assertIn("Stop before implementation", self.skill)
-        self.assertIn("approved plan directly as `active`", self.skill)
+        self.assertIn(
+            "write `plan.md` as the approved overview and exact phase manifest",
+            self.skill,
+        )
         self.assertIn("delivery authority remains separate", self.skill)
         self.assertIn("merge without separate authority", self.skill)
         self.assertIn("orchestra-delivery-policy", self.skill)
@@ -895,6 +997,23 @@ class PlannedFlowContractTests(unittest.TestCase):
             "Distinct legitimate findings alone are not an escalation trigger",
             routing,
         )
+
+    def test_blocking_user_questions_never_auto_resolve(self) -> None:
+        source_agents = (ROOT / "AGENTS.md").read_text()
+        runtime_agents = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        for guidance in (source_agents, runtime_agents):
+            normalized = " ".join(guidance.split())
+            self.assertIn(
+                "required to continue, call `request_user_input` without "
+                "`autoResolutionMs`",
+                normalized,
+            )
+            self.assertIn("explicitly informational, non-blocking", normalized)
+            self.assertIn(
+                "does not change command, test, or `wait_agent` timeouts",
+                normalized,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

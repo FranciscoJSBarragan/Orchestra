@@ -30,9 +30,28 @@ class SyncTests(unittest.TestCase):
         base = Path(self.temporary.name)
         self.home = base / "home"
         self.codex_home = base / "codex-home"
+        self.orchestra_root = self.home / ".orchestra"
         self.worktree_root = self.home / ".orchestra" / "worktrees"
         self.assertNotEqual(self.home.resolve(), Path.home().resolve())
         self.assertNotEqual(self.codex_home.resolve(), (Path.home() / ".codex").resolve())
+        self.original_cache_discovery = sync._discover_cache_roots
+        self.cache_patcher = mock.patch.object(
+            sync,
+            "_discover_cache_roots",
+            return_value=(
+                {},
+                {tool: "not installed" for tool in sync.CACHE_TOOLS},
+            ),
+        )
+        self.cache_discovery = self.cache_patcher.start()
+        self.addCleanup(self.cache_patcher.stop)
+        self.version_patcher = mock.patch.object(
+            sync,
+            "_detect_codex_version",
+            return_value=("0.145.0", (0, 145, 0)),
+        )
+        self.codex_version = self.version_patcher.start()
+        self.addCleanup(self.version_patcher.stop)
 
     def run_sync(
         self,
@@ -116,6 +135,8 @@ class SyncTests(unittest.TestCase):
         status = self.run_sync("status")
         self.assertEqual(status["status"], "partial")
         self.assertEqual(status["modelconfig"], "external")
+        self.assertEqual(status["sandbox_root"], str(self.orchestra_root))
+        self.assertTrue(status["restart_required"])
         self.assertFalse(self.home.exists())
         self.assertFalse(self.codex_home.exists())
 
@@ -132,23 +153,39 @@ class SyncTests(unittest.TestCase):
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
+        self.assertTrue(
+            self.codex_home.joinpath("orchestra/scripts/coordination.py").is_file()
+        )
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),
             f"{self.worktree_root}\n",
         )
         config = self.codex_home.joinpath("config.toml").read_text()
-        self.assertIn("[sandbox_workspace_write]", config)
-        self.assertIn(str(self.worktree_root), config)
+        self.assertIn('default_permissions = "orchestra-workspace"', config)
+        self.assertIn("[permissions.orchestra-workspace]", config)
+        self.assertIn('"*" = "allow"', config)
+        self.assertNotIn("[sandbox_workspace_write]", config)
+        self.assertIn(str(self.orchestra_root), config)
+        self.assertNotIn(str(self.worktree_root), config)
         self.assertIn("# orchestra-worktree-root:start", config)
+        self.assertEqual(applied["codex_version"], "0.145.0")
+        self.assertEqual(applied["permission_backend"], "profile")
+        self.assertEqual(applied["permission_profile"], "orchestra-workspace")
+        self.assertTrue(applied["profile_configured"])
+        self.assertEqual(self.manifest()["permission_backend"], "profile")
+        self.assertTrue(applied["restart_required"])
         installed_guidance = self.codex_home.joinpath("AGENTS.md").read_text()
         self.assertIn("planning-only host mode", installed_guidance)
         self.assertIn("unequivocal imperative to use or start Orchestra", installed_guidance)
         self.assertIn("adopt_worktree.py", installed_guidance)
+        self.assertIn("without `autoResolutionMs`", installed_guidance)
         self.assertNotIn("Plan Mode", installed_guidance)
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/adopt_worktree.py").is_file()
         )
-        self.assertEqual(self.run_sync("status")["status"], "ok")
+        synchronized_status = self.run_sync("status")
+        self.assertEqual(synchronized_status["status"], "ok")
+        self.assertFalse(synchronized_status["restart_required"])
         installed_agents = {
             entry["path"]
             for entry in self.manifest()["entries"]
@@ -190,6 +227,9 @@ class SyncTests(unittest.TestCase):
             0o600,
         )
 
+        state_database = self.orchestra_root / "state.sqlite3"
+        state_database.parent.mkdir(parents=True, exist_ok=True)
+        state_database.write_bytes(b"user-owned coordination state")
         removed = sync.uninstall(self.home, self.codex_home)
         self.assertEqual(removed["status"], "ok")
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra").exists())
@@ -198,6 +238,266 @@ class SyncTests(unittest.TestCase):
         for name in sync.AGENTS:
             self.assertFalse(self.codex_home.joinpath(f"agents/{name}.toml").exists())
         self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/scripts/coordination.py").exists()
+        )
+        self.assertEqual(state_database.read_bytes(), b"user-owned coordination state")
+
+    def test_legacy_backend_uses_only_workspace_write_configuration(self) -> None:
+        self.codex_version.return_value = ("0.137.0", (0, 137, 0))
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        self.assertEqual(applied["codex_version"], "0.137.0")
+        self.assertEqual(applied["permission_backend"], "legacy")
+        self.assertIsNone(applied["permission_profile"])
+        self.assertFalse(applied["profile_configured"])
+        config = self.codex_home.joinpath("config.toml").read_text()
+        self.assertIn('sandbox_mode = "workspace-write"', config)
+        self.assertIn("[sandbox_workspace_write]", config)
+        self.assertIn("network_access = true", config)
+        self.assertIn(str(self.orchestra_root), config)
+        self.assertNotIn("default_permissions", config)
+        self.assertNotIn("[permissions.", config)
+        self.assertEqual(self.manifest()["permission_backend"], "legacy")
+
+    def test_permission_backend_migrates_both_directions_and_uninstalls_exactly(
+        self,
+    ) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = 'model = "test-model"\n'
+        config.write_text(original)
+
+        modern = self.run_sync("apply")
+        self.assertEqual(modern["permission_backend"], "profile")
+        self.assertIn("default_permissions", config.read_text())
+        self.assertNotIn("sandbox_mode", config.read_text())
+
+        self.codex_version.return_value = ("0.137.9", (0, 137, 9))
+        legacy = self.run_sync("apply")
+        self.assertEqual(legacy["status"], "ok")
+        self.assertEqual(legacy["permission_backend"], "legacy")
+        self.assertIn('sandbox_mode = "workspace-write"', config.read_text())
+        self.assertNotIn("default_permissions", config.read_text())
+
+        self.codex_version.return_value = ("0.138.0", (0, 138, 0))
+        upgraded = self.run_sync("apply")
+        self.assertEqual(upgraded["status"], "ok")
+        self.assertEqual(upgraded["permission_backend"], "profile")
+        self.assertIn('default_permissions = "orchestra-workspace"', config.read_text())
+        self.assertNotIn("sandbox_mode", config.read_text())
+
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_user_owned_sandbox_modes_block_without_mutation(
+        self,
+    ) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        for sandbox_mode in ("read-only", "workspace-write", "danger-full-access"):
+            with self.subTest(sandbox_mode=sandbox_mode):
+                original = (
+                    'model = "test-model"\n'
+                    f'sandbox_mode = "{sandbox_mode}"\n'
+                )
+                config.write_text(original)
+                for action, dry_run in (
+                    ("status", False),
+                    ("apply", True),
+                    ("apply", False),
+                ):
+                    result = self.run_sync(action, dry_run=dry_run)
+                    self.assertEqual(result["status"], "blocked")
+                    self.assertIn("sandbox_mode is user-owned", result["detail"])
+                    self.assertEqual(config.read_text(), original)
+                    self.assertFalse(
+                        self.codex_home.joinpath("orchestra").exists()
+                    )
+
+    def test_clean_config_preserves_local_domain_rules(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            'model = "test-model"\n\n'
+            "[features.network_proxy.domains]\n"
+            '"codexbridge.local" = "allow"\n'
+        )
+        config.write_text(original)
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        installed = config.read_text()
+        self.assertIn('default_permissions = "orchestra-workspace"', installed)
+        self.assertIn('"*" = "allow"', installed)
+        self.assertIn('"localhost" = "allow"', installed)
+        self.assertIn('"127.0.0.1" = "allow"', installed)
+        self.assertIn('"codexbridge.local" = "allow"', installed)
+        self.assertNotIn("unix_sockets", installed)
+        self.assertIn("allow_local_binding = false", installed)
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_user_permission_added_outside_owned_block_blocks_without_rewrite(
+        self,
+    ) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        config.write_text('model = "test-model"\n')
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        installed = config.read_bytes()
+        marker = installed.index(sync.CONFIG_START)
+        user_edited = (
+            installed[:marker]
+            + b'sandbox_mode = "read-only"\n'
+            + installed[marker:]
+        )
+        config.write_bytes(user_edited)
+
+        for action, dry_run in (("status", False), ("apply", True), ("apply", False)):
+            result = self.run_sync(action, dry_run=dry_run)
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn("sandbox_mode is user-owned", result["detail"])
+            self.assertEqual(config.read_bytes(), user_edited)
+
+    def test_user_owned_permission_profile_blocks_without_mutation(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            'default_permissions = "personal"\n\n'
+            "[permissions.personal]\n"
+            'extends = ":workspace"\n'
+        )
+        config.write_text(original)
+
+        result = self.run_sync("apply")
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("default_permissions is user-owned", result["detail"])
+        self.assertEqual(config.read_text(), original)
+        self.assertFalse(self.codex_home.joinpath("orchestra").exists())
+
+    def test_unreadable_codex_version_blocks_before_any_mutation(self) -> None:
+        self.codex_version.side_effect = sync.SyncError(
+            "Codex returned an unsupported or unreadable version"
+        )
+
+        result = self.run_sync("apply")
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["codex_version"], "unknown")
+        self.assertIn("unreadable version", result["detail"])
+        self.assertFalse(self.home.exists())
+        self.assertFalse(self.codex_home.exists())
+        self.cache_discovery.assert_not_called()
+
+    def test_unreadable_codex_version_also_blocks_uninstall(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        config = self.codex_home / "config.toml"
+        installed = config.read_bytes()
+        self.codex_version.side_effect = sync.SyncError(
+            "Codex returned an unsupported or unreadable version"
+        )
+
+        result = sync.uninstall(self.home, self.codex_home)
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["codex_version"], "unknown")
+        self.assertEqual(config.read_bytes(), installed)
+        self.assertTrue(
+            self.codex_home.joinpath("orchestra/install-manifest.json").is_file()
+        )
+
+    def test_uninstall_preserves_unrelated_config_changes_after_apply(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = 'model = "test-model"\n'
+        config.write_text(original)
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        with config.open("a") as stream:
+            stream.write('\n[mcp_servers.example]\ncommand = "example-server"\n')
+
+        removed = sync.uninstall(self.home, self.codex_home)
+
+        self.assertEqual(removed["status"], "ok")
+        restored = config.read_text()
+        self.assertIn('model = "test-model"', restored)
+        self.assertIn("[mcp_servers.example]", restored)
+        self.assertIn('command = "example-server"', restored)
+        self.assertNotIn("orchestra-workspace", restored)
+
+    def test_permission_rewrite_preserves_multiline_strings_byte_for_byte(
+        self,
+    ) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            b'model = "test-model"\n'
+            b'developer_instructions = """first line\n'
+            b"\n"
+            b"\n"
+            b"[sandbox_workspace_write]\n"
+            b"# orchestra-worktree-root:start\n"
+            b"# orchestra-worktree-root:end\n"
+            b'last line"""\n\n'
+            b"[features]\n"
+            b"example = true\n"
+        )
+        config.write_bytes(original)
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        installed = config.read_bytes()
+        self.assertIn(
+            b'first line\n\n\n[sandbox_workspace_write]\n'
+            b"# orchestra-worktree-root:start\n"
+            b"# orchestra-worktree-root:end\n"
+            b'last line"""',
+            installed,
+        )
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_bytes(), original)
+
+    def test_permission_rewrite_restores_config_without_final_newline(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = b'model = "test-model"'
+        config.write_bytes(original)
+
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_bytes(), original)
+
+    def test_status_returns_blocked_when_post_analysis_validation_fails(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        with mock.patch.object(
+            sync,
+            "_profile_is_configured",
+            side_effect=sync.SyncError("config changed during status"),
+        ):
+            result = self.run_sync("status")
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("config changed during status", result["detail"])
+
+    def test_apply_returns_partial_when_post_apply_validation_fails(self) -> None:
+        with mock.patch.object(
+            sync,
+            "_profile_is_configured",
+            side_effect=sync.SyncError("config changed after apply"),
+        ):
+            result = self.run_sync("apply")
+
+        self.assertEqual(result["status"], "partial")
+        self.assertTrue(result["changes"])
+        self.assertIn("config changed after apply", result["detail"])
+        self.assertTrue(
+            self.codex_home.joinpath("orchestra/install-manifest.json").is_file()
+        )
 
     def test_worktree_root_precedence_and_validation(self) -> None:
         default = sync._resolve_worktree_root(self.home, None)
@@ -219,30 +519,248 @@ class SyncTests(unittest.TestCase):
         with self.assertRaisesRegex(sync.SyncError, "dedicated directory"):
             sync._resolve_worktree_root(self.home, self.home)
 
-    def test_existing_sandbox_table_gets_only_managed_root_entry(self) -> None:
-        self.codex_home.mkdir(parents=True)
-        config = self.codex_home / "config.toml"
-        original = (
-            'model = "test-model"\n\n'
-            "[sandbox_workspace_write]\n"
-            "network_access = false\n\n"
-            "[features]\n"
-            "example = true\n"
+    def test_cache_root_validation_accepts_specific_home_caches(self) -> None:
+        accepted = (
+            self.home / "Library" / "Caches" / "pypoetry",
+            self.home / "Library" / "Caches" / "pip",
+            self.home / ".cache" / "uv",
+            self.home / ".npm",
+            self.home / ".orchestra" / "cache" / "poetry",
         )
-        config.write_text(original)
+        for candidate in accepted:
+            with self.subTest(candidate=candidate):
+                self.assertEqual(
+                    sync._validate_cache_root(self.home, str(candidate)),
+                    candidate,
+                )
+
+        rejected = (
+            self.home,
+            self.home / "Library" / "Caches",
+            self.home / ".cache",
+            self.home / ".docker" / "buildx",
+            self.home / ".ssh" / "cache",
+            self.home / ".codex" / "cache",
+            self.home / "Library" / "Containers" / "com.docker.docker",
+            self.home / "Library" / "Application Support" / "tool",
+            Path(self.temporary.name) / "outside-cache",
+        )
+        for candidate in rejected:
+            with self.subTest(candidate=candidate):
+                with self.assertRaises(sync.SyncError):
+                    sync._validate_cache_root(self.home, str(candidate))
+
+        self.home.mkdir(parents=True)
+        outside = Path(self.temporary.name) / "external"
+        outside.mkdir()
+        linked = self.home / "linked-cache"
+        linked.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(sync.SyncError, "resolves outside"):
+            sync._validate_cache_root(self.home, str(linked / "tool"))
+
+    def test_cache_discovery_is_independent_and_omits_unsafe_results(self) -> None:
+        outputs = {
+            "poetry": str(self.home / "Library" / "Caches" / "pypoetry"),
+            sys.executable: str(self.home / "Library" / "Caches" / "pip"),
+            "uv": str(self.home / ".docker" / "buildx"),
+        }
+
+        def fake_which(executable: str) -> str | None:
+            if executable == "npm":
+                return None
+            return f"/usr/bin/{executable}"
+
+        def fake_run(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=outputs[command[0]] + "\n",
+                stderr="",
+            )
+
+        with (
+            mock.patch.object(sync.shutil, "which", side_effect=fake_which),
+            mock.patch.object(sync.subprocess, "run", side_effect=fake_run),
+        ):
+            discovered, omitted = self.original_cache_discovery(self.home)
+
+        self.assertEqual(
+            discovered,
+            {
+                "poetry": self.home / "Library" / "Caches" / "pypoetry",
+                "pip": self.home / "Library" / "Caches" / "pip",
+            },
+        )
+        self.assertEqual(
+            omitted,
+            {
+                "npm": "not installed",
+                "uv": "unsafe or invalid cache path",
+            },
+        )
+
+    def test_pip_cache_discovery_retries_with_isolated_home(self) -> None:
+        calls = 0
+
+        def fake_run(command, **kwargs):
+            nonlocal calls
+            if command[0] != sys.executable:
+                return subprocess.CompletedProcess(
+                    command,
+                    1,
+                    stdout="",
+                    stderr="unavailable",
+                )
+            calls += 1
+            if calls == 1:
+                return subprocess.CompletedProcess(
+                    command,
+                    1,
+                    stdout="",
+                    stderr="cache is disabled",
+                )
+            fallback_home = Path(kwargs["env"]["HOME"])
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=str(fallback_home / "Library" / "Caches" / "pip") + "\n",
+                stderr="",
+            )
+
+        with (
+            mock.patch.object(sync.shutil, "which", return_value="/usr/bin/tool"),
+            mock.patch.object(sync.subprocess, "run", side_effect=fake_run),
+        ):
+            discovered, omitted = self.original_cache_discovery(self.home)
+
+        self.assertEqual(
+            discovered["pip"],
+            self.home / "Library" / "Caches" / "pip",
+        )
+        self.assertNotIn("pip", omitted)
+        self.assertEqual(calls, 2)
+
+    def test_managed_config_includes_orchestra_and_detected_cache_roots(self) -> None:
+        cache_roots = {
+            "poetry": self.home / "Library" / "Caches" / "pypoetry",
+            "pip": self.home / "Library" / "Caches" / "pip",
+            "uv": self.home / ".cache" / "uv",
+            "npm": self.home / ".npm",
+        }
+        self.cache_discovery.return_value = (cache_roots, {})
 
         applied = self.run_sync("apply")
 
         self.assertEqual(applied["status"], "ok")
-        installed = config.read_text()
-        self.assertIn("network_access = false", installed)
-        self.assertIn("[features]", installed)
-        self.assertEqual(installed.count("[sandbox_workspace_write]"), 1)
-        self.assertIn(str(self.worktree_root), installed)
-        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
-        self.assertEqual(config.read_text(), original)
+        self.assertEqual(
+            applied["cache_roots"],
+            {tool: str(path) for tool, path in cache_roots.items()},
+        )
+        self.assertEqual(applied["omitted_cache_tools"], {})
+        self.assertEqual(applied["unconfigured_cache_tools"], [])
+        self.assertTrue(applied["restart_required"])
+        configured = sync._configured_profile_roots(
+            (self.codex_home / "config.toml").read_bytes(),
+            self.home,
+        )
+        self.assertEqual(
+            configured,
+            [
+                self.orchestra_root,
+                self.home / ".npm",
+                self.home / "Library" / "Caches" / "pip",
+                self.home / "Library" / "Caches" / "pypoetry",
+                self.home / ".cache" / "uv",
+            ],
+        )
+        status = self.run_sync("status")
+        self.assertEqual(status["status"], "ok")
+        self.assertFalse(status["restart_required"])
 
-    def test_existing_matching_writable_roots_are_respected_and_unowned(self) -> None:
+    def test_owned_legacy_worktree_block_migrates_to_parent_root(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        config = self.codex_home / "config.toml"
+        old_block = (
+            sync.CONFIG_START
+            + b"\n[sandbox_workspace_write]\n"
+            + f'writable_roots = ["{self.worktree_root}"]\n'.encode()
+            + sync.CONFIG_END
+            + b"\n"
+        )
+        config.write_bytes(old_block)
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest()
+        config_entry = next(
+            entry for entry in manifest["entries"] if entry["path"] == "config.toml"
+        )
+        config_entry["digest"] = hashlib.sha256(old_block).hexdigest()
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        migrated = self.run_sync("apply")
+
+        self.assertEqual(migrated["status"], "ok")
+        self.assertTrue(migrated["restart_required"])
+        configured = sync._configured_profile_roots(config.read_bytes(), self.home)
+        self.assertEqual(configured, [self.orchestra_root])
+        self.assertEqual(self.run_sync("status")["status"], "ok")
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertFalse(config.exists())
+
+    def test_user_owned_parent_root_blocks_when_detected_caches_change_scope(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            "[sandbox_workspace_write]\n"
+            f'writable_roots = ["{self.orchestra_root}"]\n'
+        )
+        config.write_text(original)
+        cache_roots = {
+            "poetry": self.home / "Library" / "Caches" / "pypoetry",
+            "uv": self.home / ".cache" / "uv",
+        }
+        self.cache_discovery.return_value = (cache_roots, {})
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "blocked")
+        self.assertEqual(applied["unconfigured_cache_tools"], ["poetry", "uv"])
+        self.assertIn("cannot be migrated without changing their scope", applied["detail"])
+        self.assertFalse(applied["restart_required"])
+        self.assertEqual(config.read_text(), original)
+        self.assertFalse(self.codex_home.joinpath("orchestra").exists())
+
+    def test_user_owned_network_access_blocks_without_mutation(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        for network_access in ("false", "true"):
+            with self.subTest(network_access=network_access):
+                original = (
+                    'model = "test-model"\n\n'
+                    "[sandbox_workspace_write]\n"
+                    f"network_access = {network_access}\n\n"
+                    "[features]\n"
+                    "example = true\n"
+                )
+                config.write_text(original)
+
+                for action, dry_run in (
+                    ("status", False),
+                    ("apply", True),
+                    ("apply", False),
+                ):
+                    result = self.run_sync(action, dry_run=dry_run)
+                    self.assertEqual(result["status"], "blocked")
+                    self.assertIn(
+                        "sandbox_workspace_write.network_access is user-owned",
+                        result["detail"],
+                    )
+                    self.assertEqual(config.read_text(), original)
+                    self.assertFalse(self.codex_home.joinpath("orchestra").exists())
+
+    def test_user_owned_extra_writable_roots_block_without_rewrite(self) -> None:
         self.codex_home.mkdir(parents=True)
         config = self.codex_home / "config.toml"
         original = (
@@ -253,15 +771,10 @@ class SyncTests(unittest.TestCase):
 
         applied = self.run_sync("apply")
 
-        self.assertEqual(applied["status"], "ok")
+        self.assertEqual(applied["status"], "blocked")
+        self.assertIn("cannot be migrated without changing their scope", applied["detail"])
         self.assertEqual(config.read_text(), original)
-        owned = {
-            (entry["path"], entry["type"])
-            for entry in self.manifest()["entries"]
-        }
-        self.assertNotIn(("config.toml", "managed_config"), owned)
-        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
-        self.assertEqual(config.read_text(), original)
+        self.assertFalse(self.codex_home.joinpath("orchestra").exists())
 
     def test_conflicting_writable_roots_block_without_mutation(self) -> None:
         self.codex_home.mkdir(parents=True)
@@ -275,14 +788,17 @@ class SyncTests(unittest.TestCase):
         result = self.run_sync("apply")
 
         self.assertEqual(result["status"], "blocked")
-        self.assertIn("already exists without the Orchestra root", result["detail"])
+        self.assertIn(
+            "cannot be migrated without changing their scope",
+            result["detail"],
+        )
         self.assertEqual(config.read_text(), original)
         self.assertFalse(self.codex_home.joinpath("orchestra").exists())
 
     def test_managed_root_switch_updates_and_uninstall_restores_config(self) -> None:
         self.codex_home.mkdir(parents=True)
         config = self.codex_home / "config.toml"
-        original = "[sandbox_workspace_write]\nnetwork_access = true\n"
+        original = 'model = "test-model"\n'
         config.write_text(original)
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         replacement = self.home / "alternate" / "worktrees"
@@ -299,6 +815,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(switched["status"], "ok")
         self.assertEqual(switched["worktree_root"], str(replacement))
         self.assertIn(str(replacement), config.read_text())
+        self.assertIn(str(self.orchestra_root), config.read_text())
         self.assertNotIn(str(self.worktree_root), config.read_text())
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),

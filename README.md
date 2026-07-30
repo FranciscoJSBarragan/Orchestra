@@ -128,11 +128,32 @@ reads the one installed runtime matrix.
 
 The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
 sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
-to `$CODEX_HOME/orchestra/worktree-root`. When `config.toml` has no conflicting
-`sandbox_workspace_write.writable_roots`, sync adds a marked reversible entry.
-An existing list that omits the requested root blocks without rewriting user
-configuration. Restart the Codex host after changing sandbox roots so new agent
-sessions receive the updated permission.
+to `$CODEX_HOME/orchestra/worktree-root`. Before changing Codex configuration,
+sync requires a readable `codex --version`. Codex 0.138 and later use the
+managed `orchestra-workspace` permission profile; older clients use only the
+legacy `workspace-write` sandbox. Upgrades and downgrades migrate atomically
+so exactly one backend remains active, and uninstall restores the original
+configuration.
+
+Both backends authorize `$HOME/.orchestra`, any validated external worktree
+root, and the exact Poetry, pip, uv, and npm cache roots reported by installed
+tools. Tool discovery runs from an isolated temporary directory, rejects broad
+or sensitive paths, and writes only absolute paths. Public command networking
+and explicit loopback destinations are enabled, while broad private-network
+access, Docker configuration, and Unix sockets remain excluded. User-owned
+`sandbox_mode`, `sandbox_workspace_write.network_access`,
+`default_permissions`, conflicting permission profiles, or incompatible
+writable roots block synchronization without changing the file. Automatic
+backend migration is limited to configuration already recorded as
+Orchestra-owned.
+
+Restart the Codex host after a permission change so new agent sessions receive
+the selected backend. Re-run sync after installing another supported package
+tool. Status and apply results report `codex_version`, `permission_backend`,
+`permission_profile`, `profile_configured`, `sandbox_root`, detected
+`cache_roots`, coarse `omitted_cache_tools`, `unconfigured_cache_tools`, and
+`restart_required`. Cache access does not install project dependencies or make
+an empty virtual environment ready for tests.
 
 Sync results use:
 
@@ -157,6 +178,41 @@ current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.
 Backups are not restoration history: uninstall removes only content whose digest
 still matches the manifest, preserves drifted or unrelated content, and never
 restores unrelated user configuration.
+
+## Coordination CLI
+
+Direct sync installs a fail-soft coordination helper at
+`$CODEX_HOME/orchestra/scripts/coordination.py`. Orchestra uses it to expose
+multiple active tasks, material agent activity, and revision-identified
+Markdown artifact locators without making telemetry authoritative:
+
+```sh
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task list
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task show --task <uuid>
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" artifact list --task <uuid>
+```
+
+The helper lazily creates `$HOME/.orchestra/state.sqlite3` with mode `0600`.
+An empty version-zero file is safely bootstrapped, while a partial, unknown, or
+corrupt database remains untouched and returns `unavailable`. Artifact content
+lives in each task worktree's private Git metadata. Commands return JSON and
+use `invalid` or `unavailable` for coordination failures. Those results never
+grant authority, validate phase transitions, or block an otherwise authorized
+tier change, implementation, commit, or delivery; agents fall back to complete
+inline reports and current source.
+
+Completed task metadata remains queryable. Worktree cleanup may make old
+artifact locators unavailable. Sync and uninstall manage the helper but never
+own or remove the database. There is no daemon, HTTP server, MCP server, global
+executable, event ledger, heartbeat system, or dashboard in this version.
+
+Artifacts are the semantic handoff channel across context, planning,
+implementation, verification, debugging, and review. Formal planning publishes
+one `plan-overview` and one `plan-phase` per phase; the approved private
+`plan.md` preserves the overview and exact phase IDs and paths. Agents receive
+explicit authority plus exact document references and new deltas instead of a
+root-authored summary chain. Git and GitHub remain authoritative for code,
+commits, PR checks, and merge.
 
 ## Conformance
 

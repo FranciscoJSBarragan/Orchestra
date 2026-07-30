@@ -9,7 +9,10 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import stat
+import subprocess
+import sys
 import tempfile
 import tomllib
 from typing import Any
@@ -48,6 +51,7 @@ LEGACY_AGENTS = (
     "web_researcher",
 )
 HELPERS = (
+    "coordination.py",
     "commit_phase.py",
     "adopt_worktree.py",
     "policy.py",
@@ -62,6 +66,16 @@ CONFIG_START = b"# orchestra-worktree-root:start"
 CONFIG_END = b"# orchestra-worktree-root:end"
 MANIFEST_PATH = "orchestra/install-manifest.json"
 WORKTREE_ROOT_PATH = "orchestra/worktree-root"
+CACHE_TOOLS = ("poetry", "pip", "uv", "npm")
+PERMISSION_BACKENDS = ("profile", "legacy")
+PERMISSION_PROFILE = "orchestra-workspace"
+PROFILE_MIN_VERSION = (0, 138, 0)
+KNOWN_LEGACY_SANDBOX_KEYS = {
+    "exclude_slash_tmp",
+    "exclude_tmpdir_env_var",
+    "network_access",
+    "writable_roots",
+}
 
 
 class SyncError(Exception):
@@ -80,6 +94,15 @@ def _result(
     *,
     modelconfig: str | None = None,
     worktree_root: Path | None = None,
+    sandbox_root: Path | None = None,
+    cache_roots: dict[str, Path] | None = None,
+    omitted_cache_tools: dict[str, str] | None = None,
+    unconfigured_cache_tools: list[str] | None = None,
+    restart_required: bool = False,
+    codex_version: str | None = None,
+    permission_backend: str | None = None,
+    permission_profile: str | None = None,
+    profile_configured: bool = False,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"action": action, "changes": changes, "status": status}
     if detail:
@@ -88,7 +111,220 @@ def _result(
         payload["modelconfig"] = modelconfig
     if worktree_root is not None:
         payload["worktree_root"] = str(worktree_root)
+    if sandbox_root is not None:
+        payload["sandbox_root"] = str(sandbox_root)
+    if cache_roots is not None:
+        payload["cache_roots"] = {
+            tool: str(cache_roots[tool]) for tool in sorted(cache_roots)
+        }
+    if omitted_cache_tools is not None:
+        payload["omitted_cache_tools"] = {
+            tool: omitted_cache_tools[tool] for tool in sorted(omitted_cache_tools)
+        }
+    if unconfigured_cache_tools is not None:
+        payload["unconfigured_cache_tools"] = sorted(unconfigured_cache_tools)
+    payload["restart_required"] = restart_required
+    if codex_version is not None:
+        payload["codex_version"] = codex_version
+    if permission_backend is not None:
+        payload["permission_backend"] = permission_backend
+    payload["permission_profile"] = permission_profile
+    payload["profile_configured"] = profile_configured
     return payload
+
+
+def _orchestra_root(home: Path) -> Path:
+    return Path(os.path.abspath(home / ".orchestra"))
+
+
+def _detect_codex_version() -> tuple[str, tuple[int, int, int]]:
+    executable = shutil.which("codex")
+    if executable is None:
+        raise SyncError("Codex CLI is unavailable; cannot select a permission backend")
+    try:
+        completed = subprocess.run(
+            [executable, "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SyncError("Codex version detection failed") from exc
+    output = completed.stdout.strip()
+    match = re.search(r"(?<!\d)(\d+)\.(\d+)\.(\d+)(?!\d)", output)
+    if completed.returncode != 0 or match is None:
+        raise SyncError("Codex returned an unsupported or unreadable version")
+    version = tuple(int(part) for part in match.groups())
+    return ".".join(match.groups()), version
+
+
+def _permission_backend(version: tuple[int, int, int]) -> str:
+    return "profile" if version >= PROFILE_MIN_VERSION else "legacy"
+
+
+def _is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
+
+
+def _validate_cache_root(home: Path, value: str) -> Path:
+    if not value or "\n" in value or "\r" in value:
+        raise SyncError("cache command returned an invalid path")
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        raise SyncError("cache command returned a non-absolute path")
+
+    normalized_home = Path(os.path.abspath(home))
+    normalized = Path(os.path.abspath(candidate))
+    if normalized == Path("/"):
+        raise SyncError("cache path is too broad")
+
+    resolved_home = normalized_home.resolve(strict=False)
+    resolved = normalized.resolve(strict=False)
+    if resolved == resolved_home:
+        raise SyncError("cache path is too broad")
+    if not _is_within(resolved, resolved_home):
+        raise SyncError("cache path resolves outside the user home")
+    normalized = normalized_home / resolved.relative_to(resolved_home)
+
+    blocked_trees = (
+        normalized_home / ".ssh",
+        normalized_home / ".codex",
+        normalized_home / ".docker",
+        normalized_home / ".config",
+        normalized_home / "Library" / "Containers",
+        normalized_home / "Library" / "Application Support",
+    )
+    if any(_is_within(normalized, blocked) for blocked in blocked_trees):
+        raise SyncError("cache path is inside a sensitive directory")
+    if normalized in {
+        normalized_home / ".cache",
+        normalized_home / "Library" / "Caches",
+    }:
+        raise SyncError("cache path is an overly broad cache parent")
+    return normalized
+
+
+def _discover_cache_roots(home: Path) -> tuple[dict[str, Path], dict[str, str]]:
+    commands: dict[str, tuple[str | None, list[str]]] = {
+        "poetry": ("poetry", ["poetry", "config", "cache-dir"]),
+        "pip": (None, [sys.executable, "-m", "pip", "cache", "dir"]),
+        "uv": ("uv", ["uv", "cache", "dir"]),
+        "npm": ("npm", ["npm", "config", "get", "cache"]),
+    }
+    discovered: dict[str, Path] = {}
+    omitted: dict[str, str] = {}
+
+    with tempfile.TemporaryDirectory(prefix="orchestra-cache-discovery-") as temporary:
+        temporary_root = Path(temporary).resolve()
+        temporary_path = str(temporary_root)
+        query_home = home
+        if not home.exists():
+            query_home = temporary_root / "home"
+            query_home.mkdir()
+        elif not home.is_dir():
+            return (
+                discovered,
+                {tool: "home directory unavailable" for tool in CACHE_TOOLS},
+            )
+        environment = dict(os.environ)
+        environment.update(
+            {
+                "HOME": str(query_home),
+                "TMPDIR": temporary_path,
+                "TEMP": temporary_path,
+                "TMP": temporary_path,
+            }
+        )
+        for tool in CACHE_TOOLS:
+            executable, command = commands[tool]
+            if executable is not None and shutil.which(executable) is None:
+                omitted[tool] = "not installed"
+                continue
+            reported_home = query_home
+            try:
+                completed = subprocess.run(
+                    command,
+                    cwd=temporary_path,
+                    env=environment,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                omitted[tool] = "cache query failed"
+                continue
+            lines = [
+                line.strip()
+                for line in completed.stdout.splitlines()
+                if line.strip()
+            ]
+            if tool == "pip" and (
+                completed.returncode != 0 or len(lines) != 1
+            ):
+                fallback_home = temporary_root / "pip-home"
+                fallback_home.mkdir()
+                fallback_environment = dict(environment)
+                fallback_environment["HOME"] = str(fallback_home)
+                try:
+                    completed = subprocess.run(
+                        command,
+                        cwd=temporary_path,
+                        env=fallback_environment,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                except (OSError, subprocess.TimeoutExpired):
+                    omitted[tool] = "cache query failed"
+                    continue
+                lines = [
+                    line.strip()
+                    for line in completed.stdout.splitlines()
+                    if line.strip()
+                ]
+                reported_home = fallback_home
+            if completed.returncode != 0 or len(lines) != 1:
+                omitted[tool] = "cache query failed"
+                continue
+            try:
+                reported = Path(lines[0])
+                if reported_home != home:
+                    try:
+                        reported = home / reported.relative_to(reported_home)
+                    except ValueError:
+                        pass
+                discovered[tool] = _validate_cache_root(home, str(reported))
+            except SyncError:
+                omitted[tool] = "unsafe or invalid cache path"
+    return discovered, omitted
+
+
+def _minimal_writable_roots(
+    orchestra_root: Path,
+    worktree_root: Path,
+    cache_roots: dict[str, Path],
+) -> list[Path]:
+    candidates = [
+        orchestra_root,
+        worktree_root,
+        *(cache_roots[tool] for tool in sorted(cache_roots)),
+    ]
+    result: list[Path] = []
+    for candidate in candidates:
+        if any(_is_within(candidate, existing) for existing in result):
+            continue
+        result = [
+            existing for existing in result if not _is_within(existing, candidate)
+        ]
+        result.append(candidate)
+    return result
 
 
 def _resolve_worktree_root(home: Path, explicit: Path | str | None) -> Path:
@@ -287,10 +523,11 @@ def _load_manifest(
     bool,
     list[str],
     str | None,
+    str | None,
 ]:
     path = _safe_path(codex_home, MANIFEST_PATH)
     if not path.exists():
-        return {}, False, [], None
+        return {}, False, [], None, None
     data = _read_file(path, MANIFEST_PATH)
     def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -305,13 +542,20 @@ def _load_manifest(
         raise SyncError(f"invalid install manifest: {exc}") from exc
     if (
         not isinstance(payload, dict)
-        or set(payload) not in ({"entries"}, {"entries", "modelconfig"})
+        or not {"entries"} <= set(payload)
+        or set(payload) - {"entries", "modelconfig", "permission_backend"}
         or not isinstance(payload["entries"], list)
     ):
         raise SyncError("invalid install manifest structure")
     modelconfig = payload.get("modelconfig")
     if modelconfig is not None and modelconfig not in MODELCONFIGS:
         raise SyncError("invalid install manifest modelconfig")
+    permission_backend = payload.get("permission_backend")
+    if (
+        permission_backend is not None
+        and permission_backend not in PERMISSION_BACKENDS
+    ):
+        raise SyncError("invalid install manifest permission backend")
     result: dict[tuple[str, str], dict[str, str]] = {}
     auxiliary_drift: list[str] = []
     for raw in payload["entries"]:
@@ -339,7 +583,7 @@ def _load_manifest(
             elif not backup.is_file():
                 raise SyncError(f"referenced backup is not a regular file: {raw['backup']}")
         result[key] = dict(raw)
-    return result, True, auxiliary_drift, modelconfig
+    return result, True, auxiliary_drift, modelconfig, permission_backend
 
 
 def _managed_span(
@@ -374,7 +618,9 @@ def _block_span(data: bytes) -> tuple[int, int] | None:
 
 
 def _config_span(data: bytes) -> tuple[int, int] | None:
-    return _managed_span(data, CONFIG_START, CONFIG_END, "config")
+    return _managed_span(
+        _toml_structure_mask(data), CONFIG_START, CONFIG_END, "config"
+    )
 
 
 def _entry_span(entry: dict[str, Any], data: bytes) -> tuple[int, int] | None:
@@ -395,13 +641,119 @@ def _parse_config(data: bytes) -> dict[str, Any]:
     return parsed
 
 
-def _config_block(worktree_root: Path, *, include_table: bool) -> bytes:
+def _encoded_toml_string(value: str) -> bytes:
+    return json.dumps(value, ensure_ascii=True).encode()
+
+
+def _configured_local_domains(parsed: dict[str, Any]) -> list[str]:
+    result = {"*", "127.0.0.1", "localhost"}
+    features = parsed.get("features")
+    if not isinstance(features, dict):
+        return sorted(result)
+    proxy = features.get("network_proxy")
+    if not isinstance(proxy, dict):
+        return sorted(result)
+    domains = proxy.get("domains")
+    if not isinstance(domains, dict):
+        return sorted(result)
+    result.update(
+        key
+        for key, value in domains.items()
+        if isinstance(key, str) and value == "allow"
+    )
+    return sorted(result)
+
+
+def _configured_temp_exclusions(parsed: dict[str, Any]) -> tuple[bool, bool]:
+    sandbox = parsed.get("sandbox_workspace_write")
+    exclude_tmpdir = False
+    exclude_slash_tmp = False
+    if isinstance(sandbox, dict):
+        exclude_tmpdir = sandbox.get("exclude_tmpdir_env_var") is True
+        exclude_slash_tmp = sandbox.get("exclude_slash_tmp") is True
+    permissions = parsed.get("permissions")
+    if isinstance(permissions, dict):
+        profile = permissions.get(PERMISSION_PROFILE)
+        if isinstance(profile, dict):
+            filesystem = profile.get("filesystem")
+            if isinstance(filesystem, dict):
+                exclude_tmpdir = filesystem.get(":tmpdir") == "deny"
+                exclude_slash_tmp = filesystem.get(":slash_tmp") == "deny"
+    return exclude_tmpdir, exclude_slash_tmp
+
+
+def _config_block(
+    writable_roots: list[Path],
+    *,
+    backend: str,
+    parsed: dict[str, Any],
+) -> bytes:
+    encoded_roots = b", ".join(
+        _encoded_toml_string(str(root)) for root in writable_roots
+    )
     lines = [CONFIG_START]
-    if include_table:
-        lines.append(b"[sandbox_workspace_write]")
-    encoded = json.dumps(str(worktree_root), ensure_ascii=True).encode()
-    lines.extend((b"writable_roots = [" + encoded + b"]", CONFIG_END))
-    return b"\n".join(lines) + b"\n"
+    exclude_tmpdir, exclude_slash_tmp = _configured_temp_exclusions(parsed)
+    if backend == "legacy":
+        lines.extend(
+            (
+                b'sandbox_mode = "workspace-write"',
+                b"",
+                b"[sandbox_workspace_write]",
+                b"network_access = true",
+                b"writable_roots = [" + encoded_roots + b"]",
+            )
+        )
+        if exclude_tmpdir:
+            lines.append(b"exclude_tmpdir_env_var = true")
+        if exclude_slash_tmp:
+            lines.append(b"exclude_slash_tmp = true")
+    elif backend == "profile":
+        lines.extend(
+            (
+                f'default_permissions = "{PERMISSION_PROFILE}"'.encode(),
+                b"",
+                f"[permissions.{PERMISSION_PROFILE}]".encode(),
+                b'description = "Orchestra worktrees and detected package caches."',
+                b'extends = ":workspace"',
+                b"",
+                f"[permissions.{PERMISSION_PROFILE}.workspace_roots]".encode(),
+            )
+        )
+        lines.extend(
+            _encoded_toml_string(str(root)) + b" = true"
+            for root in writable_roots
+        )
+        if exclude_tmpdir or exclude_slash_tmp:
+            lines.extend(
+                (
+                    b"",
+                    f"[permissions.{PERMISSION_PROFILE}.filesystem]".encode(),
+                )
+            )
+            if exclude_tmpdir:
+                lines.append(b'":tmpdir" = "deny"')
+            if exclude_slash_tmp:
+                lines.append(b'":slash_tmp" = "deny"')
+        lines.extend(
+            (
+                b"",
+                f"[permissions.{PERMISSION_PROFILE}.network]".encode(),
+                b"enabled = true",
+                b"allow_local_binding = false",
+                b"",
+                f"[permissions.{PERMISSION_PROFILE}.network.domains]".encode(),
+            )
+        )
+        lines.extend(
+            _encoded_toml_string(domain) + b' = "allow"'
+            for domain in _configured_local_domains(parsed)
+        )
+    else:
+        raise SyncError(f"unknown permission backend: {backend}")
+    lines.append(CONFIG_END)
+    block = b"\n".join(lines) + b"\n"
+    _parse_config(block)
+    return block
 
 
 def _normalized_config_root(value: str, home: Path) -> Path:
@@ -409,84 +761,446 @@ def _normalized_config_root(value: str, home: Path) -> Path:
         candidate = home
     elif value.startswith("~/"):
         candidate = home / value[2:]
+    elif value.startswith("~"):
+        raise SyncError("writable_roots must not use another user's home")
     else:
         candidate = Path(value)
+    if not candidate.is_absolute():
+        raise SyncError("writable_roots entries must be absolute or home-relative")
     return Path(os.path.abspath(candidate))
+
+
+def _configured_writable_roots(data: bytes, home: Path) -> list[Path]:
+    parsed = _parse_config(data)
+    sandbox = parsed.get("sandbox_workspace_write")
+    if sandbox is None:
+        return []
+    if not isinstance(sandbox, dict):
+        raise SyncError("sandbox_workspace_write must be a TOML table")
+    roots = sandbox.get("writable_roots", [])
+    if not isinstance(roots, list) or any(not isinstance(item, str) for item in roots):
+        raise SyncError("sandbox_workspace_write.writable_roots must be an array of strings")
+    return [_normalized_config_root(item, home) for item in roots]
+
+
+def _configured_profile_roots(data: bytes, home: Path) -> list[Path]:
+    parsed = _parse_config(data)
+    permissions = parsed.get("permissions")
+    if permissions is None:
+        return []
+    if not isinstance(permissions, dict):
+        raise SyncError("permissions must be a TOML table")
+    profile = permissions.get(PERMISSION_PROFILE)
+    if profile is None:
+        return []
+    if not isinstance(profile, dict):
+        raise SyncError(f"permissions.{PERMISSION_PROFILE} must be a TOML table")
+    roots = profile.get("workspace_roots", {})
+    if not isinstance(roots, dict) or any(
+        not isinstance(path, str) or not isinstance(enabled, bool)
+        for path, enabled in roots.items()
+    ):
+        raise SyncError(
+            f"permissions.{PERMISSION_PROFILE}.workspace_roots must be a path table"
+        )
+    return [
+        _normalized_config_root(path, home)
+        for path, enabled in roots.items()
+        if enabled
+    ]
+
+
+def _configured_permission_roots(
+    data: bytes, home: Path, backend: str
+) -> list[Path]:
+    if backend == "profile":
+        return _configured_profile_roots(data, home)
+    if backend == "legacy":
+        return _configured_writable_roots(data, home)
+    raise SyncError(f"unknown permission backend: {backend}")
+
+
+def _profile_is_configured(
+    data: bytes,
+    home: Path,
+    desired_roots: list[Path],
+    backend: str,
+) -> bool:
+    parsed = _parse_config(data)
+    configured_roots = _configured_permission_roots(data, home, backend)
+    roots_match = all(
+        any(_is_within(root, configured) for configured in configured_roots)
+        for root in desired_roots
+    )
+    if not roots_match:
+        return False
+    if backend == "legacy":
+        sandbox = parsed.get("sandbox_workspace_write")
+        return (
+            parsed.get("sandbox_mode") == "workspace-write"
+            and isinstance(sandbox, dict)
+            and sandbox.get("network_access") is True
+            and parsed.get("default_permissions") is None
+        )
+    permissions = parsed.get("permissions")
+    profile = (
+        permissions.get(PERMISSION_PROFILE)
+        if isinstance(permissions, dict)
+        else None
+    )
+    network = profile.get("network") if isinstance(profile, dict) else None
+    domains = network.get("domains") if isinstance(network, dict) else None
+    return (
+        parsed.get("sandbox_mode") is None
+        and parsed.get("default_permissions") == PERMISSION_PROFILE
+        and isinstance(profile, dict)
+        and profile.get("extends") == ":workspace"
+        and isinstance(network, dict)
+        and network.get("enabled") is True
+        and network.get("allow_local_binding") is False
+        and isinstance(domains, dict)
+        and domains.get("*") == "allow"
+        and domains.get("localhost") == "allow"
+        and domains.get("127.0.0.1") == "allow"
+        and "unix_sockets" not in network
+    )
+
+
+def _toml_structure_mask(data: bytes) -> bytes:
+    """Mask TOML strings while preserving byte offsets, comments, and newlines."""
+    masked = bytearray(data)
+    index = 0
+    state = "code"
+    while index < len(data):
+        if state == "code":
+            if data[index : index + 3] == b'"""':
+                masked[index : index + 3] = b"   "
+                state = "multiline_basic"
+                index += 3
+                continue
+            if data[index : index + 3] == b"'''":
+                masked[index : index + 3] = b"   "
+                state = "multiline_literal"
+                index += 3
+                continue
+            if data[index : index + 1] == b'"':
+                masked[index] = 0x20
+                state = "basic"
+            elif data[index : index + 1] == b"'":
+                masked[index] = 0x20
+                state = "literal"
+            elif data[index : index + 1] == b"#":
+                state = "comment"
+            index += 1
+            continue
+
+        if state == "comment":
+            if data[index : index + 1] == b"\n":
+                state = "code"
+            index += 1
+            continue
+
+        if state == "basic":
+            if data[index : index + 1] == b"\n":
+                state = "code"
+                index += 1
+                continue
+            masked[index] = 0x20
+            if data[index : index + 1] == b"\\" and index + 1 < len(data):
+                index += 1
+                if data[index : index + 1] != b"\n":
+                    masked[index] = 0x20
+            elif data[index : index + 1] == b'"':
+                state = "code"
+            index += 1
+            continue
+
+        if state == "literal":
+            if data[index : index + 1] == b"\n":
+                state = "code"
+                index += 1
+                continue
+            masked[index] = 0x20
+            if data[index : index + 1] == b"'":
+                state = "code"
+            index += 1
+            continue
+
+        if state == "multiline_basic":
+            if data[index : index + 3] == b'"""':
+                masked[index : index + 3] = b"   "
+                state = "code"
+                index += 3
+                continue
+            if data[index : index + 1] != b"\n":
+                masked[index] = 0x20
+            if data[index : index + 1] == b"\\" and index + 1 < len(data):
+                index += 1
+                if data[index : index + 1] != b"\n":
+                    masked[index] = 0x20
+            index += 1
+            continue
+
+        if data[index : index + 3] == b"'''":
+            masked[index : index + 3] = b"   "
+            state = "code"
+            index += 3
+            continue
+        if data[index : index + 1] != b"\n":
+            masked[index] = 0x20
+        index += 1
+    return bytes(masked)
+
+
+def _table_spans(data: bytes) -> list[tuple[str, int, int]]:
+    structure = _toml_structure_mask(data)
+    headers = list(
+        re.finditer(
+            rb"(?m)^[ \t]*\[(?!\[)([^\]\n]+)\][ \t]*(?:#.*)?(?:\n|$)",
+            structure,
+        )
+    )
+    all_headers = list(
+        re.finditer(rb"(?m)^[ \t]*\[\[?[^\n]+(?:\n|$)", structure)
+    )
+    result: list[tuple[str, int, int]] = []
+    for header in headers:
+        end = len(data)
+        for candidate in all_headers:
+            if candidate.start() > header.start():
+                end = candidate.start()
+                break
+        try:
+            name = header.group(1).decode().strip()
+        except UnicodeDecodeError as exc:
+            raise SyncError("invalid non-UTF-8 TOML table name") from exc
+        result.append((name, header.start(), end))
+    return result
+
+
+def _top_level_assignment_span(data: bytes, key: str) -> tuple[int, int] | None:
+    structure = _toml_structure_mask(data)
+    first_table = min(
+        (start for _, start, _ in _table_spans(data)),
+        default=len(data),
+    )
+    matches = list(
+        re.finditer(
+            rb"(?m)^[ \t]*"
+            + re.escape(key.encode())
+            + rb"[ \t]*=[^\n]*(?:\n|$)",
+            structure[:first_table],
+        )
+    )
+    if len(matches) > 1:
+        raise SyncError(f"duplicate top-level Codex config field: {key}")
+    if not matches:
+        return None
+    return matches[0].start(), matches[0].end()
+
+
+def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    merged: list[list[int]] = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return [(start, end) for start, end in merged]
+
+
+def _permission_spans(data: bytes) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    marker = _config_span(data)
+    if marker is not None:
+        spans.append(marker)
+    for key in ("sandbox_mode", "default_permissions"):
+        assignment = _top_level_assignment_span(data, key)
+        if assignment is not None:
+            spans.append(assignment)
+    profile_prefix = f"permissions.{PERMISSION_PROFILE}"
+    for name, start, end in _table_spans(data):
+        if name == "sandbox_workspace_write" or (
+            name == profile_prefix or name.startswith(profile_prefix + ".")
+        ):
+            spans.append((start, end))
+    return _merge_spans(spans)
+
+
+def _remove_spans(data: bytes, spans: list[tuple[int, int]]) -> bytes:
+    result = data
+    for start, end in reversed(spans):
+        result = result[:start] + result[end:]
+    return result
+
+
+def _strip_permission_config(data: bytes) -> bytes:
+    return _remove_spans(data, _permission_spans(data))
+
+
+def _validate_permission_transition(
+    data: bytes,
+    home: Path,
+    desired_roots: list[Path],
+    *,
+    owned: bool,
+) -> None:
+    marker = _config_span(data) if owned else None
+    user_data = _remove_spans(data, [marker]) if marker is not None else data
+    user_parsed = _parse_config(user_data)
+    if user_parsed.get("sandbox_mode") is not None:
+        raise SyncError(
+            "sandbox_mode is user-owned; remove it before enabling Orchestra "
+            "permissions"
+        )
+    if user_parsed.get("default_permissions") is not None:
+        raise SyncError(
+            "default_permissions is user-owned; remove it or add Orchestra roots "
+            "to the selected profile"
+        )
+    permissions = user_parsed.get("permissions")
+    if (
+        isinstance(permissions, dict)
+        and PERMISSION_PROFILE in permissions
+    ):
+        raise SyncError(f"permissions.{PERMISSION_PROFILE} is user-owned")
+    sandbox = user_parsed.get("sandbox_workspace_write")
+    if sandbox is not None and not isinstance(sandbox, dict):
+        raise SyncError("sandbox_workspace_write must be a TOML table")
+    if isinstance(sandbox, dict):
+        unknown = set(sandbox) - KNOWN_LEGACY_SANDBOX_KEYS
+        if unknown:
+            raise SyncError(
+                "sandbox_workspace_write contains unsupported user-owned fields: "
+                + ", ".join(sorted(unknown))
+            )
+        if "network_access" in sandbox:
+            raise SyncError(
+                "sandbox_workspace_write.network_access is user-owned; remove it "
+                "before enabling Orchestra permissions"
+            )
+        if "writable_roots" in sandbox:
+            configured = _configured_writable_roots(user_data, home)
+            if set(configured) != set(desired_roots):
+                raise SyncError(
+                    "user-owned writable_roots cannot be migrated without "
+                    "changing their scope"
+                )
+
+
+def _insert_permission_block(data: bytes, block: bytes) -> bytes:
+    first_table = min(
+        (start for _, start, _ in _table_spans(data)),
+        default=len(data),
+    )
+    prefix = data[:first_table]
+    suffix = data[first_table:]
+    separator = b"" if not prefix or prefix.endswith(b"\n") else b"\n"
+    result = prefix + separator + block + suffix
+    _parse_config(result)
+    return result
+
+
+def _render_managed_config(data: bytes, block: bytes) -> bytes:
+    return _insert_permission_block(_strip_permission_config(data), block)
+
+
+def _restore_permission_config(current: bytes, backup: bytes) -> bytes:
+    marker = _config_span(current)
+    if marker is not None:
+        managed = current[marker[0] : marker[1]]
+        expected = _insert_permission_block(
+            _strip_permission_config(backup),
+            managed,
+        )
+        if current == expected:
+            return backup
+    current_base = _strip_permission_config(current)
+    backup_base = _strip_permission_config(backup)
+    if current_base == backup_base:
+        return backup
+    fragments = b"".join(
+        backup[start:end] for start, end in _permission_spans(backup)
+    ).strip(b"\n")
+    if not fragments:
+        _parse_config(current_base)
+        return current_base
+    return _insert_permission_block(current_base, fragments + b"\n")
+
+
+def _unconfigured_cache_tools(
+    data: bytes,
+    home: Path,
+    cache_roots: dict[str, Path],
+    backend: str,
+) -> list[str]:
+    configured = _configured_permission_roots(data, home, backend)
+    return [
+        tool
+        for tool, cache_root in sorted(cache_roots.items())
+        if not any(_is_within(cache_root, root) for root in configured)
+    ]
 
 
 def _desired_config_entry(
     home: Path,
     codex_home: Path,
     worktree_root: Path,
+    orchestra_root: Path,
+    cache_roots: dict[str, Path],
     installed: dict[tuple[str, str], dict[str, str]],
-) -> dict[str, Any] | None:
+    backend: str,
+) -> tuple[dict[str, Any], list[str]]:
     key = ("codex_home", "config.toml")
     path = _safe_path(codex_home, "config.toml")
     current = _read_file(path, "config.toml") if path.exists() else b""
+    desired_roots = _minimal_writable_roots(
+        orchestra_root, worktree_root, cache_roots
+    )
+    missing_cache_tools = _unconfigured_cache_tools(
+        current, home, cache_roots, backend
+    )
     owner = installed.get(key)
+    parsed = _parse_config(current)
+    _validate_permission_transition(
+        current,
+        home,
+        desired_roots,
+        owned=owner is not None,
+    )
+    desired_block = _config_block(
+        desired_roots,
+        backend=backend,
+        parsed=parsed,
+    )
     if owner is not None:
         span = _config_span(current)
         if span is None or _digest(current[span[0] : span[1]]) != owner["digest"]:
             raise SyncError("owned managed block drift in config.toml")
-        include_table = b"[sandbox_workspace_write]" in current[span[0] : span[1]]
-        return _entry(
-            "codex_home",
-            "config.toml",
-            "managed_config",
-            _config_block(worktree_root, include_table=include_table),
+        return (
+            _entry(
+                "codex_home",
+                "config.toml",
+                "managed_config",
+                desired_block,
+            ),
+            missing_cache_tools,
         )
     if _config_span(current) is not None:
         raise SyncError("unmanaged Orchestra markers in config.toml")
-    parsed = _parse_config(current)
-    sandbox = parsed.get("sandbox_workspace_write")
-    if sandbox is not None and not isinstance(sandbox, dict):
-        raise SyncError("sandbox_workspace_write must be a TOML table")
-    if isinstance(sandbox, dict) and "writable_roots" in sandbox:
-        roots = sandbox["writable_roots"]
-        if not isinstance(roots, list) or any(not isinstance(item, str) for item in roots):
-            raise SyncError("sandbox_workspace_write.writable_roots must be an array of strings")
-        normalized = {_normalized_config_root(item, home) for item in roots}
-        if worktree_root in normalized:
-            return None
-        raise SyncError(
-            "sandbox_workspace_write.writable_roots already exists without the "
-            f"Orchestra root {worktree_root}; add it explicitly and rerun sync"
-        )
-    include_table = sandbox is None
-    if not include_table and re.search(
-        rb"(?m)^[ \t]*\[sandbox_workspace_write\][ \t]*(?:#.*)?$", current
-    ) is None:
-        raise SyncError(
-            "sandbox_workspace_write exists without a directly editable table; "
-            "add writable_roots explicitly and rerun sync"
-        )
-    return _entry(
-        "codex_home",
-        "config.toml",
-        "managed_config",
-        _config_block(worktree_root, include_table=include_table),
+    return (
+        _entry(
+            "codex_home",
+            "config.toml",
+            "managed_config",
+            desired_block,
+        ),
+        missing_cache_tools,
     )
 
 
 def _insert_config_block(data: bytes, block: bytes) -> bytes:
-    if b"[sandbox_workspace_write]" in block:
-        separator = b"" if not data or data.endswith(b"\n\n") else (b"\n" if data.endswith(b"\n") else b"\n\n")
-        result = data + separator + block
-        _parse_config(result)
-        return result
-    table = re.search(
-        rb"(?m)^[ \t]*\[sandbox_workspace_write\][ \t]*(?:#.*)?(?:\n|$)", data
-    )
-    if table is None:
-        raise SyncError("sandbox_workspace_write table changed during synchronization")
-    following = re.search(rb"(?m)^[ \t]*\[\[?[^\n]+$", data[table.end() :])
-    insertion = table.end() + (following.start() if following else len(data[table.end() :]))
-    prefix = data[:insertion]
-    suffix = data[insertion:]
-    separator = b"" if prefix.endswith(b"\n") else b"\n"
-    result = prefix + separator + block + suffix
-    _parse_config(result)
-    return result
+    return _render_managed_config(data, block)
 
 
 def _roots(home: Path, codex_home: Path) -> dict[str, Path]:
@@ -497,8 +1211,19 @@ def _destination(roots: dict[str, Path], entry: dict[str, Any]) -> Path:
     return _safe_path(roots[entry["root"]], entry["path"])
 
 
-def _operation(kind: str, entry: dict[str, Any], before: bytes | None) -> dict[str, Any]:
-    return {"kind": kind, "entry": entry, "before": before}
+def _operation(
+    kind: str,
+    entry: dict[str, Any],
+    before: bytes | None,
+    *,
+    preserve_backup: bool = False,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "entry": entry,
+        "before": before,
+        "preserve_backup": preserve_backup,
+    }
 
 
 def _analyze(
@@ -507,17 +1232,28 @@ def _analyze(
     codex_home: Path,
     modelconfig: str,
     worktree_root: Path,
+    orchestra_root: Path,
+    cache_roots: dict[str, Path],
     installed: dict[tuple[str, str], dict[str, str]],
     auxiliary_drift: list[str],
+    permission_backend: str,
 ) -> tuple[
     dict[tuple[str, str], dict[str, Any]],
     list[dict[str, Any]],
     list[str],
+    list[str],
 ]:
     desired = _inventory(source_root, modelconfig, worktree_root)
-    config_entry = _desired_config_entry(home, codex_home, worktree_root, installed)
-    if config_entry is not None:
-        desired[("codex_home", "config.toml")] = config_entry
+    config_entry, missing_cache_tools = _desired_config_entry(
+        home,
+        codex_home,
+        worktree_root,
+        orchestra_root,
+        cache_roots,
+        installed,
+        permission_backend,
+    )
+    desired[("codex_home", "config.toml")] = config_entry
     roots = _roots(home, codex_home)
     operations: list[dict[str, Any]] = []
 
@@ -559,7 +1295,9 @@ def _analyze(
                     if entry["type"] == "managed_config"
                     else "update_block"
                 )
-                operations.append(_operation(kind, entry, current))
+                operations.append(
+                    _operation(kind, entry, current, preserve_backup=True)
+                )
 
     for key in sorted(set(installed) - set(desired)):
         owner = installed[key]
@@ -585,7 +1323,7 @@ def _analyze(
         if backup.exists() and (owner is None or owner.get("backup") != backup_rel):
             raise SyncError(f"unmanaged backup collision: {backup_rel}")
     operations.sort(key=lambda item: (item["entry"]["root"], item["entry"]["path"], item["kind"]))
-    return desired, operations, auxiliary_drift
+    return desired, operations, auxiliary_drift, missing_cache_tools
 
 
 def _mkdir_parent(path: Path, root: Path) -> None:
@@ -638,6 +1376,7 @@ def _write_manifest(
     codex_home: Path,
     entries: dict[tuple[str, str], dict[str, str]],
     modelconfig: str | None,
+    permission_backend: str | None,
 ) -> None:
     path = _safe_path(codex_home, MANIFEST_PATH)
     if not entries:
@@ -651,6 +1390,10 @@ def _write_manifest(
         if modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
         payload["modelconfig"] = modelconfig
+    if permission_backend is not None:
+        if permission_backend not in PERMISSION_BACKENDS:
+            raise SyncError(f"unknown permission backend: {permission_backend}")
+        payload["permission_backend"] = permission_backend
     data = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
     _atomic_write(path, data, codex_home, new_mode=0o600)
 
@@ -695,7 +1438,7 @@ def _apply_operation(
     backup_rel: str | None = None
     backup: Path | None = None
     try:
-        if before is not None:
+        if before is not None and not operation["preserve_backup"]:
             backup_rel = _backup_path(entry["root"], entry["path"])
             backup = _safe_path(codex_home, backup_rel)
             state["backup"] = backup
@@ -722,19 +1465,24 @@ def _apply_operation(
         elif kind == "update_config_block":
             span = _config_span(before)
             assert span is not None
-            content = before[: span[0]] + entry["content"] + before[span[1] :]
-            _parse_config(content)
+            content = _render_managed_config(before, entry["content"])
             _atomic_write(path, content, roots[entry["root"]])
         elif kind == "delete":
             if entry["type"] in {"managed_block", "managed_config"}:
-                span = _entry_span(entry, before)
-                assert span is not None
-                end = span[1]
-                if before[end : end + 1] == b"\n":
-                    end += 1
-                remaining = before[: span[0]] + before[end:]
                 if entry["type"] == "managed_config":
+                    restore = operation.get("restore")
+                    if restore is not None:
+                        remaining = _restore_permission_config(before, restore)
+                    else:
+                        remaining = _strip_permission_config(before)
                     _parse_config(remaining)
+                else:
+                    span = _entry_span(entry, before)
+                    assert span is not None
+                    end = span[1]
+                    if before[end : end + 1] == b"\n":
+                        end += 1
+                    remaining = before[: span[0]] + before[end:]
                 if remaining or entry.get("_keep_empty", False):
                     _atomic_write(path, remaining, roots[entry["root"]])
                 else:
@@ -815,11 +1563,46 @@ def synchronize(
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
     label = "apply --dry-run" if action == "apply" and dry_run else action
+    orchestra_root = _orchestra_root(home)
+    try:
+        codex_version, parsed_codex_version = _detect_codex_version()
+        permission_backend = _permission_backend(parsed_codex_version)
+    except SyncError as exc:
+        return _result(
+            "blocked",
+            label,
+            [],
+            str(exc),
+            sandbox_root=orchestra_root,
+            codex_version="unknown",
+        )
+    try:
+        cache_roots, omitted_cache_tools = _discover_cache_roots(home)
+    except OSError:
+        cache_roots = {}
+        omitted_cache_tools = {
+            tool: "cache discovery unavailable" for tool in CACHE_TOOLS
+        }
+    result_context: dict[str, Any] = {
+        "sandbox_root": orchestra_root,
+        "cache_roots": cache_roots,
+        "omitted_cache_tools": omitted_cache_tools,
+        "codex_version": codex_version,
+        "permission_backend": permission_backend,
+        "permission_profile": (
+            PERMISSION_PROFILE if permission_backend == "profile" else None
+        ),
+    }
+    missing_cache_tools = sorted(cache_roots)
     try:
         effective_worktree_root = _resolve_worktree_root(home, worktree_root)
-        installed, manifest_present, auxiliary_drift, installed_modelconfig = (
-            _load_manifest(codex_home)
-        )
+        (
+            installed,
+            manifest_present,
+            auxiliary_drift,
+            installed_modelconfig,
+            installed_permission_backend,
+        ) = _load_manifest(codex_home)
         if modelconfig is not None and modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
         effective_modelconfig = modelconfig or installed_modelconfig
@@ -835,22 +1618,71 @@ def synchronize(
                     [],
                     detail,
                     worktree_root=effective_worktree_root,
+                    unconfigured_cache_tools=missing_cache_tools,
+                    **result_context,
                 )
             raise SyncError(detail)
-        desired, operations, auxiliary_drift = _analyze(
+        desired, operations, auxiliary_drift, missing_cache_tools = _analyze(
             source_root,
             home,
             codex_home,
             effective_modelconfig,
             effective_worktree_root,
+            orchestra_root,
+            cache_roots,
             installed,
             auxiliary_drift,
+            permission_backend,
         )
     except (OSError, SyncError) as exc:
-        return _result("blocked", label, [], str(exc))
+        return _result(
+            "blocked",
+            label,
+            [],
+            str(exc),
+            unconfigured_cache_tools=missing_cache_tools,
+            **result_context,
+        )
     changes = _preview(operations)
+    config_change_pending = any(
+        change["path"] == "config.toml" and change["root"] == "codex_home"
+        for change in changes
+    )
     if action == "status" or dry_run:
         detail = "; ".join(auxiliary_drift)
+        try:
+            config_path = _safe_path(codex_home, "config.toml")
+            current_config = (
+                _read_file(config_path, "config.toml")
+                if config_path.exists()
+                else b""
+            )
+            desired_roots = _minimal_writable_roots(
+                orchestra_root, effective_worktree_root, cache_roots
+            )
+            profile_configured = (
+                permission_backend == "profile"
+                and _profile_is_configured(
+                    current_config,
+                    home,
+                    desired_roots,
+                    permission_backend,
+                )
+                and not config_change_pending
+            )
+        except (OSError, SyncError) as exc:
+            return _result(
+                "blocked",
+                label,
+                changes,
+                str(exc),
+                modelconfig=effective_modelconfig,
+                worktree_root=effective_worktree_root,
+                unconfigured_cache_tools=missing_cache_tools,
+                restart_required=config_change_pending,
+                profile_configured=False,
+                **result_context,
+            )
         return _result(
             "partial" if operations or auxiliary_drift else "ok",
             label,
@@ -858,6 +1690,10 @@ def synchronize(
             detail,
             modelconfig=effective_modelconfig,
             worktree_root=effective_worktree_root,
+            unconfigured_cache_tools=missing_cache_tools,
+            restart_required=config_change_pending,
+            profile_configured=profile_configured,
+            **result_context,
         )
     if action != "apply":
         return _result(
@@ -867,11 +1703,14 @@ def synchronize(
             f"unsupported action: {action}",
             modelconfig=effective_modelconfig,
             worktree_root=effective_worktree_root,
+            unconfigured_cache_tools=missing_cache_tools,
+            **result_context,
         )
 
     roots = _roots(home, codex_home)
     current = dict(installed)
     current_modelconfig = installed_modelconfig
+    current_permission_backend = installed_permission_backend
     completed: list[dict[str, str]] = []
     for operation in operations:
         entry = operation["entry"]
@@ -887,9 +1726,17 @@ def synchronize(
                     state["backup_rel"] or current.get(key, {}).get("backup"),
                 )
             next_modelconfig = current_modelconfig
+            next_permission_backend = current_permission_backend
             if key == ("codex_home", "orchestra/roles.toml"):
                 next_modelconfig = effective_modelconfig
-            _write_manifest(codex_home, next_current, next_modelconfig)
+            if key == ("codex_home", "config.toml"):
+                next_permission_backend = permission_backend
+            _write_manifest(
+                codex_home,
+                next_current,
+                next_modelconfig,
+                next_permission_backend,
+            )
         except (OSError, SyncError) as exc:
             if "state" in locals():
                 try:
@@ -905,15 +1752,32 @@ def synchronize(
                 str(exc),
                 modelconfig=current_modelconfig,
                 worktree_root=effective_worktree_root,
+                unconfigured_cache_tools=missing_cache_tools,
+                restart_required=any(
+                    change["path"] == "config.toml"
+                    and change["root"] == "codex_home"
+                    for change in completed
+                ),
+                profile_configured=False,
+                **result_context,
             )
         current = next_current
         current_modelconfig = next_modelconfig
+        current_permission_backend = next_permission_backend
         completed.extend(_preview([operation]))
         del state
 
-    if current and current_modelconfig != effective_modelconfig:
+    if current and (
+        current_modelconfig != effective_modelconfig
+        or current_permission_backend != permission_backend
+    ):
         try:
-            _write_manifest(codex_home, current, effective_modelconfig)
+            _write_manifest(
+                codex_home,
+                current,
+                effective_modelconfig,
+                permission_backend,
+            )
         except (OSError, SyncError) as exc:
             return _result(
                 "partial" if completed else "blocked",
@@ -922,11 +1786,26 @@ def synchronize(
                 str(exc),
                 modelconfig=current_modelconfig,
                 worktree_root=effective_worktree_root,
+                unconfigured_cache_tools=missing_cache_tools,
+                restart_required=any(
+                    change["path"] == "config.toml"
+                    and change["root"] == "codex_home"
+                    for change in completed
+                ),
+                profile_configured=False,
+                **result_context,
             )
         current_modelconfig = effective_modelconfig
+        current_permission_backend = permission_backend
 
     try:
-        _, _, remaining_drift, persisted_modelconfig = _load_manifest(codex_home)
+        (
+            _,
+            _,
+            remaining_drift,
+            persisted_modelconfig,
+            persisted_permission_backend,
+        ) = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
         return _result(
             "partial",
@@ -935,6 +1814,56 @@ def synchronize(
             str(exc),
             modelconfig=current_modelconfig,
             worktree_root=effective_worktree_root,
+            unconfigured_cache_tools=missing_cache_tools,
+            restart_required=any(
+                change["path"] == "config.toml"
+                and change["root"] == "codex_home"
+                for change in completed
+            ),
+            profile_configured=False,
+            **result_context,
+        )
+    try:
+        config_path = _safe_path(codex_home, "config.toml")
+        final_config = (
+            _read_file(config_path, "config.toml") if config_path.exists() else b""
+        )
+        final_missing_cache_tools = _unconfigured_cache_tools(
+            final_config, home, cache_roots, permission_backend
+        )
+        desired_roots = _minimal_writable_roots(
+            orchestra_root, effective_worktree_root, cache_roots
+        )
+        profile_configured = (
+            persisted_permission_backend == "profile"
+            and _profile_is_configured(
+                final_config,
+                home,
+                desired_roots,
+                permission_backend,
+            )
+        )
+    except (OSError, SyncError) as exc:
+        return _result(
+            "partial" if completed else "blocked",
+            label,
+            completed,
+            str(exc),
+            modelconfig=persisted_modelconfig,
+            worktree_root=effective_worktree_root,
+            unconfigured_cache_tools=missing_cache_tools,
+            restart_required=any(
+                change["path"] == "config.toml"
+                and change["root"] == "codex_home"
+                for change in completed
+            ),
+            profile_configured=False,
+            **result_context,
+        )
+    if final_missing_cache_tools:
+        remaining_drift.append(
+            "configured permission roots do not cover detected caches: "
+            + ", ".join(final_missing_cache_tools)
         )
     detail = "; ".join(remaining_drift)
     return _result(
@@ -944,6 +1873,13 @@ def synchronize(
         detail,
         modelconfig=persisted_modelconfig,
         worktree_root=effective_worktree_root,
+        unconfigured_cache_tools=final_missing_cache_tools,
+        restart_required=any(
+            change["path"] == "config.toml" and change["root"] == "codex_home"
+            for change in completed
+        ),
+        profile_configured=profile_configured,
+        **result_context,
     )
 
 
@@ -952,11 +1888,37 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
     try:
-        installed, present, auxiliary_drift, modelconfig = _load_manifest(codex_home)
+        codex_version, parsed_codex_version = _detect_codex_version()
+        selected_permission_backend = _permission_backend(parsed_codex_version)
+    except SyncError as exc:
+        return _result(
+            "blocked",
+            "uninstall",
+            [],
+            str(exc),
+            codex_version="unknown",
+        )
+    result_context = {
+        "codex_version": codex_version,
+        "permission_backend": selected_permission_backend,
+        "permission_profile": (
+            PERMISSION_PROFILE
+            if selected_permission_backend == "profile"
+            else None
+        ),
+    }
+    try:
+        (
+            installed,
+            present,
+            auxiliary_drift,
+            modelconfig,
+            permission_backend,
+        ) = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
-        return _result("blocked", "uninstall", [], str(exc))
+        return _result("blocked", "uninstall", [], str(exc), **result_context)
     if not present:
-        return _result("ok", "uninstall", [])
+        return _result("ok", "uninstall", [], **result_context)
     roots = _roots(home, codex_home)
     current = dict(installed)
     changes: list[dict[str, str]] = []
@@ -990,12 +1952,29 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 owner["type"] in {"managed_block", "managed_config"}
                 and "backup" in owner
             )
-            operation = _operation("delete", stale, data)
+            operation = _operation(
+                "delete",
+                stale,
+                data,
+                preserve_backup=owner["type"] == "managed_config",
+            )
+            if owner["type"] == "managed_config" and "backup" in owner:
+                operation["restore"] = _read_file(backup, owner["backup"])
             state = _apply_operation(operation, roots, codex_home)
             next_current = dict(current)
             next_current.pop(key)
             try:
-                _write_manifest(codex_home, next_current, modelconfig)
+                next_permission_backend = (
+                    None
+                    if key == ("codex_home", "config.toml")
+                    else permission_backend
+                )
+                _write_manifest(
+                    codex_home,
+                    next_current,
+                    modelconfig,
+                    next_permission_backend,
+                )
             except (OSError, SyncError) as exc:
                 try:
                     _restore_operation(state, codex_home)
@@ -1003,23 +1982,45 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                     exc = SyncError(f"{exc}; local compensation failed: {restore_exc}")
                 status = "partial" if changes else "blocked"
                 detail = "; ".join([*drift, *auxiliary_drift, str(exc)])
-                return _result(status, "uninstall", changes, detail)
+                return _result(
+                    status,
+                    "uninstall",
+                    changes,
+                    detail,
+                    **result_context,
+                )
             current = next_current
+            permission_backend = next_permission_backend
+            if owner["type"] == "managed_config" and backup.exists():
+                backup.unlink()
+                _cleanup_empty(backup.parent, codex_home)
             changes.extend(_preview([operation]))
             _cleanup_empty(path.parent, roots[owner["root"]])
         except (OSError, SyncError) as exc:
             status = "partial" if changes else "blocked"
             detail = "; ".join([*drift, *auxiliary_drift, f"{owner['path']}: {exc}"])
-            return _result(status, "uninstall", changes, detail)
+            return _result(
+                status,
+                "uninstall",
+                changes,
+                detail,
+                **result_context,
+            )
     try:
-        _, _, remaining_auxiliary, _ = _load_manifest(codex_home)
+        _, _, remaining_auxiliary, _, _ = _load_manifest(codex_home)
         _cleanup_empty((codex_home / "orchestra/backups"), codex_home)
         _cleanup_empty((codex_home / "orchestra"), codex_home)
     except (OSError, SyncError) as exc:
         drift.append(f"manifest: {exc}")
         remaining_auxiliary = auxiliary_drift
     detail = "; ".join([*drift, *remaining_auxiliary])
-    return _result("partial" if drift or remaining_auxiliary else "ok", "uninstall", changes, detail)
+    return _result(
+        "partial" if drift or remaining_auxiliary else "ok",
+        "uninstall",
+        changes,
+        detail,
+        **result_context,
+    )
 
 
 def _parser() -> argparse.ArgumentParser:

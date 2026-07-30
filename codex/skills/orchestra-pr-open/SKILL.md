@@ -5,7 +5,7 @@ description: Create or update one authorized Orchestra pull request from the com
 
 # Open or update one PR
 
-The root owns PR intent synthesis and directly invokes the PR helper; PR opening is not a profile or capability assignment. Require explicit repository, base, head, title, human body, exact revision, approved objective, acceptance, invariants, validation, and known risks.
+The root owns PR intent synthesis and directly invokes the PR helper; PR opening is not a profile or capability assignment. Require explicit repository, base, head, title, human body, exact revision, approved `plan.md` manifest, exact overview and completed phase artifact identifiers, validation reports, and known risks. Read objective, acceptance, invariants, and phase intent from those exact documents rather than a root-authored replay.
 
 ## Execute the PR-open contract
 

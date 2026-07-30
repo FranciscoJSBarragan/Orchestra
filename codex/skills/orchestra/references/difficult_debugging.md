@@ -9,5 +9,8 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - Form competing hypotheses, seek discriminating evidence, record disproved hypotheses, and state confidence in the supported root cause.
 - Recommend the smallest local corrective action for the same implementation owner. Do not implement it or restart discovery, planning, or the whole workflow.
 - Prefer source, runtime, test, and log evidence over intuition; do not claim a guess as diagnosis.
+- When coordination is available, publish the complete diagnosis as
+  `debugging-report` and return its exact identifier. The implementation owner
+  reads that document directly; the root does not restate the diagnosis.
 
 Return `blocked` when failures are not demonstrably the same, safe reproduction or tracing is unavailable, the diagnosis crosses an authority boundary, or no root cause is supported by current evidence. Ask for the smallest missing evidence.

@@ -5,7 +5,7 @@ description: Let the root commit one accepted Orchestra phase directly, with the
 
 # Commit an accepted phase
 
-Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require accepted repository-relative paths and passed review and verification evidence for the current revision. Use a concise title plus useful intent and validation; include risks only when material.
+Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require accepted repository-relative paths, the exact current phase artifact, and passed implementation-review and verification-report identifiers for the current revision. Use a concise title plus useful intent and validation; include risks only when material. The resulting Git commit is authoritative; never create a duplicate commit artifact.
 
 ## Execute the direct path
 

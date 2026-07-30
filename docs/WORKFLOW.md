@@ -14,9 +14,12 @@ flowchart TD
     E --> OW["Create task branch and portable worktree"]
     OW --> RC["Focused repository context"]
     RC --> C["Evidence-grounded final specification and tier recommendation"]
-    C --> P["Formal technical plan"]
-    P --> A["User approves implementation"]
-    A --> W["Write approved plan directly as active"]
+    C --> P["Plan overview plus one document per phase"]
+    P --> PJ{"Root decides whether plan review is proportionate"}
+    PJ -->|"Review"| PRV["Reviewer reads exact bundle; planner replaces affected documents"]
+    PRV --> P
+    PJ -->|"Ready"| A
+    A["User approves exact bundle"] --> W["Write overview and phase manifest as active"]
     W --> F["Execute the next phase"]
     F --> R["Review and verify"]
     R -->|"Material finding"| F
@@ -165,18 +168,24 @@ After explicit activation in an execution-capable mode:
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
    provenance, and generated paths relevant to the task. It then resolves the
-   portable worktree root, verifies a sandboxed write canary in the repository
-   directory, chooses the first matching available branch and checkout path,
-   and creates the task worktree before dispatching a capability. The source
-   checkout remains read-only and is never switched or reused for execution.
+   portable worktree root below the synchronized Orchestra sandbox root,
+   verifies a sandboxed write canary in the repository directory, chooses the
+   first matching available branch and checkout path, and creates the task
+   worktree before dispatching a capability. The source checkout remains
+   read-only and is never switched or reused for execution.
 4. The root records the exact task-worktree identity in memory before capability
    dispatch, as described in
-   [Task worktree and branch](#task-worktree-and-branch).
+   [Task worktree and branch](#task-worktree-and-branch). It then attempts one
+   idempotent `coordination.py task create`. An `invalid` or `unavailable`
+   result is reported as lost observability and the normal inline workflow
+   continues without retry or reduced authority.
 5. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
    questions from the exact task worktree. The root may skip or reduce this
    dispatch only when it cites the specific prior evidence it reuses (artifact
-   and HEAD, same session); otherwise dispatch. Consume the result and close the
-   one-shot analyst.
+   and revision); otherwise dispatch. The analyst publishes a revision-identified
+   context artifact when coordination is available and returns its identifier.
+   Publication failure returns the full inline report instead. Consume the
+   result and close the one-shot analyst.
 6. The orchestrator continues the user dialogue using that evidence. Additional
    `repository_context` dispatches are allowed only for newly material factual
    questions and request only the targeted context delta; consume and close each
@@ -185,18 +194,30 @@ After explicit activation in an execution-capable mode:
    behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
    then recommends any justified tier change. The user chooses whether to change
    it. Request only the context delta tied to a newly discovered risk.
-8. Final specification confirmation is the checkpoint for the root to write the
-   formal plan in conversation or system temporary storage; no second literal
-   request to make a plan is required. Dispatch `technical_planning` (or
-   `architecture_analysis` for a bounded named architecture question) when
-   useful; for a small single-phase standard task the root may write the
-   compact plan directly. A single-phase standard plan is explicitly compact:
-   objective, one phase contract, verification, nothing else.
-9. A critical plan audit is an independent `orchestra_reviewer` dispatch only when its
-   packet names a measurable risk, supporting evidence and affected area, and
-   an independently detectable defect class. Complexity alone is insufficient.
-10. The root reviews the plan, summarizes it at the user's altitude, and requests
-   implementation approval.
+8. Final specification confirmation starts formal planning. A planner reads the
+   exact context artifacts and publishes one complete `plan-overview` plus one
+   complete `plan-phase` per phase. It returns an explicit candidate bundle;
+   neither root nor downstream agents reconstruct it from a summary or choose
+   members by timestamp. A genuinely trivial single-phase standard task may be
+   authored directly by the root, but uses the same two-document shape.
+9. After the complete bundle exists, the root reads the overview, phase index,
+   named risks, and only the detail needed for judgment. It may skip review for
+   a trivial single-phase standard plan. A non-trivial multi-phase or
+   cross-component plan receives one independent review. A critical plan
+   receives a focused review naming its measurable risk, supporting evidence,
+   affected area, and detectable defect class.
+10. A dispatched reviewer reads the exact bundle and publishes `plan-review`
+    with stable finding identifiers. Accepted IDs and the review artifact return
+    to the same planner, which remains open and publishes complete replacement
+    documents only for affected members. The next candidate bundle explicitly
+    names all current members.
+11. The root observes convergence after a second material plan review. Before a
+    third correction, or immediately for marginal, contradictory, or
+    out-of-scope findings, it reads the exact bundle and review artifacts,
+    accepts or rejects findings by identifier, and corrects direction. No
+    persisted review counter or mechanical limit is introduced.
+12. The root presents the exact accepted bundle at the user's altitude and
+    requests implementation approval.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact task worktree. The base checkout remains read-only and scoped
@@ -216,17 +237,19 @@ at this point.
 
 ### Local task plan
 
-Before approval, neither the provisional specification nor the formal-plan
-draft is persisted. After approval, the root writes the exact approved plan
-directly as `active` to
-`git rev-parse --git-path orchestra/plan.md`. It is never versioned and is an
-intent and resume aid for the root, not a workflow database. It records the
-objective, active tier, any different root recommendation in Decisions,
-checkout path, initial branch and HEAD, base branch and revision, authorized
-preexisting changes, decisions, phase contracts, verification, current phase,
-blocker, next action, and uncommitted-work note. When adoption applies, also
-record the adopted source revision, imported paths, existing commit range, and
-remaining phases.
+Before approval, the provisional specification remains in conversation while
+the formal candidate exists only as private `plan-overview`, `plan-phase`, and
+optional `plan-review` artifacts. After approval, the root writes `active` to
+`git rev-parse --git-path orchestra/plan.md`. It is an intent, exact-bundle, and
+resume aid, not a workflow database.
+
+The file records task and Git identity, active tier, user and root decisions,
+authorized preexisting changes, and the approved overview verbatim. Its phase
+manifest maps every phase number to the exact artifact ID, private path,
+artifact revision, progress status, accepted commit, blocker, and next action.
+It does not duplicate phase details. Private paths allow resolution when SQLite
+is unavailable. When adoption applies, it also records source revision,
+imported paths, existing commit range, and remaining phases.
 
 Its statuses are:
 
@@ -239,15 +262,64 @@ The normal lifecycle is `active` to `completed`, with `active` to `blocked` to
 `active` when needed. The root owns every update; plan state never grants
 authority beyond the user's instruction.
 
-On resume, the root resolves the path again and requires the plan's execution
-mode, checkout path, initial identity, current branch, base, HEAD, and relevant
-commits to reconcile exactly with Git. Git is
-authoritative for code, worktree state, and history; the plan is authoritative
-only for approved intent and recorded progress. The root corrects stale
-progress, revalidates affected evidence, and never infers missing approval. A
-missing or unreadable plan prevents automatic continuation until it is
-reconstructed and realigned with the user. Worktree cleanup removes the plan;
-there is no global index, plan CLI, Kanban board, event log, or state engine.
+On resume, the root resolves the path again and requires checkout, initial
+identity, current branch, base, HEAD, and relevant commits to reconcile with
+Git, then resolves every current phase through its exact ID or recorded path.
+Git is authoritative for code, worktree state, and history; the plan is
+authoritative only for approved intent, exact bundle selection, and progress.
+A missing or unreadable plan prevents automatic continuation until reconstructed
+and realigned with the user. Worktree cleanup removes the plan; coordination
+never substitutes for it or supplies authority.
+
+Plan artifacts are immutable. A reversible clarification within approved
+objective and authority creates a complete replacement phase and the root
+updates its manifest entry. A material scope, public-contract, or user-visible
+behavior change requires renewed user approval.
+
+### Coordination snapshots and artifacts
+
+The installed
+`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py` helper exposes
+`task`, `activity`, and `artifact` commands with compact JSON results. It stores
+task and activity snapshots plus artifact locators in
+`$HOME/.orchestra/state.sqlite3`. Artifact content is UTF-8 Markdown under the
+task-private path resolved by
+`git rev-parse --git-path orchestra/artifacts`.
+The database and its SQLite sidecars use mode `0600`. Schema creation and
+version assignment are one transaction; an empty version-zero file may be
+initialized, but a partial, unknown, or corrupt database remains untouched and
+returns `unavailable`. Concurrent registration of one worktree converges on one
+active task identifier.
+
+The root updates task stage, tier, revision, summary, blocker, and next action
+only at material transitions. Each delegated agent may update its own activity
+at start, final outcome, or blocker; there are no heartbeats. Stages and states
+are descriptive labels with no transition graph. Timestamps indicate freshness
+but never prove that an agent or process is live.
+
+Every packet carries capability, explicit authority, worktree, exact target
+artifact IDs and roles, stop conditions, current revision, accepted finding
+IDs, and only the new context delta. Initial repository context also carries
+its minimum objective and focused questions. Later agents read objective,
+scope, acceptance, verification, plan details, and findings directly from named
+documents. A changed HEAD invalidates only affected evidence.
+
+Conventional artifact kinds are `repository-context`, `context-delta`,
+`plan-overview`, `plan-phase`, `plan-review`, `implementation-report`,
+`verification-report`, `implementation-review`, `debugging-report`, and
+`pr-review` only when PR analysis has a semantic downstream consumer. Corrected
+overview or phase documents are complete immutable replacements. Current
+membership is selected only by exact packet or manifest IDs, never timestamp or
+list order. Start, final, commit, push, check, and merge facts do not receive
+semantic artifacts.
+
+All coordination operations are fail-soft. `invalid` or `unavailable` status
+cannot block implementation, verification, review, a tier change, commit, or
+delivery. Failed publication returns the full result inline; failed lookup uses
+the inline packet or current source. The helper never runs mutating Git
+commands, grants authority, validates transitions, or triggers another agent.
+Completed metadata remains queryable, while worktree cleanup may make its
+artifact locators unavailable.
 
 ## Phase execution
 
@@ -257,45 +329,53 @@ delegated from the main plan.
 
 The loop is:
 
-1. The root selects one `orchestra_implementation_worker` with `general_implementation`
-   or `frontend_implementation` and keeps that owner available for the whole
-   phase. While that owner is active and has not returned an outcome or blocker,
+1. The root selects one `orchestra_implementation_worker` with
+   `general_implementation` or `frontend_implementation` and keeps that owner
+   for the whole phase. Its packet contains edit authority, worktree,
+   `plan.md` path, exact overview and current phase IDs, revision, accepted
+   finding IDs, stop conditions, and only new context. The worker reads scope,
+   acceptance, verification, and dependencies from those documents and reads
+   only prior outputs explicitly required by the phase. While active,
    the task-worktree implementation is mutable: the root waits and limits
    itself to user dialogue, agent/resource coordination, and root-owned setup
    that does not inspect or exercise the evolving implementation. It does not
    read the evolving diff, run speculative canaries against it, or send design
    corrections.
-2. At each owner handoff, the root performs at most one bounded check of exact
+2. At each stable handoff, the worker publishes a complete
+   `implementation-report` for the evaluated revision or returns it inline.
+   The root performs at most one bounded check of exact
    Git identity, status, allowed-path scope, `git diff --check`, and the declared
    evidence inventory. If it investigates a possible correctness defect
    directly, it completes and confirms that investigation against the current
    source and diff before contacting the owner or pausing the phase cohort. It
    sends one consolidated finding packet containing evidence, impact, and
    acceptance, never provisional or superseding directions.
-3. The root creates at most one `orchestra_verifier` for each applicable capability,
-   `runtime_verification` and `browser_acceptance`, and reuses the corresponding
-   verifier for affected reruns during the phase. If verification returns
-   `failed`, return findings to the same implementation owner and re-verify
+3. The root creates at most one verifier for each applicable capability and
+   passes exact overview, phase, implementation-report, authority, and revision.
+   Every capability publishes a complete `verification-report`. If verification
+   fails, its report ID and accepted finding IDs return to the same owner
+   without root-authored replay, followed by affected reverification
    before dispatching `independent_review`. If it returns `blocked`, the root
    decides whether review proceeds on source alone and, when it does, records
    the blocked reason in the review evidence. Once a stable revision packet is
    under verification, the root stops speculative source review. It interrupts
    only when the revision changed or a finding confirmed against the exact
    current source and diff invalidates that packet.
-4. Only after every required verifier has returned `pass`, or a `blocked`
-   result explicitly accepted by the root, does one independent
-   `orchestra_reviewer` check specification, correctness, regressions,
-   safety, and materially defect-prone design and remains available for delta
-   review during the phase. An active verifier or a failed verifier awaiting
-   rerun is not final evidence and blocks this dispatch.
-5. Accepted findings return to the same implementation owner.
-6. Re-run affected verification with the same capability verifier and send the
-   meaningful delta to the same reviewer.
+4. Only after required verification passes or an environment blocker is
+   explicitly accepted does one reviewer receive exact overview, phase,
+   implementation, and verification IDs. It independently inspects source and
+   diff, publishes a complete initial `implementation-review`, and later
+   publishes meaningful deltas naming the full-review base and prior finding
+   dispositions.
+5. The review artifact and accepted stable finding IDs return to the same owner;
+   the root does not restate findings.
+6. Re-run affected verification with the same verifier and send exact
+   replacement reports plus the meaningful delta to the same reviewer.
 7. After final evidence is consumed, the root performs the phase teardown
    described below.
 8. When teardown permits the phase to close, the root commits with direct Git
-   by default. It may use the narrow commit helper when exact-path staging is
-   useful.
+   or the narrow exact-path helper and records the commit in the phase manifest.
+   No commit artifact duplicates Git.
 
 When the same causal failure repeats, correction cycles demonstrably fail to
 converge, scope expands, or evidence indicates a deeper shared cause, stop blind
@@ -317,7 +397,9 @@ transition commit. Update the plan's active tier and Decisions, then create
 replacement agents only when needed with a compact continuation packet. The new
 implementation worker owns the remaining phase and receives later accepted
 findings. Evidence for the unchanged revision and conditions remains valid; a
-new risk receives only targeted context and reverification.
+new risk receives only targeted context and reverification. A best-effort
+coordination update records the selected tier, but its failure never delays or
+reverses the transition.
 
 ### Phase teardown
 
@@ -326,7 +408,8 @@ created for the current phase. It closes one-shot repository, planning, plan
 audit, web research, or difficult-debugging agents after consuming their
 result. The implementation owner, independent reviewer, and each capability
 verifier remain open through the phase so fixes, reruns, and delta review reuse
-their relevant context.
+their relevant context. Persisted activity rows are observability snapshots, not
+resource handles or cleanup authority.
 
 After final review and verification pass, but before phase commit, the root:
 
@@ -343,6 +426,8 @@ close a source-read-only browser tab is reported as partial cleanup but does not
 invalidate otherwise accepted evidence or the Git commit. Orchestra never scans
 for or kills unrelated processes, closes unrelated tabs or sessions, persists a
 resource registry, or adds cleanup behavior to the phase-commit helper.
+Best-effort activity clearing occurs after the real teardown evidence is
+consumed and can never affect the commit result.
 
 ### Test permissions and browser routing
 
@@ -412,6 +497,21 @@ available `orchestra/<task-slug>[-N]` branch and
 `<worktree-root>/<repository>/<task-slug>[-N]` path and creates it with
 `git worktree add`. It never implements in, switches, or reuses the source
 checkout or a host-managed worktree.
+
+Direct synchronization authorizes the dedicated `$HOME/.orchestra` parent and
+the exact Poetry, pip, uv, and npm cache paths reported by installed tools.
+Discovery rejects broad cache parents, sensitive configuration trees, paths
+outside the current home, and symlink escapes. Docker sockets and configuration
+remain outside persistent writable roots and use the existing exact-command
+elevation policy when required.
+
+Synchronization reads `codex --version` before mutation. Codex 0.138 or later
+uses the managed `orchestra-workspace` profile extending `:workspace`; older
+clients use only `workspace-write` and `sandbox_workspace_write`. The two
+backends never coexist. Both enable public command networking and exact
+loopback exceptions without enabling broad private-network access or Unix
+sockets. A version change migrates the managed configuration atomically, and an
+unreadable version blocks before any destination changes.
 
 Before `repository_context` or another capability dispatch, the root creates
 the repository directory and writes and removes one temporary canary there. A
@@ -515,7 +615,9 @@ GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
 in the PR body. The helper reports current checks and review-thread evidence; it
 does not interpret feedback, fix code, route work, or persist state. The root
 evaluates only unresolved, non-outdated feedback and returns accepted findings
-to the same implementation owner.
+to the same implementation owner by stable finding or GitHub reference. Publish
+`pr-review` only when an agent's semantic analysis must be consumed downstream;
+do not duplicate check, push, thread, or merge state as artifacts.
 
 `Open a PR` authorizes opening, review processing, fixes, commits, and pushes
 needed to make that PR clean. It does not authorize merge unless the user said
@@ -560,3 +662,11 @@ user-visible result or evidence, and next action without routine agent/model
 plumbing. At completion, distinguish implementation-complete from delivered and
 state the result location, how to run or demonstrate it, verification performed,
 safe test data, limitations, exact delivery state, and the next authority needed.
+The same material transitions are exposed through coordination snapshots for
+external querying, without requiring the user to open each agent conversation.
+
+A question whose answer is required to continue omits `autoResolutionMs` and
+remains open until the user responds. Automatic resolution is reserved for
+explicitly informational, non-blocking questions whose timeout can safely
+accept the recommended default. Command, test, and `wait_agent` timeouts are
+unchanged.

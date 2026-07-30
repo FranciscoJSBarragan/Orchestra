@@ -21,6 +21,14 @@ receiving a concise recommendation and any applicable warning.
 It may make reversible in-scope
 technical decisions needed to complete an approved objective.
 
+Keep the root as a router, authority holder, and intelligent judge rather than
+a semantic relay. During normal planning and phase cycles it keeps exact current
+artifact IDs, revision, risks, accepted findings, and pending decisions. It
+opens complete producer-authored documents for specification, approval,
+authority or risk judgment, and convergence intervention, but does not reread
+the repository or rewrite those documents into downstream prompts without a
+confirmed root-originated correctness need.
+
 Stop for the user before destructive or irreversible operations, production
 mutation, data-loss risk, security/privacy policy changes, public-contract
 changes, new product choices, material external cost, or substantial scope
@@ -73,6 +81,10 @@ capability dispatch. Block rather than relying on elevated edits when the
 canary fails. Never implement in or switch the source checkout, and never reuse
 a host-managed worktree as the task checkout. Use the exact task worktree for focused `repository_context`,
 specification, planning, implementation, review, verification, and commits.
+After worktree creation, attempt idempotent registration through
+`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py`. Treat
+`invalid` or `unavailable` as lost observability and continue through complete
+inline packets without retry or reduced authority.
 Reuse requires exact approved-plan agreement on path, branch, base, and HEAD.
 Never migrate an active task from an older worktree location automatically.
 
@@ -117,6 +129,8 @@ user decision in the local plan, then spawn replacements only when needed with a
 compact continuation packet. The replacement implementation worker owns the
 rest of the phase. Evidence remains valid only for the unchanged revision and
 conditions; inspect and reverify the targeted delta introduced by a new risk.
+Mirror the tier best-effort in coordination metadata; telemetry failure never
+delays or reverses the transition.
 
 ## Default agent flow
 
@@ -130,17 +144,33 @@ conditions; inspect and reverify the targeted delta introduced by a new risk.
   before execution as unsupported by the internal subagent runtime. Keep that
   substitution only in memory, create no visible task, change no matrix, and
   block unsupported models for every other capability.
-- Standard: bounded analysis and root-owned planning, implementation, one
+- Standard: bounded analysis, artifact-backed planning, implementation, one
   high-signal independent review, and verification.
-- Critical: standard flow plus plan audit or a second independent review only
-  for a named measurable risk and detectable defect class.
-- Use a detailed phase subplan only when the phase itself is complex.
+- Critical: standard flow plus a focused plan review and a second independent
+  implementation review only for a named measurable risk and detectable defect
+  class.
+- A formal plan is one `plan-overview` plus one self-contained `plan-phase`
+  artifact per phase. Do not put every phase detail into one root-authored
+  packet or monolithic plan.
 - Before plan approval, establish read-only execution readiness from repository
   evidence: canonical setup and verification commands, runtime and dependency
   availability, required services and permissions, credential categories
   without reading secrets, test-data provenance, and generated or cache paths.
   Add a preparation phase only when the approved task actually needs one.
 - Accepted findings return to the same implementation owner.
+- When coordination is available, packets carry task identifier, explicit
+  authority, worktree, exact target artifact identifiers and roles, revision,
+  accepted finding identifiers, stop conditions, and only new context deltas.
+  Objective, scope, acceptance, verification, plan details, and prior findings
+  are read from those documents rather than replayed by the root.
+- Context, planning, implementation, verification, debugging, and review agents
+  publish complete revision-identified Markdown reports. Corrected overview or
+  phase documents are immutable full replacements. Exact packet or manifest IDs
+  select the current bundle; timestamps never do. Publication failure returns
+  the complete report inline and never blocks the workflow.
+- Activity snapshots are limited to material start, final, and blocker updates.
+  They are descriptive, have no transition graph or heartbeats, and never prove
+  that an agent or process is live.
 - Keep that implementation owner, the independent reviewer, and one verifier
   per used verification capability open for the whole phase; reuse them for
   fixes, reruns, and delta review.
@@ -158,7 +188,8 @@ conditions; inspect and reverify the targeted delta introduced by a new risk.
   review. Interrupt only for a changed revision or a confirmed invalidating
   finding. Every required verifier must pass, or have its blocked result
   explicitly accepted, before dispatching independent review.
-- Close one-shot analysts after consuming their result. Before phase commit,
+- Close one-shot analysts after consuming their result. Keep a technical
+  planner open only through a dispatched plan-review correction loop. Before phase commit,
   stop only Orchestra-owned temporary processes and task tabs, consume cleanup
   results, and close every phase agent and its descendants.
 - The reviewer's first pass covers the complete bounded target and returns all
@@ -179,13 +210,15 @@ out-of-scope suggestions without entering a review loop.
 ## Execution and commits
 
 - Use the fewest independently reviewable phases.
-- Before approval, keep the specification and formal-plan draft in conversation
-  or system temporary storage; do not create an Orchestra plan file.
-- After formal-plan approval, the root writes the exact approved plan directly
-  as `active` at `git rev-parse --git-path orchestra/plan.md`; valid statuses are
-  only `active`, `blocked`, and `completed`. Git is authoritative on resume.
-  Record the current active tier and any different root recommendation in the
-  existing Decisions section; do not add a tier-history store.
+- Before approval, keep the specification in conversation and the formal
+  candidate as a private `plan-overview` plus one `plan-phase` artifact per
+  phase; do not create an approved Orchestra plan file.
+- After formal-plan approval, the root writes `active` at `git rev-parse
+  --git-path orchestra/plan.md`; valid statuses are only `active`, `blocked`,
+  and `completed`. It contains task/Git identity, tier and decisions, the
+  approved overview verbatim, and an exact phase manifest with artifact IDs,
+  private paths, revisions, progress, commits, blocker, and next action. It does
+  not duplicate phase details. Git remains authoritative on resume.
 - Plan approval authorizes implementation and automatic commits at successfully
   reviewed phase boundaries unless the user limits that authority.
 - The root commits each reviewed phase directly or through the narrow commit
@@ -195,6 +228,16 @@ out-of-scope suggestions without entering a review loop.
   without moving cleanup into the commit helper.
 - Keep agent and temporary-resource handles only in root memory. Never discover
   or kill unrelated processes or close unrelated browser state.
+- Coordination task, activity, and artifact snapshots are fail-soft
+  observability only. They cannot grant authority, validate transitions, block
+  a commit or delivery, or substitute for Git and `plan.md`.
+- After a complete formal bundle exists, the root decides whether plan review is
+  proportionate. A trivial single-phase standard plan may skip it; a
+  non-trivial multi-phase or cross-component plan receives one review; critical
+  receives a focused review. Before a third plan correction, or immediately for
+  marginal, contradictory, or out-of-scope findings, the root reads the exact
+  bundle and reviews and adjudicates by stable finding identifier. Persist no
+  review counter or mechanical limit.
 - Do not create commit journals, persistent or authoritative parallel Git
   indexes, hash the whole worktree, or revalidate unchanged authority
   repeatedly.
@@ -250,6 +293,12 @@ it changes the outcome. At handoff, distinguish implementation-complete from
 delivered and state the result location, how to run or demonstrate it, fresh
 verification, safe test data, limitations, delivery state, and next authority.
 
+When a user answer is required to continue, call `request_user_input` without
+`autoResolutionMs` so the question remains open until the user responds. Use
+automatic resolution only for an explicitly informational, non-blocking
+question whose timeout can safely accept the recommended default. This rule
+does not change command, test, or `wait_agent` timeouts.
+
 ## Autonomy and proportionality
 
 Treat the root orchestrator's engineering judgment as part of the control
@@ -278,7 +327,9 @@ or exotic-filesystem scenarios without evidence that the product needs them.
 - No repeated discovery when a targeted context delta is sufficient.
 - New domain guidance is an internal capability playbook unless it requires a
   genuinely different responsibility boundary.
-- No plan CLI, Kanban board, benchmark control plane, or workflow state engine.
+- No authoritative plan CLI, Kanban board, event ledger, benchmark control
+  plane, or workflow state engine. The bounded coordination snapshot remains
+  observational and fail-soft.
 - Prefer deletion and direct code over compatibility layers.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure,

@@ -26,6 +26,7 @@ REQUIRED_PATHS = (
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
     "codex/scripts/sync.py",
+    "codex/scripts/coordination.py",
     "codex/scripts/commit_phase.py",
     "codex/scripts/adopt_worktree.py",
     "codex/scripts/policy.py",
@@ -64,6 +65,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/SKILL.md",
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
+    "codex/tests/test_coordination.py",
     "codex/tests/test_adopt_worktree.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
@@ -756,6 +758,7 @@ def check_direct_sync(root: Path) -> list[str]:
             f"{len(LEGACY_PROFILE_NAMES)} retired agent names"
         )
     if tuple(constants.get("HELPERS", ())) != (
+        "coordination.py",
         "commit_phase.py",
         "adopt_worktree.py",
         "policy.py",
@@ -763,7 +766,7 @@ def check_direct_sync(root: Path) -> list[str]:
         "integrate_local.py",
         "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly six helpers")
+        failures.append("sync-contract: sync inventory must name exactly seven helpers")
     if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external"):
         failures.append(
             "sync-contract: modelconfig choices must be exactly native and external"

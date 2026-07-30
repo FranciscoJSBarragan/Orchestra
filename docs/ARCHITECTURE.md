@@ -45,18 +45,20 @@ Orchestra/
 Owns user dialogue, tier recommendation, product clarification, capability routing,
 synthesis, the local task plan, in-scope decisions, blocker resolution, phase
 commits, PR synthesis and observation, delivery choice, and final judgment. It
-holds compact context and delegates repository-wide reading. Current source and
-Git provide repository context; project tests, runtime evidence, and independent
-review provide correctness evidence without a separate repository index.
+holds compact authority and decision context and delegates repository-wide
+reading. Current source and Git remain authoritative; task-private evidence
+artifacts let downstream agents navigate prior analysis without requiring the
+root to rewrite it.
 
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
 active tier. It performs a short read-only Git and execution-readiness preflight.
 The root uses Git directly to create a collision-free task branch and portable
 Orchestra-root worktree before dispatching repository analysis. It keeps that
-task-checkout identity in transient context before plan approval and passes the
-exact checkout to every capability. It creates no classifier or
-execution-environment registry.
+task-checkout identity in transient context before plan approval, registers a
+best-effort local coordination snapshot, and passes the exact checkout to every
+capability. Coordination failure is reported but never changes authority or
+prevents the existing inline-packet path.
 
 The first repository-context pass grounds the continuing specification dialogue
 and feasibility-determining facts. Later passes answer only newly material
@@ -68,8 +70,9 @@ For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, one verifier per used verification capability,
 and only the temporary processes or tabs created for that phase. It reuses the
 phase agents for fixes, reruns, and delta review, then tears down those known
-resources before commit. This is in-memory lifecycle coordination, not a
-registry, helper, or persisted workflow state.
+resources before commit. Agent and resource handles remain in memory.
+Best-effort activity snapshots expose material progress but do not prove that an
+agent or process is live and never participate in commit safety.
 
 The active implementation owner defines a stable observation boundary. Until
 that owner returns an outcome or blocker, the root coordinates without reading
@@ -111,13 +114,17 @@ identifiers remain stable except for the additive implicit
 `orchestra-project-start` greenfield entry point.
 
 Frontend implementation and browser acceptance are independent capabilities on
-different profiles. Root-owned planning, commits, PR observation, routing, and
-final judgment add no agent profile or capability key.
+different profiles. Root-owned plan authority, commits, PR observation,
+routing, and final judgment add no agent profile or capability key; a
+dispatched technical planner may author the exact candidate documents that the
+root approves or rejects.
 
 The implementation owner, reviewer, and each capability verifier form a bounded
 phase cohort. One-shot analysts close after their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
-without carrying implementation state across phases.
+without carrying implementation state across phases. Analysis agents are
+one-shot except that a technical planner remains open through a dispatched
+plan-review correction loop and closes before implementation.
 
 At a user-directed tier transition, the root waits for the active tool call,
 collects the exact worktree state, progress, evidence, and owned resources,
@@ -125,13 +132,18 @@ closes only agents whose immutable assignment changes, and creates replacements
 only when needed. The worktree and valid evidence provide continuity; there is
 no workflow restart, transition commit, or tier-history subsystem.
 
-Profiles share only minimal conventions: explicit capability, input packet,
-outcome-first output status, evidence references, scope boundaries, and stop
-conditions. Returns omit routine replay and duplicate context while preserving
-the material safety, authority, failure, review, ambiguity, verification, and
-remaining-risk evidence needed for root judgment. Sensitive values are redacted
-with a safe category or locator, and revision identity distinguishes a committed
-revision from a dirty worktree or diff state.
+Profiles share only minimal conventions: explicit capability and authority,
+worktree, exact target artifact identifiers and roles, revision identity,
+accepted finding identifiers, new context delta, stop conditions, and
+outcome-first output status. Reusable results are complete
+revision-identified task-private Markdown artifacts; returns carry produced
+identifiers, blockers, risks, and requested decisions instead of replaying
+content. Objective, scope, acceptance, verification, plan details, and prior
+findings are read from named documents. Publication failure falls back to the
+complete inline result or an exact private path already recorded in the
+approved manifest.
+Revision identity still distinguishes a committed revision from a dirty
+worktree or diff state and names affected paths.
 
 For approved implementation, focused read-only inspection of the affected flow
 and relevant callers does not expand edit authority. The worker chooses existing
@@ -167,7 +179,8 @@ behavior: bounded Git inspection, loading delivery policy, running configured
 argv checks, opening or observing a PR through direct `gh`, merging an
 authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
-validating the suite.
+validating the suite. `coordination.py` is a separate fail-soft snapshot and
+artifact-locator helper; it never performs Git mutations or product decisions.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. A helper must reduce the total
@@ -181,6 +194,10 @@ helper directly to observe GitHub state.
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
+- one non-authoritative local task snapshot store at
+  `$HOME/.orchestra/state.sqlite3`;
+- revision-identified Markdown artifacts in each task worktree's private
+  `git rev-parse --git-path orchestra/artifacts` directory;
 - one root-owned approved task plan per confirmed checkout, resolved with
   `git rev-parse --git-path orchestra/plan.md`;
 - concise commit intent and validation in Git history;
@@ -189,14 +206,15 @@ Orchestra may persist only contracts with direct consumers:
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
 
-The provisional specification and unapproved formal plan remain in conversation
-or system temporary storage. The local plan is first written after approval as
-`active` and is never versioned. Its consumer is the root, its purpose is
-continuity across implementation or resumed sessions, and its lifecycle ends
-with guarded delivery cleanup. It records `active`, `blocked`, or `completed`,
-the exact Git identity, and a resume note. Git remains authoritative for branch, HEAD,
-commits, and worktree state; the plan carries intent and progress, not delivery
-authority.
+The provisional specification remains in conversation. An unapproved formal
+candidate is one `plan-overview`, one `plan-phase` per phase, and optional
+`plan-review` artifacts. Its current membership is an explicit bundle of IDs,
+never whichever artifacts are newest. Only after approval does the root write
+`plan.md` as `active`: task/Git identity, tier and decisions, approved overview
+verbatim, and an exact phase manifest with IDs, private paths, artifact
+revisions, progress, commits, blocker, and next action. Phase details are not
+duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
+state; the plan carries approved intent, exact bundle selection, and progress.
 
 Branches and worktrees are Git resources, not a new Orchestra state store.
 Every new formal task uses an Orchestra-owned collision-free worktree below the
@@ -210,12 +228,35 @@ The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
 no local PR state file.
 
+The coordination store contains three snapshot concepts only: tasks, material
+agent activities, and artifact locators. Stages are labels rather than validated
+transitions. The store retains completed task metadata while artifacts follow
+the task worktree lifecycle and may later report unavailable. It has no
+authority, event history, heartbeat requirement, delete command, or automatic
+import of preexisting tasks. A failed update is telemetry loss, not workflow
+failure; agents return inline evidence when artifact publication fails.
+
+Artifact `kind` is a convention over the existing schema:
+`repository-context`, `context-delta`, `plan-overview`, `plan-phase`,
+`plan-review`, `implementation-report`, `verification-report`,
+`implementation-review`, `debugging-report`, and `pr-review` only when PR
+analysis has a downstream semantic consumer. Corrected overview and phase
+documents are immutable complete replacements. Mechanical start, completion,
+commit, push, check, and merge facts remain activity, Git, or GitHub state.
+
+The root keeps a compact manifest of current IDs, revision, accepted findings,
+risks, and decisions. It opens complete documents for specification and
+approval, authority or risk judgment, and failed convergence. After a second
+material plan review it observes convergence; before a third correction, or
+immediately for marginal, contradictory, or out-of-scope findings, it
+adjudicates the exact bundle and reviews. No review counter or limit persists.
+
 Do not introduce a global workflow event ledger, authority-bundle chain,
-duplicate Git index, commit recovery journal, plan CLI, Kanban board, benchmark
-control plane, or general-purpose workflow state engine unless real usage later
-demonstrates a requirement Git/GitHub cannot meet. The root uses the one-shot
+duplicate Git index, commit recovery journal, Kanban board, benchmark control
+plane, or general-purpose workflow state engine unless real usage demonstrates
+a requirement the snapshot projection cannot meet. The root uses the one-shot
 `adopt_worktree.py` helper only because Git does not carry selected dirty paths
-into an Orchestra task worktree; the helper keeps no state.
+into an Orchestra task worktree; that helper keeps no state.
 
 ## Model and reasoning configuration
 
@@ -405,10 +446,11 @@ failure-repair loops in that cost. Do not harden against speculative
 concurrency, crashes, adversarial inputs, or exotic filesystems without a
 consumer requirement or reproducible risk.
 
-The design explicitly rejects a global workflow event ledger, authority-bundle
-chain, duplicate Git index, commit recovery journal, plan CLI, Kanban board,
-general-purpose workflow state engine, and repeated validation of unchanged
-authority unless later evidence passes the same gate.
+The design explicitly rejects an authoritative workflow event ledger,
+authority-bundle chain, duplicate Git index, commit recovery journal, Kanban
+board, general-purpose workflow state engine, and repeated validation of
+unchanged authority unless later evidence passes the same gate. The bounded
+coordination snapshot is explicitly observational and fail-soft.
 
 Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
 `integrate_local.py`. The root invokes `pr.py` directly for open, observe, and
@@ -418,10 +460,18 @@ observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
 never clean. Task worktree creation remains a direct root Git operation. Its
 path is `<worktree-root>/<repository>/<task-slug>[-N]`, where synchronization
-records the absolute root and may add it to Codex's supported
-`sandbox_workspace_write.writable_roots` list through a marked reversible
-entry. The root proves write access with a temporary canary before dispatch;
-active worktrees in older locations are never migrated implicitly.
+records the absolute root and manages one reversible Codex permission backend.
+Codex 0.138 or later receives the `orchestra-workspace` profile; older clients
+receive the separate legacy `workspace-write` block. Both authorize
+the absolute `$HOME/.orchestra` parent, any external explicit worktree root, and
+exact cache paths discovered from installed Poetry, pip, uv, and npm commands.
+Discovery is read-only, temporary-directory scoped, and rejects broad,
+sensitive, external, or escaping paths. Public command networking and explicit
+loopback destinations are enabled, but broad private-network access, Docker
+state, and Unix sockets are never authorized this way. User-owned profiles or
+sandbox blocks that cannot be migrated unambiguously stop synchronization. The
+root proves write access with a temporary canary before dispatch; active
+worktrees in older locations are never migrated implicitly.
 Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
 import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
@@ -454,3 +504,8 @@ removes stale owned resources only after a complete preflight. `uninstall`
 removes only content that still matches the manifest digest; drift and unrelated
 configuration are preserved and reported. The generated manifest is ownership
 evidence, while backups are bounded safety evidence rather than a recovery log.
+An explicit user-owned sandbox mode, network decision, default permission
+profile, or incompatible root blocks preflight without byte changes. Only a
+manifest-owned permission block may migrate between legacy and profile
+backends. Permission edits remove exact TOML spans and preserve all unrelated
+bytes, including multiline strings.

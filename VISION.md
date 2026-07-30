@@ -111,9 +111,19 @@ when sandboxing, permissions, filesystem, network, sockets, services, or caches
 could plausibly explain it. Deterministic product, assertion, compilation, or
 CLI-usage failures are classified directly.
 
-Current source and Git provide repository context. Project tests, runtime
-evidence, and independent review provide the complementary correctness signals;
-Orchestra does not maintain a separate repository index or control plane.
+Current source and Git remain authoritative for repository state. Project tests,
+runtime evidence, and independent review provide complementary correctness
+signals. A lightweight local coordination projection may retain task snapshots
+and task-private evidence artifacts so later agents can navigate prior work
+without root-authored replay. That projection never authorizes, validates, or
+blocks Git, tier, phase, commit, or delivery operations.
+
+Semantic handoffs are document-first across the whole workflow. Context,
+planning, implementation, verification, debugging, and review agents publish
+complete revision-identified Markdown results. The root routes exact artifact
+identifiers, explicit authority, revision, accepted finding identifiers, and
+only new deltas; it does not repeatedly summarize content already available to
+the next agent.
 
 Waiting is passive coordination, not a status interrogation. The root uses
 ten-minute wait windows that return immediately on completion, treats timeout
@@ -145,8 +155,14 @@ should normally become a playbook, not a profile.
 Repository context is an early, focused conversation aid rather than a late
 planning formality. Orchestra never dispatches it without a minimum objective
 and bounded factual questions. Additional passes answer only newly discovered
-questions through context deltas, and every context analyst closes after its
-result is consumed.
+questions through context deltas. Each pass may publish a revision-identified
+evidence artifact for direct downstream consumption, and every context analyst
+closes after its result or fallback inline report is consumed.
+
+Formal planning produces one overview and one self-contained document per
+phase. The approved local plan preserves that overview and the exact phase
+manifest rather than duplicating every phase. An implementation owner receives
+the overview, its exact phase, and only explicitly required prior outputs.
 
 The installed assignment remains authoritative. When the external standard
 matrix assigns `repository_context` to Composer Fast but the internal subagent
@@ -157,8 +173,9 @@ fallback for any other capability.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and one verifier for each used verification capability available for fixes,
-reruns, and delta review. One-shot analysis agents close after their result is
-consumed. Before the phase commit, the root closes the phase cohort and cleans
+reruns, and delta review. Analysis agents are one-shot except that a technical
+planner remains open through a dispatched plan-review correction loop. Before
+the phase commit, the root closes the phase cohort and cleans
 only its known temporary processes and browser tabs; those handles remain
 transient and never become a registry.
 
@@ -186,10 +203,15 @@ a second transaction engine around Git.
 
 Each formal task creates one collision-free worktree managed by Orchestra under
 `${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}` before repository
-analysis. Direct synchronization records the effective absolute root and, when
-safe, adds it to Codex's workspace-write roots. The source checkout remains
-read-only, which isolates parallel chats and keeps the workflow portable across
-CLIs and hosts. Existing work is never cleaned, stashed, or rewritten
+analysis. Direct synchronization records the effective absolute root and safely
+selects one compatible Codex permission backend: the `orchestra-workspace`
+profile on Codex 0.138 or later, or the legacy `workspace-write` sandbox on
+older clients. Both authorize the dedicated `$HOME/.orchestra` parent plus exact
+cache roots reported by supported installed package tools and public command
+networking. Neither broadens filesystem access to the user home or sensitive
+configuration, private-network access, or Docker sockets. The source checkout
+remains read-only, which isolates parallel chats and keeps the workflow portable
+across CLIs and hosts. Existing work is never cleaned, stashed, or rewritten
 implicitly. A real write canary must pass in the task's repository directory
 before any capability is dispatched.
 Completed resources are removed only when exact Git and integration evidence
@@ -207,6 +229,12 @@ Orchestra succeeds when:
 - local integration removes only exact, safely merged task resources;
 - the PR path can open, review, fix, push, converge, merge when authorized, and
   clean exact task resources without losing intent;
+- concurrent tasks and their material activity can be queried without opening
+  every agent conversation;
+- downstream agents consume exact producer-authored documents without
+  root-authored summary chains;
+- the root opens complete documents mainly for approval, risk, authority, or
+  convergence judgment;
 - the root context remains focused and user communication stays clear;
 - the user judges the product dependable in real usage.
 
@@ -217,7 +245,12 @@ Orchestra succeeds when:
 - Implementing a generalized enterprise approval platform.
 - Persisting every internal thought or agent transition.
 - Creating a schema, artifact, or state machine for every workflow step.
-- Building a plan CLI, Kanban board, or workflow control plane.
+- Making coordination metadata, a dashboard, or a CLI authoritative for
+  workflow transitions, approvals, commits, tiers, or delivery.
+- Building an event-sourced ledger, mandatory heartbeat system, or remote
+  coordination service before a demonstrated consumer requires one.
+- Selecting an approved artifact by recency, or duplicating Git/GitHub facts as
+  semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
 - Porting to Hermes, Devin, or another harness before user-approved Codex
   maturity.

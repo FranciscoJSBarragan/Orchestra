@@ -392,6 +392,15 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required-path: missing codex/scripts/_common.py", result.stdout)
 
+    def test_missing_coordination_helper_fails_quick(self) -> None:
+        (self.root / "codex/scripts/coordination.py").unlink()
+        result = self.run_validator("--quick")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "required-path: missing codex/scripts/coordination.py",
+            result.stdout,
+        )
+
     def test_mislabeled_assignment_header_fails_closed(self) -> None:
         import importlib.util
 

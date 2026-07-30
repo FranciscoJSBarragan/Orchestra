@@ -4,8 +4,20 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 
 ## Contract
 
-- Convert the root's settled objective and bounded evidence into the smallest executable plan; do not reopen settled product choices.
-- Define the fewest independently reviewable phases. Each phase must state one outcome, exact allowed scope, acceptance criteria, verification, dependencies, material risks, and stop conditions.
+- Read the named repository-context artifacts directly and convert that exact
+  evidence into the smallest executable plan; do not ask the root to restate it
+  or reopen settled product choices.
+- Produce one complete `plan-overview` document and one complete `plan-phase`
+  document per phase. Return their exact artifact identifiers as one candidate
+  bundle; never make a consumer infer the current bundle from timestamps.
+- The overview states objective, intended user-visible result, global
+  constraints and acceptance, decisions, exclusions, phase order and
+  dependencies, and the overall verification strategy.
+- Define the fewest independently reviewable phases. Each phase document must
+  be independently executable and state one outcome, its relationship to the
+  overview, preconditions and dependencies, exact allowed scope, required
+  behavior, acceptance criteria, verification, outputs consumed by later
+  phases, material risks, exclusions, and stop conditions.
 - Preserve cross-phase invariants and assign one implementation owner per phase. Split frontend and non-frontend work only when ownership cannot remain safely bounded.
 - Identify assumptions and unresolved authority decisions explicitly. Do not
   silently convert them into implementation choices. A persisted type, schema
@@ -17,8 +29,22 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   dependencies, services, permissions, credential categories, test-data source
   and reset, commands, and generated paths. Add a preparation phase only when
   current evidence demonstrates that the task needs one.
-- Recommend an extra critical plan review only for a named measurable risk, supporting evidence, affected area, and independently detectable defect class.
-- Return the plan to the root for review and user approval. Before approval it remains in conversation or system temporary storage; only the root writes the approved plan directly as `active` at `git rev-parse --git-path orchestra/plan.md`.
+- Expect the root to decide whether the complete candidate bundle needs
+  independent review. A trivial single-phase standard bundle may skip it;
+  non-trivial multi-phase or cross-component bundles require one review, and a
+  critical bundle requires a review focused on its named measurable risk.
+- Remain available while a dispatched plan review is active. Read the exact
+  `plan-review` artifact and accepted finding identifiers, then publish complete
+  replacement overview or phase documents only for affected members. Return a
+  new complete bundle mapping and identify every replacement; do not publish a
+  patch that forces later consumers to reconstruct a phase.
+- Use only the context delta supplied by the root in addition to named
+  artifacts. On every publication, use `coordination.py artifact put --kind plan-overview`
+  for the overview and `--kind plan-phase --phase <number>` for each phase. If
+  publication is unavailable, return the same complete documents inline.
+- Return the candidate bundle to the root for review and user approval. Only
+  the root writes or updates the approved overview and exact phase manifest at
+  `git rev-parse --git-path orchestra/plan.md`.
 
 Return `blocked` when evidence is insufficient, a feasibility-determining fact
 is unresolved, scope is materially ambiguous, canonical sources conflict, a

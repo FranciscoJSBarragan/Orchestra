@@ -131,9 +131,14 @@ class RoutingActivationContractTests(unittest.TestCase):
 
     def test_plan_is_first_persisted_as_active(self) -> None:
         for text in (self.skill, self.workflow, self.runtime):
-            self.assertIn("directly as `active`", text)
+            self.assertIn("plan.md", text)
+            self.assertIn("`active`", text)
             self.assertNotIn("`draft`", text)
-        self.assertIn("system temporary storage", self.skill)
+        self.assertIn("no approved `plan.md` is persisted before approval", self.skill)
+        self.assertIn("one complete `plan-overview`", self.skill)
+        self.assertIn("one complete `plan-phase`", self.skill)
+        self.assertIn("approved overview verbatim", self.skill)
+        self.assertIn("exact phase manifest", self.skill)
         self.assertNotIn(".orchestra/", (ROOT / ".gitignore").read_text())
 
     def test_greenfield_skill_is_implicit_without_activating_orchestra(self) -> None:
