@@ -665,8 +665,11 @@ safe test data, limitations, exact delivery state, and the next authority needed
 The same material transitions are exposed through coordination snapshots for
 external querying, without requiring the user to open each agent conversation.
 
-A question whose answer is required to continue omits `autoResolutionMs` and
-remains open until the user responds. Automatic resolution is reserved for
-explicitly informational, non-blocking questions whose timeout can safely
-accept the recommended default. Command, test, and `wait_agent` timeouts are
-unchanged.
+A question whose answer is required to continue uses `request_user_input`
+without `autoResolutionMs` when the tool is available and remains open until
+the user responds. If the tool is not available or does not return a usable
+selection, ask one concise plain-text question in the final response and wait
+for the user without retrying the selector. Automatic resolution is reserved
+for explicitly informational, non-blocking questions whose timeout can safely
+accept the recommended default. This rule does not change command, test, or
+`wait_agent` timeouts.

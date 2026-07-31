@@ -998,20 +998,27 @@ class PlannedFlowContractTests(unittest.TestCase):
             routing,
         )
 
-    def test_blocking_user_questions_never_auto_resolve(self) -> None:
+    def test_blocking_user_questions_use_selector_or_single_text_fallback(
+        self,
+    ) -> None:
         source_agents = (ROOT / "AGENTS.md").read_text()
         runtime_agents = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
-        for guidance in (source_agents, runtime_agents):
+        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        for guidance in (source_agents, runtime_agents, workflow):
             normalized = " ".join(guidance.split())
+            self.assertIn("`request_user_input`", normalized)
+            self.assertIn("without `autoResolutionMs`", normalized)
+            self.assertIn("when the tool is available", normalized)
             self.assertIn(
-                "required to continue, call `request_user_input` without "
-                "`autoResolutionMs`",
+                "not available or does not return a usable selection",
                 normalized,
             )
+            self.assertIn("one concise plain-text question", normalized)
+            self.assertRegex(normalized, r"(Do not retry|without retrying) the selector")
             self.assertIn("explicitly informational, non-blocking", normalized)
             self.assertIn(
                 "does not change command, test, or `wait_agent` timeouts",
-                normalized,
+                normalized.lower(),
             )
 
 

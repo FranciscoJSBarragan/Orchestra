@@ -294,10 +294,13 @@ delivered and state the result location, how to run or demonstrate it, fresh
 verification, safe test data, limitations, delivery state, and next authority.
 
 When a user answer is required to continue, call `request_user_input` without
-`autoResolutionMs` so the question remains open until the user responds. Use
-automatic resolution only for an explicitly informational, non-blocking
-question whose timeout can safely accept the recommended default. This rule
-does not change command, test, or `wait_agent` timeouts.
+`autoResolutionMs` when the tool is available so the question remains open
+until the user responds. If the tool is not available or does not return a
+usable selection, immediately ask one concise plain-text question in the final
+response and wait for the user. Do not retry the selector. Use automatic
+resolution only for an explicitly informational, non-blocking question whose
+timeout can safely accept the recommended default. This rule does not change
+command, test, or `wait_agent` timeouts.
 
 ## Autonomy and proportionality
 
