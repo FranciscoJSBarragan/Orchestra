@@ -68,18 +68,31 @@ An explicit instruction given after the corresponding scope, warning, plan, or
 pending action was presented satisfies that checkpoint while the material facts
 remain unchanged. Do not ask for the same confirmation twice.
 
+Before tier selection or resource creation, read the installed
+`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`. When it has top-level
+`modes`, run the installed `session_model.py` once and require an `ok` result.
+Use its `modelconfig` as the immutable `native` or `external` lookup mode for
+the task, record it in plan Decisions after approval, and require the same mode
+on resume. A mismatched or incompatible root model, multi-agent version, or
+reasoning effort blocks before task setup; Orchestra never changes or respawns
+the root. A legacy matrix with top-level `tiers` remains fixed and skips
+session detection.
+
 Recommend an initial tier from the brief and obtain the user's explicit choice,
 then perform a short read-only Git and execution-readiness preflight. Read
 repository delivery policy and resolve the intended base branch and revision.
 Resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed
 `${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
-`$HOME/.orchestra/worktrees`. Under `<root>/<repository>/`, prove sandboxed
-write access with a temporary canary, then create the first matching available
+`$HOME/.orchestra/worktrees`. Under `<root>/<repository>/`, prove write access
+with a temporary canary, then create the first matching available
 `orchestra/<task-slug>[-N]` branch and
 `<root>/<repository>/<task-slug>[-N]` worktree before repository analysis or
 capability dispatch. Block rather than relying on elevated edits when the
-canary fails. Never implement in or switch the source checkout, and never reuse
-a host-managed worktree as the task checkout. Use the exact task worktree for focused `repository_context`,
+canary fails. Create the exact branch and checkout with `git worktree add`
+against the captured full base revision. If creation fails, inspect the named
+branch, path, and Git error once and block before capability dispatch. Never
+implement in or switch the source checkout, and never reuse a host-managed
+worktree as the task checkout. Use the exact task worktree for focused `repository_context`,
 specification, planning, implementation, review, verification, and commits.
 After worktree creation, attempt idempotent registration through
 `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py`. Treat
@@ -115,7 +128,8 @@ Tier exemplars:
 - critical: schema migration; auth/payment/credential changes; deleting
   unrecoverable data; production mutation.
 
-The active tier may change in either direction after explicit user direction.
+The active tier may change in either direction after explicit user direction,
+but the selected dual model configuration cannot change within a task.
 Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit tradeoff, the same causal failure repeats, or correction cycles
 demonstrably fail to converge. Never change tier unilaterally.
@@ -137,13 +151,17 @@ delays or reverses the transition.
 - Orchestra has four namespaced base profiles: `orchestra_analyst`,
   `orchestra_implementation_worker`, `orchestra_reviewer`, and
   `orchestra_verifier`.
-- The root composes each dispatch with a capability and the exact tier
-  assignment in `docs/WORKFLOW.md`; profiles do not select their own model.
+- The root composes each dispatch with a capability and the exact assignment in
+  `docs/WORKFLOW.md`. Dual matrices resolve
+  `modes.<modelconfig>.tiers.<tier>.<capability>`; legacy matrices resolve
+  `tiers.<tier>.<capability>`. Profiles do not select their own model.
 - Attempt the installed assignment first. Only `repository_context` may fall
   back to Luna with reasoning `high` when its assigned model is rejected
-  before execution as unsupported by the internal subagent runtime. Keep that
-  substitution only in memory, create no visible task, change no matrix, and
-  block unsupported models for every other capability.
+  before execution as unsupported by the internal subagent runtime. Legacy
+  matrices keep their existing behavior, dual external uses its installed V1
+  Luna alias, and dual native blocks rather than crossing protocol versions.
+  Keep a permitted substitution only in memory, create no visible task, change
+  no matrix, and block unsupported models for every other capability.
 - Standard: bounded analysis, artifact-backed planning, implementation, one
   high-signal independent review, and verification.
 - Critical: standard flow plus a focused plan review and a second independent
@@ -272,16 +290,18 @@ preserve unrelated tabs, sessions, and user state.
 
 ## Test permissions
 
-Run tests in the sandbox unless a concrete elevated need is declared. Classify a
-failure from its direct evidence before requesting elevation. Repeat the exact
-command, arguments, and working directory once with elevated permission only
-when sandboxing, permissions, filesystem access, network access, sockets, local
-services, or protected caches could plausibly explain it. Do not elevate
-deterministic syntax, type, compile, lint, import, assertion, validation-contract,
-or CLI-usage failures. If the cause is genuinely ambiguous, one exact elevated
-retry is allowed. Accept a pass with the sandbox dependency recorded; otherwise
-treat trustworthy deterministic or repeated evidence as real failure. Return
-`blocked` when required elevation is unavailable or unsafe.
+Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. The active permission choice for the task, host, or launcher
+remains authoritative: Orchestra never changes it or blocks execution solely
+because it differs. When Guardian is active, commands inside the workspace run
+directly and one exact command that crosses a protected boundary requests one
+narrow escalation for automatic review. With manual approvals, that escalation
+may prompt the user; with Full Access, it runs without the workspace sandbox
+boundary. Never retry a denial through a workaround or broaden permissions.
+Deterministic syntax, type, compile, lint, import, assertion,
+validation-contract, and CLI-usage failures remain real failures. A missing
+external service, credential, or dependency may still return `blocked`, but
+never broaden task authority to work around it.
 
 ## User-facing progress
 

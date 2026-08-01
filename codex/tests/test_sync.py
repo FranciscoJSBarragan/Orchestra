@@ -48,7 +48,7 @@ class SyncTests(unittest.TestCase):
         self.version_patcher = mock.patch.object(
             sync,
             "_detect_codex_version",
-            return_value=("0.145.0", (0, 145, 0)),
+            return_value=("0.146.0", (0, 146, 0)),
         )
         self.codex_version = self.version_patcher.start()
         self.addCleanup(self.version_patcher.stop)
@@ -156,21 +156,25 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/coordination.py").is_file()
         )
+        self.assertTrue(
+            self.codex_home.joinpath("orchestra/scripts/session_model.py").is_file()
+        )
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),
             f"{self.worktree_root}\n",
         )
         config = self.codex_home.joinpath("config.toml").read_text()
-        self.assertIn('default_permissions = "orchestra-workspace"', config)
-        self.assertIn("[permissions.orchestra-workspace]", config)
-        self.assertIn('"*" = "allow"', config)
+        self.assertIn('approval_policy = "on-request"', config)
+        self.assertIn('approvals_reviewer = "auto_review"', config)
+        self.assertIn('default_permissions = ":workspace"', config)
+        self.assertNotIn("orchestra-workspace", config)
+        self.assertNotIn("[permissions.", config)
         self.assertNotIn("[sandbox_workspace_write]", config)
-        self.assertIn(str(self.orchestra_root), config)
-        self.assertNotIn(str(self.worktree_root), config)
+        self.assertNotIn("sandbox_mode", config)
         self.assertIn("# orchestra-worktree-root:start", config)
-        self.assertEqual(applied["codex_version"], "0.145.0")
+        self.assertEqual(applied["codex_version"], "0.146.0")
         self.assertEqual(applied["permission_backend"], "profile")
-        self.assertEqual(applied["permission_profile"], "orchestra-workspace")
+        self.assertEqual(applied["permission_profile"], ":workspace")
         self.assertTrue(applied["profile_configured"])
         self.assertEqual(self.manifest()["permission_backend"], "profile")
         self.assertTrue(applied["restart_required"])
@@ -241,28 +245,62 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(
             self.codex_home.joinpath("orchestra/scripts/coordination.py").exists()
         )
+        self.assertTrue(removed["restart_required"])
         self.assertEqual(state_database.read_bytes(), b"user-owned coordination state")
 
-    def test_legacy_backend_uses_only_workspace_write_configuration(self) -> None:
-        self.codex_version.return_value = ("0.137.0", (0, 137, 0))
+    def test_apply_retires_owned_worktree_bridge(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        retired = {
+            "orchestra/scripts/create_worktree.py": b"retired helper\n",
+            "rules/orchestra.rules": b"retired rule\n",
+        }
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        payload = self.manifest()
+        for relative, content in retired.items():
+            destination = self.codex_home / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
+            payload["entries"].append(
+                {
+                    "digest": hashlib.sha256(content).hexdigest(),
+                    "path": relative,
+                    "root": "codex_home",
+                    "type": "file",
+                }
+            )
+        payload["entries"].sort(key=lambda entry: (entry["root"], entry["path"]))
+        manifest_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
-        applied = self.run_sync("apply")
+        status = self.run_sync("status")
+        self.assertEqual(status["status"], "partial")
+        self.assertTrue(status["restart_required"])
+        migrated = self.run_sync("apply")
+        self.assertEqual(migrated["status"], "ok")
+        self.assertTrue(migrated["restart_required"])
+        for relative in retired:
+            self.assertFalse(self.codex_home.joinpath(relative).exists())
 
-        self.assertEqual(applied["status"], "ok")
-        self.assertEqual(applied["codex_version"], "0.137.0")
-        self.assertEqual(applied["permission_backend"], "legacy")
-        self.assertIsNone(applied["permission_profile"])
-        self.assertFalse(applied["profile_configured"])
-        config = self.codex_home.joinpath("config.toml").read_text()
-        self.assertIn('sandbox_mode = "workspace-write"', config)
-        self.assertIn("[sandbox_workspace_write]", config)
-        self.assertIn("network_access = true", config)
-        self.assertIn(str(self.orchestra_root), config)
-        self.assertNotIn("default_permissions", config)
-        self.assertNotIn("[permissions.", config)
-        self.assertEqual(self.manifest()["permission_backend"], "legacy")
+    def test_old_codex_blocks_status_and_apply_without_mutation(self) -> None:
+        self.codex_version.return_value = ("0.145.9", (0, 145, 9))
 
-    def test_permission_backend_migrates_both_directions_and_uninstalls_exactly(
+        for action, dry_run in (
+            ("status", False),
+            ("apply", True),
+            ("apply", False),
+        ):
+            with self.subTest(action=action, dry_run=dry_run):
+                result = self.run_sync(action, dry_run=dry_run)
+                self.assertEqual(result["status"], "blocked")
+                self.assertEqual(result["codex_version"], "0.145.9")
+                self.assertIn("Codex 0.146.0 or later", result["detail"])
+                self.assertFalse(self.home.exists())
+                self.assertFalse(self.codex_home.exists())
+        self.cache_discovery.assert_not_called()
+
+    def test_legacy_backend_migrates_to_guardian_and_uninstalls_exactly(
         self,
     ) -> None:
         self.codex_home.mkdir(parents=True)
@@ -270,25 +308,152 @@ class SyncTests(unittest.TestCase):
         original = 'model = "test-model"\n'
         config.write_text(original)
 
-        modern = self.run_sync("apply")
-        self.assertEqual(modern["permission_backend"], "profile")
-        self.assertIn("default_permissions", config.read_text())
-        self.assertNotIn("sandbox_mode", config.read_text())
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        legacy_block = (
+            sync.CONFIG_START
+            + b'\napproval_policy = "never"\n'
+            + b'sandbox_mode = "danger-full-access"\n'
+            + sync.CONFIG_END
+            + b"\n"
+        )
+        config.write_bytes(
+            original.encode()
+            + legacy_block
+        )
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest()
+        config_entry = next(
+            entry for entry in manifest["entries"] if entry["path"] == "config.toml"
+        )
+        config_entry["digest"] = hashlib.sha256(legacy_block).hexdigest()
+        manifest["permission_backend"] = "legacy"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
-        self.codex_version.return_value = ("0.137.9", (0, 137, 9))
-        legacy = self.run_sync("apply")
-        self.assertEqual(legacy["status"], "ok")
-        self.assertEqual(legacy["permission_backend"], "legacy")
-        self.assertIn('sandbox_mode = "workspace-write"', config.read_text())
-        self.assertNotIn("default_permissions", config.read_text())
-
-        self.codex_version.return_value = ("0.138.0", (0, 138, 0))
         upgraded = self.run_sync("apply")
         self.assertEqual(upgraded["status"], "ok")
         self.assertEqual(upgraded["permission_backend"], "profile")
-        self.assertIn('default_permissions = "orchestra-workspace"', config.read_text())
-        self.assertNotIn("sandbox_mode", config.read_text())
+        installed = config.read_text()
+        self.assertIn('approval_policy = "on-request"', installed)
+        self.assertIn('approvals_reviewer = "auto_review"', installed)
+        self.assertIn('default_permissions = ":workspace"', installed)
+        self.assertNotIn("sandbox_mode", installed)
 
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_owned_full_access_profile_migrates_to_guardian(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            'model = "test-model"\n'
+            'web_search = "indexed"\n'
+        )
+        config.write_text(original)
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+
+        current = config.read_bytes()
+        span = sync._config_span(current)
+        self.assertIsNotNone(span)
+        assert span is not None
+        old_block = (
+            sync.CONFIG_START
+            + b'\napproval_policy = "never"\n'
+            + b'default_permissions = ":danger-full-access"\n'
+            + sync.CONFIG_END
+            + b"\n"
+        )
+        config.write_bytes(current[: span[0]] + old_block + current[span[1] :])
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest()
+        config_entry = next(
+            entry for entry in manifest["entries"] if entry["path"] == "config.toml"
+        )
+        config_entry["digest"] = hashlib.sha256(old_block).hexdigest()
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        migrated = self.run_sync("apply")
+
+        self.assertEqual(migrated["status"], "ok")
+        installed = config.read_text()
+        self.assertIn('approval_policy = "on-request"', installed)
+        self.assertIn('approvals_reviewer = "auto_review"', installed)
+        self.assertIn('default_permissions = ":workspace"', installed)
+        self.assertNotIn("danger-full-access", installed)
+        self.assertIn('web_search = "indexed"', installed)
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+
+    def test_historical_legacy_install_uninstalls_without_codex(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = 'model = "test-model"\n'
+        config.write_text(original)
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+
+        current = config.read_bytes()
+        span = sync._config_span(current)
+        self.assertIsNotNone(span)
+        assert span is not None
+        legacy_block = (
+            sync.CONFIG_START
+            + b'\napproval_policy = "never"\n'
+            + b'sandbox_mode = "danger-full-access"\n'
+            + sync.CONFIG_END
+            + b"\n"
+        )
+        config.write_bytes(
+            current[: span[0]] + legacy_block + current[span[1] :]
+        )
+        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest()
+        config_entry = next(
+            entry for entry in manifest["entries"] if entry["path"] == "config.toml"
+        )
+        config_entry["digest"] = hashlib.sha256(legacy_block).hexdigest()
+        manifest["permission_backend"] = "legacy"
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        self.codex_version.side_effect = sync.SyncError("Codex is unavailable")
+
+        removed = sync.uninstall(self.home, self.codex_home)
+
+        self.assertEqual(removed["status"], "ok")
+        self.assertEqual(config.read_text(), original)
+        self.assertFalse(manifest_path.exists())
+        self.codex_version.assert_called_once()
+
+    def test_guardian_takes_over_approval_fields_and_preserves_other_options(
+        self,
+    ) -> None:
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        original = (
+            'model = "test-model"\n'
+            'approval_policy = "never"\n'
+            'approvals_reviewer = "user"\n'
+            'web_search = "indexed"\n'
+        )
+        config.write_text(original)
+
+        applied = self.run_sync("apply")
+
+        self.assertEqual(applied["status"], "ok")
+        installed = config.read_text()
+        self.assertEqual(installed.count("approval_policy"), 1)
+        self.assertEqual(installed.count("approvals_reviewer"), 1)
+        self.assertIn('approval_policy = "on-request"', installed)
+        self.assertIn('approvals_reviewer = "auto_review"', installed)
+        self.assertNotIn('approvals_reviewer = "user"', installed)
+        self.assertIn('default_permissions = ":workspace"', installed)
+        self.assertIn('web_search = "indexed"', installed)
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertEqual(config.read_text(), original)
 
@@ -331,13 +496,11 @@ class SyncTests(unittest.TestCase):
 
         self.assertEqual(applied["status"], "ok")
         installed = config.read_text()
-        self.assertIn('default_permissions = "orchestra-workspace"', installed)
-        self.assertIn('"*" = "allow"', installed)
-        self.assertIn('"localhost" = "allow"', installed)
-        self.assertIn('"127.0.0.1" = "allow"', installed)
+        self.assertIn('approval_policy = "on-request"', installed)
+        self.assertIn('approvals_reviewer = "auto_review"', installed)
+        self.assertIn('default_permissions = ":workspace"', installed)
         self.assertIn('"codexbridge.local" = "allow"', installed)
-        self.assertNotIn("unix_sockets", installed)
-        self.assertIn("allow_local_binding = false", installed)
+        self.assertNotIn("[permissions.", installed)
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertEqual(config.read_text(), original)
 
@@ -394,22 +557,21 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(self.codex_home.exists())
         self.cache_discovery.assert_not_called()
 
-    def test_unreadable_codex_version_also_blocks_uninstall(self) -> None:
+    def test_uninstall_does_not_require_a_readable_codex_version(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         config = self.codex_home / "config.toml"
-        installed = config.read_bytes()
         self.codex_version.side_effect = sync.SyncError(
             "Codex returned an unsupported or unreadable version"
         )
 
         result = sync.uninstall(self.home, self.codex_home)
 
-        self.assertEqual(result["status"], "blocked")
-        self.assertEqual(result["codex_version"], "unknown")
-        self.assertEqual(config.read_bytes(), installed)
-        self.assertTrue(
-            self.codex_home.joinpath("orchestra/install-manifest.json").is_file()
+        self.assertEqual(result["status"], "ok")
+        self.assertFalse(config.exists())
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/install-manifest.json").exists()
         )
+        self.codex_version.assert_called_once()
 
     def test_uninstall_preserves_unrelated_config_changes_after_apply(self) -> None:
         self.codex_home.mkdir(parents=True)
@@ -640,7 +802,7 @@ class SyncTests(unittest.TestCase):
         self.assertNotIn("pip", omitted)
         self.assertEqual(calls, 2)
 
-    def test_managed_config_includes_orchestra_and_detected_cache_roots(self) -> None:
+    def test_workspace_profile_reports_caches_without_adding_permission_roots(self) -> None:
         cache_roots = {
             "poetry": self.home / "Library" / "Caches" / "pypoetry",
             "pip": self.home / "Library" / "Caches" / "pip",
@@ -659,25 +821,16 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(applied["omitted_cache_tools"], {})
         self.assertEqual(applied["unconfigured_cache_tools"], [])
         self.assertTrue(applied["restart_required"])
-        configured = sync._configured_profile_roots(
-            (self.codex_home / "config.toml").read_bytes(),
-            self.home,
-        )
-        self.assertEqual(
-            configured,
-            [
-                self.orchestra_root,
-                self.home / ".npm",
-                self.home / "Library" / "Caches" / "pip",
-                self.home / "Library" / "Caches" / "pypoetry",
-                self.home / ".cache" / "uv",
-            ],
-        )
+        config = (self.codex_home / "config.toml").read_text()
+        self.assertIn('default_permissions = ":workspace"', config)
+        for cache_root in cache_roots.values():
+            self.assertNotIn(str(cache_root), config)
+        self.assertNotIn(str(self.orchestra_root), config)
         status = self.run_sync("status")
         self.assertEqual(status["status"], "ok")
         self.assertFalse(status["restart_required"])
 
-    def test_owned_legacy_worktree_block_migrates_to_parent_root(self) -> None:
+    def test_owned_legacy_worktree_block_migrates_to_guardian(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         config = self.codex_home / "config.toml"
         old_block = (
@@ -703,8 +856,12 @@ class SyncTests(unittest.TestCase):
 
         self.assertEqual(migrated["status"], "ok")
         self.assertTrue(migrated["restart_required"])
-        configured = sync._configured_profile_roots(config.read_bytes(), self.home)
-        self.assertEqual(configured, [self.orchestra_root])
+        installed = config.read_text()
+        self.assertIn('approval_policy = "on-request"', installed)
+        self.assertIn('approvals_reviewer = "auto_review"', installed)
+        self.assertIn('default_permissions = ":workspace"', installed)
+        self.assertNotIn("writable_roots", installed)
+        self.assertNotIn("orchestra-workspace", installed)
         self.assertEqual(self.run_sync("status")["status"], "ok")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertFalse(config.exists())
@@ -726,7 +883,7 @@ class SyncTests(unittest.TestCase):
         applied = self.run_sync("apply")
 
         self.assertEqual(applied["status"], "blocked")
-        self.assertEqual(applied["unconfigured_cache_tools"], ["poetry", "uv"])
+        self.assertEqual(applied["unconfigured_cache_tools"], [])
         self.assertIn("cannot be migrated without changing their scope", applied["detail"])
         self.assertFalse(applied["restart_required"])
         self.assertEqual(config.read_text(), original)
@@ -795,7 +952,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(config.read_text(), original)
         self.assertFalse(self.codex_home.joinpath("orchestra").exists())
 
-    def test_managed_root_switch_updates_and_uninstall_restores_config(self) -> None:
+    def test_managed_root_switch_updates_only_worktree_root(self) -> None:
         self.codex_home.mkdir(parents=True)
         config = self.codex_home / "config.toml"
         original = 'model = "test-model"\n'
@@ -814,8 +971,8 @@ class SyncTests(unittest.TestCase):
 
         self.assertEqual(switched["status"], "ok")
         self.assertEqual(switched["worktree_root"], str(replacement))
-        self.assertIn(str(replacement), config.read_text())
-        self.assertIn(str(self.orchestra_root), config.read_text())
+        self.assertNotIn(str(replacement), config.read_text())
+        self.assertNotIn(str(self.orchestra_root), config.read_text())
         self.assertNotIn(str(self.worktree_root), config.read_text())
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),
@@ -827,6 +984,7 @@ class SyncTests(unittest.TestCase):
     def test_fresh_install_requires_explicit_modelconfig(self) -> None:
         status = self.run_sync("status", modelconfig=None)
         self.assertEqual(status["status"], "partial")
+        self.assertIn("--modelconfig dual", status["detail"])
         self.assertIn("--modelconfig native", status["detail"])
 
         for dry_run in (False, True):
@@ -908,6 +1066,20 @@ class SyncTests(unittest.TestCase):
         )
         self.assertEqual(
             self.run_sync("status", modelconfig=None)["status"], "ok"
+        )
+
+    def test_dual_install_persists_combined_matrix(self) -> None:
+        installed = self.run_sync("apply", modelconfig="dual")
+        self.assertEqual(installed["status"], "ok")
+        self.assertEqual(installed["modelconfig"], "dual")
+        self.assertEqual(self.manifest()["modelconfig"], "dual")
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
+            ROOT.joinpath("codex/config/roles.dual.toml").read_bytes(),
+        )
+        self.assertEqual(
+            self.run_sync("status", modelconfig=None)["modelconfig"],
+            "dual",
         )
 
     def test_legacy_manifest_requires_one_explicit_selection(self) -> None:

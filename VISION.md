@@ -105,11 +105,16 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
-Tests run with ordinary sandboxing unless their packet declares a concrete need
-for elevation. Orchestra repeats a failed command with elevated permission only
-when sandboxing, permissions, filesystem, network, sockets, services, or caches
-could plausibly explain it. Deterministic product, assertion, compilation, or
-CLI-usage failures are classified directly.
+Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. The active permission choice for the task, host, or launcher
+remains authoritative: Orchestra never changes it or blocks execution solely
+because it differs. When Guardian is active, commands inside the workspace run
+directly and one exact command that crosses a protected boundary requests one
+narrow escalation for automatic review. With manual approvals, that escalation
+may prompt the user; with Full Access, it runs without the workspace sandbox
+boundary. Never retry a denial through a workaround or broaden permissions.
+Deterministic product, assertion, compilation, or CLI-usage failures remain
+real failures.
 
 Current source and Git remain authoritative for repository state. Project tests,
 runtime evidence, and independent review provide complementary correctness
@@ -164,12 +169,16 @@ phase. The approved local plan preserves that overview and the exact phase
 manifest rather than duplicating every phase. An implementation owner receives
 the overview, its exact phase, and only explicitly required prior outputs.
 
-The installed assignment remains authoritative. When the external standard
-matrix assigns `repository_context` to Composer Fast but the internal subagent
-runtime cannot accept that model, only that capability may use Luna high as a
-transient fallback. The substitution is remembered only for the live task and
-does not create a visible task, alter the installed matrix, or establish a
-fallback for any other capability.
+The installed assignment remains authoritative. A dual installation uses the
+root session's model and multi-agent version to select its native V2 or external
+V1 matrix before task setup; that model configuration is immutable for the
+task, while tier transitions remain available within it. Legacy installations
+retain their fixed native or external matrix. When the external standard matrix
+assigns `repository_context` to Composer Fast but the internal subagent runtime
+cannot accept that model, only that capability may use its compatible Luna-high
+entry as a transient fallback. The substitution is remembered only for the live
+task and does not create a visible task, alter the installed matrix, or
+establish a fallback for any other capability.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and one verifier for each used verification capability available for fixes,
@@ -203,17 +212,18 @@ a second transaction engine around Git.
 
 Each formal task creates one collision-free worktree managed by Orchestra under
 `${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}` before repository
-analysis. Direct synchronization records the effective absolute root and safely
-selects one compatible Codex permission backend: the `orchestra-workspace`
-profile on Codex 0.138 or later, or the legacy `workspace-write` sandbox on
-older clients. Both authorize the dedicated `$HOME/.orchestra` parent plus exact
-cache roots reported by supported installed package tools and public command
-networking. Neither broadens filesystem access to the user home or sensitive
-configuration, private-network access, or Docker sockets. The source checkout
-remains read-only, which isolates parallel chats and keeps the workflow portable
-across CLIs and hosts. Existing work is never cleaned, stashed, or rewritten
-implicitly. A real write canary must pass in the task's repository directory
-before any capability is dispatched.
+analysis. Direct synchronization records the effective absolute root and
+requires Codex 0.146.0 or later. By default it selects the built-in
+`:workspace` permission profile, keeps `approval_policy = "on-request"`, and
+routes eligible boundary requests through
+`approvals_reviewer = "auto_review"`. An explicit permission choice for the
+current task, host, or launcher remains authoritative at runtime. Sync installs
+no custom permission profile, writable-root list, command rule, or Git bridge.
+After a real write canary passes in the task's repository directory, the root
+creates the exact `orchestra/*` worktree with direct Git; under Guardian,
+protected shared Git metadata receives one exact automatically reviewed
+escalation. The source checkout remains workflow-read-only, and existing work
+is never cleaned, stashed, or rewritten implicitly.
 Completed resources are removed only when exact Git and integration evidence
 make that cleanup safe.
 

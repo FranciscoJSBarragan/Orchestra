@@ -54,22 +54,26 @@ HELPERS = (
     "coordination.py",
     "commit_phase.py",
     "adopt_worktree.py",
+    "session_model.py",
     "policy.py",
     "pr.py",
     "integrate_local.py",
     "_common.py",
 )
-MODELCONFIGS = ("native", "external")
+RETIRED_HELPERS = ("create_worktree.py",)
+MODELCONFIGS = ("native", "external", "dual")
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
 CONFIG_END = b"# orchestra-worktree-root:end"
 MANIFEST_PATH = "orchestra/install-manifest.json"
 WORKTREE_ROOT_PATH = "orchestra/worktree-root"
+RETIRED_RULES_PATHS = ("rules/orchestra.rules",)
 CACHE_TOOLS = ("poetry", "pip", "uv", "npm")
 PERMISSION_BACKENDS = ("profile", "legacy")
-PERMISSION_PROFILE = "orchestra-workspace"
-PROFILE_MIN_VERSION = (0, 138, 0)
+PERMISSION_PROFILE = ":workspace"
+RETIRED_PERMISSION_PROFILE = "orchestra-workspace"
+GUARDIAN_MIN_VERSION = (0, 146, 0)
 KNOWN_LEGACY_SANDBOX_KEYS = {
     "exclude_slash_tmp",
     "exclude_tmpdir_env_var",
@@ -160,7 +164,14 @@ def _detect_codex_version() -> tuple[str, tuple[int, int, int]]:
 
 
 def _permission_backend(version: tuple[int, int, int]) -> str:
-    return "profile" if version >= PROFILE_MIN_VERSION else "legacy"
+    if version < GUARDIAN_MIN_VERSION:
+        required = ".".join(str(part) for part in GUARDIAN_MIN_VERSION)
+        current = ".".join(str(part) for part in version)
+        raise SyncError(
+            f"Codex {required} or later is required for Orchestra Guardian "
+            f"permissions; found {current}"
+        )
+    return "profile"
 
 
 def _is_within(path: Path, parent: Path) -> bool:
@@ -495,9 +506,19 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
     if len(parts) == 2 and parts[0] == "agents":
         allowed_agents = {*AGENTS, *LEGACY_AGENTS}
         return parts[1] in {f"{name}.toml" for name in allowed_agents}
-    return path in {"orchestra/roles.toml", WORKTREE_ROOT_PATH} or path in {
-        f"orchestra/scripts/{name}" for name in HELPERS
-    }
+    return (
+        path
+        in {
+            "orchestra/roles.toml",
+            WORKTREE_ROOT_PATH,
+            *RETIRED_RULES_PATHS,
+        }
+        or path
+        in {
+            f"orchestra/scripts/{name}"
+            for name in (*HELPERS, *RETIRED_HELPERS)
+        }
+    )
 
 
 def _backup_path(root: str, path: str) -> str:
@@ -641,112 +662,21 @@ def _parse_config(data: bytes) -> dict[str, Any]:
     return parsed
 
 
-def _encoded_toml_string(value: str) -> bytes:
-    return json.dumps(value, ensure_ascii=True).encode()
-
-
-def _configured_local_domains(parsed: dict[str, Any]) -> list[str]:
-    result = {"*", "127.0.0.1", "localhost"}
-    features = parsed.get("features")
-    if not isinstance(features, dict):
-        return sorted(result)
-    proxy = features.get("network_proxy")
-    if not isinstance(proxy, dict):
-        return sorted(result)
-    domains = proxy.get("domains")
-    if not isinstance(domains, dict):
-        return sorted(result)
-    result.update(
-        key
-        for key, value in domains.items()
-        if isinstance(key, str) and value == "allow"
-    )
-    return sorted(result)
-
-
-def _configured_temp_exclusions(parsed: dict[str, Any]) -> tuple[bool, bool]:
-    sandbox = parsed.get("sandbox_workspace_write")
-    exclude_tmpdir = False
-    exclude_slash_tmp = False
-    if isinstance(sandbox, dict):
-        exclude_tmpdir = sandbox.get("exclude_tmpdir_env_var") is True
-        exclude_slash_tmp = sandbox.get("exclude_slash_tmp") is True
-    permissions = parsed.get("permissions")
-    if isinstance(permissions, dict):
-        profile = permissions.get(PERMISSION_PROFILE)
-        if isinstance(profile, dict):
-            filesystem = profile.get("filesystem")
-            if isinstance(filesystem, dict):
-                exclude_tmpdir = filesystem.get(":tmpdir") == "deny"
-                exclude_slash_tmp = filesystem.get(":slash_tmp") == "deny"
-    return exclude_tmpdir, exclude_slash_tmp
-
-
 def _config_block(
     writable_roots: list[Path],
     *,
     backend: str,
     parsed: dict[str, Any],
 ) -> bytes:
-    encoded_roots = b", ".join(
-        _encoded_toml_string(str(root)) for root in writable_roots
-    )
+    _ = writable_roots, parsed
     lines = [CONFIG_START]
-    exclude_tmpdir, exclude_slash_tmp = _configured_temp_exclusions(parsed)
-    if backend == "legacy":
+    if backend == "profile":
         lines.extend(
             (
-                b'sandbox_mode = "workspace-write"',
-                b"",
-                b"[sandbox_workspace_write]",
-                b"network_access = true",
-                b"writable_roots = [" + encoded_roots + b"]",
-            )
-        )
-        if exclude_tmpdir:
-            lines.append(b"exclude_tmpdir_env_var = true")
-        if exclude_slash_tmp:
-            lines.append(b"exclude_slash_tmp = true")
-    elif backend == "profile":
-        lines.extend(
-            (
+                b'approval_policy = "on-request"',
+                b'approvals_reviewer = "auto_review"',
                 f'default_permissions = "{PERMISSION_PROFILE}"'.encode(),
-                b"",
-                f"[permissions.{PERMISSION_PROFILE}]".encode(),
-                b'description = "Orchestra worktrees and detected package caches."',
-                b'extends = ":workspace"',
-                b"",
-                f"[permissions.{PERMISSION_PROFILE}.workspace_roots]".encode(),
             )
-        )
-        lines.extend(
-            _encoded_toml_string(str(root)) + b" = true"
-            for root in writable_roots
-        )
-        if exclude_tmpdir or exclude_slash_tmp:
-            lines.extend(
-                (
-                    b"",
-                    f"[permissions.{PERMISSION_PROFILE}.filesystem]".encode(),
-                )
-            )
-            if exclude_tmpdir:
-                lines.append(b'":tmpdir" = "deny"')
-            if exclude_slash_tmp:
-                lines.append(b'":slash_tmp" = "deny"')
-        lines.extend(
-            (
-                b"",
-                f"[permissions.{PERMISSION_PROFILE}.network]".encode(),
-                b"enabled = true",
-                b"allow_local_binding = false",
-                b"",
-                f"[permissions.{PERMISSION_PROFILE}.network.domains]".encode(),
-            )
-        )
-        lines.extend(
-            _encoded_toml_string(domain) + b' = "allow"'
-            for domain in _configured_local_domains(parsed)
         )
     else:
         raise SyncError(f"unknown permission backend: {backend}")
@@ -783,86 +713,27 @@ def _configured_writable_roots(data: bytes, home: Path) -> list[Path]:
     return [_normalized_config_root(item, home) for item in roots]
 
 
-def _configured_profile_roots(data: bytes, home: Path) -> list[Path]:
-    parsed = _parse_config(data)
-    permissions = parsed.get("permissions")
-    if permissions is None:
-        return []
-    if not isinstance(permissions, dict):
-        raise SyncError("permissions must be a TOML table")
-    profile = permissions.get(PERMISSION_PROFILE)
-    if profile is None:
-        return []
-    if not isinstance(profile, dict):
-        raise SyncError(f"permissions.{PERMISSION_PROFILE} must be a TOML table")
-    roots = profile.get("workspace_roots", {})
-    if not isinstance(roots, dict) or any(
-        not isinstance(path, str) or not isinstance(enabled, bool)
-        for path, enabled in roots.items()
-    ):
-        raise SyncError(
-            f"permissions.{PERMISSION_PROFILE}.workspace_roots must be a path table"
-        )
-    return [
-        _normalized_config_root(path, home)
-        for path, enabled in roots.items()
-        if enabled
-    ]
-
-
-def _configured_permission_roots(
-    data: bytes, home: Path, backend: str
-) -> list[Path]:
-    if backend == "profile":
-        return _configured_profile_roots(data, home)
-    if backend == "legacy":
-        return _configured_writable_roots(data, home)
-    raise SyncError(f"unknown permission backend: {backend}")
-
-
 def _profile_is_configured(
     data: bytes,
     home: Path,
     desired_roots: list[Path],
     backend: str,
 ) -> bool:
+    _ = home, desired_roots
     parsed = _parse_config(data)
-    configured_roots = _configured_permission_roots(data, home, backend)
-    roots_match = all(
-        any(_is_within(root, configured) for configured in configured_roots)
-        for root in desired_roots
-    )
-    if not roots_match:
-        return False
     if backend == "legacy":
-        sandbox = parsed.get("sandbox_workspace_write")
-        return (
-            parsed.get("sandbox_mode") == "workspace-write"
-            and isinstance(sandbox, dict)
-            and sandbox.get("network_access") is True
-            and parsed.get("default_permissions") is None
-        )
+        return False
     permissions = parsed.get("permissions")
-    profile = (
-        permissions.get(PERMISSION_PROFILE)
-        if isinstance(permissions, dict)
-        else None
-    )
-    network = profile.get("network") if isinstance(profile, dict) else None
-    domains = network.get("domains") if isinstance(network, dict) else None
     return (
-        parsed.get("sandbox_mode") is None
+        parsed.get("approval_policy") == "on-request"
+        and parsed.get("approvals_reviewer") == "auto_review"
+        and parsed.get("sandbox_mode") is None
         and parsed.get("default_permissions") == PERMISSION_PROFILE
-        and isinstance(profile, dict)
-        and profile.get("extends") == ":workspace"
-        and isinstance(network, dict)
-        and network.get("enabled") is True
-        and network.get("allow_local_binding") is False
-        and isinstance(domains, dict)
-        and domains.get("*") == "allow"
-        and domains.get("localhost") == "allow"
-        and domains.get("127.0.0.1") == "allow"
-        and "unix_sockets" not in network
+        and parsed.get("sandbox_workspace_write") is None
+        and not (
+            isinstance(permissions, dict)
+            and RETIRED_PERMISSION_PROFILE in permissions
+        )
     )
 
 
@@ -1014,11 +885,16 @@ def _permission_spans(data: bytes) -> list[tuple[int, int]]:
     marker = _config_span(data)
     if marker is not None:
         spans.append(marker)
-    for key in ("sandbox_mode", "default_permissions"):
+    for key in (
+        "approval_policy",
+        "approvals_reviewer",
+        "sandbox_mode",
+        "default_permissions",
+    ):
         assignment = _top_level_assignment_span(data, key)
         if assignment is not None:
             spans.append(assignment)
-    profile_prefix = f"permissions.{PERMISSION_PROFILE}"
+    profile_prefix = f"permissions.{RETIRED_PERMISSION_PROFILE}"
     for name, start, end in _table_spans(data):
         if name == "sandbox_workspace_write" or (
             name == profile_prefix or name.startswith(profile_prefix + ".")
@@ -1061,9 +937,11 @@ def _validate_permission_transition(
     permissions = user_parsed.get("permissions")
     if (
         isinstance(permissions, dict)
-        and PERMISSION_PROFILE in permissions
+        and RETIRED_PERMISSION_PROFILE in permissions
     ):
-        raise SyncError(f"permissions.{PERMISSION_PROFILE} is user-owned")
+        raise SyncError(
+            f"permissions.{RETIRED_PERMISSION_PROFILE} is user-owned"
+        )
     sandbox = user_parsed.get("sandbox_workspace_write")
     if sandbox is not None and not isinstance(sandbox, dict):
         raise SyncError("sandbox_workspace_write must be a TOML table")
@@ -1134,12 +1012,8 @@ def _unconfigured_cache_tools(
     cache_roots: dict[str, Path],
     backend: str,
 ) -> list[str]:
-    configured = _configured_permission_roots(data, home, backend)
-    return [
-        tool
-        for tool, cache_root in sorted(cache_roots.items())
-        if not any(_is_within(cache_root, root) for root in configured)
-    ]
+    _ = data, home, cache_roots, backend
+    return []
 
 
 def _desired_config_entry(
@@ -1409,6 +1283,14 @@ def _preview(operations: list[dict[str, Any]]) -> list[dict[str, str]]:
     ]
 
 
+def _restart_required(changes: list[dict[str, str]]) -> bool:
+    return any(
+        change["root"] == "codex_home"
+        and change["path"] in {"config.toml", *RETIRED_RULES_PATHS}
+        for change in changes
+    )
+
+
 def _check_before(path: Path, before: bytes | None) -> None:
     if before is None:
         if path.exists():
@@ -1566,7 +1448,6 @@ def synchronize(
     orchestra_root = _orchestra_root(home)
     try:
         codex_version, parsed_codex_version = _detect_codex_version()
-        permission_backend = _permission_backend(parsed_codex_version)
     except SyncError as exc:
         return _result(
             "blocked",
@@ -1575,6 +1456,17 @@ def synchronize(
             str(exc),
             sandbox_root=orchestra_root,
             codex_version="unknown",
+        )
+    try:
+        permission_backend = _permission_backend(parsed_codex_version)
+    except SyncError as exc:
+        return _result(
+            "blocked",
+            label,
+            [],
+            str(exc),
+            sandbox_root=orchestra_root,
+            codex_version=codex_version,
         )
     try:
         cache_roots, omitted_cache_tools = _discover_cache_roots(home)
@@ -1593,7 +1485,7 @@ def synchronize(
             PERMISSION_PROFILE if permission_backend == "profile" else None
         ),
     }
-    missing_cache_tools = sorted(cache_roots)
+    missing_cache_tools: list[str] = []
     try:
         effective_worktree_root = _resolve_worktree_root(home, worktree_root)
         (
@@ -1609,7 +1501,8 @@ def synchronize(
         if effective_modelconfig is None:
             detail = (
                 "model configuration is not selected; pass "
-                "--modelconfig native or --modelconfig external"
+                "--modelconfig dual, --modelconfig native, or "
+                "--modelconfig external"
             )
             if action == "status" and not manifest_present:
                 return _result(
@@ -1648,6 +1541,7 @@ def synchronize(
         change["path"] == "config.toml" and change["root"] == "codex_home"
         for change in changes
     )
+    restart_change_pending = _restart_required(changes)
     if action == "status" or dry_run:
         detail = "; ".join(auxiliary_drift)
         try:
@@ -1679,7 +1573,7 @@ def synchronize(
                 modelconfig=effective_modelconfig,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
-                restart_required=config_change_pending,
+                restart_required=restart_change_pending,
                 profile_configured=False,
                 **result_context,
             )
@@ -1691,7 +1585,7 @@ def synchronize(
             modelconfig=effective_modelconfig,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
-            restart_required=config_change_pending,
+            restart_required=restart_change_pending,
             profile_configured=profile_configured,
             **result_context,
         )
@@ -1753,11 +1647,7 @@ def synchronize(
                 modelconfig=current_modelconfig,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
-                restart_required=any(
-                    change["path"] == "config.toml"
-                    and change["root"] == "codex_home"
-                    for change in completed
-                ),
+                restart_required=_restart_required(completed),
                 profile_configured=False,
                 **result_context,
             )
@@ -1787,11 +1677,7 @@ def synchronize(
                 modelconfig=current_modelconfig,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
-                restart_required=any(
-                    change["path"] == "config.toml"
-                    and change["root"] == "codex_home"
-                    for change in completed
-                ),
+                restart_required=_restart_required(completed),
                 profile_configured=False,
                 **result_context,
             )
@@ -1815,11 +1701,7 @@ def synchronize(
             modelconfig=current_modelconfig,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
-            restart_required=any(
-                change["path"] == "config.toml"
-                and change["root"] == "codex_home"
-                for change in completed
-            ),
+            restart_required=_restart_required(completed),
             profile_configured=False,
             **result_context,
         )
@@ -1852,11 +1734,7 @@ def synchronize(
             modelconfig=persisted_modelconfig,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
-            restart_required=any(
-                change["path"] == "config.toml"
-                and change["root"] == "codex_home"
-                for change in completed
-            ),
+            restart_required=_restart_required(completed),
             profile_configured=False,
             **result_context,
         )
@@ -1874,10 +1752,7 @@ def synchronize(
         modelconfig=persisted_modelconfig,
         worktree_root=effective_worktree_root,
         unconfigured_cache_tools=final_missing_cache_tools,
-        restart_required=any(
-            change["path"] == "config.toml" and change["root"] == "codex_home"
-            for change in completed
-        ),
+        restart_required=_restart_required(completed),
         profile_configured=profile_configured,
         **result_context,
     )
@@ -1888,26 +1763,6 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
     try:
-        codex_version, parsed_codex_version = _detect_codex_version()
-        selected_permission_backend = _permission_backend(parsed_codex_version)
-    except SyncError as exc:
-        return _result(
-            "blocked",
-            "uninstall",
-            [],
-            str(exc),
-            codex_version="unknown",
-        )
-    result_context = {
-        "codex_version": codex_version,
-        "permission_backend": selected_permission_backend,
-        "permission_profile": (
-            PERMISSION_PROFILE
-            if selected_permission_backend == "profile"
-            else None
-        ),
-    }
-    try:
         (
             installed,
             present,
@@ -1916,7 +1771,13 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             permission_backend,
         ) = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
-        return _result("blocked", "uninstall", [], str(exc), **result_context)
+        return _result("blocked", "uninstall", [], str(exc))
+    result_context = {
+        "permission_backend": permission_backend,
+        "permission_profile": (
+            PERMISSION_PROFILE if permission_backend == "profile" else None
+        ),
+    }
     if not present:
         return _result("ok", "uninstall", [], **result_context)
     roots = _roots(home, codex_home)
@@ -1987,6 +1848,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                     "uninstall",
                     changes,
                     detail,
+                    restart_required=_restart_required(changes),
                     **result_context,
                 )
             current = next_current
@@ -2004,6 +1866,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 "uninstall",
                 changes,
                 detail,
+                restart_required=_restart_required(changes),
                 **result_context,
             )
     try:
@@ -2019,6 +1882,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
         "uninstall",
         changes,
         detail,
+        restart_required=_restart_required(changes),
         **result_context,
     )
 

@@ -8,7 +8,8 @@ flowchart TD
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
-    B --> TR["Root recommends standard or critical with risk and cost-benefit"]
+    B --> MC["Resolve installed native V2 or external V1 model configuration"]
+    MC --> TR["Root recommends standard or critical with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
     E --> OW["Create task branch and portable worktree"]
@@ -60,25 +61,30 @@ judgment.
 
 ## Tier flows and models
 
-The user selects the root's current Sol medium or Sol high session
-configuration outside Orchestra. The root has no machine-readable assignment,
-and Orchestra never changes its model or reasoning effort.
+The user selects the root's current Sol medium or Sol high entry outside
+Orchestra. The additive `dual` installation exposes native Sol as V2 and an
+Orchestra Sol compatibility alias as V1. Before tier selection, Orchestra reads
+the current task's model, multi-agent version, and effort through the installed
+read-only session helper. Native Sol V2 selects `native`; the Orchestra Sol V1
+alias selects `external`. Any other root combination blocks before resource
+creation. Orchestra never changes or respawns the root.
 
 For every spawned dispatch, the root selects the explicit capability, base
-profile, model, and reasoning effort from the one globally installed
-configuration. Direct sync selects `native` or `external` outside Orchestra and
-installs only that matrix at the canonical runtime path. Orchestra does not ask
-for, persist, or override the selection per task. Do not switch the installed
-configuration while an Orchestra task is active.
+profile, model, and reasoning effort from the selected mode in the one installed
+matrix. The selected model configuration is kept in memory before plan approval
+and in plan Decisions afterward. It cannot change within a task, including
+during tier transitions. Legacy `native` and `external` installations continue
+to provide one fixed top-level matrix and do not run session detection.
 
 The installed assignment is always attempted first. The only runtime
 compatibility exception is `repository_context`: when its assigned model is
 rejected before execution because the internal subagent runtime does not support
-that model, the root may spawn the same `orchestra_analyst` packet with `gpt-5.6-luna`
-reasoning `high`. Record that substitution only in live root memory. Do not
-create a visible Codex task, modify either source or installed matrices, persist
-fallback state, or apply the fallback to another capability. An unsupported
-assigned model for any other capability returns `blocked`.
+that model, a legacy installation may retain its current Luna-high behavior and
+dual external may use its Orchestra V1 Luna alias. Dual native blocks instead of
+crossing protocol versions. Record a permitted substitution only in live root
+memory. Do not create a visible Codex task, modify source or installed matrices,
+persist fallback state, or apply the fallback to another capability. An
+unsupported assigned model for any other capability returns `blocked`.
 
 Profiles contain behavior only. Existing public skill identifiers remain stable;
 `orchestra-project-start` is the additive implicit greenfield entry point.
@@ -123,6 +129,10 @@ playbook.
 | Standard | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-terra` | `medium` |
 | Standard | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-terra` | `high` |
 
+In the dual matrix, every native model named by the external configuration is
+resolved through its `orchestra-v1/` compatibility alias. Cursor, OpenCode, and
+Antigravity assignments remain unchanged.
+
 ### Shared critical configuration
 
 | Tier | Capability | Base profile | Model | Reasoning |
@@ -142,6 +152,10 @@ A second critical review reuses `independent_review`
 with Sol high only for a named measurable risk and independently detectable
 defect class. No Orchestra assignment uses Sol xhigh.
 
+The critical capability, profile, and reasoning matrix remains logically
+shared. Dual native uses Sol V2; dual external uses the Sol V1 compatibility
+alias so a tier transition never crosses protocol versions.
+
 Frontend implementation composes `orchestra_implementation_worker`; browser acceptance
 composes `orchestra_verifier`. They remain independent and never run as one combined
 role.
@@ -158,65 +172,69 @@ After explicit activation in an execution-capable mode:
    an objective, ask for it before creating resources. If the user explicitly
    limits the request to brainstorming, remain read-only until the user
    authorizes formal task setup.
-2. From that brief, the root recommends an initial standard or critical tier
+2. The root reads the installed assignment matrix. A dual matrix requires one
+   successful read-only session inspection and selects `native` or `external`
+   from the root model and multi-agent version before tier selection. A legacy
+   matrix remains fixed. The selected dual mode is immutable for the task.
+3. From that brief, the root recommends an initial standard or critical tier
    with one concise explanation of material risk, added scrutiny, and expected
    cost-benefit. The user explicitly chooses the active tier. A user-selected
    standard tier does not waive separate authority gates for production,
    migrations, data, security, payments, destructive actions, or delivery.
-3. The root resolves the intended base branch and revision and performs a short
+4. The root resolves the intended base branch and revision and performs a short
    read-only Git preflight. It also reads repository policy and identifies the
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
    provenance, and generated paths relevant to the task. It then resolves the
-   portable worktree root below the synchronized Orchestra sandbox root,
-   verifies a sandboxed write canary in the repository directory, chooses the
+   portable worktree root recorded by synchronization, verifies a write canary
+   in the repository directory, chooses the
    first matching available branch and checkout path, and creates the task
    worktree before dispatching a capability. The source checkout remains
    read-only and is never switched or reused for execution.
-4. The root records the exact task-worktree identity in memory before capability
+5. The root records the exact task-worktree identity in memory before capability
    dispatch, as described in
    [Task worktree and branch](#task-worktree-and-branch). It then attempts one
    idempotent `coordination.py task create`. An `invalid` or `unavailable`
    result is reported as lost observability and the normal inline workflow
    continues without retry or reduced authority.
-5. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
+6. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
    questions from the exact task worktree. The root may skip or reduce this
    dispatch only when it cites the specific prior evidence it reuses (artifact
    and revision); otherwise dispatch. The analyst publishes a revision-identified
    context artifact when coordination is available and returns its identifier.
    Publication failure returns the full inline report instead. Consume the
    result and close the one-shot analyst.
-6. The orchestrator continues the user dialogue using that evidence. Additional
+7. The orchestrator continues the user dialogue using that evidence. Additional
    `repository_context` dispatches are allowed only for newly material factual
    questions and request only the targeted context delta; consume and close each
    one-shot analyst before continuing.
-7. The root confirms the final specification with Objective, User-visible
+8. The root confirms the final specification with Objective, User-visible
    behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
    then recommends any justified tier change. The user chooses whether to change
    it. Request only the context delta tied to a newly discovered risk.
-8. Final specification confirmation starts formal planning. A planner reads the
+9. Final specification confirmation starts formal planning. A planner reads the
    exact context artifacts and publishes one complete `plan-overview` plus one
    complete `plan-phase` per phase. It returns an explicit candidate bundle;
    neither root nor downstream agents reconstruct it from a summary or choose
    members by timestamp. A genuinely trivial single-phase standard task may be
    authored directly by the root, but uses the same two-document shape.
-9. After the complete bundle exists, the root reads the overview, phase index,
+10. After the complete bundle exists, the root reads the overview, phase index,
    named risks, and only the detail needed for judgment. It may skip review for
    a trivial single-phase standard plan. A non-trivial multi-phase or
    cross-component plan receives one independent review. A critical plan
    receives a focused review naming its measurable risk, supporting evidence,
    affected area, and detectable defect class.
-10. A dispatched reviewer reads the exact bundle and publishes `plan-review`
+11. A dispatched reviewer reads the exact bundle and publishes `plan-review`
     with stable finding identifiers. Accepted IDs and the review artifact return
     to the same planner, which remains open and publishes complete replacement
     documents only for affected members. The next candidate bundle explicitly
     names all current members.
-11. The root observes convergence after a second material plan review. Before a
+12. The root observes convergence after a second material plan review. Before a
     third correction, or immediately for marginal, contradictory, or
     out-of-scope findings, it reads the exact bundle and review artifacts,
     accepts or rejects findings by identifier, and corrects direction. No
     persisted review counter or mechanical limit is introduced.
-12. The root presents the exact accepted bundle at the user's altitude and
+13. The root presents the exact accepted bundle at the user's altitude and
     requests implementation approval.
 
 Every planning, implementation, review, verification, plan, and commit operation
@@ -243,13 +261,14 @@ optional `plan-review` artifacts. After approval, the root writes `active` to
 `git rev-parse --git-path orchestra/plan.md`. It is an intent, exact-bundle, and
 resume aid, not a workflow database.
 
-The file records task and Git identity, active tier, user and root decisions,
-authorized preexisting changes, and the approved overview verbatim. Its phase
-manifest maps every phase number to the exact artifact ID, private path,
-artifact revision, progress status, accepted commit, blocker, and next action.
-It does not duplicate phase details. Private paths allow resolution when SQLite
-is unavailable. When adoption applies, it also records source revision,
-imported paths, existing commit range, and remaining phases.
+The file records task and Git identity, active tier, immutable dual model
+configuration when applicable, user and root decisions, authorized preexisting
+changes, and the approved overview verbatim. Its phase manifest maps every
+phase number to the exact artifact ID, private path, artifact revision, progress
+status, accepted commit, blocker, and next action. It does not duplicate phase
+details. Private paths allow resolution when SQLite is unavailable. When
+adoption applies, it also records source revision, imported paths, existing
+commit range, and remaining phases.
 
 Its statuses are:
 
@@ -399,7 +418,9 @@ implementation worker owns the remaining phase and receives later accepted
 findings. Evidence for the unchanged revision and conditions remains valid; a
 new risk receives only targeted context and reverification. A best-effort
 coordination update records the selected tier, but its failure never delays or
-reverses the transition.
+reverses the transition. A tier transition never changes the task's selected
+model configuration; switching between native V2 and external V1 requires a new
+Orchestra task rooted in the matching model selector entry.
 
 ### Phase teardown
 
@@ -431,17 +452,18 @@ consumed and can never affect the commit result.
 
 ### Test permissions and browser routing
 
-Test commands run in the ordinary sandbox unless their packet declares a
-specific elevated requirement. Classify a failure from its direct evidence.
-Rerun the exact same command, arguments, and working directory once with
-elevated permission only when sandboxing, permissions, filesystem, network,
-sockets, local services, or protected caches could plausibly explain it. Do not
-elevate deterministic syntax, type, compile, lint, import, assertion,
-validation-contract, or CLI-usage failures. A genuinely ambiguous failure may
-receive one exact elevated retry. Record a sandbox dependency when that retry
-passes; otherwise trust deterministic or repeated evidence. If required
-elevation is unavailable or unsafe, return `blocked`. Do not turn the retry into
-a shell wrapper or a broader command.
+Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. The active permission choice for the task, host, or launcher
+remains authoritative: Orchestra never changes it or blocks execution solely
+because it differs. When Guardian is active, commands inside the workspace run
+directly and one exact command that crosses a protected boundary requests one
+narrow escalation for automatic review. With manual approvals, that escalation
+may prompt the user; with Full Access, it runs without the workspace sandbox
+boundary. Never retry a denial through a workaround or broaden permissions.
+Deterministic syntax, type, compile, lint, import, assertion,
+validation-contract, and CLI-usage failures remain real failures. A missing
+external service, credential, or dependency may still return `blocked`, but
+never broadens the task's approved authority.
 
 Packets for `frontend_implementation` browser work and `browser_acceptance`
 carry `browser_route: auto | in_app | chrome`:
@@ -494,30 +516,35 @@ root resolved from `ORCHESTRA_WORKTREE_ROOT`, the installed
 `${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
 `$HOME/.orchestra/worktrees`, in that order. The root chooses the first matching
 available `orchestra/<task-slug>[-N]` branch and
-`<worktree-root>/<repository>/<task-slug>[-N]` path and creates it with
-`git worktree add`. It never implements in, switches, or reuses the source
-checkout or a host-managed worktree.
+`<worktree-root>/<repository>/<task-slug>[-N]` path and creates it with direct
+`git worktree add` against the captured full base revision. It never implements
+in, switches, or reuses the source checkout or a host-managed worktree.
 
-Direct synchronization authorizes the dedicated `$HOME/.orchestra` parent and
-the exact Poetry, pip, uv, and npm cache paths reported by installed tools.
-Discovery rejects broad cache parents, sensitive configuration trees, paths
-outside the current home, and symlink escapes. Docker sockets and configuration
-remain outside persistent writable roots and use the existing exact-command
-elevation policy when required.
+Synchronization reads `codex --version` before mutation and requires Codex
+0.146.0 or later. It installs exactly one modern configuration:
+`default_permissions = ":workspace"`, `approval_policy = "on-request"`, and
+`approvals_reviewer = "auto_review"`. No legacy sandbox mode, custom permission
+profile, workspace-root list, execpolicy rule, or Git helper is installed.
+Older or unreadable clients block before any destination changes. Historical
+manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
+remains version-independent and restores the exact prior configuration.
 
-Synchronization reads `codex --version` before mutation. Codex 0.138 or later
-uses the managed `orchestra-workspace` profile extending `:workspace`; older
-clients use only `workspace-write` and `sandbox_workspace_write`. The two
-backends never coexist. Both enable public command networking and exact
-loopback exceptions without enabling broad private-network access or Unix
-sockets. A version change migrates the managed configuration atomically, and an
-unreadable version blocks before any destination changes.
+Direct App Server launchers should omit permission overrides to inherit these
+synchronized defaults. Explicit launcher overrides remain authoritative;
+Orchestra does not reject or rewrite them. To select Guardian explicitly, pass
+the equivalent `permissions = ":workspace"`,
+`approvalPolicy = "on-request"`, and
+`approvalsReviewer = "auto_review"`. When Guardian is active, protected shared
+Git metadata remains outside the workspace boundary, so the root issues the
+exact direct Git operation once with a narrow escalation for automatic review.
+A denial is not bypassed or converted to Full Access.
 
 Before `repository_context` or another capability dispatch, the root creates
 the repository directory and writes and removes one temporary canary there. A
-failure blocks the task with the exact path and sandbox evidence; elevation is
-not used as a persistent substitute for a writable checkout. Existing active
-tasks outside the configured root are not migrated automatically.
+failure blocks the task with the exact path and environment evidence. Existing
+active tasks outside the configured root are not migrated automatically. If
+`git worktree add` fails, the root inspects the exact branch, path, and Git error
+once and blocks before capability dispatch.
 
 The root records checkout path, initial branch and HEAD, base branch and
 revision, and any authorized preexisting changes in transient context. It

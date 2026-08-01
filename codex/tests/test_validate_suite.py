@@ -213,6 +213,25 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("has invalid model", result.stdout)
 
+    def test_dual_matrix_must_match_legacy_assignments_and_protocol_aliases(
+        self,
+    ) -> None:
+        roles = self.root / "codex/config/roles.dual.toml"
+        roles.write_text(
+            roles.read_text(encoding="utf-8").replace(
+                'model = "orchestra-v1/gpt-5.6-terra"',
+                'model = "gpt-5.6-terra"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "dual external assignments must match",
+            result.stdout,
+        )
+
     def test_duplicate_profile_name_is_rejected(self) -> None:
         analyst = self.root / "codex/agents/orchestra_analyst.toml"
         analyst.write_text(

@@ -100,10 +100,14 @@ formal planning, independent review, phase commits, or delivery coordination.
 - Required local services and credentials for the project; Orchestra identifies
   their categories but does not print or persist secret values.
 
-Choose `native` for the supported Codex model assignments. Choose `external`
-only when the configured external providers and model identifiers are available
-in the current Codex environment. The selection is global for the installed
-runtime and may be switched explicitly when no Orchestra task is active.
+Choose `dual` to expose both native V2 and external V1 Orchestra routing. The
+root model selector then chooses the mode automatically for each new task:
+native Sol selects V2, while the Orchestra Sol compatibility alias selects V1.
+Choose legacy `native` or `external` only when one fixed matrix is preferred.
+External assignments require their configured providers and model identifiers.
+Dual mode also requires CodexBridge in `catalog` mode with a refreshed catalog
+that publishes the reserved `orchestra-v1/` aliases. Orchestra sync does not
+change or restart CodexBridge.
 
 ## Direct sync
 
@@ -111,45 +115,54 @@ Run synchronization explicitly from a trusted Orchestra checkout. It is outside
 ordinary task execution:
 
 ```sh
+python3 codex/scripts/sync.py status --modelconfig dual
+python3 codex/scripts/sync.py apply --dry-run --modelconfig dual
+python3 codex/scripts/sync.py apply --modelconfig dual
 python3 codex/scripts/sync.py status --modelconfig native
-python3 codex/scripts/sync.py apply --dry-run --modelconfig native
-python3 codex/scripts/sync.py apply --modelconfig native
 python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
 python3 codex/scripts/sync.py status
 python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
 
-Choose `native` or `external` on the first apply. The install manifest records
-that global choice, so later status and apply calls may omit `--modelconfig`.
-Passing the other value previews or applies an atomic configuration switch.
-Do not switch configurations while an Orchestra task is active: every dispatch
-reads the one installed runtime matrix.
+Choose `dual`, `native`, or `external` on the first apply. The install manifest
+records that global choice, so later status and apply calls may omit
+`--modelconfig`. Passing another value previews or applies an atomic
+configuration switch. Do not switch the installed configuration while an
+Orchestra task is active. Within `dual`, each task's automatically detected
+`native` or `external` mode is immutable; changing protocol mode requires a new
+task opened with the matching root model entry.
 
 The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
 sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
 to `$CODEX_HOME/orchestra/worktree-root`. Before changing Codex configuration,
-sync requires a readable `codex --version`. Codex 0.138 and later use the
-managed `orchestra-workspace` permission profile; older clients use only the
-legacy `workspace-write` sandbox. Upgrades and downgrades migrate atomically
-so exactly one backend remains active, and uninstall restores the original
-configuration.
+sync requires Codex 0.146.0 or later. It installs the built-in `:workspace`
+permission profile with `approval_policy = "on-request"` and
+`approvals_reviewer = "auto_review"`. Older or unreadable clients block before
+mutation. Historical manifest-owned Full Access and legacy blocks migrate
+atomically, while uninstall remains version-independent and restores the
+original configuration.
 
-Both backends authorize `$HOME/.orchestra`, any validated external worktree
-root, and the exact Poetry, pip, uv, and npm cache roots reported by installed
-tools. Tool discovery runs from an isolated temporary directory, rejects broad
-or sensitive paths, and writes only absolute paths. Public command networking
-and explicit loopback destinations are enabled, while broad private-network
-access, Docker configuration, and Unix sockets remain excluded. User-owned
-`sandbox_mode`, `sandbox_workspace_write.network_access`,
-`default_permissions`, conflicting permission profiles, or incompatible
-writable roots block synchronization without changing the file. Automatic
-backend migration is limited to configuration already recorded as
-Orchestra-owned.
+Guardian is the synchronized default, not a runtime requirement. An explicit
+permission choice for the current task, host, or launcher remains authoritative;
+Orchestra neither changes it nor blocks solely because it differs. When
+Guardian is active, the workspace boundary permits routine repository work
+while exact escalations for protected paths such as shared Git metadata are
+reviewed automatically. Manual approvals may prompt the user, while Full Access
+runs without that workspace sandbox boundary. Sync does not install a custom
+permission profile, writable-root list, worktree helper, or command rule.
+User-owned `sandbox_mode`, `default_permissions`, conflicting permission
+profiles, or incompatible legacy sandbox tables block synchronization without
+changing the file. Sync takes reversible ownership of `approval_policy`,
+`approvals_reviewer`, and `default_permissions`; unrelated options such as
+`web_search` are preserved byte-for-byte. Direct App Server launchers should
+omit permission overrides to inherit Guardian. Explicit launcher overrides
+remain authoritative; to select Guardian explicitly, pass the equivalent
+`:workspace`, `on-request`, and `auto_review` values.
 
 Restart the Codex host after a permission change so new agent sessions receive
-the selected backend. Re-run sync after installing another supported package
-tool. Status and apply results report `codex_version`, `permission_backend`,
+the selected backend. Status and apply results report `codex_version`,
+`permission_backend`,
 `permission_profile`, `profile_configured`, `sandbox_root`, detected
 `cache_roots`, coarse `omitted_cache_tools`, `unconfigured_cache_tools`, and
 `restart_required`. Cache access does not install project dependencies or make

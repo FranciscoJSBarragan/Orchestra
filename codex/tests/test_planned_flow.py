@@ -31,6 +31,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             )["tiers"]
             for modelconfig in ("native", "external")
         }
+        self.dual_modes = tomllib.loads(
+            (ROOT / "codex/config/roles.dual.toml").read_text()
+        )["modes"]
         self.profiles = {
             path.stem: tomllib.loads(path.read_text())
             for path in (ROOT / "codex/agents").glob("*.toml")
@@ -98,6 +101,38 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.role_matrices["native"]["critical"],
             self.role_matrices["external"]["critical"],
         )
+
+    def test_dual_matrix_preserves_legacy_assignments_with_v1_native_aliases(
+        self,
+    ) -> None:
+        self.assertEqual(set(self.dual_modes), {"native", "external"})
+        self.assertEqual(
+            self.dual_modes["native"],
+            {"tiers": self.role_matrices["native"]},
+        )
+        aliases = {
+            "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
+            "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
+        }
+        expected_external = {
+            tier: {
+                capability: {
+                    **assignment,
+                    "model": aliases.get(
+                        assignment["model"],
+                        assignment["model"],
+                    ),
+                }
+                for capability, assignment in assignments.items()
+            }
+            for tier, assignments in self.role_matrices["external"].items()
+        }
+        self.assertEqual(
+            self.dual_modes["external"],
+            {"tiers": expected_external},
+        )
+        for assignment in self.dual_modes["external"]["tiers"]["critical"].values():
+            self.assertEqual(assignment["model"], "orchestra-v1/gpt-5.6-sol")
 
     def test_seven_playbooks_and_shared_architecture_reference_are_composed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
@@ -424,8 +459,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             "`$HOME/.orchestra/worktrees`",
             "`<worktree-root>/<repository>/<task-slug>[-N]` checkout path",
             "write and remove one temporary canary",
-            "Create the selected checkout with `git worktree add`",
-            "Do not use an elevated edit path",
+            "`git worktree add`",
+            "captured full base revision",
             "Never implement in, switch, or reuse the source checkout",
             "Adopted committed work starts at its source HEAD",
             "adopt_worktree.py",
@@ -435,6 +470,24 @@ class PlannedFlowContractTests(unittest.TestCase):
             "completion without an artificial commit",
         ):
             self.assertIn(invariant, normalized)
+
+    def test_worktree_creation_uses_direct_git_in_all_routing_sources(self) -> None:
+        sources = (
+            self.skill,
+            (ROOT / "AGENTS.md").read_text(),
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+            (ROOT / "docs/WORKFLOW.md").read_text(),
+        )
+        for source in sources:
+            normalized = " ".join(source.split()).lower()
+            for contract in (
+                "git worktree add",
+                "full base revision",
+                "git error",
+                "capability dispatch",
+            ):
+                self.assertIn(contract.lower(), normalized)
+            self.assertNotIn("create_worktree.py", normalized)
 
     def test_agent_waiting_is_long_non_interruptive_and_timeout_is_not_failure(
         self,
@@ -581,6 +634,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         for contract in (
             "Only when a `repository_context` spawn is rejected before execution",
             "internal subagent runtime does not support the assigned model",
+            "dual `external` mode",
+            "dual `native` mode blocks instead of crossing protocol versions",
             "Record the substitution only in root memory",
             "Do not create a visible Codex task",
             "persist fallback state",
@@ -833,17 +888,48 @@ class PlannedFlowContractTests(unittest.TestCase):
         for excluded in ("close_agent", "browser_route", "kill unrelated"):
             self.assertNotIn(excluded, commit_skill)
 
-    def test_failed_tests_use_selective_exact_elevation(self) -> None:
+    def test_test_permissions_respect_active_choice_and_guardian_default(
+        self,
+    ) -> None:
         runtime = (self.references / "runtime_verification.md").read_text()
         worker = self.instructions("orchestra_implementation_worker")
-        for text in (runtime, worker, self.skill):
+        sources = (
+            runtime,
+            worker,
+            self.skill,
+            (ROOT / "AGENTS.md").read_text(),
+            (ROOT / "VISION.md").read_text(),
+            (ROOT / "docs/WORKFLOW.md").read_text(),
+            (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+        )
+        for text in sources:
             normalized = " ".join(text.split())
-            self.assertIn("Classify a failure from", normalized)
-            self.assertIn("sandbox", normalized)
-            self.assertIn("sockets", normalized)
+            self.assertIn(
+                "synchronizes Guardian (`:workspace`, `on-request`, and Auto-review) "
+                "as the default",
+                normalized,
+            )
+            self.assertIn(
+                "active permission choice for the task, host, or launcher",
+                normalized,
+            )
+            self.assertIn(
+                "never changes it or blocks execution solely because it differs",
+                normalized,
+            )
+            self.assertIn("When Guardian is active", normalized)
+            self.assertIn("Auto-review", normalized)
+            self.assertIn("protected boundary", normalized)
+            self.assertIn(
+                "one narrow escalation for automatic review",
+                normalized,
+            )
+            self.assertIn("manual approvals", normalized)
+            self.assertIn("Full Access", normalized)
+            self.assertIn("Never retry a denial", normalized)
             self.assertIn("CLI-usage failures", normalized)
-            self.assertIn("one exact elevated retry", normalized)
-        self.assertNotIn("any failed test", self.skill)
+            self.assertNotIn("danger-full-access", normalized)
 
     def test_phase_resource_ownership_is_transient_and_bounded(self) -> None:
         verifier = self.instructions("orchestra_verifier")
@@ -962,6 +1048,22 @@ class PlannedFlowContractTests(unittest.TestCase):
             "Preserve evidence for the unchanged revision",
         ):
             self.assertIn(contract, routing)
+        for model_contract in (
+            "run `python3 \"${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/session_model.py\"` once",
+            "immutable lookup mode for the task",
+            "current session helper returns the same mode",
+            "Changing `native` and `external` requires a new task",
+        ):
+            self.assertIn(model_contract, routing)
+        pr_review = (
+            ROOT / "codex/skills/orchestra-pr-review/SKILL.md"
+        ).read_text()
+        for review_contract in (
+            "run the installed `session_model.py`",
+            "require its `modelconfig` to match the plan",
+            "a mismatch blocks review dispatch",
+        ):
+            self.assertIn(review_contract, pr_review)
 
     def test_planning_requires_feasibility_and_execution_readiness(self) -> None:
         context = (self.references / "repository_context.md").read_text()

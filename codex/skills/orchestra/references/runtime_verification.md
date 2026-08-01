@@ -6,17 +6,19 @@ Use this internal playbook only with the `orchestra_verifier` profile and the ex
 
 - Run the packet's smallest sufficient set of targeted tests, runtime checks, static checks, or log inspections against the exact revision.
 - Confirm command arguments and working directory before execution. Commands must not pass through an unrequested shell wrapper or mutate source.
-- Run tests in the ordinary sandbox unless the packet declares a concrete elevated requirement.
-- Classify a failure from its direct evidence before requesting elevation. Rerun
-  the exact same command, arguments, and working directory once with elevated
-  permission only when sandboxing, permissions, filesystem access, network
-  access, sockets, local services, or protected caches could plausibly explain
-  it. Do not elevate deterministic syntax, type, compile, lint, import,
-  assertion, validation-contract, or CLI-usage failures. If the cause is
-  genuinely ambiguous, one exact elevated retry is allowed. If it passes,
-  accept that evidence and record the sandbox dependency. Otherwise classify
-  trustworthy deterministic or repeated evidence. Return `blocked` when
-  required elevation is unavailable or unsafe.
+- Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+  as the default. The active permission choice for the task, host, or launcher
+  remains authoritative: Orchestra never changes it or blocks execution solely
+  because it differs.
+- When Guardian is active, commands inside the workspace run directly and one
+  exact command that crosses a protected boundary requests one narrow
+  escalation for automatic review. With manual approvals, that escalation may
+  prompt the user; with Full Access, it runs without the workspace sandbox
+  boundary. Never retry a denial through a workaround or broaden permissions.
+  Deterministic syntax, type, compile, lint, import, assertion,
+  validation-contract, and CLI-usage failures remain real failures. A missing
+  external service, credential, or dependency may return `blocked`, but never
+  broadens task authority.
 - Require test-data provenance, creation or reset method, safe identifiers, and
   cleanup when the check uses mutable data. Reuse repository fixtures or seeds.
 - Record each command or scenario, exit status, salient output, observed behavior, and any permitted generated or temporary side effects.

@@ -29,12 +29,14 @@ REQUIRED_PATHS = (
     "codex/scripts/coordination.py",
     "codex/scripts/commit_phase.py",
     "codex/scripts/adopt_worktree.py",
+    "codex/scripts/session_model.py",
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
     "codex/scripts/_common.py",
     "codex/config/roles.native.toml",
     "codex/config/roles.external.toml",
+    "codex/config/roles.dual.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/orchestra_analyst.toml",
     "codex/agents/orchestra_implementation_worker.toml",
@@ -67,6 +69,7 @@ REQUIRED_PATHS = (
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_coordination.py",
     "codex/tests/test_adopt_worktree.py",
+    "codex/tests/test_session_model.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
@@ -199,8 +202,17 @@ VALID_MODELS = {
     "gpt-5.6-sol",
     "gpt-5.6-terra",
     "gpt-5.6-luna",
+    "orchestra-v1/gpt-5.6-sol",
+    "orchestra-v1/gpt-5.6-terra",
+    "orchestra-v1/gpt-5.6-luna",
     "opencode/glm-5.2",
 }
+
+DUAL_MODEL_ALIASES = {
+    "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
+    "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
+}
+
 
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present."""
@@ -482,6 +494,52 @@ def check_roles_and_profiles(root: Path) -> list[str]:
             "role-contract: native and external must share the critical matrix"
         )
 
+    dual_path = root / "codex/config/roles.dual.toml"
+    if dual_path.is_file() and set(tiers_by_config) == {"native", "external"}:
+        try:
+            dual = tomllib.loads(dual_path.read_text(encoding="utf-8"))
+        except (tomllib.TOMLDecodeError, UnicodeError) as error:
+            failures.append(
+                f"role-contract: codex/config/roles.dual.toml is invalid: {error}"
+            )
+        else:
+            modes = dual.get("modes")
+            if set(dual) != {"modes"} or not isinstance(modes, dict) or set(
+                modes
+            ) != {"native", "external"}:
+                failures.append(
+                    "role-contract: roles.dual.toml must contain native and external modes"
+                )
+            else:
+                for modelconfig in ("native", "external"):
+                    mode = modes.get(modelconfig)
+                    tiers = mode.get("tiers") if isinstance(mode, dict) else None
+                    if not isinstance(mode, dict) or set(mode) != {"tiers"}:
+                        failures.append(
+                            f"role-contract: dual {modelconfig} must contain tiers only"
+                        )
+                        continue
+                    expected = tiers_by_config[modelconfig]
+                    if modelconfig == "external":
+                        expected = {
+                            tier: {
+                                capability: {
+                                    **assignment,
+                                    "model": DUAL_MODEL_ALIASES.get(
+                                        assignment["model"],
+                                        assignment["model"],
+                                    ),
+                                }
+                                for capability, assignment in assignments.items()
+                            }
+                            for tier, assignments in expected.items()
+                        }
+                    if tiers != expected:
+                        failures.append(
+                            f"role-contract: dual {modelconfig} assignments must "
+                            f"match the approved {modelconfig} matrix and protocol aliases"
+                        )
+
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
     if actual_profiles != sorted(PROFILE_NAMES):
@@ -649,6 +707,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "timeout_ms: 600000",
             "Never implement in, switch, or reuse the source checkout",
             "same live preapproval task",
+            "session_model.py",
         ),
         "orchestra-phase-commit": ("commit_phase.py",),
         "orchestra-pr-review": (
@@ -732,6 +791,8 @@ def check_direct_sync(root: Path) -> list[str]:
                 "LEGACY_AGENTS",
                 "HELPERS",
                 "MODELCONFIGS",
+                "PERMISSION_PROFILE",
+                "GUARDIAN_MIN_VERSION",
             }:
                 try:
                     constants[node.targets[0].id] = ast.literal_eval(node.value)
@@ -761,15 +822,32 @@ def check_direct_sync(root: Path) -> list[str]:
         "coordination.py",
         "commit_phase.py",
         "adopt_worktree.py",
+        "session_model.py",
         "policy.py",
         "pr.py",
         "integrate_local.py",
         "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly seven helpers")
-    if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external"):
+        failures.append("sync-contract: sync inventory must name exactly eight helpers")
+    if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external", "dual"):
         failures.append(
-            "sync-contract: modelconfig choices must be exactly native and external"
+            "sync-contract: modelconfig choices must be exactly native, external, and dual"
+        )
+    if constants.get("PERMISSION_PROFILE") != ":workspace":
+        failures.append(
+            "sync-contract: installs must select the built-in workspace profile"
+        )
+    if tuple(constants.get("GUARDIAN_MIN_VERSION", ())) != (0, 146, 0):
+        failures.append(
+            "sync-contract: Guardian installs must require Codex 0.146.0 or later"
+        )
+    if "b'approval_policy = \"on-request\"'" not in text:
+        failures.append(
+            "sync-contract: managed permissions must keep approvals interactive"
+        )
+    if "b'approvals_reviewer = \"auto_review\"'" not in text:
+        failures.append(
+            "sync-contract: managed approvals must route through Auto-review"
         )
     if '"--modelconfig"' not in text:
         failures.append("sync-contract: CLI must expose --modelconfig")
@@ -798,9 +876,13 @@ def check_direct_sync(root: Path) -> list[str]:
     role_sources = sorted(
         path.name for path in (root / "codex/config").glob("roles.*.toml")
     )
-    if role_sources != ["roles.external.toml", "roles.native.toml"]:
+    if role_sources != [
+        "roles.dual.toml",
+        "roles.external.toml",
+        "roles.native.toml",
+    ]:
         failures.append(
-            "sync-contract: source must contain exactly native and external role matrices"
+            "sync-contract: source must contain exactly dual, native, and external role matrices"
         )
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():

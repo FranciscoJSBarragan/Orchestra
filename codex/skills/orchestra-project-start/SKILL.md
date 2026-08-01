@@ -56,9 +56,13 @@ needed to prove the foundation. Preserve unrelated files and existing Git state.
 Initialize Git only when the user approved it.
 
 Run the smallest sufficient fresh checks and read their results. Classify
-deterministic failures directly; request elevated permission only when the
-sandbox, permissions, filesystem, network, sockets, local services, or protected
-caches could plausibly explain the failure.
+deterministic failures directly. Orchestra synchronizes Guardian
+(`:workspace`, `on-request`, and Auto-review) as the default, while the active
+permission choice for the task, host, or launcher remains authoritative.
+Orchestra never changes that choice or blocks solely because it differs. When
+Guardian is active, use one exact automatically reviewed escalation for a
+protected boundary; never broaden the confirmed project scope merely because
+an external service, credential, or dependency is missing.
 
 ## Hand off and offer Orchestra
 

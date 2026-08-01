@@ -127,7 +127,31 @@ class RoutingActivationContractTests(unittest.TestCase):
             self.assertEqual(set(roles["tiers"]), {"standard", "critical"})
             self.assertEqual(len(roles["tiers"]["standard"]), 10)
             self.assertEqual(len(roles["tiers"]["critical"]), 10)
+        dual = tomllib.loads(
+            (ROOT / "codex/config/roles.dual.toml").read_text()
+        )
+        self.assertEqual(set(dual), {"modes"})
+        self.assertEqual(set(dual["modes"]), {"native", "external"})
+        for mode in dual["modes"].values():
+            self.assertEqual(set(mode), {"tiers"})
+            self.assertEqual(set(mode["tiers"]), {"standard", "critical"})
+            self.assertEqual(len(mode["tiers"]["standard"]), 10)
+            self.assertEqual(len(mode["tiers"]["critical"]), 10)
         self.assertNotIn("Tier: light", self.skill)
+
+    def test_dual_mode_is_detected_before_tier_and_immutable_per_task(self) -> None:
+        flat_skill = self._flat(self.skill)
+        self.assertLess(
+            flat_skill.index("Resolve the installed model configuration"),
+            flat_skill.index("Recommend and transition tiers"),
+        )
+        for contract in (
+            "session_model.py",
+            "require an `ok` result",
+            "immutable lookup mode for the task",
+            "Changing `native` and `external` requires a new task",
+        ):
+            self.assertIn(contract, flat_skill)
 
     def test_plan_is_first_persisted_as_active(self) -> None:
         for text in (self.skill, self.workflow, self.runtime):

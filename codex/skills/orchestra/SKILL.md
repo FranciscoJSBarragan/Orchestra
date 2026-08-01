@@ -41,6 +41,28 @@ An explicit instruction given after the corresponding scope, warning, plan, or
 pending action was presented satisfies that checkpoint while material facts
 remain unchanged. Do not ask for the same confirmation twice.
 
+## Resolve the installed model configuration
+
+Before recommending a tier or creating resources, read
+`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`.
+
+When it contains top-level `modes`, require exactly `native` and `external`,
+run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/session_model.py"`
+once, and require an `ok` result. Use its `modelconfig` as the immutable lookup
+mode for the task and report the selected mode concisely. If the user explicitly
+requested the other mode, or the helper blocks because the root model, protocol,
+or reasoning effort is incompatible, stop before tier selection, worktree
+creation, or capability dispatch and tell the user which model selector entry
+is required for a new task. Never change or respawn the root model.
+
+When the installed matrix contains top-level `tiers`, treat it as a legacy
+fixed configuration and preserve the existing behavior without running the
+session helper. Keep the selected dual mode in root memory before approval and
+record it in Decisions when `plan.md` becomes active. A resumed dual task uses
+the recorded mode only after the current session helper returns the same mode.
+Changing `native` and `external` requires a new task; a tier transition never
+changes the selected model configuration.
+
 ## Recommend and transition tiers
 
 Recommend `Tier: standard|critical — <matching condition>: <one-line evidence>`
@@ -82,10 +104,12 @@ choose the first matching pair of available
 `orchestra/<task-slug>[-N]` branch and
 `<worktree-root>/<repository>/<task-slug>[-N]` checkout path. Create the
 repository directory, write and remove one temporary canary there, and block
-before any capability dispatch if that exact sandboxed write fails. Do not use
-an elevated edit path as a substitute for a writable task checkout.
+before any capability dispatch if that exact write fails.
 
-Create the selected checkout with `git worktree add`.
+Create the selected checkout with `git worktree add`, using the exact source
+checkout, target path, `orchestra/*` branch, and captured full base revision. If
+creation fails, inspect the exact branch, path, and Git error once and block
+before capability dispatch.
 Never implement in, switch, or reuse the source checkout or a host-managed
 worktree. Fresh work starts at the captured base revision.
 Adopted committed work starts at its source HEAD while retaining the
@@ -115,16 +139,28 @@ commit.
 
 ## Resolve assignments and references
 
-Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root. Read `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only machine-readable assignment matrix. Resolve exactly `tiers.<tier>.<capability>` and require that entry to contain only `profile`, `model`, and `reasoning_effort`. Load `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the packet, and use the assignment's explicit model and reasoning overrides when spawning. A profile never selects its capability or assignment.
+Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
+`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only
+machine-readable assignment matrix. For a dual matrix resolve exactly
+`modes.<modelconfig>.tiers.<tier>.<capability>` using the immutable mode
+selected above. For a legacy matrix resolve exactly
+`tiers.<tier>.<capability>`. Require every selected entry to contain only
+`profile`, `model`, and `reasoning_effort`. Load
+`${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the
+packet, and use the assignment's explicit model and reasoning overrides when
+spawning. A profile never selects its capability or assignment.
 
 Always attempt the installed assignment first. Only when a
 `repository_context` spawn is rejected before execution because the internal
-subagent runtime does not support the assigned model, retry that same `orchestra_analyst`
-packet internally with Luna and reasoning `high`. Record the
-substitution only in root memory for the live task. Do not create a visible
-Codex task, persist fallback state, edit the source or installed matrix, or use
-this fallback for another capability. If any other capability's assigned model
-is unsupported, return `blocked`.
+subagent runtime does not support the assigned model, retry that same
+`orchestra_analyst` packet internally with Luna and reasoning `high` only for a
+legacy matrix or the dual `external` mode. The dual external retry uses the
+installed Orchestra V1 Luna alias; legacy mode uses its existing Luna entry.
+The dual `native` mode blocks instead of crossing protocol versions. Record the
+substitution only in root memory for the live task when it is permitted. Do not
+create a visible Codex task, persist fallback state, edit the source or
+installed matrix, or use this fallback for another capability. If any other
+capability's assigned model is unsupported, return `blocked`.
 
 Compose assignments as follows:
 
@@ -199,7 +235,8 @@ consumer infers the candidate from the newest artifacts.
 After approval, the root resolves `git rev-parse --git-path orchestra/plan.md`
 in the task worktree and writes it directly as `active`. It contains
 task and Git identity, active tier, user and root decisions, authorized
-preexisting changes, the approved overview verbatim, and an exact phase
+preexisting changes, the immutable dual model configuration when applicable,
+the approved overview verbatim, and an exact phase
 manifest with each artifact identifier, private path, revision, phase status,
 accepted commit, blocker, and next action. It does not duplicate detailed phase
 documents. The private paths permit resume when SQLite is unavailable. When
@@ -257,15 +294,18 @@ invalidates the current assignment.
 
 Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed unless fallback is also authorized. A profile may report that route's technical blocker but may not veto or substitute it. `auto` explicitly selects Codex's in-app Browser first and may use Computer Use with Chrome only for a technical availability or capability gap. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed fallback, close the in-app task tab and repeat the complete scenario in a separate Chrome task tab. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
 
-Tests run sandboxed unless the packet declares a concrete elevated need.
-Classify a failure from direct evidence. Rerun the exact command, arguments, and
-working directory once with elevated permission only when sandboxing,
-permissions, filesystem, network, sockets, local services, or protected caches
-could plausibly explain it. Do not elevate deterministic syntax, type, compile,
-lint, import, assertion, validation-contract, or CLI-usage failures. A genuinely
-ambiguous failure may receive one exact elevated retry. Record a sandbox
-dependency when that retry passes, trust deterministic or repeated failure
-evidence, and return `blocked` when required elevation is unavailable or unsafe.
+Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. The active permission choice for the task, host, or launcher
+remains authoritative: Orchestra never changes it or blocks execution solely
+because it differs. When Guardian is active, commands inside the workspace run
+directly and one exact command that crosses a protected boundary requests one
+narrow escalation for automatic review. With manual approvals, that escalation
+may prompt the user; with Full Access, it runs without the workspace sandbox
+boundary. Never retry a denial through a workaround or broaden permissions.
+Deterministic syntax, type, compile, lint, import, assertion,
+validation-contract, or CLI-usage failures remain real failures. A missing
+external service, credential, or dependency may still return `blocked`, but
+never broadens task authority.
 
 At a user-directed tier change, wait for the current tool call to settle,
 collect the exact revision and dirty diff, evidence, progress, pending work, and

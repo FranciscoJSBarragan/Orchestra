@@ -206,6 +206,10 @@ Orchestra may persist only contracts with direct consumers:
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
 
+The installed session-model helper is a read-only runtime probe consumed only
+by the dual Orchestra routing skill. It persists no state and returns a compact
+JSON result.
+
 The provisional specification remains in conversation. An unapproved formal
 candidate is one `plan-overview`, one `plan-phase` per phase, and optional
 `plan-review` artifacts. Its current membership is an explicit bundle of IDs,
@@ -261,33 +265,51 @@ into an Orchestra task worktree; that helper keeps no state.
 ## Model and reasoning configuration
 
 The approved capability matrices are documented in `WORKFLOW.md`. The user
-selects the root's current Sol medium or Sol high session outside Orchestra, and
-the root has no machine-readable assignment. The source contains complete
-`native` and `external` role matrices. Direct sync installs exactly one of them
-at the canonical `$CODEX_HOME/orchestra/roles.toml` path and records the global
-selection in the install manifest. Orchestra reads only that canonical path; it
-has no task-level model selector or configuration state.
+selects the root's current Sol medium or Sol high entry outside Orchestra.
+Source retains the legacy `native` and `external` matrices and adds one `dual`
+matrix. Direct sync installs exactly one at the canonical
+`$CODEX_HOME/orchestra/roles.toml` path and records that install choice.
 
-The two configurations differ only in their standard assignments and share one
-critical matrix. Skills pass the installed explicit overrides when spawning a
-profile. Profiles contain behavior; playbooks contain capability instructions
-only for the seven capabilities listed above, and architecture guidance remains
-one shared reference. Switching the installed matrix is an explicit sync
-operation outside ordinary task execution and must not occur while an Orchestra
-task is active.
+The dual matrix contains `native` and `external` modes. Before task setup, a
+read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
+reads its latest turn context, and accepts only native Sol V2 or the Orchestra
+Sol V1 compatibility alias. It maps those combinations to the corresponding
+mode and requires medium or high root effort. The result is kept in memory
+before plan approval and in plan Decisions afterward. It is immutable for the
+task and must match again on resume. This is routing evidence, not a new model
+selector: Orchestra never changes or respawns the root.
 
-The task's active tier is a user-selected lookup key into that one installed
-matrix. It may change in either direction without changing the matrix itself.
-Because spawned agents cannot change model or reasoning effort, a safe
-transition replaces only live agents whose assignment differs and passes them a
-compact continuation packet.
+Legacy installations remain fixed and do not invoke session detection. Their
+existing sync and task behavior stays compatible. In the dual matrix, native
+mode is equal to the legacy native matrix. External mode is equal to the legacy
+external matrix except that every native OpenAI model reference uses a
+CodexBridge `orchestra-v1/` alias. The bridge publishes those aliases only in
+catalog mode, marks them V1, rewrites them to their native target before
+forwarding, and never sends them through CLIProxyAPI.
+
+The two logical modes differ only in their standard assignments and share one
+critical capability/profile/reasoning matrix; external critical uses the V1 Sol
+alias so it never crosses protocol versions. Skills pass the selected explicit
+overrides when spawning a profile. Profiles contain behavior; playbooks contain
+capability instructions only for the seven capabilities listed above, and
+architecture guidance remains one shared reference.
+
+The task's active tier is a user-selected lookup key inside its immutable mode.
+It may change in either direction without changing that mode. Because spawned
+agents cannot change model or reasoning effort, a safe transition replaces only
+live agents whose assignment differs and passes them a compact continuation
+packet. Changing between native V2 and external V1 requires a new task started
+from the matching root selector entry.
 
 Assignment resolution still prefers the exact installed model. A narrow runtime
 compatibility rule permits only `repository_context` to retry internally with
-`gpt-5.6-luna` reasoning `high` when its assigned model is rejected as
-unsupported before execution. The root records the substitution only in memory
-for the live task. It creates no visible Codex task, persists no fallback,
-changes no matrix, and blocks unsupported models for every other capability.
+Luna at reasoning `high` when its assigned model is rejected as unsupported
+before execution. Legacy installations retain their existing fallback; dual
+external uses the installed Orchestra V1 Luna alias; dual native blocks instead
+of crossing protocol versions. The root records a permitted substitution only
+in memory for the live task. It creates no visible Codex task, persists no
+fallback, changes no matrix, and blocks unsupported models for every other
+capability.
 
 A second critical review requires a named measurable risk. No Orchestra
 assignment uses Sol xhigh. Frontend work and browser acceptance remain separate
@@ -295,13 +317,16 @@ dispatches.
 
 ## Verification environment and browser routing
 
-Tests use ordinary sandboxing unless the packet declares a concrete elevated
-need. A failed test receives one exact elevated retry only when sandboxing,
-permissions, filesystem, network, sockets, services, protected caches, or
-genuinely ambiguous evidence could explain it. Deterministic syntax, type,
-compile, lint, import, assertion, validation-contract, and CLI-usage failures
-are classified directly. A pass records a sandbox dependency; unavailable or
-unsafe required elevation returns `blocked`.
+Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. The active permission choice for the task, host, or launcher
+remains authoritative: Orchestra never changes it or blocks execution solely
+because it differs. When Guardian is active, commands inside the workspace run
+directly and one exact command that crosses a protected boundary requests one
+narrow escalation for automatic review. With manual approvals, that escalation
+may prompt the user; with Full Access, it runs without the workspace sandbox
+boundary. Never retry a denial through a workaround or broaden permissions.
+Deterministic syntax, type, compile, lint, import, assertion,
+validation-contract, and CLI-usage failures remain real failures.
 
 Browser packets use the transient `browser_route` value `auto`, `in_app`, or
 `chrome`. An explicit user route is attempted even as a tool canary and fixed
@@ -394,13 +419,16 @@ Tests protect the few important invariants:
 - the skill never changes the host into a planning-only mode;
 - ordinary plan requests, direct implementation, and descriptive mentions do
   not activate Orchestra;
-- initial routing follows minimum brief, tier, read-only preflight, sibling
-  worktree creation, focused repository context, final specification, then
-  formal plan;
+- initial routing follows minimum brief, installed-mode resolution, tier,
+  read-only preflight, sibling worktree creation, focused repository context,
+  final specification, then formal plan;
 - repeated repository context requests only targeted deltas and every one-shot
   analyst closes after its result;
 - only repository context may use the transient Luna-high unsupported-model
-  fallback, after attempting the installed assignment first;
+  fallback, after attempting the installed assignment first and without
+  crossing from dual native V2 into V1;
+- dual routing derives an immutable task mode from the root model and
+  multi-agent version, while legacy native and external installs remain fixed;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
 - every formal task creates one collision-free Orchestra-root worktree without
@@ -413,8 +441,10 @@ Tests protect the few important invariants:
 - local plan resume reconciles against Git instead of overriding it;
 - phase owners, reviewers, and capability verifiers are reused only within one
   phase and close before its commit;
-- only plausibly environment-dependent or genuinely ambiguous test failures
-  receive one exact elevated retry before broader diagnosis;
+- the synchronized Guardian defaults remain distinct from an authoritative
+  explicit task, host, or launcher permission choice, and under Guardian test
+  failures use at most one exact automatically reviewed boundary escalation
+  with no denial retry;
 - the root recommends a tier, the user selects it, and a user-directed tier
   transition preserves unchanged work and evidence;
 - browser routing honors explicit selection and otherwise prefers the in-app
@@ -458,20 +488,25 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Task worktree creation remains a direct root Git operation. Its
-path is `<worktree-root>/<repository>/<task-slug>[-N]`, where synchronization
+never clean. Task worktree creation remains a direct root `git worktree add`
+operation using the configured
+`<worktree-root>/<repository>/<task-slug>[-N]` path, matching
+`orchestra/<task-slug>[-N]` branch, and exact base commit. Synchronization
 records the absolute root and manages one reversible Codex permission backend.
-Codex 0.138 or later receives the `orchestra-workspace` profile; older clients
-receive the separate legacy `workspace-write` block. Both authorize
-the absolute `$HOME/.orchestra` parent, any external explicit worktree root, and
-exact cache paths discovered from installed Poetry, pip, uv, and npm commands.
-Discovery is read-only, temporary-directory scoped, and rejects broad,
-sensitive, external, or escaping paths. Public command networking and explicit
-loopback destinations are enabled, but broad private-network access, Docker
-state, and Unix sockets are never authorized this way. User-owned profiles or
-sandbox blocks that cannot be migrated unambiguously stop synchronization. The
-root proves write access with a temporary canary before dispatch; active
-worktrees in older locations are never migrated implicitly.
+Codex 0.146.0 or later receives the built-in `:workspace` profile with
+`approval_policy = "on-request"` and
+`approvals_reviewer = "auto_review"`; older clients block before mutation.
+Historical manifest-owned Full Access and legacy blocks remain migration and
+uninstall inputs only. No legacy sandbox mode, custom permission profile,
+writable-root list, worktree helper, or command rule is installed. Direct App
+Server launchers omit permission overrides to inherit those defaults. Explicit
+launcher overrides remain authoritative and are neither rejected nor rewritten;
+the exact workspace, on-request, and Auto-review values select Guardian
+explicitly. User-owned profiles or sandbox blocks that cannot be migrated
+unambiguously stop synchronization. When Guardian is active, the root proves
+write access with a temporary canary before dispatch, then requests one exact
+automatically reviewed escalation when direct Git must write protected shared
+metadata; active worktrees in older locations are never migrated implicitly.
 Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
 import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
@@ -486,8 +521,9 @@ unused mechanisms.
 
 The source repository is authoritative. V1 installation uses only
 repository-driven direct sync. A single sync tool owns explicitly managed Codex
-resources, supports dry-run and backup, preserves unrelated user configuration,
-and reports what it installed. Orchestra runtime installation is never part of
+resources. It supports dry-run and backup, preserves unrelated user
+configuration, reports what it installed, and requires a restart when its
+permission backend changes. Orchestra runtime installation is never part of
 ordinary task execution, and bootstrap of Orchestra itself must not invoke
 Orchestra.
 
@@ -504,8 +540,10 @@ removes stale owned resources only after a complete preflight. `uninstall`
 removes only content that still matches the manifest digest; drift and unrelated
 configuration are preserved and reported. The generated manifest is ownership
 evidence, while backups are bounded safety evidence rather than a recovery log.
-An explicit user-owned sandbox mode, network decision, default permission
-profile, or incompatible root blocks preflight without byte changes. Only a
-manifest-owned permission block may migrate between legacy and profile
-backends. Permission edits remove exact TOML spans and preserve all unrelated
-bytes, including multiline strings.
+An explicit user-owned sandbox mode, default permission profile, or incompatible
+legacy sandbox table blocks preflight without byte changes. Synchronization
+takes reversible ownership of `approval_policy`, `approvals_reviewer`, and
+`default_permissions`, preserving their previous values for exact uninstall.
+Only a manifest-owned permission block may migrate from historical legacy or
+Full Access forms. Permission edits remove exact TOML spans and preserve all
+unrelated bytes, including multiline strings.
