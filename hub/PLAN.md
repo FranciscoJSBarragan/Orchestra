@@ -22,7 +22,7 @@ hub/orchestra_hub/  __init__.py __main__.py config.py fingerprint.py
                     db.py api.py panel.py server.py
 hub/tests/          support.py test_support.py test_fingerprint.py
                     test_config.py test_db.py test_schema_crosscheck.py
-                    test_api.py test_panel.py test_server.py
+                    test_api.py test_panel.py test_server.py test_swiftbar.py
 hub/launchd/        com.orchestra.hub.plist
 hub/swiftbar/       orchestra_hub.1m.py
 ```
@@ -553,13 +553,23 @@ Document results as a short checklist in the task/commit message.
 
 # Phase 3 — SwiftBar plugin (SPEC §13)
 
-### Task 12: `hub/swiftbar/orchestra_hub.1m.py`
+### Task 12: `hub/swiftbar/orchestra_hub.1m.py`,
+`hub/tests/test_swiftbar.py`
 
 Single-file Python plugin (complete implementation below). Install by
 symlinking into the SwiftBar plugins folder. It polls `/v1/summary`,
 compares the server-computed fingerprints against a local baseline, and
 notifies only on material changes — one aggregated notification on first
 baseline (SPEC §13).
+
+**Test first** (`test_swiftbar.py`; load the plugin module by file path without
+executing `main`, patch its network/state/notification functions, and capture
+stdout):
+- a first baseline with only a `stale` attention reason emits no notification;
+- a first baseline with blocker attention emits exactly one aggregated
+  notification counted from blocker entries only;
+- dynamic labels, details, stages, and statuses containing `|`, `\r`, or `\n`
+  cannot create extra SwiftBar parameters or output lines.
 
 ```python
 #!/usr/bin/env python3
@@ -611,6 +621,10 @@ def fetch_summary() -> dict | None:
         return None
 
 
+def swiftbar_text(value: object) -> str:
+    return str(value).replace("|", "¦").replace("\r", " ").replace("\n", " ")
+
+
 def main() -> None:
     summary = fetch_summary()
     if summary is None or summary.get("status") != "ok":
@@ -627,15 +641,19 @@ def main() -> None:
         for task in summary["tasks"]
     }
     attention = summary["attention"]
+    blockers = [
+        entry for entry in attention
+        if "blocker" in entry["reasons"]
+    ]
     baseline = (
         state is None
         or state["material_fingerprint_version"] != version
     )
     if baseline:
-        if attention:
+        if blockers:
             notify(
                 "Orchestra Hub",
-                f"{len(attention)} task(s) may need attention",
+                f"{len(blockers)} task(s) may need attention",
             )
     else:
         changed = [
@@ -660,9 +678,12 @@ def main() -> None:
     print(f"O {count}" if count else "O")
     print("---")
     for entry in attention:
-        reasons = ",".join(entry["reasons"])
-        detail = entry["blocker"] or entry["next_action"] or ""
-        print(f"{entry['label']} ({reasons}) | color=red")
+        label = swiftbar_text(entry["label"])
+        reasons = swiftbar_text(",".join(entry["reasons"]))
+        detail = swiftbar_text(
+            entry["blocker"] or entry["next_action"] or ""
+        )
+        print(f"{label} ({reasons}) | color=red")
         if detail:
             print(f"-- {detail[:80]}")
     if not attention:
@@ -670,7 +691,10 @@ def main() -> None:
     print("---")
     for task in summary["tasks"]:
         if task["status"] != "completed":
-            print(f"{task['label']} — {task['stage']}/{task['status']}")
+            label = swiftbar_text(task["label"])
+            stage = swiftbar_text(task["stage"])
+            status = swiftbar_text(task["status"])
+            print(f"{label} — {stage}/{status}")
     print("---")
     print(f"Open panel | href={HUB}/")
 

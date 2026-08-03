@@ -47,6 +47,10 @@ def fetch_summary() -> dict | None:
         return None
 
 
+def swiftbar_text(value: object) -> str:
+    return str(value).replace("|", "¦").replace("\r", " ").replace("\n", " ")
+
+
 def main() -> None:
     summary = fetch_summary()
     if summary is None or summary.get("status") != "ok":
@@ -63,15 +67,19 @@ def main() -> None:
         for task in summary["tasks"]
     }
     attention = summary["attention"]
+    blockers = [
+        entry for entry in attention
+        if "blocker" in entry["reasons"]
+    ]
     baseline = (
         state is None
         or state["material_fingerprint_version"] != version
     )
     if baseline:
-        if attention:
+        if blockers:
             notify(
                 "Orchestra Hub",
-                f"{len(attention)} task(s) may need attention",
+                f"{len(blockers)} task(s) may need attention",
             )
     else:
         changed = [
@@ -96,9 +104,12 @@ def main() -> None:
     print(f"O {count}" if count else "O")
     print("---")
     for entry in attention:
-        reasons = ",".join(entry["reasons"])
-        detail = entry["blocker"] or entry["next_action"] or ""
-        print(f"{entry['label']} ({reasons}) | color=red")
+        label = swiftbar_text(entry["label"])
+        reasons = swiftbar_text(",".join(entry["reasons"]))
+        detail = swiftbar_text(
+            entry["blocker"] or entry["next_action"] or ""
+        )
+        print(f"{label} ({reasons}) | color=red")
         if detail:
             print(f"-- {detail[:80]}")
     if not attention:
@@ -106,7 +117,10 @@ def main() -> None:
     print("---")
     for task in summary["tasks"]:
         if task["status"] != "completed":
-            print(f"{task['label']} — {task['stage']}/{task['status']}")
+            label = swiftbar_text(task["label"])
+            stage = swiftbar_text(task["stage"])
+            status = swiftbar_text(task["status"])
+            print(f"{label} — {stage}/{status}")
     print("---")
     print(f"Open panel | href={HUB}/")
 
