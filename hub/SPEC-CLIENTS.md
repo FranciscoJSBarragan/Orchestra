@@ -97,21 +97,24 @@ Name: **OrchestraHubMenu**. Swift, AppKit, single source file
 a minimal `OrchestraHubMenu.app` bundle (`Info.plist` with
 `LSUIElement = true`, no Dock icon, no main window).
 
-- **Status item title** (frozen rule, max 40 characters):
-  - No active tasks → `◦` (dimmed glyph only).
-  - One repository with active tasks → `<name>:<active_count>`
-    (e.g. `Orchestra:2`).
-  - Multiple → `<n> repos·<total_active>` (e.g. `2 repos·5`).
-  - Hub unreachable/degraded → `⚠ Hub`.
+- **Status item** (frozen rule, updated after user-approved presentation
+  pass): a template SF Symbol icon is always shown; the adjacent
+  monospaced-digit title (max 40 characters) is:
+  - No active tasks → empty (icon alone).
+  - One repository with active tasks → `<name> <active_count>`
+    (e.g. `Orchestra 2`).
+  - Multiple → `<n> repos · <total_active>` (e.g. `2 repos · 5`).
+  - Hub unreachable/degraded → `!` with the icon tinted red.
   - A repository is "active" when it has at least one task with
     `status != "completed"`.
-- **Menu contents:**
-  - One section per active repository (header = repo name), listing its
-    active tasks as `label — stage/status`; a task with a non-empty
-    `blocker` is marked and shows the blocker text as an indented
-    disabled item (truncated to 80 chars).
-  - When nothing is active: a single disabled item "No active tasks".
-  - When unreachable: a single disabled item "Hub unreachable".
+- **Menu contents** (attributed text, informational items disabled):
+  - One section per active repository (bold header = repo name), listing
+    its active tasks as `● label — stage`; a task with a non-empty
+    `blocker` renders instead as red `⛔ label — needs you` with the
+    blocker text as an indented secondary item (truncated to 80 chars).
+  - When nothing is active: "All quiet — no active tasks".
+  - When unreachable: red "Hub unreachable — retrying".
+  - A dim "Updated X min ago" footer precedes the actions.
   - Separator, then: "Open panel" (opens `http://127.0.0.1:<port>/` in the
     default browser), "Refresh now", "Quit".
 - Poll `/v1/summary` every 30 seconds with `URLSession` and ETag. All menu

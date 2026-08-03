@@ -70,17 +70,18 @@ func name(for path: String, _ names: [String: String]) -> String {
     return base.isEmpty ? path : base
 }
 
+// Title next to the template icon; empty when idle (icon alone).
 func statusTitle(for state: HubState) -> String {
     switch state {
     case .unreachable:
-        return "⚠ Hub"
+        return "!"
     case .ok(let repos, let total):
-        if repos.isEmpty { return "◦" }
+        if repos.isEmpty { return "" }
         let title: String
         if repos.count == 1 {
-            title = "\(repos[0].name):\(repos[0].tasks.count)"
+            title = "\(repos[0].name) \(repos[0].tasks.count)"
         } else {
-            title = "\(repos.count) repos·\(total)"
+            title = "\(repos.count) repos · \(total)"
         }
         return title.count > titleCap
             ? String(title.prefix(titleCap - 1)) + "…" : title
@@ -91,6 +92,7 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var timer: Timer?
     private var etag: String?
+    private var lastSuccess: Date?
     private let port = readPort()
     private var panelURL: URL {
         URL(string: "http://127.0.0.1:\(port)/")!
@@ -103,6 +105,13 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(
             withLength: NSStatusItem.variableLength
         )
+        if let button = statusItem.button {
+            button.image = NSImage(
+                systemSymbolName: "point.3.connected.trianglepath.dotted",
+                accessibilityDescription: "Orchestra Hub"
+            )
+            button.imagePosition = .imageLeading
+        }
         render(.unreachable("starting"))
         timer = Timer.scheduledTimer(
             withTimeInterval: pollSeconds, repeats: true
@@ -149,50 +158,93 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
             return
         }
         etag = http.value(forHTTPHeaderField: "ETag")
+        lastSuccess = Date()
         let repos = activeRepos(from: summary)
         let total = repos.reduce(0) { $0 + $1.tasks.count }
         render(.ok(repos, totalActive: total))
     }
 
     private func render(_ state: HubState) {
-        statusItem.button?.title = statusTitle(for: state)
+        if let button = statusItem.button {
+            let title = statusTitle(for: state)
+            button.attributedTitle = NSAttributedString(
+                string: title.isEmpty ? "" : " " + title,
+                attributes: [
+                    .font: NSFont.monospacedDigitSystemFont(
+                        ofSize: NSFont.systemFontSize(for: .small),
+                        weight: .medium
+                    ),
+                ]
+            )
+            if case .unreachable = state {
+                button.contentTintColor = .systemRed
+            } else {
+                button.contentTintColor = nil
+            }
+        }
         let menu = NSMenu()
         switch state {
         case .unreachable:
-            menu.addItem(disabled("Hub unreachable"))
+            menu.addItem(styled("Hub unreachable — retrying",
+                                color: .systemRed))
         case .ok(let repos, _):
             if repos.isEmpty {
-                menu.addItem(disabled("No active tasks"))
+                menu.addItem(styled("All quiet — no active tasks",
+                                    color: .secondaryLabelColor))
             }
             for repo in repos {
-                menu.addItem(disabled(repo.name))
+                menu.addItem(styled(repo.name, color: .labelColor, bold: true))
                 for task in repo.tasks {
                     let label = task["label"] as? String ?? ""
                     let stage = task["stage"] as? String ?? ""
-                    let status = task["status"] as? String ?? ""
                     let blocker = task["blocker"] as? String ?? ""
-                    let mark = blocker.isEmpty ? "" : "⛔ "
-                    menu.addItem(disabled(
-                        "  \(mark)\(label) — \(stage)/\(status)"
-                    ))
-                    if !blocker.isEmpty {
-                        menu.addItem(disabled(
-                            "      " + String(blocker.prefix(blockerCap))
+                    if blocker.isEmpty {
+                        menu.addItem(styled(
+                            "  ● \(label) — \(stage)",
+                            color: .labelColor
+                        ))
+                    } else {
+                        menu.addItem(styled(
+                            "  ⛔ \(label) — needs you",
+                            color: .systemRed
+                        ))
+                        menu.addItem(styled(
+                            "      " + String(blocker.prefix(blockerCap)),
+                            color: .secondaryLabelColor
                         ))
                     }
                 }
             }
         }
         menu.addItem(.separator())
+        menu.addItem(styled(updatedText(), color: .tertiaryLabelColor))
         menu.addItem(action("Open panel", #selector(openPanel)))
         menu.addItem(action("Refresh now", #selector(refreshNow)))
         menu.addItem(action("Quit", #selector(quit)))
         statusItem.menu = menu
     }
 
-    private func disabled(_ title: String) -> NSMenuItem {
+    private func updatedText() -> String {
+        guard let lastSuccess else { return "Never updated" }
+        let minutes = Int(Date().timeIntervalSince(lastSuccess) / 60)
+        if minutes < 1 { return "Updated just now" }
+        return "Updated \(minutes) min ago"
+    }
+
+    private func styled(_ title: String, color: NSColor,
+                        bold: Bool = false) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.isEnabled = false
+        let size = NSFont.systemFontSize(for: .regular)
+        item.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: bold
+                    ? NSFont.boldSystemFont(ofSize: size)
+                    : NSFont.menuFont(ofSize: size),
+                .foregroundColor: color,
+            ]
+        )
         return item
     }
 
