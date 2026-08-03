@@ -10,7 +10,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import DataTable, Footer, Static, Tree
 
-from .client import FetchResult, HubClient, read_port
+from .client import FetchResult, HubClient, default_base_url
 from .viewmodel import (
     attention_flags,
     build_tree,
@@ -60,7 +60,7 @@ class HubTuiApp(App):
 
     def __init__(self, client: HubClient | None = None) -> None:
         super().__init__()
-        self.client = client or HubClient(f"http://127.0.0.1:{read_port()}")
+        self.client = client or HubClient(default_base_url())
         self.summary: dict | None = None
         self.selected_task_id: str | None = None
         self.fingerprints: dict[str, str] = {}

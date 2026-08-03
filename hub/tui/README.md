@@ -20,7 +20,18 @@ cd hub/tui
 .venv/bin/python -m orchestra_hub_tui
 ```
 
-Keys: arrows/`j`/`k` navigate, `r` refresh, `q` quit.
+Keys: arrows/`j`/`k` navigate, `r` refresh, `o` web panel, `q` quit.
+
+## Remote viewing (laptop)
+
+Set `ORCHESTRA_HUB_URL` to the Tailscale Serve URL of the Hub machine:
+
+```sh
+ORCHESTRA_HUB_URL=https://<machine>.<tailnet>.ts.net .venv/bin/python -m orchestra_hub_tui
+```
+
+Without the variable the TUI connects to the local Hub
+(`http://127.0.0.1:<port>` from `~/.orchestra/hub.toml`).
 
 ## Tests
 

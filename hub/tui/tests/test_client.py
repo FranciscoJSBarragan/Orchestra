@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 import support  # noqa: F401  (sys.path setup)
-from orchestra_hub_tui.client import HubClient, read_port
+from orchestra_hub_tui.client import HubClient, default_base_url, read_port
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
@@ -101,6 +101,23 @@ class ClientUnreachableTest(unittest.TestCase):
         result = client.fetch("/v1/summary")
         self.assertEqual(result.kind, "unreachable")
         self.assertTrue(result.detail)
+
+
+class DefaultBaseUrlTest(unittest.TestCase):
+    def test_no_override_uses_local_hub(self) -> None:
+        self.assertTrue(default_base_url({}).startswith("http://127.0.0.1:"))
+
+    def test_override_is_used_and_normalized(self) -> None:
+        env = {"ORCHESTRA_HUB_URL": "https://studio.example.ts.net/"}
+        self.assertEqual(
+            default_base_url(env), "https://studio.example.ts.net"
+        )
+
+    def test_non_http_override_is_ignored(self) -> None:
+        env = {"ORCHESTRA_HUB_URL": "studio.example.ts.net"}
+        self.assertTrue(
+            default_base_url(env).startswith("http://127.0.0.1:")
+        )
 
 
 class ReadPortTest(unittest.TestCase):

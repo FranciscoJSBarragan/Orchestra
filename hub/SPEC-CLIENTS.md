@@ -29,8 +29,11 @@ SwiftBar:
 - Both clients are strictly read-only observers. No actions, no writes, no
   remote control. Same posture as SPEC.md §1.
 - Both clients read the listen port from `<state_root>/hub.toml` (`port`,
-  default `7343`) and connect to `http://127.0.0.1:<port>` only. Remote
-  viewing remains the job of the web panel over Tailscale.
+  default `7343`) and connect to `http://127.0.0.1:<port>` by default.
+  The TUI additionally honors an `ORCHESTRA_HUB_URL` environment override
+  (http/https base URL) for remote viewing over Tailscale from another
+  machine — the config knob anticipated by the deferred item, approved by
+  the user. The menu bar app stays local-only.
 - Both clients poll with `If-None-Match`/`ETag`; a `304` means "render
   nothing new".
 - Hub unreachable or degraded (`503`) → each client shows an explicit
@@ -45,8 +48,6 @@ SwiftBar:
 
 ### Out of scope (deferred, with entry criteria)
 
-- **Remote TUI over Tailscale** — only if laptop terminal use is actually
-  wanted; would be a config knob, not a design change.
 - **Actions from any client (resume/approve/cancel)** — separate product
   line with explicit authority design; unchanged from SPEC.md.
 - **Historic/timeline views** — would require the events ledger; unchanged

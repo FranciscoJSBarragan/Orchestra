@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tomllib
 import urllib.error
 import urllib.request
@@ -34,6 +35,15 @@ def read_port(state_root: Path | None = None) -> int:
     if isinstance(port, int) and not isinstance(port, bool) and 0 < port < 65536:
         return port
     return DEFAULT_PORT
+
+
+def default_base_url(environ: dict | None = None) -> str:
+    """Local Hub by default; ORCHESTRA_HUB_URL overrides (remote viewing)."""
+    env = environ if environ is not None else os.environ
+    override = str(env.get("ORCHESTRA_HUB_URL", "")).strip()
+    if override.startswith(("http://", "https://")):
+        return override.rstrip("/")
+    return f"http://127.0.0.1:{read_port()}"
 
 
 class HubClient:
