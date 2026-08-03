@@ -8,9 +8,46 @@ import support  # noqa: F401  (sys.path setup)
 from orchestra_hub_tui.viewmodel import (
     attention_flags,
     build_tree,
+    phase_progress,
     snapshot_age,
     task_rows,
 )
+
+
+def _artifact(kind: str, phase: int, available: bool = True) -> dict:
+    return {"id": f"{kind}-{phase}", "kind": kind, "phase": phase,
+            "revision": "b" * 40, "producer": "agent-1",
+            "created_at": "2026-08-03T17:00:00Z", "available": available}
+
+
+class PhaseProgressTest(unittest.TestCase):
+    def test_no_plan_phases_returns_none(self) -> None:
+        self.assertIsNone(phase_progress([_artifact("plan-overview", 0)]))
+        self.assertIsNone(phase_progress([]))
+
+    def test_planned_without_work_is_phase_one(self) -> None:
+        artifacts = [_artifact("plan-phase", 1), _artifact("plan-phase", 2)]
+        self.assertEqual(phase_progress(artifacts), (1, 2))
+
+    def test_work_artifacts_advance_current_phase(self) -> None:
+        artifacts = [
+            _artifact("plan-overview", 0),
+            _artifact("plan-phase", 1),
+            _artifact("plan-phase", 2),
+            _artifact("plan-phase", 3),
+            _artifact("implementation-report", 1),
+            _artifact("review-report", 1),
+            _artifact("implementation-report", 2),
+        ]
+        self.assertEqual(phase_progress(artifacts), (2, 3))
+
+    def test_unavailable_work_artifacts_do_not_count(self) -> None:
+        artifacts = [
+            _artifact("plan-phase", 1),
+            _artifact("plan-phase", 2),
+            _artifact("implementation-report", 2, available=False),
+        ]
+        self.assertEqual(phase_progress(artifacts), (1, 2))
 
 
 def _task(**overrides: object) -> dict:

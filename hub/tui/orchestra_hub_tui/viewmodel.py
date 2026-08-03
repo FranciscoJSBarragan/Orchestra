@@ -72,6 +72,30 @@ def attention_flags(task: dict) -> frozenset[str]:
     return frozenset(flags)
 
 
+def phase_progress(artifacts: list[dict] | tuple) -> tuple[int, int] | None:
+    """Best-effort (current, total) phase derived from published documents.
+
+    Total = number of plan-phase documents. Current = highest phase with an
+    available non-plan document, else the first planned phase. Returns None
+    when the plan has no per-phase documents (nothing to derive).
+    """
+    planned = {
+        int(artifact.get("phase", 0))
+        for artifact in artifacts
+        if artifact.get("kind") == "plan-phase"
+    }
+    if not planned:
+        return None
+    worked = {
+        int(artifact.get("phase", 0))
+        for artifact in artifacts
+        if artifact.get("kind") not in ("plan-phase", "plan-overview")
+        and artifact.get("available")
+    }
+    current = max(worked & planned) if worked & planned else min(planned)
+    return current, len(planned)
+
+
 def snapshot_age(updated_at: str, now: datetime) -> str:
     try:
         moment = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))

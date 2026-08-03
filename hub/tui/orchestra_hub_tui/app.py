@@ -11,7 +11,13 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import DataTable, Footer, Static, Tree
 
 from .client import FetchResult, HubClient, read_port
-from .viewmodel import attention_flags, build_tree, snapshot_age, task_rows
+from .viewmodel import (
+    attention_flags,
+    build_tree,
+    phase_progress,
+    snapshot_age,
+    task_rows,
+)
 
 POLL_SECONDS = 5
 
@@ -188,7 +194,7 @@ class HubTuiApp(App):
             return f"[dim]✓ {label}[/dim]"
         flags = attention_flags(task)
         if "blocker" in flags:
-            return f"[red]⛔ {label}[/red] [dim]· {stage}[/dim]"
+            return f"[bold red]! {label}[/bold red] [dim]· {stage}[/dim]"
         icon = "[yellow]~[/yellow]" if "stale" in flags else "[green]●[/green]"
         return f"{icon} {label} [dim]· {stage}[/dim]"
 
@@ -234,10 +240,17 @@ class HubTuiApp(App):
         task = payload.get("task", {})
         now = datetime.now(timezone.utc)
         fields = dict(task_rows(task))
+        progress = phase_progress(list(payload.get("artifacts", ())))
+        phase_note = ""
+        if progress is not None:
+            current, total = progress
+            bar = "■" * current + "□" * max(total - current, 0)
+            phase_note = f" · phase {current}/{total} {bar}"
         title = (
             f"[bold]{escape(fields['label'])}[/bold]  "
             f"[dim]{escape(fields['tier'])} tier · "
-            f"{escape(fields['stage'])} · {escape(fields['status'])}[/dim]"
+            f"{escape(fields['stage'])} · {escape(fields['status'])}"
+            f"{phase_note}[/dim]"
         )
         self.query_one("#tasktitle", Static).update(title)
         callout = self.query_one("#callout", Static)
@@ -245,7 +258,7 @@ class HubTuiApp(App):
         callout.set_class(bool(blocker), "visible")
         if blocker:
             callout.update(
-                f"[bold red]⛔ Needs you:[/bold red] {escape(blocker)}"
+                f"[bold red]Needs you:[/bold red] {escape(blocker)}"
             )
         lines = []
         for field, shown in self._DETAIL_FIELDS:
