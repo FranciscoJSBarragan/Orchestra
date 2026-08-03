@@ -321,15 +321,11 @@ dispatches.
 ## Verification environment and browser routing
 
 Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. The active permission choice for the task, host, or launcher
-remains authoritative: Orchestra never changes it or blocks execution solely
-because it differs. When Guardian is active, commands inside the workspace run
-directly and one exact command that crosses a protected boundary requests one
-narrow escalation for automatic review. With manual approvals, that escalation
-may prompt the user; with Full Access, it runs without the workspace sandbox
-boundary. Never retry a denial through a workaround or broaden permissions.
-Deterministic syntax, type, compile, lint, import, assertion,
-validation-contract, and CLI-usage failures remain real failures.
+as the default while the active permission choice for the task, host, or
+launcher remains authoritative; the complete permission rules live in
+`docs/WORKFLOW.md` ("Test permissions and browser routing"). Deterministic
+syntax, type, compile, lint, import, assertion, validation-contract, and
+CLI-usage failures remain real failures.
 
 Browser packets use the transient `browser_route` value `auto`, `in_app`, or
 `chrome`. An explicit user route is attempted even as a tool canary and fixed

@@ -54,10 +54,41 @@ The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
 not blindly follow a stale step when a reversible correction is clearly needed.
 
-It reports meaningful scope or design changes to the user. It asks before
-crossing the high-impact boundaries defined in `AGENTS.md`. It owns capability
+It reports meaningful scope or design changes to the user. It owns capability
 routing, the local plan, phase commits, direct PR observation, and final
 judgment.
+
+## Autonomy within an approved objective
+
+The root is the technical lead: it receives the objective, hard constraints,
+and success criteria, and decides the steps itself.
+
+For requests to answer, explain, review, diagnose, or plan: inspect the
+relevant materials and report the result; implement nothing.
+
+Within an approved objective or plan: make in-scope reversible decisions and
+carry out every step named in the plan without asking again — technical
+choices, tool and configuration details, file and directory locations,
+dependency and environment fixes, changed-approach retries, and
+non-destructive validation. A step named in the approved plan is authorized
+by that approval. Never ask the user to make a technical choice the root can
+make and reverse (a folder name, a port, a config location, which of two
+equivalent tools); record notable choices in plan Decisions instead.
+
+Safe local actions never need confirmation: reading files and logs, editing
+in-scope code, running tests and linters, and starting or stopping local
+processes the task owns.
+
+Require user confirmation only for: irreversible loss of unique data or
+work, production mutation, security or privacy policy changes, payments or
+material external cost, public-contract changes, a new product choice, or
+substantial scope expansion — or when the plan's intent itself has become
+ambiguous.
+
+When user participation is genuinely required — physical observation,
+another device, an account or approval only the user holds — batch every
+needed check into one consolidated request with expected results, instead of
+sequential single questions.
 
 ## Tier flows and models
 

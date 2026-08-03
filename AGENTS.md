@@ -1,5 +1,9 @@
 # Orchestra Agent Rules
 
+`docs/WORKFLOW.md` is the canonical home for every operational rule. This file
+states what is required and where the mechanism is specified; it does not
+restate mechanics.
+
 ## Product source of truth
 
 Read `VISION.md`, `docs/WORKFLOW.md`, and `docs/ARCHITECTURE.md` before changing
@@ -12,27 +16,33 @@ documents; they do not redefine them independently.
 - Code, comments, commits, plans, prompts, profiles, schemas, and internal docs
   are English.
 
-## Orchestrator responsibility
+## Orchestrator responsibility and autonomy
 
 The root orchestrator owns specification alignment, tier recommendation,
-capability routing, compact synthesis, blocker resolution, and final technical
-judgment. The user chooses the active tier and remains the final authority after
-receiving a concise recommendation and any applicable warning.
-It may make reversible in-scope
-technical decisions needed to complete an approved objective.
+capability routing, compact synthesis, blocker resolution, the local plan,
+phase commits, and final technical judgment. The user chooses the active tier
+and remains the final authority after a concise recommendation.
+
+The root is the technical lead. It follows the autonomy policy in
+`docs/WORKFLOW.md` ("Autonomy within an approved objective"): within an
+approved objective it makes reversible in-scope decisions and carries out
+every step named in the approved plan without re-asking, never asks the user
+to make a technical choice it can make and reverse, and batches genuinely
+required user checks into one consolidated request.
+
+Require user confirmation only for the hard gates: irreversible loss of unique
+data or work, production mutation, security or privacy policy changes,
+payments or material external cost, public-contract changes, a new product
+choice, or substantial scope expansion. An explicit instruction given after
+the corresponding scope, warning, plan, or pending action was presented
+satisfies that checkpoint while material facts remain unchanged; do not ask
+for the same confirmation twice.
 
 Keep the root as a router, authority holder, and intelligent judge rather than
-a semantic relay. During normal planning and phase cycles it keeps exact current
-artifact IDs, revision, risks, accepted findings, and pending decisions. It
-opens complete producer-authored documents for specification, approval,
-authority or risk judgment, and convergence intervention, but does not reread
-the repository or rewrite those documents into downstream prompts without a
-confirmed root-originated correctness need.
-
-Stop for the user before destructive or irreversible operations, production
-mutation, data-loss risk, security/privacy policy changes, public-contract
-changes, new product choices, material external cost, or substantial scope
-expansion.
+a semantic relay: it holds exact current artifact identifiers, revision,
+risks, accepted findings, and pending decisions, and opens complete
+producer-authored documents for specification, approval, authority or risk
+judgment, and convergence intervention.
 
 ## Activation and specification gate
 
@@ -42,302 +52,92 @@ use or start Orchestra. Ordinary plan requests, descriptive mentions, and
 direct change, fix, or implementation work do not activate it.
 
 If Orchestra is invoked in a planning-only host mode, reuse the conversation,
-identify the latest candidate checkpoint, and pause before formal task setup.
-Do not create a branch or worktree, persist a plan, dispatch implementation,
-commit, or cross another mutation boundary. Ask the user to switch to an
-execution-capable mode, then continue from the adopted context without a second
-invocation.
-Orchestra observes the current host mode and never changes it into a
-planning-only mode.
+pause before formal task setup, and ask the user to switch to an
+execution-capable mode; then continue from the adopted context without a second
+invocation. Orchestra observes the host mode and never changes it.
 
 `orchestra-project-start` may activate implicitly for a new project, empty
-directory, stack decision, or idea without a meaningful repository. It prepares
-a proportional runnable foundation after the ordinary mutation-confirmation
-gate, then offers Orchestra. It never activates the full Orchestra workflow
-without an explicit user choice and yields to normal repository work when
-meaningful application code already exists.
+directory, stack decision, or idea without a meaningful repository. It never
+activates the full Orchestra workflow without an explicit user choice.
 
-In an execution-capable mode, reuse the prior conversation, classify the
-internal checkpoint, and obtain a minimum brief with objective, visible result,
-approximate repository area, known critical risks, and bounded factual open
-questions. If no objective was supplied, ask for it before creating resources.
-An explicitly brainstorming-only request stays read-only until the user
-authorizes formal task setup.
+In an execution-capable mode, reuse the prior conversation and obtain a
+minimum brief (objective, visible result, repository area, critical risks,
+bounded open questions). Recommend the initial tier in the same interaction.
+A brainstorming-only request stays read-only until the user authorizes task
+setup.
 
-An explicit instruction given after the corresponding scope, warning, plan, or
-pending action was presented satisfies that checkpoint while the material facts
-remain unchanged. Do not ask for the same confirmation twice.
-
-Before tier selection or resource creation, read the installed
-`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`. When it has top-level
-`modes`, run the installed `session_model.py` once and require an `ok` result.
-Use its `modelconfig` as the immutable `native` or `external` lookup mode for
-the task, record it in plan Decisions after approval, and require the same mode
-on resume. A mismatched or incompatible root model, multi-agent version, or
-reasoning effort blocks before task setup; Orchestra never changes or respawns
-the root. A legacy matrix with top-level `tiers` remains fixed and skips
-session detection.
-
-Recommend an initial tier from the brief and obtain the user's explicit choice,
-then perform a short read-only Git and execution-readiness preflight. Read
-repository delivery policy and resolve the intended base branch and revision.
-Resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed
-`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
-`$HOME/.orchestra/worktrees`. Under `<root>/<repository>/`, prove write access
-with a temporary canary, then create the first matching available
-`orchestra/<task-slug>[-N]` branch and
-`<root>/<repository>/<task-slug>[-N]` worktree before repository analysis or
-capability dispatch. Block rather than relying on elevated edits when the
-canary fails. Create the exact branch and checkout with `git worktree add`
-against the captured full base revision. If creation fails, inspect the named
-branch, path, and Git error once and block before capability dispatch. Never
-implement in or switch the source checkout, and never reuse a host-managed
-worktree as the task checkout. Use the exact task worktree for focused `repository_context`,
-specification, planning, implementation, review, verification, and commits.
-After worktree creation, attempt idempotent registration through
-`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py`. Treat
-`invalid` or `unavailable` as lost observability and continue through complete
-inline packets without retry or reduced authority.
-Reuse requires exact approved-plan agreement on path, branch, base, and HEAD.
-Never migrate an active task from an older worktree location automatically.
+Before tier selection, resolve the installed model configuration
+(`roles.toml` + `session_model.py` for dual matrices) as specified in
+`docs/WORKFLOW.md`; the selected mode is immutable for the task and Orchestra
+never changes or respawns the root.
 
 ## Tier selection
 
-Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` before
-execution. Explain the material risk and expected scrutiny or cost in one short
-user-facing summary, then obtain the user's explicit tier choice. The user may
-choose `standard` after a `critical` recommendation; that choice changes model
-and workflow intensity but never waives separate authority gates for production,
-migrations, data, security, payments, destructive actions, or other high-impact
-mutations.
+Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
+the user's explicit choice. `standard` covers ordinary planned features and
+fixes; `critical` covers security-sensitive work, credentials, payments,
+migrations, destructive actions, or production changes. Destructive means
+irreversible loss of unique data or work; proven-reversible operations do not
+force critical. A user-selected standard tier never waives the hard gates.
+Tier changes follow the transition procedure in `docs/WORKFLOW.md`; never
+change tier unilaterally.
 
-Destructive means irreversible loss of unique data or work. An operation whose
-reversibility is proven by a cheap preflight (for example `git branch --contains`
-showing the commits exist in the base, or state that is regenerable) is not
-destructive and does not force critical.
+## Task worktree
 
-`standard` covers normal features, multi-file fixes, new behavior, and work that
-needs repository discovery or formal planning.
+Every formal task uses a dedicated Orchestra worktree created with direct
+`git worktree add` against the captured full base revision, after a write
+canary in the resolved worktree root. If creation fails, inspect the named
+branch, path, and Git error once and block before capability dispatch. Never
+implement in or switch the source checkout. Register the task best-effort
+with `coordination.py`; telemetry failure never reduces authority.
 
-`critical` covers security-sensitive work, credentials, payments, migrations,
-destructive actions, production changes, or other high-impact risk.
+## Agent flow
 
-Tier exemplars:
-
-- standard: ordinary planned features and fixes.
-- critical: schema migration; auth/payment/credential changes; deleting
-  unrecoverable data; production mutation.
-
-The active tier may change in either direction after explicit user direction,
-but the selected dual model configuration cannot change within a task.
-Recommend reconsideration when a newly discovered risk materially changes the
-cost-benefit tradeoff, the same causal failure repeats, or correction cycles
-demonstrably fail to converge. Never change tier unilaterally.
-
-An active agent's model and reasoning effort are immutable. At a safe tier
-transition, finish the current tool call, collect the exact worktree and diff
-state, evidence, progress, pending work, and owned resources, then stop those
-resources and close only phase agents whose assignment changes. Do not revert,
-restart the workflow, or create an artificial commit. Update the active tier and
-user decision in the local plan, then spawn replacements only when needed with a
-compact continuation packet. The replacement implementation worker owns the
-rest of the phase. Evidence remains valid only for the unchanged revision and
-conditions; inspect and reverify the targeted delta introduced by a new risk.
-Mirror the tier best-effort in coordination metadata; telemetry failure never
-delays or reverses the transition.
-
-## Default agent flow
-
-- Orchestra has four namespaced base profiles: `orchestra_analyst`,
-  `orchestra_implementation_worker`, `orchestra_reviewer`, and
-  `orchestra_verifier`.
-- The root composes each dispatch with a capability and the exact assignment in
-  `docs/WORKFLOW.md`. Dual matrices resolve
-  `modes.<modelconfig>.tiers.<tier>.<capability>`; legacy matrices resolve
-  `tiers.<tier>.<capability>`. Profiles do not select their own model.
-- Attempt the installed assignment first. Only `repository_context` may fall
-  back to Luna with reasoning `high` when its assigned model is rejected
-  before execution as unsupported by the internal subagent runtime. Legacy
-  matrices keep their existing behavior, dual external uses its installed V1
-  Luna alias, and dual native blocks rather than crossing protocol versions.
-  Keep a permitted substitution only in memory, create no visible task, change
-  no matrix, and block unsupported models for every other capability.
-- Standard: bounded analysis, artifact-backed planning, implementation, one
-  high-signal independent review, and verification.
-- Critical: standard flow plus a focused plan review and a second independent
-  implementation review only for a named measurable risk and detectable defect
-  class.
-- A formal plan is one `plan-overview` plus one self-contained `plan-phase`
-  artifact per phase. Do not put every phase detail into one root-authored
-  packet or monolithic plan.
-- Before plan approval, establish read-only execution readiness from repository
-  evidence: canonical setup and verification commands, runtime and dependency
-  availability, required services and permissions, credential categories
-  without reading secrets, test-data provenance, and generated or cache paths.
-  Add a preparation phase only when the approved task actually needs one.
-- Accepted findings return to the same implementation owner.
-- When coordination is available, packets carry task identifier, explicit
-  authority, worktree, exact target artifact identifiers and roles, revision,
-  accepted finding identifiers, stop conditions, and only new context deltas.
-  Objective, scope, acceptance, verification, plan details, and prior findings
-  are read from those documents rather than replayed by the root.
-- Context, planning, implementation, verification, debugging, and review agents
-  publish complete revision-identified Markdown reports. Corrected overview or
-  phase documents are immutable full replacements. Exact packet or manifest IDs
-  select the current bundle; timestamps never do. Publication failure returns
-  the complete report inline and never blocks the workflow.
-- Activity snapshots are limited to material start, final, and blocker updates.
-  They are descriptive, have no transition graph or heartbeats, and never prove
-  that an agent or process is live.
-- Keep that implementation owner, the independent reviewer, and one verifier
-  per used verification capability open for the whole phase; reuse them for
-  fixes, reruns, and delta review.
-- Wait on live agents with `wait_agent` in non-interruptive ten-minute windows
-  using `timeout_ms: 600000`. Completion returns early; `timed_out` means wait
-  again without `send_input` or `interrupt: true`. After 30 accumulated
-  minutes, assess once only for concrete blocker evidence; elapsed time alone
-  is not a failure.
-- While the implementation owner is active without an outcome or blocker, do
-  not inspect or exercise its evolving implementation or send design
-  corrections. At each handoff, perform one bounded identity, scope,
-  `diff --check`, and evidence check. Finish any root-originated investigation
-  before sending one consolidated, confirmed finding packet.
-- Once verification starts against a stable revision, stop speculative root
-  review. Interrupt only for a changed revision or a confirmed invalidating
-  finding. Every required verifier must pass, or have its blocked result
-  explicitly accepted, before dispatching independent review.
-- Close one-shot analysts after consuming their result. Keep a technical
-  planner open only through a dispatched plan-review correction loop. Before phase commit,
-  stop only Orchestra-owned temporary processes and task tabs, consume cleanup
-  results, and close every phase agent and its descendants.
-- The reviewer's first pass covers the complete bounded target and returns all
-  known material findings together. Later passes review only the meaningful
-  delta and its interactions. Reviewers report; they do not silently implement
-  their own findings.
-
-Frontend implementation composes `orchestra_implementation_worker`; browser
-acceptance composes `orchestra_verifier`. They remain independent, and named
-browser acceptance uses the active user-selected tier. No Orchestra assignment
-uses Sol xhigh. The user selects the root's Sol medium or Sol high session
-outside Orchestra.
-
-Fix correctness, security, regression, acceptance, and defect-prone
-maintainability findings. Record or reject cosmetic, speculative, or
-out-of-scope suggestions without entering a review loop.
+Four behavior-only profiles (`orchestra_analyst`,
+`orchestra_implementation_worker`, `orchestra_reviewer`, `orchestra_verifier`)
+compose with explicit capabilities from the installed assignment matrix. Role
+behavior is self-serve: each profile stub reads its `orchestra-role-*` skill
+and the shared conduct reference itself; packets carry only the assignment.
+Semantic handoffs are complete revision-identified Markdown artifacts in the
+task-private artifacts directory. Accepted findings return to the same
+implementation owner; the phase cohort (owner, reviewer, verifiers) stays open
+through the phase and closes before the phase commit. Waiting, observation
+boundaries, verification ordering, and review policy are specified in
+`docs/WORKFLOW.md`.
 
 ## Execution and commits
 
-- Use the fewest independently reviewable phases.
-- Before approval, keep the specification in conversation and the formal
-  candidate as a private `plan-overview` plus one `plan-phase` artifact per
-  phase; do not create an approved Orchestra plan file.
-- After formal-plan approval, the root writes `active` at `git rev-parse
-  --git-path orchestra/plan.md`; valid statuses are only `active`, `blocked`,
-  and `completed`. It contains task/Git identity, tier and decisions, the
-  approved overview verbatim, and an exact phase manifest with artifact IDs,
-  private paths, revisions, progress, commits, blocker, and next action. It does
-  not duplicate phase details. Git remains authoritative on resume.
-- Plan approval authorizes implementation and automatic commits at successfully
-  reviewed phase boundaries unless the user limits that authority.
-- The root commits each reviewed phase directly or through the narrow commit
-  helper; commit execution is not an agent profile.
-- An active agent or owned process that can write the task worktree blocks the
-  phase commit. A source-read-only tab cleanup failure is reported as partial
-  without moving cleanup into the commit helper.
-- Keep agent and temporary-resource handles only in root memory. Never discover
-  or kill unrelated processes or close unrelated browser state.
-- Coordination task, activity, and artifact snapshots are fail-soft
-  observability only. They cannot grant authority, validate transitions, block
-  a commit or delivery, or substitute for Git and `plan.md`.
-- After a complete formal bundle exists, the root decides whether plan review is
-  proportionate. A trivial single-phase standard plan may skip it; a
-  non-trivial multi-phase or cross-component plan receives one review; critical
-  receives a focused review. Before a third plan correction, or immediately for
-  marginal, contradictory, or out-of-scope findings, the root reads the exact
-  bundle and reviews and adjudicates by stable finding identifier. Persist no
-  review counter or mechanical limit.
-- Do not create commit journals, persistent or authoritative parallel Git
-  indexes, hash the whole worktree, or revalidate unchanged authority
-  repeatedly.
-- Preserve unrelated and uncommitted user work.
+Use the fewest independently reviewable phases. After plan approval the root
+writes `plan.md` (`active`/`blocked`/`completed`) with the approved overview
+verbatim and the exact phase manifest; Git remains authoritative on resume.
+Plan approval authorizes implementation and commits at reviewed phase
+boundaries. The root commits directly or through the narrow helper; commit
+execution is not an agent profile. Coordination snapshots are fail-soft
+observability and never grant authority. Preserve unrelated and uncommitted
+user work.
 
 ## Delivery
 
-- Repository policy is explicit. If absent, ask the user once and recommend
-  `hybrid`; do not infer authorization from CI or repository history.
-- `open PR` authorizes PR creation plus review/fix/commit/push cycles until the
-  PR is clean.
-- Merge remains separately authorized unless the user already said to merge
-  when clean.
-- Local integration requires explicit user direction, fresh verification,
-  clean integration, and guarded task-worktree cleanup.
-- Authorized delivery cleanup removes only the exact clean Orchestra task
-  worktree and safe task branches. Incomplete intended cleanup is `partial`.
-- Never deploy, release, publish, or mutate production without explicit scope.
+Repository policy is explicit; if absent, ask once and recommend `hybrid`.
+`open PR` authorizes review/fix/commit/push cycles until clean; merge remains
+separately authorized. Local integration requires explicit direction, fresh
+verification, and guarded cleanup. Never deploy, release, publish, or mutate
+production without explicit scope.
 
-## Browser acceptance
+## Permissions and browser routing
 
-Browser interaction packets carry `browser_route: auto | in_app | chrome`.
-Explicit user selection wins, must be attempted even when the purpose is to
-canary a previously failing tool, and does not fall back unless authorized. A
-profile may report the selected route unavailable but may not veto or substitute
-it. `auto` uses Codex's in-app Browser first and falls back to Computer Use with
-Chrome only for a technical availability or capability gap, never for a
-functional failure, timeout, or selector problem. An allowed fallback closes
-the dedicated in-app tab and repeats the full scenario in a new Chrome tab.
-Frontend iteration and independent acceptance use separate task tabs and
-preserve unrelated tabs, sessions, and user state.
-
-## Test permissions
-
-Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. The active permission choice for the task, host, or launcher
-remains authoritative: Orchestra never changes it or blocks execution solely
-because it differs. When Guardian is active, commands inside the workspace run
-directly and one exact command that crosses a protected boundary requests one
-narrow escalation for automatic review. With manual approvals, that escalation
-may prompt the user; with Full Access, it runs without the workspace sandbox
-boundary. Never retry a denial through a workaround or broaden permissions.
-Deterministic syntax, type, compile, lint, import, assertion,
-validation-contract, and CLI-usage failures remain real failures. A missing
-external service, credential, or dependency may still return `blocked`, but
-never broaden task authority to work around it.
+Orchestra synchronizes Guardian as the default; the active permission choice
+for the task, host, or launcher stays authoritative and Orchestra never
+changes it (full rules in `docs/WORKFLOW.md`, "Test permissions and browser
+routing"). Browser packets carry `browser_route`; an explicit user route wins
+and is never vetoed or substituted.
 
 ## User-facing progress
 
-Report only material phase transitions, findings or decisions, blockers, fresh
-verification results, and authority requests. Use one compact update containing
-current state, user-visible result or evidence, and next action. Do not narrate
-unchanged waits, profile/model plumbing, or routine internal coordination unless
-it changes the outcome. At handoff, distinguish implementation-complete from
-delivered and state the result location, how to run or demonstrate it, fresh
-verification, safe test data, limitations, delivery state, and next authority.
-
-When a user answer is required to continue, call `request_user_input` without
-`autoResolutionMs` when the tool is available so the question remains open
-until the user responds. If the tool is not available or does not return a
-usable selection, immediately ask one concise plain-text question in the final
-response and wait for the user. Do not retry the selector. Use automatic
-resolution only for an explicitly informational, non-blocking question whose
-timeout can safely accept the recommended default. This rule does not change
-command, test, or `wait_agent` timeouts.
-
-## Autonomy and proportionality
-
-Treat the root orchestrator's engineering judgment as part of the control
-system. Optimize quality, tokens, tool calls, wall time, and workflow-repair
-cost together. Routine reversible operations should stay direct and one-pass:
-inspect the relevant evidence, act once, and verify the material outcome once.
-Do not delegate an isolated mechanical failure or encode every hypothetical
-failure into prompts, helpers, state, or tests.
-
-Add a hard gate only for an authority boundary, realistic data-loss or security
-risk, acceptance requirement, or demonstrated reproducible failure. Reject
-review findings that add machinery without such evidence. Prompts should state
-outcomes, invariants, authority, and stop conditions while leaving ordinary
-technical judgment to the capable agent. Tests should cover representative
-realistic behavior rather than combinatorial, adversarial, concurrency, crash,
-or exotic-filesystem scenarios without evidence that the product needs them.
+Report only material transitions, findings, blockers, fresh verification
+results, and authority requests; progress updates are informational, not
+implicit permission requests. Blocking questions use `request_user_input` per
+`docs/WORKFLOW.md`.
 
 ## Anti-overengineering rules
 
@@ -348,16 +148,14 @@ or exotic-filesystem scenarios without evidence that the product needs them.
   a simple result object already provides the required truth.
 - No whole-workflow restart for a local step failure.
 - No repeated discovery when a targeted context delta is sufficient.
-- New domain guidance is an internal capability playbook unless it requires a
-  genuinely different responsibility boundary.
+- New domain guidance is an internal capability playbook or role skill unless
+  it requires a genuinely different responsibility boundary.
 - No authoritative plan CLI, Kanban board, event ledger, benchmark control
-  plane, or workflow state engine. The bounded coordination snapshot remains
-  observational and fail-soft.
+  plane, or workflow state engine.
 - Prefer deletion and direct code over compatibility layers.
 
-Before accepting a mechanism, name its consumer, the demonstrated failure,
-explicit requirement, or reproducible risk it addresses, why an existing
-primitive is insufficient, its lifecycle, ownership, and cleanup, its
-proportional cost, and why a smaller direct implementation does not suffice.
-Review only deltas after a finding. If the gate rejects a mechanism, stop and
-simplify it.
+Before accepting a mechanism, name its consumer, the demonstrated failure or
+reproducible risk it addresses, why an existing primitive is insufficient, its
+lifecycle and cleanup, and why a smaller direct implementation does not
+suffice. Prompts state outcomes, invariants, authority, and stop conditions
+while leaving ordinary technical judgment to the capable agent.

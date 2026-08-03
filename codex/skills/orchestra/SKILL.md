@@ -66,7 +66,9 @@ changes the selected model configuration.
 ## Recommend and transition tiers
 
 Recommend `Tier: standard|critical — <matching condition>: <one-line evidence>`
-from the minimum brief before creating formal task resources. Explain the
+from the minimum brief before creating formal task resources. When the brief
+needs clarification, ask those questions and give the tier recommendation in
+the same single message rather than sequential interactions. Explain the
 material risk and expected scrutiny or cost in one concise summary, then obtain
 the user's explicit tier choice. The user may choose `standard` after a
 `critical` recommendation; that choice changes model and workflow intensity but
@@ -333,7 +335,13 @@ Phase commit and phase teardown are not profiles or capabilities. After review a
 Report only material phase transitions, findings or decisions, blockers, fresh
 verification results, and authority requests. Each update states current state,
 user-visible result or evidence, and next action without routine model/profile
-plumbing. At completion, distinguish implementation-complete from delivered and
+plumbing. Progress updates are informational, never implicit permission
+requests: continue plan-approved work without waiting for acknowledgment.
+Follow the autonomy policy in `docs/WORKFLOW.md` ("Autonomy within an approved
+objective"): never ask the user to make a reversible technical choice, and
+batch genuinely required user checks into one consolidated request with
+expected results. At completion, distinguish implementation-complete from
+delivered and
 state the result location, how to run or demonstrate it, fresh verification,
 safe test data, limitations, exact delivery state, and next authority.
 

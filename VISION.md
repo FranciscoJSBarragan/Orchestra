@@ -106,15 +106,10 @@ read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
 Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. The active permission choice for the task, host, or launcher
-remains authoritative: Orchestra never changes it or blocks execution solely
-because it differs. When Guardian is active, commands inside the workspace run
-directly and one exact command that crosses a protected boundary requests one
-narrow escalation for automatic review. With manual approvals, that escalation
-may prompt the user; with Full Access, it runs without the workspace sandbox
-boundary. Never retry a denial through a workaround or broaden permissions.
-Deterministic product, assertion, compilation, or CLI-usage failures remain
-real failures.
+as the default while the active permission choice for the task, host, or
+launcher remains authoritative; the complete permission rules live in
+`docs/WORKFLOW.md`. Deterministic product, assertion, compilation, or
+CLI-usage failures remain real failures.
 
 Current source and Git remain authoritative for repository state. Project tests,
 runtime evidence, and independent review provide complementary correctness

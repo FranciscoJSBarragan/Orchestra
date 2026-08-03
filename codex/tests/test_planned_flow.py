@@ -926,12 +926,18 @@ class PlannedFlowContractTests(unittest.TestCase):
             runtime,
             worker,
             self.skill,
-            (ROOT / "AGENTS.md").read_text(),
-            (ROOT / "VISION.md").read_text(),
             (ROOT / "docs/WORKFLOW.md").read_text(),
-            (ROOT / "docs/ARCHITECTURE.md").read_text(),
             (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
         )
+        for reference_doc in ("AGENTS.md", "VISION.md", "docs/ARCHITECTURE.md"):
+            reference = " ".join((ROOT / reference_doc).read_text().split())
+            self.assertIn("Guardian", reference, reference_doc)
+            self.assertIn(
+                "active permission choice for the task, host, or launcher",
+                reference,
+                reference_doc,
+            )
+            self.assertNotIn("danger-full-access", reference, reference_doc)
         for text in sources:
             normalized = " ".join(text.split())
             self.assertIn(
@@ -1132,10 +1138,11 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_blocking_user_questions_use_selector_or_single_text_fallback(
         self,
     ) -> None:
-        source_agents = (ROOT / "AGENTS.md").read_text()
+        source_agents = " ".join((ROOT / "AGENTS.md").read_text().split())
+        self.assertIn("`request_user_input`", source_agents)
         runtime_agents = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
         workflow = (ROOT / "docs/WORKFLOW.md").read_text()
-        for guidance in (source_agents, runtime_agents, workflow):
+        for guidance in (runtime_agents, workflow):
             normalized = " ".join(guidance.split())
             self.assertIn("`request_user_input`", normalized)
             self.assertIn("without `autoResolutionMs`", normalized)
