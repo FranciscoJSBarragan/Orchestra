@@ -54,6 +54,15 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra/references/browser_acceptance.md",
     "codex/skills/orchestra/references/runtime_verification.md",
     "codex/skills/orchestra/references/architecture_guidance.md",
+    "codex/skills/orchestra/references/shared_conduct.md",
+    "codex/skills/orchestra-role-analyst/SKILL.md",
+    "codex/skills/orchestra-role-analyst/agents/openai.yaml",
+    "codex/skills/orchestra-role-implementer/SKILL.md",
+    "codex/skills/orchestra-role-implementer/agents/openai.yaml",
+    "codex/skills/orchestra-role-reviewer/SKILL.md",
+    "codex/skills/orchestra-role-reviewer/agents/openai.yaml",
+    "codex/skills/orchestra-role-verifier/SKILL.md",
+    "codex/skills/orchestra-role-verifier/agents/openai.yaml",
     "codex/skills/orchestra-phase-commit/SKILL.md",
     "codex/skills/orchestra-phase-commit/agents/openai.yaml",
     "codex/skills/orchestra-delivery-policy/SKILL.md",
@@ -151,6 +160,12 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
 """
 
+ROLE_SKILL_BY_PROFILE = {
+    "orchestra_analyst": "orchestra-role-analyst",
+    "orchestra_implementation_worker": "orchestra-role-implementer",
+    "orchestra_reviewer": "orchestra-role-reviewer",
+    "orchestra_verifier": "orchestra-role-verifier",
+}
 PROFILE_NAMES = (
     "orchestra_analyst",
     "orchestra_implementation_worker",
@@ -194,6 +209,10 @@ SKILL_NAMES = (
     "orchestra-pr-review",
     "orchestra-pr-merge",
     "orchestra-local-integrate",
+    "orchestra-role-analyst",
+    "orchestra-role-implementer",
+    "orchestra-role-reviewer",
+    "orchestra-role-verifier",
 )
 VALID_MODELS = {
     "antigravity/gemini-3.6-flash-high",
@@ -569,9 +588,23 @@ def check_roles_and_profiles(root: Path) -> list[str]:
         if not isinstance(instructions, str):
             failures.append(f"profile-contract: {name} needs developer instructions")
             continue
-        for heading in ("## Input", "## Output", "## Stop conditions"):
-            if heading not in instructions:
-                failures.append(f"profile-contract: {name} is missing {heading}")
+        role_skill = ROLE_SKILL_BY_PROFILE[name]
+        if f".agents/skills/{role_skill}/SKILL.md" not in instructions:
+            failures.append(
+                f"profile-contract: {name} must read its role skill {role_skill}"
+            )
+        role_path = root / f"codex/skills/{role_skill}/SKILL.md"
+        if role_path.is_file():
+            role_text = role_path.read_text(encoding="utf-8")
+            for heading in ("## Input", "## Output", "## Stop conditions"):
+                if heading not in role_text:
+                    failures.append(
+                        f"profile-contract: {role_skill} is missing {heading}"
+                    )
+            if "shared_conduct.md" not in role_text:
+                failures.append(
+                    f"profile-contract: {role_skill} must reference shared conduct"
+                )
 
     if len(declared_names) != len(set(declared_names)):
         failures.append("profile-contract: profile names must be unique")
@@ -661,6 +694,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     expected_references = {
         *(f"{name}.md" for name in PLAYBOOK_NAMES),
         f"{ARCHITECTURE_REFERENCE}.md",
+        "shared_conduct.md",
     }
     if not references.is_dir():
         failures.append("skill-contract: orchestra internal references are missing")
@@ -670,8 +704,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             not entry.is_file() or entry.is_symlink() for entry in references.iterdir()
         ):
             failures.append(
-                "skill-contract: orchestra must contain exactly seven playbooks "
-                "and one architecture reference"
+                "skill-contract: orchestra must contain exactly seven playbooks, "
+                "one architecture reference, and one shared conduct reference"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():

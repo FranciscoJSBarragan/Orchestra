@@ -328,7 +328,7 @@ class FullModeFixtureTest(unittest.TestCase):
         extra.write_text("# Extra\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("exactly seven playbooks and one architecture", result.stdout)
+        self.assertIn("exactly seven playbooks", result.stdout)
 
     def test_broken_skill_link_is_actionable(self) -> None:
         skill = self.root / "codex/skills/orchestra/SKILL.md"

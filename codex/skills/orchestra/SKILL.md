@@ -150,6 +150,12 @@ selected above. For a legacy matrix resolve exactly
 packet, and use the assignment's explicit model and reasoning overrides when
 spawning. A profile never selects its capability or assignment.
 
+Role behavior is self-serve: each profile is a minimal stub that reads its
+`orchestra-role-*` skill and the shared conduct reference itself at startup.
+The packet carries only the assignment — capability, authority, worktree,
+exact artifact identifiers, revision, stop conditions, and new context — and
+names any capability playbook; it never restates role behavior.
+
 Always attempt the installed assignment first. Only when a
 `repository_context` spawn is rejected before execution because the internal
 subagent runtime does not support the assigned model, retry that same

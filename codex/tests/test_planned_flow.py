@@ -11,6 +11,12 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_NAMES = {"orchestra_analyst", "orchestra_implementation_worker", "orchestra_reviewer", "orchestra_verifier"}
+ROLE_SKILLS = {
+    "orchestra_analyst": "orchestra-role-analyst",
+    "orchestra_implementation_worker": "orchestra-role-implementer",
+    "orchestra_reviewer": "orchestra-role-reviewer",
+    "orchestra_verifier": "orchestra-role-verifier",
+}
 PLAYBOOK_NAMES = {
     "repository_context",
     "web_research",
@@ -39,9 +45,21 @@ class PlannedFlowContractTests(unittest.TestCase):
             for path in (ROOT / "codex/agents").glob("*.toml")
         }
         self.references = ROOT / "codex/skills/orchestra/references"
+        self.shared_conduct = (self.references / "shared_conduct.md").read_text()
+
+    def role_skill(self, name: str) -> str:
+        return (
+            ROOT / f"codex/skills/{ROLE_SKILLS[name]}/SKILL.md"
+        ).read_text()
 
     def instructions(self, name: str) -> str:
-        return self.profiles[name]["developer_instructions"]
+        return "\n".join(
+            (
+                self.role_skill(name),
+                self.shared_conduct,
+                self.profiles[name]["developer_instructions"],
+            )
+        )
 
     def output_instructions(self, name: str) -> str:
         instructions = self.instructions(name)
@@ -51,7 +69,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         instructions = self.instructions(name)
         return instructions.split("## Input", 1)[1].split("## Output", 1)[0]
 
-    def test_exact_four_profiles_are_behavior_only(self) -> None:
+    def test_exact_four_profiles_are_self_serve_stubs(self) -> None:
         self.assertEqual(set(self.profiles), PROFILE_NAMES)
         self.assertEqual(
             {profile["name"] for profile in self.profiles.values()}, PROFILE_NAMES
@@ -61,9 +79,17 @@ class PlannedFlowContractTests(unittest.TestCase):
                 set(profile), {"name", "description", "developer_instructions"}
             )
             self.assertTrue(profile["description"].strip())
+            stub = profile["developer_instructions"]
+            self.assertIn(
+                f".agents/skills/{ROLE_SKILLS[name]}/SKILL.md", stub, name
+            )
+            self.assertIn("stop and return `blocked` with the exact path", stub, name)
+            self.assertNotIn("gpt-5.", stub.lower())
+            role = self.role_skill(name)
             for heading in ("## Input", "## Output", "## Stop conditions"):
-                self.assertIn(heading, profile["developer_instructions"], name)
-            self.assertNotIn("gpt-5.", profile["developer_instructions"].lower())
+                self.assertIn(heading, role, name)
+            self.assertIn("shared_conduct.md", role, name)
+            self.assertNotIn("gpt-5.", role.lower())
 
     def test_capability_inventory_and_profile_mapping_are_exact(self) -> None:
         standard = {
@@ -136,7 +162,8 @@ class PlannedFlowContractTests(unittest.TestCase):
 
     def test_seven_playbooks_and_shared_architecture_reference_are_composed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
-            "architecture_guidance.md"
+            "architecture_guidance.md",
+            "shared_conduct.md",
         }
         self.assertEqual({path.name for path in self.references.iterdir()}, expected)
         for name in PLAYBOOK_NAMES:
@@ -205,20 +232,23 @@ class PlannedFlowContractTests(unittest.TestCase):
             "orchestra_reviewer": ("accepted", "findings", "blocked", "review target", "stable identifier", "verification or authority gaps", "rejected pr feedback"),
             "orchestra_verifier": ("passed", "failed", "blocked", "verification-report", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
         }
+        conduct = " ".join(self.shared_conduct.lower().split())
+        for omission in (
+            "packet replay",
+            "praise",
+            "unchanged context",
+            "duplicate evidence",
+        ):
+            self.assertIn(omission, conduct)
+        for term in material_terms:
+            self.assertIn(term, conduct)
+        self.assertIn("redact secrets", conduct)
+        self.assertIn("safe category or locator", conduct)
         for name in PROFILE_NAMES:
             output = self.output_instructions(name).lower().strip()
             first_sentence = output.split(".", 1)[0]
             self.assertTrue(output.startswith("return the outcome or status"), name)
             self.assertIn(" first, then ", first_sentence, name)
-            for omission in (
-                "packet replay",
-                "praise",
-                "unchanged context",
-                "duplicate evidence",
-            ):
-                self.assertIn(omission, output, name)
-            for term in material_terms:
-                self.assertIn(term, output, name)
             for field in existing_output_fields[name]:
                 self.assertIn(field, output, name)
             for identity in (
@@ -229,8 +259,6 @@ class PlannedFlowContractTests(unittest.TestCase):
             ):
                 self.assertIn(identity, output, name)
             self.assertNotIn("otherwise name", output, name)
-            self.assertIn("redact secrets", output, name)
-            self.assertIn("safe category or locator", output, name)
 
     def test_worker_minimality_requires_focused_comprehension_and_supported_cause(
         self,

@@ -27,6 +27,10 @@ SKILLS = (
     "orchestra-pr-review",
     "orchestra-pr-merge",
     "orchestra-local-integrate",
+    "orchestra-role-analyst",
+    "orchestra-role-implementer",
+    "orchestra-role-reviewer",
+    "orchestra-role-verifier",
 )
 AGENTS = (
     "orchestra_analyst",
@@ -435,7 +439,7 @@ def _inventory(
             raise SyncError(f"unexpected skill source entry: {child}")
         actual_skills.append(child.name)
     if tuple(actual_skills) != tuple(sorted(SKILLS)):
-        raise SyncError("skill source inventory does not match the eight supported skills")
+        raise SyncError("skill source inventory does not match the supported skills")
     for skill in SKILLS:
         directory = skill_root / skill
         for source in _walk_files(directory):
