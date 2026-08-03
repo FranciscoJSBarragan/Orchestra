@@ -10,17 +10,10 @@ import subprocess
 import tomllib
 from typing import Any
 
+from _common import blocked
+
 
 VALID_MODES = {"pr-required", "hybrid", "local-direct"}
-
-
-def blocked(reason: str, **details: Any) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "status": "blocked",
-        "reason": " ".join(reason.split())[:500],
-    }
-    result.update(details)
-    return result
 
 
 def load_policy(path: Path) -> tuple[dict[str, Any] | None, dict[str, Any]]:

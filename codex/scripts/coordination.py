@@ -15,8 +15,9 @@ import tempfile
 from typing import Any
 import uuid
 
+from _common import SHA_PATTERN
 
-SHA_PATTERN = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+
 SCHEMA_VERSION = 1
 SCHEMA_STATEMENTS = (
     """

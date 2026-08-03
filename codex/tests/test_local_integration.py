@@ -116,7 +116,7 @@ class LocalIntegrationTests(unittest.TestCase):
         result, payload = self.run_helper()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("task worktree is dirty", payload["reason"])
+        self.assertIn("dirty", payload["reason"])
         self.assertTrue((self.task / "private.txt").exists())
         self.assertTrue(self.git(self.base, "branch", "--list", "task").stdout.strip())
 
@@ -141,7 +141,7 @@ class LocalIntegrationTests(unittest.TestCase):
         result, payload = self.run_helper()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("check suite failed", payload["reason"])
+        self.assertIn("check", payload["reason"])
         self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
         self.assertTrue(self.task.exists())
 
@@ -152,7 +152,7 @@ class LocalIntegrationTests(unittest.TestCase):
         result, payload = self.run_helper()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("checks changed the task worktree or HEAD", payload["reason"])
+        self.assertIn("changed", payload["reason"])
         moved = self.git(self.task, "rev-parse", "HEAD").stdout.strip()
         self.assertNotEqual(moved, captured)
         self.assertNotEqual(

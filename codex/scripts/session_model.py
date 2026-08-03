@@ -9,6 +9,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from _common import blocked
+
 
 THREAD_ID_PATTERN = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z"
@@ -18,15 +20,6 @@ ROOT_MODELS = {
     ("orchestra-v1/gpt-5.6-sol", "v1"): "external",
 }
 ROOT_EFFORTS = {"medium", "high"}
-
-
-def blocked(reason: str, **details: Any) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "status": "blocked",
-        "reason": " ".join(reason.split())[:500],
-    }
-    result.update(details)
-    return result
 
 
 def find_rollout(codex_home: Path, thread_id: str) -> Path | None:

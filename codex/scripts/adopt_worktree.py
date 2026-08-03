@@ -18,48 +18,19 @@ import subprocess
 import sys
 from typing import Any
 
-from _common import SHA_PATTERN
+from _common import (
+    SHA_PATTERN,
+    blocked as _blocked,
+    common_git_dir as _common_git_dir,
+    head_commit as _head,
+    is_clean as _clean,
+    worktree_root as _worktree_root,
+)
+from _common import _git as _common_git
 
 
 def _git(repo: Path, *args: str, literal_pathspecs: bool = True) -> subprocess.CompletedProcess[str]:
-    command = ["git"]
-    if literal_pathspecs:
-        command.append("--literal-pathspecs")
-    command.extend(args)
-    return subprocess.run(command, cwd=repo, check=False, capture_output=True, text=True)
-
-
-def _blocked(reason: str, **extra: Any) -> dict[str, Any]:
-    payload: dict[str, Any] = {"status": "blocked", "reason": " ".join(reason.split())[:500]}
-    payload.update(extra)
-    return payload
-
-
-def _worktree_root(path: Path) -> Path | None:
-    resolved = path.resolve()
-    result = _git(resolved, "rev-parse", "--show-toplevel")
-    if result.returncode or Path(result.stdout.strip()).resolve() != resolved:
-        return None
-    return resolved
-
-
-def _common_git_dir(repo: Path) -> Path | None:
-    result = _git(repo, "rev-parse", "--git-common-dir")
-    if result.returncode:
-        return None
-    path = Path(result.stdout.strip())
-    return (repo / path).resolve() if not path.is_absolute() else path.resolve()
-
-
-def _head(repo: Path) -> str | None:
-    result = _git(repo, "rev-parse", "--verify", "HEAD^{commit}")
-    sha = result.stdout.strip()
-    return sha if not result.returncode and SHA_PATTERN.fullmatch(sha) else None
-
-
-def _clean(repo: Path) -> bool:
-    result = _git(repo, "status", "--porcelain=v1", "--untracked-files=all")
-    return not result.returncode and not result.stdout
+    return _common_git(repo, *args, literal_pathspecs=literal_pathspecs)
 
 
 def _join(root: Path, relative: str) -> Path:

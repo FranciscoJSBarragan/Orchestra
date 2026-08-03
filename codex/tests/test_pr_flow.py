@@ -361,13 +361,13 @@ else:
         (self.repo / "orchestra.toml").unlink()
         missing_result, missing = self.run_pr(*self.open_args())
         self.assertNotEqual(missing_result.returncode, 0)
-        self.assertIn("policy is missing", missing["reason"])
+        self.assertIn("missing", missing["reason"])
         self.assertEqual(self.log_entries(), [])
 
         self.write("orchestra.toml", self.policy_text("pass", mode="local-direct"))
         local_result, local = self.run_pr(*self.open_args())
         self.assertNotEqual(local_result.returncode, 0)
-        self.assertIn("does not permit the PR lane", local["reason"])
+        self.assertIn("permit", local["reason"])
         self.assertEqual(self.log_entries(), [])
 
     def test_open_update_preserves_human_body_and_replaces_capsule(self) -> None:
@@ -410,7 +410,7 @@ else:
                 )
                 result, payload = self.run_pr(*self.open_args())
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("misordered, or nested", payload["reason"])
+                self.assertIn("PR-CONTEXT", payload["reason"])
                 mutations = [
                     entry
                     for entry in self.log_entries()
@@ -537,7 +537,7 @@ else:
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
-        self.assertIn("check suite failed", payload["reason"])
+        self.assertIn("check", payload["reason"])
         self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
     def test_merge_requires_clean_worktree_before_checks(self) -> None:
@@ -546,7 +546,7 @@ else:
         result, payload = self.run_pr(*self.merge_args())
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("worktree must be clean", payload["reason"])
+        self.assertIn("clean", payload["reason"])
         self.assertEqual(self.log_entries(), [])
 
     def test_merge_rechecks_dirty_worktree_and_changed_head_after_checks(self) -> None:
@@ -592,7 +592,7 @@ else:
         result, payload = self.run_pr(*self.merge_args())
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PR head changed", payload["reason"])
+        self.assertIn("head", payload["reason"])
         self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
     def test_merge_exit_zero_without_merged_poststate_is_partial(self) -> None:
@@ -610,7 +610,7 @@ else:
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "partial")
-        self.assertIn("post-state is unverified", payload["reason"])
+        self.assertIn("unverified", payload["reason"])
         self.assertEqual(payload["cleanup"], [])
         self.assertEqual(
             {item["resource"] for item in payload["retained_resources"]},

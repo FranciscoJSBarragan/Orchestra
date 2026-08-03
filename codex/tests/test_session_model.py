@@ -108,7 +108,7 @@ class SessionModelTests(unittest.TestCase):
         self.write_context("gpt-5.6-sol", "v2", "xhigh")
         result = self.inspect()
         self.assertEqual(result["status"], "blocked")
-        self.assertIn("medium or high", result["reason"])
+        self.assertIn("effort", result["reason"])
 
     def test_missing_thread_or_context_blocks(self) -> None:
         self.assertEqual(

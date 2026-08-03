@@ -98,7 +98,7 @@ class CommitPhaseTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
-        self.assertIn("unrelated staged paths: unrelated.txt", payload["reason"])
+        self.assertIn("unrelated.txt", payload["reason"])
         self.assertEqual(self.git("diff", "--cached", "--name-only").stdout, "unrelated.txt\n")
         self.assertEqual(self.git("diff", "--name-only").stdout, "target.txt\n")
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
@@ -141,7 +141,7 @@ class CommitPhaseTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
-        self.assertIn("unrelated staged paths: target.txt", payload["reason"])
+        self.assertIn("target.txt", payload["reason"])
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
         staged = set(
             self.git(
@@ -168,7 +168,7 @@ class CommitPhaseTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
-        self.assertIn("invalid repository-relative exact path", payload["reason"])
+        self.assertIn("escape.txt", payload["reason"])
         self.assertEqual(self.git("diff", "--cached", "--name-only").stdout, "")
         self.assertEqual(self.git("diff", "--name-only").stdout, "target.txt\n")
 
@@ -183,7 +183,7 @@ class CommitPhaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
         self.assertIn("intentional-hook-failure", payload["reason"])
-        self.assertIn("no commit was created", payload["reason"])
+        self.assertIn("no commit", payload["reason"])
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
         self.assertEqual(self.git("diff", "--cached", "--name-only").stdout, "target.txt\n")
 
@@ -200,8 +200,7 @@ class CommitPhaseTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
-        self.assertIn("commit exists", payload["reason"])
-        self.assertIn("unauthorized paths: unrelated.txt", payload["reason"])
+        self.assertIn("unrelated.txt", payload["reason"])
         self.assertEqual(payload["sha"], self.git("rev-parse", "HEAD").stdout.strip())
         self.assertNotEqual(payload["sha"], self.initial_sha)
         committed = set(

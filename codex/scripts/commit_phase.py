@@ -7,26 +7,13 @@ import argparse
 import json
 from pathlib import Path, PurePosixPath
 import subprocess
-import sys
 
-from _common import SHA_PATTERN
+from _common import SHA_PATTERN, blocked as _blocked
+from _common import _git as _common_git
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "--literal-pathspecs", *args],
-        cwd=repo,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-
-def _blocked(reason: str, sha: str | None = None) -> dict[str, str]:
-    result = {"status": "blocked", "reason": " ".join(reason.split())[:500]}
-    if sha is not None:
-        result["sha"] = sha
-    return result
+    return _common_git(repo, *args, literal_pathspecs=True)
 
 
 def _staged_paths(repo: Path) -> tuple[set[str] | None, str | None]:
@@ -161,16 +148,16 @@ def commit_phase(repo: Path, paths: list[str], message_file: Path) -> dict[str, 
     )
     if changed.returncode:
         return _blocked(
-            "commit exists but its changed paths could not be verified", after_sha
+            "commit exists but its changed paths could not be verified", sha=after_sha
         )
     committed_paths = {path for path in changed.stdout.split("\0") if path}
     if not committed_paths:
-        return _blocked("commit exists but its changed path set is empty", after_sha)
+        return _blocked("commit exists but its changed path set is empty", sha=after_sha)
     unexpected = sorted(committed_paths.difference(paths))
     if unexpected:
         return _blocked(
             "commit exists but contains unauthorized paths: " + ", ".join(unexpected),
-            after_sha,
+            sha=after_sha,
         )
     result = {"status": "committed", "sha": after_sha}
     if commit.returncode:

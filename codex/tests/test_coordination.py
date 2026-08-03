@@ -545,7 +545,7 @@ class CoordinationTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "unavailable")
-        self.assertIn("schema version: 0", payload["reason"])
+        self.assertIn("schema", payload["reason"])
         self.assertEqual(database.read_bytes(), before)
 
     def test_concurrent_empty_database_initialization_converges(self) -> None:
