@@ -1,6 +1,7 @@
 """Textual dashboard for the Orchestra Hub (layout and wiring only)."""
 from __future__ import annotations
 
+import webbrowser
 from datetime import datetime, timezone
 
 from rich.markup import escape
@@ -29,16 +30,26 @@ class HubTuiApp(App):
     #hubstatus.degraded { background: $error 30%; }
     #body { height: 1fr; }
     #body.degraded { opacity: 0.6; }
-    #repos { width: 42; border-right: solid $panel; }
-    #detail-scroll { padding: 0 1; }
+    #repos { width: 46; border-right: solid $panel; padding: 1 0 0 1; }
+    #detail-scroll { padding: 1; }
+    #tasktitle { margin-bottom: 1; }
+    #callout {
+        display: none;
+        margin-bottom: 1;
+        padding: 0 1;
+        border: round $error;
+        color: $text;
+    }
+    #callout.visible { display: block; }
     #detail { margin-bottom: 1; }
-    .table-title { text-style: bold; margin-top: 1; }
+    .table-title { text-style: bold; margin-top: 1; color: $text-muted; }
     DataTable { height: auto; max-height: 12; }
     """
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("r", "refresh", "Refresh"),
+        Binding("o", "open_panel", "Web panel"),
     ]
 
     def __init__(self, client: HubClient | None = None) -> None:
@@ -55,24 +66,31 @@ class HubTuiApp(App):
         with Horizontal(id="body"):
             yield Tree("Repositories", id="repos")
             with VerticalScroll(id="detail-scroll"):
-                yield Static("Select a task.", id="detail")
-                yield Static("Activities", classes="table-title")
+                yield Static("", id="tasktitle")
+                yield Static("", id="callout")
+                yield Static("Select a task to see its details.", id="detail")
+                yield Static("", id="activities-title", classes="table-title")
                 yield DataTable(id="activities")
-                yield Static("Artifacts", classes="table-title")
+                yield Static("", id="artifacts-title", classes="table-title")
                 yield DataTable(id="artifacts")
         yield Footer()
 
     def on_mount(self) -> None:
         tree = self.query_one("#repos", Tree)
         tree.show_root = False
-        self.query_one("#activities", DataTable).add_columns(
-            "agent", "capability", "state", "summary", "updated"
-        )
-        self.query_one("#artifacts", DataTable).add_columns(
-            "kind", "phase", "producer", "available"
-        )
+        activities = self.query_one("#activities", DataTable)
+        activities.add_columns("agent", "role", "state", "doing", "updated")
+        activities.zebra_stripes = True
+        activities.cursor_type = "none"
+        artifacts = self.query_one("#artifacts", DataTable)
+        artifacts.add_columns("document", "phase", "by", "ready")
+        artifacts.zebra_stripes = True
+        artifacts.cursor_type = "none"
         self.set_interval(POLL_SECONDS, self.action_refresh)
         self.action_refresh()
+
+    def action_open_panel(self) -> None:
+        webbrowser.open(self.client.base_url + "/")
 
     def action_refresh(self) -> None:
         self.run_worker(
@@ -130,11 +148,18 @@ class HubTuiApp(App):
                 datetime.now(timezone.utc),
             )
         if healthy:
-            text = f"Hub: ok · active {active} · blockers {blockers} · poll {age}"
+            needs = (
+                f"[bold red]{blockers} need you[/bold red]" if blockers
+                else "[green]nothing needs you[/green]"
+            )
+            text = (
+                f"[green]●[/green] Hub ok · {active} working · "
+                f"{needs} · updated {age}"
+            )
         else:
             text = (
-                f"Hub: {escape(self.connection)} (retrying) · "
-                f"showing last data · last poll {age}"
+                f"[red]●[/red] Hub {escape(self.connection)} — retrying · "
+                f"showing last data from {age}"
             )
         status.update(text)
 
@@ -144,30 +169,28 @@ class HubTuiApp(App):
         if self.summary is None:
             return
         for node in build_tree(self.summary):
-            label = (
-                f"{escape(node.name)} "
-                f"[dim]({node.active} active / {node.completed} done)[/dim]"
-            )
+            counters = []
+            if node.active:
+                counters.append(f"{node.active} working")
+            if node.completed:
+                counters.append(f"{node.completed} done")
+            suffix = " · ".join(counters) or "quiet"
+            label = f"[bold]{escape(node.name)}[/bold] [dim]{suffix}[/dim]"
             branch = tree.root.add(label, expand=node.active > 0)
             for task in node.tasks:
                 branch.add_leaf(self._task_label(task), data=str(task.get("id")))
         tree.root.expand()
 
     def _task_label(self, task: dict) -> str:
-        flags = attention_flags(task)
-        marks = ""
-        if "blocker" in flags:
-            marks += " [red]⛔[/red]"
-        if "stale" in flags:
-            marks += " [yellow]stale[/yellow]"
-        text = (
-            f"{escape(str(task.get('label', '')))} — "
-            f"{escape(str(task.get('stage', '')))}/"
-            f"{escape(str(task.get('status', '')))}"
-        )
+        label = escape(str(task.get("label", "")))
+        stage = escape(str(task.get("stage", "")))
         if task.get("status") == "completed":
-            return f"[dim]{text}[/dim]"
-        return text + marks
+            return f"[dim]✓ {label}[/dim]"
+        flags = attention_flags(task)
+        if "blocker" in flags:
+            return f"[red]⛔ {label}[/red] [dim]· {stage}[/dim]"
+        icon = "[yellow]~[/yellow]" if "stale" in flags else "[green]●[/green]"
+        return f"{icon} {label} [dim]· {stage}[/dim]"
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         task_id = event.node.data
@@ -187,6 +210,15 @@ class HubTuiApp(App):
         result = self.client.fetch(f"/v1/tasks/{task_id}")
         self.call_from_thread(self._apply_detail, task_id, result)
 
+    _DETAIL_FIELDS = (
+        ("summary", "summary"),
+        ("next_action", "next step"),
+        ("branch", "branch"),
+        ("worktree", "worktree"),
+        ("created_at", "started"),
+        ("updated_at", "updated"),
+    )
+
     def _apply_detail(self, task_id: str, result: FetchResult) -> None:
         if task_id != self.selected_task_id:
             return
@@ -201,31 +233,56 @@ class HubTuiApp(App):
         payload = result.payload
         task = payload.get("task", {})
         now = datetime.now(timezone.utc)
+        fields = dict(task_rows(task))
+        title = (
+            f"[bold]{escape(fields['label'])}[/bold]  "
+            f"[dim]{escape(fields['tier'])} tier · "
+            f"{escape(fields['stage'])} · {escape(fields['status'])}[/dim]"
+        )
+        self.query_one("#tasktitle", Static).update(title)
+        callout = self.query_one("#callout", Static)
+        blocker = fields.get("blocker", "")
+        callout.set_class(bool(blocker), "visible")
+        if blocker:
+            callout.update(
+                f"[bold red]⛔ Needs you:[/bold red] {escape(blocker)}"
+            )
         lines = []
-        for key, value in task_rows(task):
-            rendered = escape(value)
-            if key == "blocker" and value:
-                rendered = f"[bold red]{rendered}[/bold red]"
-            if key == "updated_at" and value:
-                rendered = f"{rendered} [dim]({escape(snapshot_age(value, now))})[/dim]"
-            lines.append(f"[bold]{key:>12}[/bold]  {rendered}")
+        for field, shown in self._DETAIL_FIELDS:
+            value = fields.get(field, "")
+            rendered = escape(value) if value else "[dim]—[/dim]"
+            if field == "updated_at" and value:
+                rendered = f"[dim]{escape(snapshot_age(value, now))}[/dim]"
+            lines.append(f"[bold]{shown:>10}[/bold]  {rendered}")
         detail.update("\n".join(lines))
-        activities = self.query_one("#activities", DataTable)
-        activities.clear()
-        for activity in payload.get("activities", ()):
-            activities.add_row(
+        activities = payload.get("activities", ())
+        table = self.query_one("#activities", DataTable)
+        table.clear()
+        table.display = bool(activities)
+        self.query_one("#activities-title", Static).update(
+            "Who is working" if activities
+            else "Who is working [dim]— no activity reported yet[/dim]"
+        )
+        for activity in activities:
+            table.add_row(
                 str(activity.get("agent_id", "")),
                 str(activity.get("capability", "")),
                 str(activity.get("state", "")),
                 str(activity.get("summary", "")),
                 snapshot_age(str(activity.get("updated_at", "")), now),
             )
-        artifacts = self.query_one("#artifacts", DataTable)
-        artifacts.clear()
-        for artifact in payload.get("artifacts", ()):
-            artifacts.add_row(
+        artifacts = payload.get("artifacts", ())
+        table = self.query_one("#artifacts", DataTable)
+        table.clear()
+        table.display = bool(artifacts)
+        self.query_one("#artifacts-title", Static).update(
+            "Documents produced" if artifacts
+            else "Documents produced [dim]— none yet[/dim]"
+        )
+        for artifact in artifacts:
+            table.add_row(
                 str(artifact.get("kind", "")),
                 str(artifact.get("phase", "")),
                 str(artifact.get("producer", "")),
-                "yes" if artifact.get("available") else "no",
+                "✓ ready" if artifact.get("available") else "not yet",
             )
