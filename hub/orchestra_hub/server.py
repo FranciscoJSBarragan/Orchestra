@@ -45,7 +45,10 @@ class HubRequestHandler(BaseHTTPRequestHandler):
     ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
+        # 304 must not advertise Content-Length 0 for a non-empty selected
+        # representation; omit the header (RFC 9110 §15.4.5).
+        if status != 304:
+            self.send_header("Content-Length", str(len(body)))
         for key, value in extra_headers:
             self.send_header(key, value)
         self.end_headers()

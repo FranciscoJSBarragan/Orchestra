@@ -154,11 +154,20 @@ class ServerTests(unittest.TestCase):
                 self.assertTrue(etag)
                 self.assertTrue(body)
 
-                status304, _headers304, body304 = self._request(
+                status304, headers304, body304 = self._request(
                     path, headers={"If-None-Match": etag}
                 )
                 self.assertEqual(status304, 304)
                 self.assertEqual(body304, b"")
+                self.assertEqual(headers304.get("etag"), etag)
+                content_length = headers304.get("content-length")
+                # 304 must not advertise length 0 for a non-empty 200 body
+                # (omit Content-Length, or echo the selected representation length).
+                if content_length is None:
+                    pass
+                else:
+                    self.assertEqual(int(content_length), len(body))
+                    self.assertNotEqual(content_length, "0")
 
     def test_mutating_methods_are_rejected(self) -> None:
         for method in ("POST", "PUT", "PATCH", "DELETE"):
