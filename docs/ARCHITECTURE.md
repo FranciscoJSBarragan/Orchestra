@@ -179,8 +179,8 @@ behavior: bounded Git inspection, loading delivery policy, running configured
 argv checks, opening or observing a PR through direct `gh`, merging an
 authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
-validating the suite. `coordination.py` is a separate fail-soft snapshot and
-artifact-locator helper; it never performs Git mutations or product decisions.
+validating the suite. `coordination.py` is a separate fail-soft task and
+activity snapshot helper; it never performs Git mutations or product decisions.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. A helper must reduce the total
@@ -232,15 +232,18 @@ The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
 no local PR state file.
 
-The coordination store contains three snapshot concepts only: tasks, material
-agent activities, and artifact locators. Stages are labels rather than validated
-transitions. The store retains completed task metadata while artifacts follow
-the task worktree lifecycle and may later report unavailable. It has no
+The coordination store contains two snapshot concepts only: tasks and material
+agent activities. Stages are labels rather than validated
+transitions. The store retains completed task metadata. It has no
 authority, event history, heartbeat requirement, delete command, or automatic
 import of preexisting tasks. A failed update is telemetry loss, not workflow
-failure; agents return inline evidence when artifact publication fails.
+failure. Artifacts are plain files in the task-private
+`git rev-parse --git-path orchestra/artifacts` directory, named
+`<NN>-<kind>[-p<phase>].md`; the file name is the identifier, the filesystem
+is the only locator, and they follow the task worktree lifecycle. Agents
+return inline evidence when artifact publication fails.
 
-Artifact `kind` is a convention over the existing schema:
+Artifact `kind` is a file-naming convention:
 `repository-context`, `context-delta`, `plan-overview`, `plan-phase`,
 `plan-review`, `implementation-report`, `verification-report`,
 `implementation-review`, `debugging-report`, and `pr-review` only when PR

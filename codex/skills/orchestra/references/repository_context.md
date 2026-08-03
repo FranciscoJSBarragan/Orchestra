@@ -18,11 +18,11 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   verification commands, runtime and dependency expectations, required services
   and permissions, credential categories without reading secrets, test-data
   provenance, and generated or cache paths.
-- When the packet includes a coordination task identifier, write the complete
-  revision-identified result to a temporary Markdown file and publish it with
-  `coordination.py artifact put --kind repository-context`. Return the artifact
-  identifier instead of replaying its content. If publication is unavailable,
-  return the same complete report inline; telemetry failure is not a blocker.
+- Write the complete revision-identified result directly to the task-private
+  artifacts directory (`git rev-parse --git-path orchestra/artifacts`) as the
+  next `<NN>-repository-context.md` file. Return that exact file name instead
+  of replaying its content. If the directory cannot be created or written,
+  return the same complete report inline; publication failure is not a blocker.
 - A later context pass publishes a complete targeted `context-delta` artifact
   rather than rewriting earlier evidence. A changed HEAD requires reinspection
   only for referenced paths, contracts, or facts affected by the delta.

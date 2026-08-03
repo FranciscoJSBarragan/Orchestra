@@ -39,9 +39,11 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   new complete bundle mapping and identify every replacement; do not publish a
   patch that forces later consumers to reconstruct a phase.
 - Use only the context delta supplied by the root in addition to named
-  artifacts. On every publication, use `coordination.py artifact put --kind plan-overview`
-  for the overview and `--kind plan-phase --phase <number>` for each phase. If
-  publication is unavailable, return the same complete documents inline.
+  artifacts. Write each publication directly to the task-private artifacts
+  directory (`git rev-parse --git-path orchestra/artifacts`): the overview as
+  the next `<NN>-plan-overview.md` file and each phase as
+  `<NN>-plan-phase-p<number>.md`. If the directory cannot be created or
+  written, return the same complete documents inline.
 - Return the candidate bundle to the root for review and user approval. Only
   the root writes or updates the approved overview and exact phase manifest at
   `git rev-parse --git-path orchestra/plan.md`.

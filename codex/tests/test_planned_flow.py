@@ -376,7 +376,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         for contract in (
             "coordination.py",
             "task create",
-            "artifact put",
+            "git rev-parse --git-path orchestra/artifacts",
+            "the file name is the artifact identifier",
             "material start, final, or blocker",
             "there are no heartbeats",
             "complete report inline",
@@ -388,11 +389,11 @@ class PlannedFlowContractTests(unittest.TestCase):
             "$HOME/.orchestra/state.sqlite3",
             "no transition graph",
             "never runs mutating Git commands",
-            "worktree cleanup may make its artifact locators unavailable",
+            "no database locator exists",
         ):
             self.assertIn(contract.lower(), workflow.lower())
         for contract in (
-            "tasks, material agent activities, and artifact locators",
+            "tasks and material agent activities",
             "telemetry loss, not workflow failure",
             "no authority, event history, heartbeat requirement",
         ):
@@ -406,9 +407,9 @@ class PlannedFlowContractTests(unittest.TestCase):
         planning = " ".join(
             (self.references / "technical_planning.md").read_text().split()
         )
-        self.assertIn("--kind repository-context", context)
-        self.assertIn("--kind plan-overview", planning)
-        self.assertIn("--kind plan-phase --phase <number>", planning)
+        self.assertIn("<NN>-repository-context.md", context)
+        self.assertIn("<NN>-plan-overview.md", planning)
+        self.assertIn("<NN>-plan-phase-p<number>.md", planning)
         self.assertIn("complete replacement", planning)
 
     def test_document_handoffs_use_exact_bundle_members_without_root_replay(self) -> None:

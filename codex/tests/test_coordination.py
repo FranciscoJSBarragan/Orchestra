@@ -269,182 +269,7 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(len(listed["tasks"]), 1)
 
-    def test_artifacts_are_atomic_private_and_queryable(self) -> None:
-        task_id = self.create_task(self.task_one)["task"]["id"]
-        report = Path(self.temporary_directory.name) / "context.md"
-        report.write_text("# Context\n\nEvidence.\n", encoding="utf-8")
-        status_before = self.git(
-            self.task_one, "status", "--porcelain=v1", "--untracked-files=all"
-        ).stdout
-
-        result, published = self.run_cli(
-            "artifact",
-            "put",
-            "--task",
-            task_id,
-            "--kind",
-            "repository-context",
-            "--revision",
-            self.head,
-            "--producer",
-            "analyst-1",
-            "--file",
-            str(report),
-        )
-
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        artifact = published["artifact"]
-        destination = Path(artifact["path"])
-        self.assertTrue(destination.is_file())
-        self.assertEqual(destination.read_text(encoding="utf-8"), report.read_text())
-        self.assertIn("/.git/worktrees/task-one/orchestra/artifacts/", destination.as_posix())
-        self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
-        self.assertEqual(
-            self.git(
-                self.task_one, "status", "--porcelain=v1", "--untracked-files=all"
-            ).stdout,
-            status_before,
-        )
-
-        result, listed = self.run_cli(
-            "artifact",
-            "list",
-            "--task",
-            task_id,
-            "--kind",
-            "repository-context",
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual([item["id"] for item in listed["artifacts"]], [artifact["id"]])
-        self.assertTrue(listed["artifacts"][0]["available"])
-
-        result, fetched = self.run_cli(
-            "artifact",
-            "get",
-            "--task",
-            task_id,
-            "--artifact",
-            artifact["id"],
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(fetched["status"], "ok")
-        self.assertEqual(fetched["artifact"]["path"], str(destination))
-
-    def test_plan_phases_and_replacements_remain_exact_distinct_artifacts(self) -> None:
-        task_id = self.create_task(self.task_one)["task"]["id"]
-        root = Path(self.temporary_directory.name)
-        phase_one = root / "phase-one.md"
-        phase_two = root / "phase-two.md"
-        phase_one_replacement = root / "phase-one-replacement.md"
-        phase_one.write_text("# Phase 1\n\nOriginal.\n", encoding="utf-8")
-        phase_two.write_text("# Phase 2\n\nIndependent.\n", encoding="utf-8")
-        phase_one_replacement.write_text(
-            "# Phase 1\n\nComplete replacement.\n",
-            encoding="utf-8",
-        )
-
-        published = []
-        for phase, source in (
-            (1, phase_one),
-            (2, phase_two),
-            (1, phase_one_replacement),
-        ):
-            result, payload = self.run_cli(
-                "artifact",
-                "put",
-                "--task",
-                task_id,
-                "--kind",
-                "plan-phase",
-                "--phase",
-                str(phase),
-                "--revision",
-                self.head,
-                "--producer",
-                "planner-1",
-                "--file",
-                str(source),
-            )
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            published.append(payload["artifact"])
-
-        result, listed = self.run_cli(
-            "artifact",
-            "list",
-            "--task",
-            task_id,
-            "--kind",
-            "plan-phase",
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(len(listed["artifacts"]), 3)
-        self.assertEqual(
-            {artifact["id"] for artifact in listed["artifacts"]},
-            {artifact["id"] for artifact in published},
-        )
-        self.assertEqual(
-            [artifact["phase"] for artifact in published],
-            [1, 2, 1],
-        )
-        self.assertEqual(len({artifact["path"] for artifact in published}), 3)
-
-        result, original = self.run_cli(
-            "artifact",
-            "get",
-            "--task",
-            task_id,
-            "--artifact",
-            published[0]["id"],
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(
-            Path(original["artifact"]["path"]).read_text(encoding="utf-8"),
-            phase_one.read_text(encoding="utf-8"),
-        )
-
-    def test_rejects_unsafe_inputs_and_unrelated_worktrees(self) -> None:
-        task_id = self.create_task(self.task_one)["task"]["id"]
-        source = Path(self.temporary_directory.name) / "source.md"
-        source.write_text("safe\n", encoding="utf-8")
-        symlink = Path(self.temporary_directory.name) / "source-link.md"
-        symlink.symlink_to(source)
-
-        result, payload = self.run_cli(
-            "artifact",
-            "put",
-            "--task",
-            task_id,
-            "--kind",
-            "context",
-            "--revision",
-            self.head,
-            "--producer",
-            "analyst",
-            "--file",
-            str(symlink),
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(payload["status"], "invalid")
-
-        binary = Path(self.temporary_directory.name) / "binary.md"
-        binary.write_bytes(b"\xff")
-        result, payload = self.run_cli(
-            "artifact",
-            "put",
-            "--task",
-            task_id,
-            "--kind",
-            "context",
-            "--revision",
-            self.head,
-            "--producer",
-            "analyst",
-            "--file",
-            str(binary),
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(payload["status"], "invalid")
-
+    def test_rejects_unrelated_worktrees(self) -> None:
         unrelated = Path(self.temporary_directory.name) / "unrelated"
         unrelated.mkdir()
         self.git(unrelated, "init", "-q", "-b", "main")
@@ -470,41 +295,32 @@ class CoordinationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "invalid")
 
-    def test_removed_worktree_keeps_metadata_and_marks_artifact_unavailable(self) -> None:
+    def test_removed_worktree_keeps_task_metadata(self) -> None:
         task_id = self.create_task(self.task_one)["task"]["id"]
-        report = Path(self.temporary_directory.name) / "report.md"
-        report.write_text("report\n", encoding="utf-8")
-        _, published = self.run_cli(
-            "artifact",
-            "put",
-            "--task",
-            task_id,
-            "--kind",
-            "review",
-            "--revision",
-            self.head,
-            "--producer",
-            "reviewer",
-            "--file",
-            str(report),
-        )
         self.git(self.repository, "worktree", "remove", str(self.task_one))
 
         result, shown = self.run_cli("task", "show", "--task", task_id)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(shown["task"]["worktree"], str(self.task_one.resolve()))
-        self.assertFalse(shown["artifacts"][0]["available"])
 
-        result, fetched = self.run_cli(
-            "artifact",
-            "get",
-            "--task",
-            task_id,
-            "--artifact",
-            published["artifact"]["id"],
+    def test_legacy_artifacts_table_is_tolerated(self) -> None:
+        task_id = self.create_task(self.task_one)["task"]["id"]
+        database = self.state_root / "state.sqlite3"
+        connection = sqlite3.connect(database)
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS artifacts (id TEXT PRIMARY KEY, task_id TEXT)"
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(fetched["status"], "unavailable")
+        connection.commit()
+        connection.close()
+
+        result, listed = self.run_cli("task", "list")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(listed["status"], "ok")
+        self.assertEqual(len(listed["tasks"]), 1)
+
+        result, shown = self.run_cli("task", "show", "--task", task_id)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("artifacts", shown)
 
     def test_damaged_database_is_reported_without_replacement(self) -> None:
         self.state_root.mkdir()

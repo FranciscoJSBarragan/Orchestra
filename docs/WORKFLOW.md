@@ -299,16 +299,22 @@ behavior change requires renewed user approval.
 
 The installed
 `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py` helper exposes
-`task`, `activity`, and `artifact` commands with compact JSON results. It stores
-task and activity snapshots plus artifact locators in
-`$HOME/.orchestra/state.sqlite3`. Artifact content is UTF-8 Markdown under the
-task-private path resolved by
-`git rev-parse --git-path orchestra/artifacts`.
+`task` and `activity` commands with compact JSON results. It stores task and
+activity snapshots in `$HOME/.orchestra/state.sqlite3`.
 The database and its SQLite sidecars use mode `0600`. Schema creation and
 version assignment are one transaction; an empty version-zero file may be
 initialized, but a partial, unknown, or corrupt database remains untouched and
 returns `unavailable`. Concurrent registration of one worktree converges on one
 active task identifier.
+
+Artifacts live only on the filesystem. Agents write each semantic handoff
+directly as UTF-8 Markdown under the task-private directory resolved by
+`git rev-parse --git-path orchestra/artifacts`, named
+`<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal (for example
+`03-plan-phase-p2.md`). The file name is the artifact identifier. Packets and
+the plan manifest reference these exact file names; no database locator
+exists. If the artifacts directory cannot be created or written, the agent
+returns the complete report inline instead.
 
 The root updates task stage, tier, revision, summary, blocker, and next action
 only at material transitions. Each delegated agent may update its own activity
@@ -337,8 +343,8 @@ cannot block implementation, verification, review, a tier change, commit, or
 delivery. Failed publication returns the full result inline; failed lookup uses
 the inline packet or current source. The helper never runs mutating Git
 commands, grants authority, validates transitions, or triggers another agent.
-Completed metadata remains queryable, while worktree cleanup may make its
-artifact locators unavailable.
+Completed metadata remains queryable, while worktree cleanup removes the
+task-private artifact files with the rest of the task Git directory.
 
 ## Phase execution
 

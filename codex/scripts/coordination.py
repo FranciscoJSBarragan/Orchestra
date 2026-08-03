@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Maintain fail-soft Orchestra task coordination and artifact locators."""
+"""Maintain fail-soft Orchestra task and activity snapshots.
+
+Artifact content lives directly in each task's private
+`git rev-parse --git-path orchestra/artifacts` directory; the filesystem is
+the only locator and this helper never tracks it.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +13,9 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
-import re
 import sqlite3
+import stat
 import subprocess
-import tempfile
 from typing import Any
 import uuid
 
@@ -51,24 +55,7 @@ SCHEMA_STATEMENTS = (
         FOREIGN KEY (task_id) REFERENCES tasks(id)
     )
     """,
-    """
-    CREATE TABLE artifacts (
-        id TEXT PRIMARY KEY,
-        task_id TEXT NOT NULL,
-        kind TEXT NOT NULL,
-        phase INTEGER,
-        path TEXT NOT NULL,
-        revision TEXT NOT NULL,
-        producer TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (task_id) REFERENCES tasks(id)
-    )
-    """,
     "CREATE INDEX activities_task_id ON activities(task_id)",
-    """
-    CREATE INDEX artifacts_task_id_kind
-        ON artifacts(task_id, kind, created_at)
-    """,
 )
 
 
@@ -159,14 +146,15 @@ def _state_directory(explicit: Path | None) -> Path:
             raise CoordinationUnavailable("HOME is unavailable")
         raw = Path(home) / ".orchestra"
     absolute = Path(os.path.abspath(raw))
-    if absolute.exists():
-        if absolute.is_symlink() or not absolute.is_dir():
-            raise CoordinationUnavailable(f"state root is not a regular directory: {absolute}")
-    else:
+    if not absolute.exists():
         try:
             absolute.mkdir(parents=True, mode=0o700)
+        except FileExistsError:
+            pass
         except OSError as error:
             raise CoordinationUnavailable(f"cannot create state root: {error}") from error
+    if absolute.is_symlink() or not absolute.is_dir():
+        raise CoordinationUnavailable(f"state root is not a regular directory: {absolute}")
     return absolute
 
 
@@ -190,12 +178,21 @@ def _restrict_state_files(database: Path) -> None:
         database.with_name(database.name + "-wal"),
         database.with_name(database.name + "-shm"),
     ):
-        if not path.exists():
+        try:
+            mode = os.lstat(path).st_mode
+        except FileNotFoundError:
             continue
-        if path.is_symlink() or not path.is_file():
+        except OSError as error:
+            raise CoordinationUnavailable(
+                f"cannot inspect state database file: {error}"
+            ) from error
+        if not stat.S_ISREG(mode):
             raise CoordinationUnavailable(f"state database file is unsafe: {path}")
         try:
             os.chmod(path, 0o600)
+        except FileNotFoundError:
+            # A WAL sidecar may be checkpointed away by a concurrent process.
+            continue
         except OSError as error:
             raise CoordinationUnavailable(
                 f"cannot restrict state database permissions: {error}"
@@ -262,11 +259,6 @@ def _task(connection: sqlite3.Connection, task_id: str) -> sqlite3.Row:
     if row is None:
         raise CoordinationInvalid(f"unknown task: {task_id}")
     return row
-
-
-def _available_artifact(path: str) -> bool:
-    candidate = Path(path)
-    return candidate.is_file() and not candidate.is_symlink()
 
 
 def _task_payload(row: sqlite3.Row) -> dict[str, Any]:
@@ -394,23 +386,10 @@ def show_task(connection: sqlite3.Connection, *, task_id: str) -> dict[str, Any]
             (task_id,),
         ).fetchall()
     ]
-    artifacts = []
-    for artifact in connection.execute(
-        """
-        SELECT * FROM artifacts
-        WHERE task_id = ?
-        ORDER BY created_at DESC, id
-        """,
-        (task_id,),
-    ).fetchall():
-        payload = dict(artifact)
-        payload["available"] = _available_artifact(payload["path"])
-        artifacts.append(payload)
     return {
         "status": "ok",
         "task": _task_payload(row),
         "activities": activities,
-        "artifacts": artifacts,
     }
 
 
@@ -497,160 +476,6 @@ def clear_activity(
     return {"status": "ok", "cleared": bool(cursor.rowcount)}
 
 
-def _artifact_root(worktree: Path) -> Path:
-    common = _common_git_dir(worktree)
-    value = Path(_git_value(worktree, "rev-parse", "--git-path", "orchestra/artifacts"))
-    root = (worktree / value).resolve() if not value.is_absolute() else value.resolve()
-    try:
-        root.relative_to(common)
-    except ValueError as error:
-        raise CoordinationInvalid("artifact path is outside the task Git directory") from error
-    try:
-        root.mkdir(parents=True, exist_ok=True)
-    except OSError as error:
-        raise CoordinationUnavailable(f"cannot create artifact directory: {error}") from error
-    if root.is_symlink() or not root.is_dir():
-        raise CoordinationUnavailable("artifact root is not a regular directory")
-    return root
-
-
-def _read_markdown(source: Path) -> bytes:
-    if source.is_symlink() or not source.is_file():
-        raise CoordinationInvalid("artifact source must be a regular file")
-    try:
-        data = source.read_bytes()
-        data.decode("utf-8")
-    except OSError as error:
-        raise CoordinationUnavailable(f"cannot read artifact source: {error}") from error
-    except UnicodeDecodeError as error:
-        raise CoordinationInvalid("artifact source must be UTF-8 Markdown") from error
-    return data
-
-
-def _atomic_artifact(path: Path, data: bytes) -> None:
-    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            os.fchmod(handle.fileno(), 0o600)
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    except OSError as error:
-        raise CoordinationUnavailable(f"cannot publish artifact: {error}") from error
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-
-
-def put_artifact(
-    connection: sqlite3.Connection,
-    *,
-    task_id: str,
-    kind: str,
-    phase: int | None,
-    revision: str,
-    producer: str,
-    source: Path,
-) -> dict[str, Any]:
-    row = _task(connection, task_id)
-    if not kind.strip() or not producer.strip():
-        raise CoordinationInvalid("artifact kind and producer must be nonempty")
-    if phase is not None and phase < 1:
-        raise CoordinationInvalid("artifact phase must be positive")
-    if not SHA_PATTERN.fullmatch(revision):
-        raise CoordinationInvalid("artifact revision must be a full Git object name")
-    data = _read_markdown(source)
-    worktree = _git_root(Path(row["worktree"]))
-    root = _artifact_root(worktree)
-    artifact_id = str(uuid.uuid4())
-    safe_kind = re.sub(r"[^a-z0-9]+", "-", kind.lower()).strip("-") or "artifact"
-    destination = root / f"{safe_kind}-{artifact_id}.md"
-    _atomic_artifact(destination, data)
-    payload = {
-        "id": artifact_id,
-        "task_id": task_id,
-        "kind": _compact(kind, limit=200),
-        "phase": phase,
-        "path": str(destination),
-        "revision": revision,
-        "producer": _compact(producer, limit=200),
-        "created_at": _now(),
-        "available": True,
-    }
-    try:
-        with connection:
-            connection.execute(
-                """
-                INSERT INTO artifacts (
-                    id, task_id, kind, phase, path, revision, producer, created_at
-                ) VALUES (
-                    :id, :task_id, :kind, :phase, :path, :revision, :producer,
-                    :created_at
-                )
-                """,
-                {key: value for key, value in payload.items() if key != "available"},
-            )
-    except sqlite3.Error:
-        destination.unlink(missing_ok=True)
-        raise
-    return {"status": "ok", "artifact": payload}
-
-
-def list_artifacts(
-    connection: sqlite3.Connection,
-    *,
-    task_id: str,
-    kind: str | None,
-) -> dict[str, Any]:
-    _task(connection, task_id)
-    if kind is None:
-        rows = connection.execute(
-            """
-            SELECT * FROM artifacts
-            WHERE task_id = ?
-            ORDER BY created_at DESC, id
-            """,
-            (task_id,),
-        ).fetchall()
-    else:
-        rows = connection.execute(
-            """
-            SELECT * FROM artifacts
-            WHERE task_id = ? AND kind = ?
-            ORDER BY created_at DESC, id
-            """,
-            (task_id, kind),
-        ).fetchall()
-    artifacts = []
-    for row in rows:
-        payload = dict(row)
-        payload["available"] = _available_artifact(payload["path"])
-        artifacts.append(payload)
-    return {"status": "ok", "artifacts": artifacts}
-
-
-def get_artifact(
-    connection: sqlite3.Connection,
-    *,
-    task_id: str,
-    artifact_id: str,
-) -> dict[str, Any]:
-    _task(connection, task_id)
-    row = connection.execute(
-        "SELECT * FROM artifacts WHERE id = ? AND task_id = ?",
-        (artifact_id, task_id),
-    ).fetchone()
-    if row is None:
-        raise CoordinationInvalid(f"unknown artifact: {artifact_id}")
-    payload = dict(row)
-    payload["available"] = _available_artifact(payload["path"])
-    return {
-        "status": "ok" if payload["available"] else "unavailable",
-        "artifact": payload,
-    }
-
-
 def _parser() -> argparse.ArgumentParser:
     parser = JsonArgumentParser(description=__doc__)
     parser.add_argument("--state-root", type=Path)
@@ -692,22 +517,6 @@ def _parser() -> argparse.ArgumentParser:
     activity_clear.add_argument("--task", required=True)
     activity_clear.add_argument("--agent", required=True)
     activity_clear.add_argument("--capability", required=True)
-
-    artifact = resources.add_parser("artifact")
-    artifact_commands = artifact.add_subparsers(dest="action", required=True)
-    artifact_put = artifact_commands.add_parser("put")
-    artifact_put.add_argument("--task", required=True)
-    artifact_put.add_argument("--kind", required=True)
-    artifact_put.add_argument("--phase", type=int)
-    artifact_put.add_argument("--revision", required=True)
-    artifact_put.add_argument("--producer", required=True)
-    artifact_put.add_argument("--file", type=Path, required=True)
-    artifact_list = artifact_commands.add_parser("list")
-    artifact_list.add_argument("--task", required=True)
-    artifact_list.add_argument("--kind")
-    artifact_get = artifact_commands.add_parser("get")
-    artifact_get.add_argument("--task", required=True)
-    artifact_get.add_argument("--artifact", required=True)
     return parser
 
 
@@ -758,25 +567,6 @@ def _dispatch(connection: sqlite3.Connection, args: argparse.Namespace) -> dict[
                 task_id=args.task,
                 agent_id=args.agent,
                 capability=args.capability,
-            )
-    if args.resource == "artifact":
-        if args.action == "put":
-            return put_artifact(
-                connection,
-                task_id=args.task,
-                kind=args.kind,
-                phase=args.phase,
-                revision=args.revision,
-                producer=args.producer,
-                source=args.file,
-            )
-        if args.action == "list":
-            return list_artifacts(connection, task_id=args.task, kind=args.kind)
-        if args.action == "get":
-            return get_artifact(
-                connection,
-                task_id=args.task,
-                artifact_id=args.artifact,
             )
     raise CoordinationInvalid("unsupported coordination command")
 

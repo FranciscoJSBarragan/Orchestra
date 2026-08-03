@@ -196,15 +196,18 @@ exact generated paths, temporary processes, or task tabs. Reuse still-valid
 evidence and send only changed context deltas after the first pass. Do not fork
 full conversation history unless a demonstrated context dependency requires
 it. Keep agent and resource handles only in root memory. The coordination store
-may retain task snapshots, material start/final/blocker activities, and artifact
-locators, but never packets, resource handles, previous clean PR heads,
-authority bundles, or workflow logs.
+may retain task snapshots and material start/final/blocker activities, but
+never packets, resource handles, previous clean PR heads, authority bundles,
+or workflow logs.
 
 Use `coordination.py activity set` only for material start, final, or blocker
 updates; there are no heartbeats. Request outcome-first, lossless structured returns
 and never impose a token, line, file, finding, test, or explanation cap.
 Every agent-produced semantic handoff is a complete revision-identified
-Markdown artifact published with `coordination.py artifact put`. Use the conventional kinds `repository-context`,
+Markdown artifact written directly to the task-private directory resolved by
+`git rev-parse --git-path orchestra/artifacts`, named
+`<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal; the file name
+is the artifact identifier. Use the conventional kinds `repository-context`,
 `context-delta`, `plan-overview`, `plan-phase`, `plan-review`,
 `implementation-report`, `verification-report`, `implementation-review`,
 `debugging-report`, and `pr-review` only when PR analysis has a downstream
