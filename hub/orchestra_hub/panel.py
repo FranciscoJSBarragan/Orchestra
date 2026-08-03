@@ -14,14 +14,22 @@ _MAIN_TEMPLATE = """\
   <meta http-equiv="refresh" content="30">
   <title>Orchestra Hub</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; margin: 1.5rem; color: #111; }}
-    h1 {{ font-size: 1.4rem; }}
-    h2 {{ font-size: 1.1rem; margin-top: 1.5rem; }}
+    body {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.85rem; margin: 1.5rem; color: #d0d7de;
+            background: #0d1117; }}
+    h1 {{ font-size: 1.25rem; color: #e6edf3; letter-spacing: 0.02em; }}
+    h2 {{ font-size: 0.95rem; margin-top: 1.75rem; color: #8b949e;
+          text-transform: uppercase; letter-spacing: 0.08em; }}
     table {{ border-collapse: collapse; width: 100%; margin-top: 0.5rem; }}
-    th, td {{ border: 1px solid #ccc; padding: 0.35rem 0.5rem; text-align: left; }}
-    th {{ background: #f4f4f4; }}
-    .empty {{ font-style: italic; color: #555; }}
-    .attention {{ margin: 0.5rem 0 1rem; padding: 0.5rem 0.75rem; border: 1px solid #ddd; }}
+    th, td {{ border: 1px solid #21262d; padding: 0.4rem 0.6rem;
+              text-align: left; vertical-align: top; }}
+    th {{ background: #161b22; color: #8b949e; font-weight: 600; }}
+    tbody tr:hover {{ background: #161b22; }}
+    .empty {{ font-style: italic; color: #8b949e; }}
+    .attention {{ margin: 0.5rem 0 1rem; padding: 0.6rem 0.85rem;
+                  background: #161b22; border: 1px solid #21262d;
+                  border-left: 3px solid #f85149; }}
+    .attention strong {{ color: #f85149; }}
   </style>
 </head>
 <body>
@@ -39,7 +47,12 @@ _DEGRADED_TEMPLATE = """\
   <meta http-equiv="refresh" content="30">
   <title>Orchestra Hub — degraded</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; margin: 1.5rem; color: #111; }}
+    body {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.85rem; margin: 1.5rem; color: #d0d7de;
+            background: #0d1117; }}
+    h1 {{ font-size: 1.25rem; color: #e6edf3; }}
+    strong {{ color: #d29922; }}
+    code {{ color: #f85149; }}
   </style>
 </head>
 <body>
