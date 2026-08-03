@@ -2,6 +2,7 @@
 // See ../SPEC-CLIENTS.md section 5 for the frozen design.
 import AppKit
 import Foundation
+import UserNotifications
 
 let defaultPort = 7343
 let pollSeconds: TimeInterval = 30
@@ -93,6 +94,7 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var etag: String?
     private var lastSuccess: Date?
+    private var knownBlockers: Set<String>?
     private let port = readPort()
     private var panelURL: URL {
         URL(string: "http://127.0.0.1:\(port)/")!
@@ -112,6 +114,9 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
             )
             button.imagePosition = .imageLeading
         }
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: [.alert, .sound]
+        ) { _, _ in }
         render(.unreachable("starting"))
         timer = Timer.scheduledTimer(
             withTimeInterval: pollSeconds, repeats: true
@@ -161,7 +166,54 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
         lastSuccess = Date()
         let repos = activeRepos(from: summary)
         let total = repos.reduce(0) { $0 + $1.tasks.count }
+        notifyBlockerChanges(repos)
         render(.ok(repos, totalActive: total))
+    }
+
+    // One aggregated notification when blockers appear or clear (never
+    // one per task; baseline on first successful poll, SPEC-CLIENTS §5).
+    private func notifyBlockerChanges(_ repos: [ActiveRepo]) {
+        var current: [String: String] = [:]
+        for repo in repos {
+            for task in repo.tasks {
+                let blocker = task["blocker"] as? String ?? ""
+                guard !blocker.isEmpty,
+                      let id = task["id"] as? String else { continue }
+                let label = task["label"] as? String ?? id
+                current[id] = "\(label): \(String(blocker.prefix(blockerCap)))"
+            }
+        }
+        defer { knownBlockers = Set(current.keys) }
+        guard let known = knownBlockers else {
+            if !current.isEmpty { notifyNeedsYou(current) }
+            return
+        }
+        let added = Set(current.keys).subtracting(known)
+        let removed = known.subtracting(current.keys)
+        if !added.isEmpty {
+            notifyNeedsYou(current.filter { added.contains($0.key) })
+        } else if !removed.isEmpty {
+            notify("Orchestra", removed.count == 1
+                ? "A task is unblocked and moving again"
+                : "\(removed.count) tasks are unblocked and moving again")
+        }
+    }
+
+    private func notifyNeedsYou(_ blockers: [String: String]) {
+        let body = blockers.count == 1
+            ? blockers.values.first ?? ""
+            : "\(blockers.count) tasks are waiting on you"
+        notify("Orchestra needs you", body)
+    }
+
+    private func notify(_ title: String, _ body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
+            identifier: UUID().uuidString, content: content, trigger: nil
+        ))
     }
 
     private func render(_ state: HubState) {

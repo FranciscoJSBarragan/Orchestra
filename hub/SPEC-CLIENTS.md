@@ -38,12 +38,13 @@ SwiftBar:
   retry storm (next poll retries naturally).
 - SwiftBar (app and plugin) is uninstalled and `hub/swiftbar/` is deleted
   from the repository **after** the menu bar app passes acceptance.
-- Notifications are **out of scope** for this iteration (deferred to the
-  menu bar app v2, entry criterion: real use shows glancing is not enough).
+- Native notifications were initially deferred and later approved by the
+  user for the menu bar app: one aggregated notification when blockers
+  appear or clear, first-poll baseline, never one per task (same contract
+  as the retired SwiftBar client, §5).
 
 ### Out of scope (deferred, with entry criteria)
 
-- **Native notifications** — only after the menu bar app proves useful.
 - **Remote TUI over Tailscale** — only if laptop terminal use is actually
   wanted; would be a config knob, not a design change.
 - **Actions from any client (resume/approve/cancel)** — separate product
@@ -120,6 +121,11 @@ a minimal `OrchestraHubMenu.app` bundle (`Info.plist` with
 - Poll `/v1/summary` every 30 seconds with `URLSession` and ETag. All menu
   strings come from API fields verbatim (AppKit menu items are plain text;
   no injection surface).
+- **Notifications** (`UNUserNotificationCenter`, requires the ad-hoc signed
+  bundle produced by `build.sh`): baseline on the first successful poll
+  (aggregated "needs you" only if blockers already exist); afterwards one
+  aggregated notification when blockers appear and one when they clear.
+  Unreachable polls never reset the baseline.
 - Autostart: user LaunchAgent `com.orchestra.hub.menubar` (`RunAtLoad`,
   `KeepAlive`), template in `hub/menubar/launchd/`, pointing at the built
   `.app` binary.

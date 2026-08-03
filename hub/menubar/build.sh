@@ -9,4 +9,5 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp Info.plist "$APP/Contents/Info.plist"
 mv build/OrchestraHubMenu "$APP/Contents/MacOS/OrchestraHubMenu"
+codesign --force -s - "$APP"   # ad-hoc: required for user notifications
 echo "Built $APP"
