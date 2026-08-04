@@ -1,5 +1,13 @@
 # Orchestra Hub MVP Implementation Plan
 
+> **Status: executed and partially superseded.** This plan is a historical
+> record of the MVP implementation. `hub/SPEC.md` remains the single source of
+> contracts; where this plan disagrees with it, the SPEC and the code win.
+> **Superseded sections** (marked inline below): everything describing
+> artifacts as database rows. `coordination.py` no longer has an `artifacts`
+> table — artifacts are files discovered by `orchestra_hub/artifacts.py`, and
+> the artifact allowlist is `id, kind, phase, created_at` (see SPEC §7).
+
 > **For the implementer (Codex):** `hub/SPEC.md` is frozen and is the single
 > source of contracts (JSON shapes, allowlists, invariants). Follow this plan
 > in order, TDD, one commit per task. **Do not add anything the plan does not
@@ -19,10 +27,11 @@ and a SwiftBar plugin.
 
 ```
 hub/orchestra_hub/  __init__.py __main__.py config.py fingerprint.py
-                    db.py api.py panel.py server.py
+                    db.py artifacts.py api.py panel.py server.py
 hub/tests/          support.py test_support.py test_fingerprint.py
                     test_config.py test_db.py test_schema_crosscheck.py
-                    test_api.py test_panel.py test_server.py test_swiftbar.py
+                    test_artifacts.py test_api.py test_panel.py
+                    test_server.py test_swiftbar.py
 hub/launchd/        com.orchestra.hub.plist
 hub/swiftbar/       orchestra_hub.1m.py
 ```
@@ -104,9 +113,16 @@ Activity defaults: `agent-1 / implementation / running / "Implementing" /
 `implementation-report`, phase 1, `HEX40` revision, `worker-1`,
 `"2026-08-02T18:00:00Z"`.
 
+> **Superseded:** there is no `artifacts` table and no `insert_artifact`.
+> `support.py` provides `make_worktree(root, linked=...)` and
+> `write_artifact(worktree, name)`, which publish real
+> `<NN>-<kind>[-p<phase>].md` files under the worktree's private
+> `orchestra/artifacts` directory.
+
 `test_support.py` creates a temporary state database and asserts
-`PRAGMA user_version == coordination.SCHEMA_VERSION`; it then uses the three
-insert helpers and asserts one row exists in each real schema table. This
+`PRAGMA user_version == coordination.SCHEMA_VERSION`; it then uses the insert
+helpers and asserts one row exists in each real schema table (plus one
+published artifact file). This
 provides the first discoverable unittest so the mandatory full-suite command
 can pass before the Task 1 commit.
 
@@ -298,6 +314,11 @@ Run → PASS. **Commit:** `hub: schema cross-check test`.
   5 allowlisted keys.
 - `task_detail_payload` returns `None` for an unknown id.
 
+> **Superseded:** artifact keys are `{id, kind, phase, created_at}`, all
+> derived from the file name and mtime. `revision`, `producer`, and `available`
+> no longer exist (presence is intrinsic to listing the directory); `path` is
+> still never serialized.
+
 **Implementation** — module constants and functions:
 
 ```python
@@ -338,6 +359,12 @@ def parse_timestamp(value: str) -> datetime:
   `Path(row["path"]).is_file() and not is_symlink()`; `path` never copied
   into the payload. Detail returns `None` when the task row is missing.
   No `generated_at` in any of these bodies (ETag stability, SPEC §7).
+
+> **Superseded:** `ARTIFACT_FIELDS` lives in `orchestra_hub/artifacts.py` and is
+> `("id", "kind", "phase", "created_at")`. Detail runs no artifact query at all:
+> it calls `artifact_entries(task["worktree"])`, which lists the task-private
+> `orchestra/artifacts` directory (newest ordinal first) reading names and
+> mtimes only.
 
 Run → PASS. **Commit:** `hub: allowlisted payloads, attention, repositories`.
 
@@ -722,7 +749,8 @@ Verification (manual):
 - [ ] J2 laptop via Tailscale — Task 11 canary.
 - [ ] J3 single blocker notification — Task 12 verification.
 - [ ] J4 clean degradation — Tasks 4 and 8 tests.
-- [ ] J5 stale/unavailable shown without inference — Tasks 6 and 7 tests.
+- [ ] J5 stale snapshots and only really existing artifacts shown, without
+      inference — Tasks 6 and 7 tests.
 - [ ] J6 pinned repo with zero tasks — Task 6 test.
 - [ ] J7 negative network verification — Task 11 checklist.
 
