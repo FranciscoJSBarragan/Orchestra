@@ -21,7 +21,6 @@ class SupportFixtureTests(unittest.TestCase):
 
                 task = support.insert_task(database)
                 support.insert_activity(database, task["id"])
-                support.insert_artifact(database, task["id"], path="/tmp/report.md")
 
                 self.assertEqual(
                     connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0],
@@ -31,10 +30,10 @@ class SupportFixtureTests(unittest.TestCase):
                     connection.execute("SELECT COUNT(*) FROM activities").fetchone()[0],
                     1,
                 )
-                self.assertEqual(
-                    connection.execute("SELECT COUNT(*) FROM artifacts").fetchone()[0],
-                    1,
-                )
+
+                worktree = support.make_worktree(Path(temporary), linked=True)
+                published = support.write_artifact(worktree, "01-plan-phase-p1.md")
+                self.assertTrue(published.is_file())
             finally:
                 connection.close()
 

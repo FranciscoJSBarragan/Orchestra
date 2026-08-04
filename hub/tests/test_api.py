@@ -25,7 +25,7 @@ PINNED_PATH = "/pinned/repo"
 OBS_PATH = "/obs/alpha"
 TASK_PAYLOAD_KEYS = set(TASK_FIELDS) | {"material_fingerprint", "stale"}
 ACTIVITY_PAYLOAD_KEYS = set(ACTIVITY_FIELDS)
-ARTIFACT_PAYLOAD_KEYS = set(ARTIFACT_FIELDS) | {"available"}
+ARTIFACT_PAYLOAD_KEYS = set(ARTIFACT_FIELDS)
 
 
 class ApiTests(unittest.TestCase):
@@ -214,25 +214,15 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(all(task["status"] == "completed" for task in payload["tasks"]))
         self.assertNotIn("generated_at", payload)
 
-    def test_task_detail_availability_without_path(self) -> None:
-        task = support.insert_task(self.database, repository=OBS_PATH)
-        present = self.state_root / "present-artifact.md"
-        present.write_text("ok\n", encoding="utf-8")
-        missing = self.state_root / "missing-artifact.md"
-        support.insert_artifact(
-            self.database,
-            task["id"],
-            path=str(present),
-            id="art-present",
-            created_at="2026-08-02T18:10:00Z",
+    def test_task_detail_lists_filesystem_artifacts(self) -> None:
+        worktree = support.make_worktree(self.state_root, linked=True)
+        task = support.insert_task(
+            self.database, repository=OBS_PATH, worktree=str(worktree)
         )
-        support.insert_artifact(
-            self.database,
-            task["id"],
-            path=str(missing),
-            id="art-missing",
-            created_at="2026-08-02T18:20:00Z",
-        )
+        support.write_artifact(worktree, "01-repository-context.md")
+        support.write_artifact(worktree, "02-plan-overview.md")
+        support.write_artifact(worktree, "03-plan-phase-p2.md")
+        support.write_artifact(worktree, "notes.md")  # not an artifact name
         support.insert_activity(
             self.database,
             task["id"],
@@ -278,14 +268,34 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(
             [artifact["id"] for artifact in payload["artifacts"]],
-            ["art-missing", "art-present"],
+            [
+                "03-plan-phase-p2.md",
+                "02-plan-overview.md",
+                "01-repository-context.md",
+            ],
         )
         by_id = {artifact["id"]: artifact for artifact in payload["artifacts"]}
-        self.assertEqual(set(by_id["art-present"]), ARTIFACT_PAYLOAD_KEYS)
-        self.assertTrue(by_id["art-present"]["available"])
-        self.assertFalse(by_id["art-missing"]["available"])
-        self.assertNotIn("path", by_id["art-present"])
-        self.assertNotIn("path", by_id["art-missing"])
+        for artifact in payload["artifacts"]:
+            self.assertEqual(set(artifact), ARTIFACT_PAYLOAD_KEYS)
+            self.assertNotIn("path", artifact)
+        self.assertEqual(by_id["03-plan-phase-p2.md"]["kind"], "plan-phase")
+        self.assertEqual(by_id["03-plan-phase-p2.md"]["phase"], 2)
+        self.assertEqual(by_id["02-plan-overview.md"]["kind"], "plan-overview")
+        self.assertEqual(by_id["02-plan-overview.md"]["phase"], 0)
+
+    def test_task_detail_without_artifacts_directory(self) -> None:
+        task = support.insert_task(
+            self.database, repository=OBS_PATH, worktree="/absent/worktree"
+        )
+        connection = self._connect()
+        try:
+            payload = task_detail_payload(
+                connection, self.config, NOW, task["id"]
+            )
+        finally:
+            connection.close()
+        assert payload is not None
+        self.assertEqual(payload["artifacts"], [])
 
     def test_stale_flag_uses_threshold(self) -> None:
         support.insert_task(

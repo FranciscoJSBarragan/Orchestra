@@ -12,6 +12,8 @@ sys.path.insert(0, str(REPO_ROOT / "hub"))
 
 import coordination  # noqa: E402
 
+from orchestra_hub import artifacts  # noqa: E402
+
 HEX40 = "a" * 40
 
 
@@ -97,34 +99,24 @@ def insert_activity(database: Path, task_id: str, **overrides) -> dict:
     return row
 
 
-def insert_artifact(
-    database: Path, task_id: str, *, path: str, **overrides
-) -> dict:
-    row = {
-        "id": str(uuid.uuid4()),
-        "task_id": task_id,
-        "kind": "implementation-report",
-        "phase": 1,
-        "path": path,
-        "revision": HEX40,
-        "producer": "worker-1",
-        "created_at": "2026-08-02T18:00:00Z",
-    }
-    row.update(overrides)
-    connection = sqlite3.connect(database)
-    try:
-        connection.execute(
-            """
-            INSERT INTO artifacts (
-                id, task_id, kind, phase, path, revision, producer, created_at
-            ) VALUES (
-                :id, :task_id, :kind, :phase, :path, :revision, :producer,
-                :created_at
-            )
-            """,
-            row,
-        )
-        connection.commit()
-    finally:
-        connection.close()
-    return row
+def make_worktree(root: Path, *, linked: bool = False) -> Path:
+    """Create a worktree-shaped directory whose Git dir holds artifacts."""
+    worktree = root / "worktree"
+    worktree.mkdir(parents=True, exist_ok=True)
+    if linked:
+        gitdir = root / "repo" / ".git" / "worktrees" / "worktree"
+        gitdir.mkdir(parents=True, exist_ok=True)
+        (worktree / ".git").write_text(f"gitdir: {gitdir}\n", encoding="utf-8")
+    else:
+        (worktree / ".git").mkdir(exist_ok=True)
+    return worktree
+
+
+def write_artifact(worktree: Path, name: str, body: str = "report\n") -> Path:
+    """Publish an artifact file the way an Orchestra agent does."""
+    directory = artifacts.artifacts_directory(worktree)
+    assert directory is not None
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    path.write_text(body, encoding="utf-8")
+    return path

@@ -14,10 +14,10 @@ from orchestra_hub_tui.viewmodel import (
 )
 
 
-def _artifact(kind: str, phase: int, available: bool = True) -> dict:
-    return {"id": f"{kind}-{phase}", "kind": kind, "phase": phase,
-            "revision": "b" * 40, "producer": "agent-1",
-            "created_at": "2026-08-03T17:00:00Z", "available": available}
+def _artifact(kind: str, phase: int) -> dict:
+    suffix = f"-p{phase}" if phase else ""
+    return {"id": f"01-{kind}{suffix}.md", "kind": kind, "phase": phase,
+            "created_at": "2026-08-03T17:00:00Z"}
 
 
 class PhaseProgressTest(unittest.TestCase):
@@ -41,11 +41,11 @@ class PhaseProgressTest(unittest.TestCase):
         ]
         self.assertEqual(phase_progress(artifacts), (2, 3))
 
-    def test_unavailable_work_artifacts_do_not_count(self) -> None:
+    def test_work_outside_the_plan_does_not_advance_progress(self) -> None:
         artifacts = [
             _artifact("plan-phase", 1),
             _artifact("plan-phase", 2),
-            _artifact("implementation-report", 2, available=False),
+            _artifact("implementation-report", 5),
         ]
         self.assertEqual(phase_progress(artifacts), (1, 2))
 

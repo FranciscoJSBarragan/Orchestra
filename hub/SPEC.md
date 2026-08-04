@@ -69,6 +69,10 @@ panel (HTML) / SwiftBar / Hermes / laptop ──GET over loopback or Tailscale�
 - A monorepo test deliberately imports both and asserts
   `coordination.SCHEMA_VERSION in SUPPORTED_SCHEMA_VERSIONS`, so a coordinator
   schema bump breaks the test until someone reviews Hub compatibility.
+- The version alone cannot detect a same-version shape change (a dropped table
+  or renamed column), so the same cross-check also builds the installed
+  `coordination.SCHEMA_STATEMENTS` in memory and asserts every table and column
+  the Hub reads still exists.
 - Unsupported version → degraded responses (section 8), never a crash, never
   a partial read of misunderstood data.
 
@@ -132,8 +136,11 @@ never from `SELECT *` passthrough.
   head_revision, tier, stage, status, summary, blocker, next_action,
   created_at, updated_at` plus computed `material_fingerprint` and `stale`.
 - Activity: `agent_id, capability, state, summary, updated_at`.
-- Artifact: `id, kind, phase, revision, producer, created_at` plus computed
-  `available`. The artifact filesystem `path` is **never** serialized.
+- Artifact: `id, kind, phase, created_at`, all derived from the artifact file
+  name (`<NN>-<kind>[-p<phase>].md`) and its mtime. Artifacts have no database
+  row: they are discovered by listing the task-private directory resolved from
+  the worktree's Git directory (`orchestra/artifacts`). Only names and mtimes
+  are read; the absolute filesystem `path` is **never** serialized.
 
 Local repository/worktree paths are exposed deliberately: they are part of
 the product. Artifact content, prompts, diffs, and environment variables are
@@ -208,8 +215,8 @@ Optional exact-match `status` filter, mirroring `coordination.py task list`.
  "task": TaskSummary,
  "activities": [{"agent_id": "…", "capability": "…", "state": "…",
                  "summary": "…", "updated_at": "…"}],
- "artifacts": [{"id": "…", "kind": "…", "phase": 1, "revision": "<hex>",
-                "producer": "…", "created_at": "…", "available": true}]}
+ "artifacts": [{"id": "03-plan-phase-p2.md", "kind": "plan-phase",
+                "phase": 2, "created_at": "…"}]}
 ```
 
 Unknown id → `404` `{"status": "invalid", "reason": "unknown task"}`.
@@ -269,9 +276,11 @@ The bind host is hard-coded to `127.0.0.1` as a security invariant.
 
 - Listens exclusively on loopback. Tailscale Serve is the only remote proxy.
 - No mutating endpoints exist; non-GET methods return `405`.
-- No endpoint reads filesystem paths supplied by request parameters.
+- No endpoint reads filesystem paths supplied by request parameters. Artifact
+  discovery derives its directory from the worktree recorded in the database,
+  skips symlinks, and never follows a path from the request.
 - No artifact content, prompts, diffs, code, or environment variables in any
-  response.
+  response. Artifact discovery reads names and mtimes only, never file bodies.
 - Field-allowlist serialization everywhere; HTML escaping everywhere.
 - Network acceptance (Phase 2, on the real machine): canary from the
   authorized laptop over Tailscale succeeds; the same request against the
@@ -304,8 +313,8 @@ The bind host is hard-coded to `127.0.0.1` as a security invariant.
 3. A single notification when a blocker appears, and when it disappears.
 4. Clear degradation — without affecting Orchestra — for a missing, busy, or
    schema-incompatible database.
-5. Stale snapshots and unavailable artifacts are shown as such, with no
-   inference of live agents or fabricated states.
+5. Stale snapshots are shown as such, and only artifacts that really exist on
+   disk are listed, with no inference of live agents or fabricated states.
 6. A pinned repository with zero tasks appears in the catalog.
 7. Negative network verification: loopback-only listener, LAN IP unreachable,
    Tailscale canary works, mutating methods return `405`, no remote write

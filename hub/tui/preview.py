@@ -69,11 +69,10 @@ def _activity(agent: str, capability: str, state: str, summary: str,
             "summary": summary, "updated_at": updated}
 
 
-def _artifact(kind: str, phase: int, producer: str,
-              available: bool = True) -> dict:
-    return {"id": f"{kind}-{phase}", "kind": kind, "phase": phase,
-            "revision": "b" * 40, "producer": producer,
-            "created_at": "2026-08-03T17:00:00Z", "available": available}
+def _artifact(ordinal: int, kind: str, phase: int) -> dict:
+    suffix = f"-p{phase}" if phase else ""
+    return {"id": f"{ordinal:02d}-{kind}{suffix}.md", "kind": kind,
+            "phase": phase, "created_at": "2026-08-03T17:00:00Z"}
 
 
 ORCHESTRA = "/Users/me/Code/Orchestra"
@@ -95,11 +94,11 @@ _IMPL_DETAIL = _detail(
                   "Waiting for a stable revision", "2026-08-03T17:20:00Z"),
     ],
     [
-        _artifact("plan-overview", 0, "planner-1"),
-        _artifact("plan-phase", 1, "planner-1"),
-        _artifact("plan-phase", 2, "planner-1"),
-        _artifact("implementation-report", 1, "worker-1"),
-        _artifact("review-report", 1, "reviewer-1", available=False),
+        _artifact(1, "plan-overview", 0),
+        _artifact(2, "plan-phase", 1),
+        _artifact(3, "plan-phase", 2),
+        _artifact(4, "implementation-report", 1),
+        _artifact(5, "implementation-review", 1),
     ],
 )
 
@@ -114,8 +113,8 @@ _BLOCKED_DETAIL = _detail(
     _BLOCKED_TASK,
     [_activity("planner-1", "planning", "blocked",
                "Plan published; awaiting approval")],
-    [_artifact("plan-overview", 0, "planner-1"),
-     _artifact("plan-phase", 1, "planner-1")],
+    [_artifact(1, "plan-overview", 0),
+     _artifact(2, "plan-phase", 1)],
 )
 
 _STALE_TASK = _task(
@@ -129,8 +128,8 @@ _STALE_DETAIL = _detail(
     _STALE_TASK,
     [_activity("verifier-1", "verification", "working",
                "Running the full suite", "2026-08-03T12:00:00Z")],
-    [_artifact("plan-overview", 0, "planner-1"),
-     _artifact("implementation-report", 3, "worker-1")],
+    [_artifact(1, "plan-overview", 0),
+     _artifact(2, "implementation-report", 3)],
 )
 
 _DONE_TASK = _task(

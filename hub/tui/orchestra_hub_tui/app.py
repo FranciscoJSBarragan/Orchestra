@@ -89,7 +89,7 @@ class HubTuiApp(App):
         activities.zebra_stripes = True
         activities.cursor_type = "none"
         artifacts = self.query_one("#artifacts", DataTable)
-        artifacts.add_columns("document", "phase", "by", "ready")
+        artifacts.add_columns("document", "phase", "published")
         artifacts.zebra_stripes = True
         artifacts.cursor_type = "none"
         self.set_interval(POLL_SECONDS, self.action_refresh)
@@ -296,6 +296,5 @@ class HubTuiApp(App):
             table.add_row(
                 str(artifact.get("kind", "")),
                 str(artifact.get("phase", "")),
-                str(artifact.get("producer", "")),
-                "✓ ready" if artifact.get("available") else "not yet",
+                snapshot_age(str(artifact.get("created_at", "")), now),
             )

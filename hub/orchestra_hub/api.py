@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Mapping
 
+from orchestra_hub.artifacts import ARTIFACT_FIELDS, artifact_entries
 from orchestra_hub.config import HubConfig, PinnedRepository
 from orchestra_hub.fingerprint import (
     MATERIAL_FINGERPRINT_VERSION,
@@ -18,7 +19,18 @@ TASK_FIELDS = (
     "next_action", "created_at", "updated_at",
 )
 ACTIVITY_FIELDS = ("agent_id", "capability", "state", "summary", "updated_at")
-ARTIFACT_FIELDS = ("id", "kind", "phase", "revision", "producer", "created_at")
+
+__all__ = [
+    "ACTIVITY_FIELDS",
+    "ARTIFACT_FIELDS",
+    "TASK_FIELDS",
+    "attention_entries",
+    "repository_entries",
+    "summary_payload",
+    "task_detail_payload",
+    "task_summary",
+    "tasks_payload",
+]
 
 
 def parse_timestamp(value: str) -> datetime:
@@ -188,23 +200,10 @@ def task_detail_payload(
             (task_id,),
         ).fetchall()
     ]
-    artifacts = []
-    for artifact in connection.execute(
-        """
-        SELECT * FROM artifacts
-        WHERE task_id = ?
-        ORDER BY created_at DESC, id
-        """,
-        (task_id,),
-    ).fetchall():
-        path = Path(str(artifact["path"]))
-        entry = {field: artifact[field] for field in ARTIFACT_FIELDS}
-        entry["available"] = path.is_file() and not path.is_symlink()
-        artifacts.append(entry)
     return {
         "status": "ok",
         "material_fingerprint_version": MATERIAL_FINGERPRINT_VERSION,
         "task": task,
         "activities": activities,
-        "artifacts": artifacts,
+        "artifacts": artifact_entries(str(task["worktree"])),
     }

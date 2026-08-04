@@ -78,7 +78,7 @@ Package `orchestra_hub_tui`, entry `python -m orchestra_hub_tui`.
     status, branch, worktree, summary, blocker (highlighted when non-empty),
     next_action, snapshot age, activities table
     (`agent · capability · state · summary · updated_at`), artifacts table
-    (`kind · phase · producer · available`).
+    (`kind · phase · created_at`).
   - **Footer:** key bindings.
 - Keys: arrows/`j`/`k` navigate, `enter`/selection loads detail, `r` forces
   refresh, `q` quits. Nothing else in iteration 1.

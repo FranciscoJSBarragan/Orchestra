@@ -75,8 +75,8 @@ def attention_flags(task: dict) -> frozenset[str]:
 def phase_progress(artifacts: list[dict] | tuple) -> tuple[int, int] | None:
     """Best-effort (current, total) phase derived from published documents.
 
-    Total = number of plan-phase documents. Current = highest phase with an
-    available non-plan document, else the first planned phase. Returns None
+    Total = number of plan-phase documents. Current = highest phase with a
+    published non-plan document, else the first planned phase. Returns None
     when the plan has no per-phase documents (nothing to derive).
     """
     planned = {
@@ -90,7 +90,6 @@ def phase_progress(artifacts: list[dict] | tuple) -> tuple[int, int] | None:
         int(artifact.get("phase", 0))
         for artifact in artifacts
         if artifact.get("kind") not in ("plan-phase", "plan-overview")
-        and artifact.get("available")
     }
     current = max(worked & planned) if worked & planned else min(planned)
     return current, len(planned)
