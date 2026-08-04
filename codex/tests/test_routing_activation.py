@@ -1,11 +1,18 @@
 """Static contracts for explicit Orchestra activation."""
 
+import importlib.util
 from pathlib import Path
 import tomllib
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+_SYNC_SPEC = importlib.util.spec_from_file_location(
+    "orchestra_sync_routing", ROOT / "codex/scripts/sync.py"
+)
+assert _SYNC_SPEC is not None and _SYNC_SPEC.loader is not None
+_sync = importlib.util.module_from_spec(_SYNC_SPEC)
+_SYNC_SPEC.loader.exec_module(_sync)
 CANONICAL = (
     ROOT / "README.md",
     ROOT / "VISION.md",
@@ -128,7 +135,10 @@ class RoutingActivationContractTests(unittest.TestCase):
             self.assertEqual(len(roles["tiers"]["standard"]), 10)
             self.assertEqual(len(roles["tiers"]["critical"]), 10)
         dual = tomllib.loads(
-            (ROOT / "codex/config/roles.dual.toml").read_text()
+            _sync.compose_dual_matrix(
+                (ROOT / "codex/config/roles.native.toml").read_text(),
+                (ROOT / "codex/config/roles.external.toml").read_text(),
+            )
         )
         self.assertEqual(set(dual), {"modes"})
         self.assertEqual(set(dual["modes"]), {"native", "external"})

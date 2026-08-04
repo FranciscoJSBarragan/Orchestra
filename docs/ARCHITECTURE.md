@@ -269,8 +269,10 @@ into an Orchestra task worktree; that helper keeps no state.
 
 The approved capability matrices are documented in `WORKFLOW.md`. The user
 selects the root's current Sol medium or Sol high entry outside Orchestra.
-Source retains the legacy `native` and `external` matrices and adds one `dual`
-matrix. Direct sync installs exactly one at the canonical
+Source retains only the `native` and `external` matrices; the `dual` matrix is
+composed deterministically at sync time from those two sources (native wrapped
+under `modes.native`, external wrapped under `modes.external` with its
+Orchestra V1 aliases). Direct sync installs exactly one matrix at the canonical
 `$CODEX_HOME/orchestra/roles.toml` path and records that install choice.
 
 The dual matrix contains `native` and `external` modes. Before task setup, a
@@ -317,6 +319,11 @@ capability.
 A second critical review requires a named measurable risk. No Orchestra
 assignment uses Sol xhigh. Frontend work and browser acceptance remain separate
 dispatches.
+
+Operational notes for the V1 aliases: alias catalog metadata must stay
+synchronized with the native metadata (the context-window entry controls when
+Codex compacts), `ultra` reasoning effort is not used on V1 aliases, and
+encrypted compaction blobs are not portable across alias/native routes.
 
 ## Verification environment and browser routing
 

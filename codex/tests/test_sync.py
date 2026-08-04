@@ -78,7 +78,7 @@ class SyncTests(unittest.TestCase):
         for directory in ("skills", "agents"):
             shutil.copytree(ROOT / "codex" / directory, fixture / "codex" / directory)
         (fixture / "codex/config").mkdir(parents=True)
-        for modelconfig in sync.MODELCONFIGS:
+        for modelconfig in ("native", "external"):
             shutil.copy2(
                 ROOT / f"codex/config/roles.{modelconfig}.toml",
                 fixture / f"codex/config/roles.{modelconfig}.toml",
@@ -1073,9 +1073,17 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(installed["status"], "ok")
         self.assertEqual(installed["modelconfig"], "dual")
         self.assertEqual(self.manifest()["modelconfig"], "dual")
+        expected_dual = sync.compose_dual_matrix(
+            ROOT.joinpath("codex/config/roles.native.toml").read_text(
+                encoding="utf-8"
+            ),
+            ROOT.joinpath("codex/config/roles.external.toml").read_text(
+                encoding="utf-8"
+            ),
+        ).encode("utf-8")
         self.assertEqual(
             self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
-            ROOT.joinpath("codex/config/roles.dual.toml").read_bytes(),
+            expected_dual,
         )
         self.assertEqual(
             self.run_sync("status", modelconfig=None)["modelconfig"],

@@ -50,6 +50,12 @@ to an execution-capable mode, then continue without a second invocation.
 Orchestra observes the host mode; it never changes the host into a
 planning-only mode.
 
+Every Orchestra dispatch starts from a clean context: the packet and named
+artifacts carry the assignment. Under multi-agent V2, pass `fork_turns: none`
+explicitly on every spawn (the V2 default forks the full root history, which
+multiplies token cost and destroys reviewer independence). Under V1, never set
+`fork_context: true` for an Orchestra dispatch.
+
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
 not blindly follow a stale step when a reversible correction is clearly needed.

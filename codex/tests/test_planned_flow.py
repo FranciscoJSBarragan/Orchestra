@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
@@ -10,6 +11,12 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+_SYNC_SPEC = importlib.util.spec_from_file_location(
+    "orchestra_sync_planned", ROOT / "codex/scripts/sync.py"
+)
+assert _SYNC_SPEC is not None and _SYNC_SPEC.loader is not None
+_sync = importlib.util.module_from_spec(_SYNC_SPEC)
+_SYNC_SPEC.loader.exec_module(_sync)
 PROFILE_NAMES = {"orchestra_analyst", "orchestra_implementation_worker", "orchestra_reviewer", "orchestra_verifier"}
 ROLE_SKILLS = {
     "orchestra_analyst": "orchestra-role-analyst",
@@ -38,7 +45,10 @@ class PlannedFlowContractTests(unittest.TestCase):
             for modelconfig in ("native", "external")
         }
         self.dual_modes = tomllib.loads(
-            (ROOT / "codex/config/roles.dual.toml").read_text()
+            _sync.compose_dual_matrix(
+                (ROOT / "codex/config/roles.native.toml").read_text(),
+                (ROOT / "codex/config/roles.external.toml").read_text(),
+            )
         )["modes"]
         self.profiles = {
             path.stem: tomllib.loads(path.read_text())

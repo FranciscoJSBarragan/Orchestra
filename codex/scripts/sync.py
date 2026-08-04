@@ -66,6 +66,11 @@ HELPERS = (
 )
 RETIRED_HELPERS = ("create_worktree.py",)
 MODELCONFIGS = ("native", "external", "dual")
+DUAL_MODEL_ALIASES = (
+    ("gpt-5.6-sol", "orchestra-v1/gpt-5.6-sol"),
+    ("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),
+    ("gpt-5.6-luna", "orchestra-v1/gpt-5.6-luna"),
+)
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
@@ -424,6 +429,36 @@ def _entry(root: str, path: str, kind: str, content: bytes) -> dict[str, Any]:
     return {"root": root, "path": path, "type": kind, "content": content}
 
 
+def compose_dual_matrix(native_text: str, external_text: str) -> str:
+    """Compose the installed dual matrix from the two source matrices.
+
+    Wraps each source's top-level `tiers` tables under `modes.native.tiers` /
+    `modes.external.tiers` by textual section rewrite, preserving entry order
+    and comments. External native-model references are rewritten to their
+    Orchestra V1 compatibility aliases so a V1 root never crosses protocol
+    versions.
+    """
+    native = native_text.replace("[tiers.", "[modes.native.tiers.")
+    external = external_text.replace("[tiers.", "[modes.external.tiers.")
+    for native_model, alias in DUAL_MODEL_ALIASES:
+        external = external.replace(
+            f'model = "{native_model}"', f'model = "{alias}"'
+        )
+    return f"{native.rstrip()}\n\n{external.rstrip()}\n"
+
+
+def _roles_content(source_root: Path, modelconfig: str) -> bytes:
+    if modelconfig == "dual":
+        native_source = source_root / "codex/config/roles.native.toml"
+        external_source = source_root / "codex/config/roles.external.toml"
+        return compose_dual_matrix(
+            _read_file(native_source, str(native_source)).decode("utf-8"),
+            _read_file(external_source, str(external_source)).decode("utf-8"),
+        ).encode("utf-8")
+    source = source_root / f"codex/config/roles.{modelconfig}.toml"
+    return _read_file(source, str(source))
+
+
 def _inventory(
     source_root: Path, modelconfig: str, worktree_root: Path
 ) -> dict[tuple[str, str], dict[str, Any]]:
@@ -466,17 +501,15 @@ def _inventory(
             "codex_home", destination, "file", _read_file(source, str(source))
         )
 
-    fixed = (
-        (
-            source_root / f"codex/config/roles.{modelconfig}.toml",
-            "orchestra/roles.toml",
-        ),
-        *(
-            (source_root / "codex/scripts" / helper, f"orchestra/scripts/{helper}")
-            for helper in HELPERS
-        ),
+    entries[("codex_home", "orchestra/roles.toml")] = _entry(
+        "codex_home",
+        "orchestra/roles.toml",
+        "file",
+        _roles_content(source_root, modelconfig),
     )
-    for source, destination in fixed:
+    for helper in HELPERS:
+        source = source_root / "codex/scripts" / helper
+        destination = f"orchestra/scripts/{helper}"
         entries[("codex_home", destination)] = _entry(
             "codex_home", destination, "file", _read_file(source, str(source))
         )

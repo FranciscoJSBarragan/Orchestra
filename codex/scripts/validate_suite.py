@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,20 @@ import subprocess
 import sys
 import tomllib
 from typing import Callable, NoReturn
+
+
+def _load_sync_module():
+    spec = importlib.util.spec_from_file_location(
+        "orchestra_sync_for_validation",
+        Path(__file__).resolve().parent / "sync.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+sync = _load_sync_module()
 
 
 REQUIRED_PATHS = (
@@ -36,7 +51,6 @@ REQUIRED_PATHS = (
     "codex/scripts/_common.py",
     "codex/config/roles.native.toml",
     "codex/config/roles.external.toml",
-    "codex/config/roles.dual.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/orchestra_analyst.toml",
     "codex/agents/orchestra_implementation_worker.toml",
@@ -513,13 +527,21 @@ def check_roles_and_profiles(root: Path) -> list[str]:
             "role-contract: native and external must share the critical matrix"
         )
 
-    dual_path = root / "codex/config/roles.dual.toml"
-    if dual_path.is_file() and set(tiers_by_config) == {"native", "external"}:
+    if set(tiers_by_config) == {"native", "external"}:
         try:
-            dual = tomllib.loads(dual_path.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, UnicodeError) as error:
+            dual = tomllib.loads(
+                sync.compose_dual_matrix(
+                    (root / "codex/config/roles.native.toml").read_text(
+                        encoding="utf-8"
+                    ),
+                    (root / "codex/config/roles.external.toml").read_text(
+                        encoding="utf-8"
+                    ),
+                )
+            )
+        except (OSError, tomllib.TOMLDecodeError, UnicodeError) as error:
             failures.append(
-                f"role-contract: codex/config/roles.dual.toml is invalid: {error}"
+                f"role-contract: composed dual matrix is invalid: {error}"
             )
         else:
             modes = dual.get("modes")
@@ -527,7 +549,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                 modes
             ) != {"native", "external"}:
                 failures.append(
-                    "role-contract: roles.dual.toml must contain native and external modes"
+                    "role-contract: the composed dual matrix must contain native and external modes"
                 )
             else:
                 for modelconfig in ("native", "external"):
@@ -903,7 +925,7 @@ def check_direct_sync(root: Path) -> list[str]:
         path.name for path in (root / "codex/skills").iterdir() if path.is_dir()
     )
     if skill_dirs != sorted(SKILL_NAMES):
-        failures.append("sync-contract: source must contain exactly eight skill directories")
+        failures.append("sync-contract: source must contain exactly the supported skill directories")
     profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
     if profiles != sorted(PROFILE_NAMES):
         failures.append("sync-contract: source must contain exactly four agent profiles")
@@ -911,12 +933,12 @@ def check_direct_sync(root: Path) -> list[str]:
         path.name for path in (root / "codex/config").glob("roles.*.toml")
     )
     if role_sources != [
-        "roles.dual.toml",
         "roles.external.toml",
         "roles.native.toml",
     ]:
         failures.append(
-            "sync-contract: source must contain exactly dual, native, and external role matrices"
+            "sync-contract: source must contain exactly the native and external "
+            "role matrices; dual is composed at sync time"
         )
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():

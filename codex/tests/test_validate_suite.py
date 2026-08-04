@@ -216,11 +216,11 @@ class FullModeFixtureTest(unittest.TestCase):
     def test_dual_matrix_must_match_legacy_assignments_and_protocol_aliases(
         self,
     ) -> None:
-        roles = self.root / "codex/config/roles.dual.toml"
-        roles.write_text(
-            roles.read_text(encoding="utf-8").replace(
-                'model = "orchestra-v1/gpt-5.6-terra"',
-                'model = "gpt-5.6-terra"',
+        composer = self.root / "codex/scripts/sync.py"
+        composer.write_text(
+            composer.read_text(encoding="utf-8").replace(
+                '("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),',
+                '("gpt-5.6-terra", "gpt-5.6-terra"),',
                 1,
             ),
             encoding="utf-8",
