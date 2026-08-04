@@ -27,7 +27,10 @@ stating the redaction and a safe category or locator.
 
 Reusable results are complete revision-identified Markdown files in the
 task-private artifacts directory (`git rev-parse --git-path
-orchestra/artifacts`); the file name is the artifact identifier. Coordination
+orchestra/artifacts`); the file name is the artifact identifier. Writing
+there may request one narrow automatically reviewed Guardian escalation
+because the directory lives under shared Git metadata; that escalation is
+expected and is not a blocker. Coordination
 telemetry records only material start, final, or blocker updates and is
 fail-soft: on `invalid` or `unavailable`, or when the artifacts directory
 cannot be written, continue and return the complete result inline; never

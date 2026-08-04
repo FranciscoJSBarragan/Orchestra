@@ -350,7 +350,10 @@ directly as UTF-8 Markdown under the task-private directory resolved by
 `<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal (for example
 `03-plan-phase-p2.md`). The file name is the artifact identifier. Packets and
 the plan manifest reference these exact file names; no database locator
-exists. If the artifacts directory cannot be created or written, the agent
+exists. In a linked worktree this directory lives under the repository's
+shared Git metadata, so under Guardian the write may request one narrow
+automatically reviewed escalation; that escalation is expected and is not a
+blocker. If the artifacts directory cannot be created or written, the agent
 returns the complete report inline instead.
 
 The root updates task stage, tier, revision, summary, blocker, and next action
