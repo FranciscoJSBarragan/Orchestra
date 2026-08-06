@@ -410,6 +410,12 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_coordination_artifacts_are_shared_but_never_authoritative(self) -> None:
         normalized_skill = " ".join(self.skill.split())
         workflow = " ".join((ROOT / "docs/WORKFLOW.md").read_text().split())
+        runtime = " ".join(
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text().split()
+        )
+        shared_conduct = " ".join(
+            (self.references / "shared_conduct.md").read_text().split()
+        )
         architecture = " ".join((ROOT / "docs/ARCHITECTURE.md").read_text().split())
         for contract in (
             "coordination.py",
@@ -428,8 +434,17 @@ class PlannedFlowContractTests(unittest.TestCase):
             "no transition graph",
             "never runs mutating Git commands",
             "no database locator exists",
+            "already at `0600` are left unchanged",
         ):
             self.assertIn(contract.lower(), workflow.lower())
+        for contract_source in (normalized_skill, workflow, runtime, shared_conduct):
+            self.assertIn("first attempt", contract_source.lower())
+            self.assertIn("known-protected", contract_source.lower())
+            self.assertIn("narrow guardian escalation", contract_source.lower())
+        self.assertIn("correctly authorized attempt", normalized_skill.lower())
+        self.assertIn("correctly authorized attempt", workflow.lower())
+        self.assertIn("correctly authorized attempt", runtime.lower())
+        self.assertIn("correctly authorized attempt", shared_conduct.lower())
         for contract in (
             "tasks and material agent activities",
             "telemetry loss, not workflow failure",
@@ -484,27 +499,28 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(contract.lower(), normalized.lower())
 
-    def test_new_formal_task_creates_portable_worktree_before_discovery(
+    def test_new_formal_task_selects_checkout_and_creates_branch_before_discovery(
         self,
     ) -> None:
-        isolation = self.skill.index("## Create the isolated task worktree")
+        isolation = self.skill.index("## Select the task checkout and create its branch")
         repository_dispatch = self.skill.index(
             "dispatch `repository_context` to an `orchestra_analyst`"
         )
         self.assertLess(isolation, repository_dispatch)
         normalized = " ".join(self.skill.split())
         for invariant in (
+            "`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`",
+            "`managed` or `hybrid`",
             "`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`",
             "`$HOME/.orchestra/worktrees`",
-            "`<worktree-root>/<repository>/<task-slug>[-N]` checkout path",
-            "write and remove one temporary canary",
             "`git worktree add`",
             "captured full base revision",
-            "Never implement in, switch, or reuse the source checkout",
-            "Adopted committed work starts at its source HEAD",
+            "`git switch -c <branch> <captured-head>`",
+            "Never implement on the starting branch or directly on `main`",
+            "Dirty, detached, conflicted",
             "adopt_worktree.py",
             "same live preapproval task",
-            "checkout path, branch, base, and HEAD",
+            "checkout mode/path, starting identity, task branch",
             "remove only proven-clean resources",
             "completion without an artificial commit",
         ):
@@ -513,7 +529,6 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_worktree_creation_uses_direct_git_in_all_routing_sources(self) -> None:
         sources = (
             self.skill,
-            (ROOT / "AGENTS.md").read_text(),
             (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
             (ROOT / "docs/WORKFLOW.md").read_text(),
         )
@@ -527,6 +542,10 @@ class PlannedFlowContractTests(unittest.TestCase):
             ):
                 self.assertIn(contract.lower(), normalized)
             self.assertNotIn("create_worktree.py", normalized)
+        root_contract = " ".join((ROOT / "AGENTS.md").read_text().split()).lower()
+        self.assertIn("managed mode", root_contract)
+        self.assertIn("hybrid mode", root_contract)
+        self.assertIn("never implement on the starting branch or `main`", root_contract)
 
     def test_agent_waiting_is_long_non_interruptive_and_timeout_is_not_failure(
         self,
@@ -611,7 +630,7 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_initial_context_precedes_final_specification_and_plan(self) -> None:
         normalized = " ".join(self.skill.split())
         brief = normalized.index("minimum brief with objective")
-        worktree = normalized.index("## Create the isolated task worktree")
+        worktree = normalized.index("## Select the task checkout and create its branch")
         context = normalized.index(
             "dispatch `repository_context` to an `orchestra_analyst`"
         )
@@ -662,7 +681,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             external_context,
             {
                 "profile": "orchestra_analyst",
-                "model": "cursor/composer-2.5-fast",
+                "model": "opencode/deepseek-v4-flash",
                 "reasoning_effort": "high",
             },
         )
@@ -804,6 +823,74 @@ class PlannedFlowContractTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(branch.stdout, "")
+
+    def test_hybrid_clean_main_branches_in_place_before_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            subprocess.run(
+                ["git", "init", "-b", "main", str(repo)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "test@example.com"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.name", "Test"], check=True
+            )
+            (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "seed.txt"], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-m", "seed"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            start = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "switch",
+                    "-c",
+                    "orchestra/hybrid",
+                    start,
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            branch = subprocess.run(
+                ["git", "-C", str(repo), "branch", "--show-current"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            main = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "main"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            status = subprocess.run(
+                ["git", "-C", str(repo), "status", "--porcelain=v1", "--untracked-files=all"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertEqual(branch, "orchestra/hybrid")
+            self.assertEqual(main, start)
+            self.assertEqual(status, "")
 
     def test_local_plan_path_is_per_worktree_and_root_owned(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

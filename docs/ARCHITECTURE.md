@@ -53,8 +53,9 @@ root to rewrite it.
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
 active tier. It performs a short read-only Git and execution-readiness preflight.
-The root uses Git directly to create a collision-free task branch and portable
-Orchestra-root worktree before dispatching repository analysis. It keeps that
+The root uses Git directly to create a collision-free task branch in either a
+managed Orchestra-root worktree or the current clean hybrid checkout before
+dispatching repository analysis. It keeps that
 task-checkout identity in transient context before plan approval, registers a
 best-effort local coordination snapshot, and passes the exact checkout to every
 capability. Coordination failure is reported but never changes authority or
@@ -221,9 +222,9 @@ duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
 state; the plan carries approved intent, exact bundle selection, and progress.
 
 Branches and worktrees are Git resources, not a new Orchestra state store.
-Every new formal task uses an Orchestra-owned collision-free worktree below the
-effective portable root;
-the source checkout remains read-only. The same live preapproval task may
+Every new formal task uses an Orchestra-owned collision-free branch. Managed
+mode owns its portable worktree; hybrid mode preserves the user/host-owned
+checkout and owns only the task branch and private task artifacts. The same live preapproval task may
 continue in memory; later reuse requires the approved plan's checkout path,
 branch, base, and HEAD to agree with Git. Rejected planning and completed
 delivery clean only resources that exact Git evidence proves safe.
@@ -437,8 +438,10 @@ Tests protect the few important invariants:
   multi-agent version, while legacy native and external installs remain fixed;
 - only standard and critical assignments are valid;
 - plan approval permits phase commits but not merge/deploy;
-- every formal task creates one collision-free Orchestra-root worktree without
-  switching or mutating the source checkout;
+- every formal task creates one collision-free `orchestra/*` branch before work;
+- managed mode creates an isolated Orchestra-root worktree, while hybrid mode
+  branches in place only from a clean primary checkout or linked worktree;
+- neither mode implements directly on the starting branch or `main`;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
 - fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
@@ -494,11 +497,11 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Task worktree creation remains a direct root `git worktree add`
-operation using the configured
-`<worktree-root>/<repository>/<task-slug>[-N]` path, matching
-`orchestra/<task-slug>[-N]` branch, and exact base commit. Synchronization
-records the absolute root and manages one reversible Codex permission backend.
+never clean. Managed task worktree creation remains a direct root
+`git worktree add` operation using the configured path and exact base commit.
+Hybrid task setup uses direct `git switch -c` in the selected clean checkout
+against its captured HEAD. Synchronization records the absolute root, checkout
+mode, and one reversible Codex permission backend.
 Codex 0.146.0 or later receives the built-in `:workspace` profile with
 `approval_policy = "on-request"` and
 `approvals_reviewer = "auto_review"`; older clients block before mutation.

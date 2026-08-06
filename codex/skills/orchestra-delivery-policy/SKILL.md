@@ -9,7 +9,7 @@ Keep the root responsible for reading the user's delivery direction and making t
 
 ## Resolve policy and authority
 
-1. Require a reviewed, verified, committed change and its exact revision.
+1. Require a reviewed, verified, committed change, its exact revision, checkout mode, and recorded resource ownership.
 2. Have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/policy.py" --repo <root> show` and read its structured result.
 3. If the policy is missing, ask the user once and recommend `hybrid`. Return `blocked`; do not create the file or choose for the user.
 4. If the user chooses hold, make no delivery mutation and return `ok` with the committed branch or worktree.

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import shutil
 import subprocess
 from typing import Any
 
@@ -76,3 +77,29 @@ def head_branch(repo: Path) -> str | None:
 def is_clean(repo: Path) -> bool:
     result = _git(repo, "status", "--porcelain=v1", "--untracked-files=all")
     return not result.returncode and not result.stdout
+
+
+def cleanup_private_task_state(repo: Path) -> str | None:
+    """Remove only Orchestra plan/artifact state private to one checkout."""
+    result = _git(repo, "rev-parse", "--absolute-git-dir")
+    if result.returncode:
+        return "cannot resolve task Git directory"
+    private = Path(result.stdout.strip()) / "orchestra"
+    plan = private / "plan.md"
+    artifacts = private / "artifacts"
+    try:
+        if private.is_symlink() or plan.is_symlink() or artifacts.is_symlink():
+            return "private task state uses an unsafe symlink"
+        if plan.exists():
+            if not plan.is_file():
+                return "private task plan is not a regular file"
+            plan.unlink()
+        if artifacts.exists():
+            if not artifacts.is_dir():
+                return "private task artifacts path is not a directory"
+            shutil.rmtree(artifacts)
+        if private.exists() and not any(private.iterdir()):
+            private.rmdir()
+    except OSError as error:
+        return f"private task state cleanup failed: {error}"
+    return None

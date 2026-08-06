@@ -35,11 +35,12 @@ together.
 
 Orchestra starts only from explicit activation. It reuses the conversation,
 classifies any prior candidate checkpoint, recommends a standard or critical
-tier, and creates one collision-free `orchestra/<task-slug>[-N]` branch in a
-dedicated Git worktree under a portable Orchestra root before repository
-analysis. Every formal task
-uses that isolated checkout regardless of the CLI or host that activated
-Orchestra. It supports hold, PR, or local integration when policy allows.
+tier, and creates one collision-free `orchestra/<task-slug>[-N]` branch before
+repository analysis. Managed mode creates a dedicated Git worktree under a
+portable Orchestra root; opt-in hybrid mode uses the current clean primary
+checkout or linked worktree and creates the task branch there. Every formal
+task works only on its Orchestra branch and supports hold, PR, or local
+integration when policy allows.
 
 After plan approval, Orchestra scales implementation, review, and verification
 to the active tier. The user may direct a safe tier change in either direction
@@ -73,9 +74,8 @@ For an existing repository:
 1. Ask: `Use Orchestra to add <visible behavior>.`
 2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
    asks you to choose the tier.
-3. It creates an isolated worktree under
-   `${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}`, inspects it, and
-   proposes observable
+3. It creates an isolated worktree in `managed` mode, or creates a fresh task
+   branch in the current clean checkout in opt-in `hybrid` mode, then proposes observable
    acceptance, and asks you to confirm the final specification and
    implementation plan.
 4. After approval it implements, verifies, reviews, and commits accepted phases.
@@ -118,6 +118,7 @@ ordinary task execution:
 python3 codex/scripts/sync.py status --modelconfig dual
 python3 codex/scripts/sync.py apply --dry-run --modelconfig dual
 python3 codex/scripts/sync.py apply --modelconfig dual
+python3 codex/scripts/sync.py apply --modelconfig dual --checkout-mode hybrid
 python3 codex/scripts/sync.py status --modelconfig native
 python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
 python3 codex/scripts/sync.py status
@@ -135,7 +136,13 @@ task opened with the matching root model entry.
 
 The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
 sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
-to `$CODEX_HOME/orchestra/worktree-root`. Before changing Codex configuration,
+to `$CODEX_HOME/orchestra/worktree-root`. `--checkout-mode managed|hybrid`
+selects the task-checkout strategy and is persisted at
+`$CODEX_HOME/orchestra/checkout-mode`; `managed` is the backward-compatible
+default. Hybrid mode uses either the primary checkout or a linked worktree when
+it is clean, but always creates a new `orchestra/*` branch before work and never
+implements directly on `main`. Dirty, detached, conflicted, or otherwise
+ambiguous checkouts require one explicit decision. Before changing Codex configuration,
 sync requires Codex 0.146.0 or later. It installs the built-in `:workspace`
 permission profile with `approval_policy = "on-request"` and
 `approvals_reviewer = "auto_review"`. Older or unreadable clients block before
@@ -163,7 +170,7 @@ remain authoritative; to select Guardian explicitly, pass the equivalent
 Restart the Codex host after a permission change so new agent sessions receive
 the selected backend. Status and apply results report `codex_version`,
 `permission_backend`,
-`permission_profile`, `profile_configured`, `sandbox_root`, detected
+`permission_profile`, `profile_configured`, `checkout_mode`, `sandbox_root`, detected
 `cache_roots`, coarse `omitted_cache_tools`, `unconfigured_cache_tools`, and
 `restart_required`. Cache access does not install project dependencies or make
 an empty virtual environment ready for tests.

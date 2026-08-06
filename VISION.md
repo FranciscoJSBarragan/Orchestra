@@ -40,7 +40,7 @@ organization-wide approval bureaucracy.
 The orchestrator is not a brainless dispatcher. It reuses the preceding
 conversation, obtains a bounded minimum brief, recommends an initial tier with
 its material risk and cost-benefit, and performs a short read-only preflight
-before creating an isolated Orchestra-root worktree. The user chooses the active tier.
+before selecting the configured managed or hybrid checkout path. The user chooses the active tier.
 Orchestra then gathers focused repository evidence, closes genuine
 specification gaps, synthesizes that evidence, confirms the final scope with
 the user, recommends any justified tier change, chooses the next capability
@@ -169,8 +169,8 @@ root session's model and multi-agent version to select its native V2 or external
 V1 matrix before task setup; that model configuration is immutable for the
 task, while tier transitions remain available within it. Legacy installations
 retain their fixed native or external matrix. When the external standard matrix
-assigns `repository_context` to Composer Fast but the internal subagent runtime
-cannot accept that model, only that capability may use its compatible Luna-high
+assigns `repository_context` to its configured OpenCode model but the internal
+subagent runtime cannot accept that model, only that capability may use its compatible Luna-high
 entry as a transient fallback. The substitution is remembered only for the live
 task and does not create a visible task, alter the installed matrix, or
 establish a fallback for any other capability.
@@ -205,9 +205,11 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
-Each formal task creates one collision-free worktree managed by Orchestra under
-`${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}` before repository
-analysis. Direct synchronization records the effective absolute root and
+Each formal task creates one collision-free `orchestra/*` task branch before
+repository analysis. Managed mode creates an Orchestra-owned worktree under
+`${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}`; opt-in hybrid mode
+creates the branch in the current clean primary checkout or linked worktree.
+Direct synchronization records both the effective absolute root and checkout mode and
 requires Codex 0.146.0 or later. By default it selects the built-in
 `:workspace` permission profile, keeps `approval_policy = "on-request"`, and
 routes eligible boundary requests through
@@ -215,9 +217,10 @@ routes eligible boundary requests through
 current task, host, or launcher remains authoritative at runtime. Sync installs
 no custom permission profile, writable-root list, command rule, or Git bridge.
 After a real write canary passes in the task's repository directory, the root
-creates the exact `orchestra/*` worktree with direct Git; under Guardian,
+creates the exact branch and, in managed mode, its worktree with direct Git; under Guardian,
 protected shared Git metadata receives one exact automatically reviewed
-escalation. The source checkout remains workflow-read-only, and existing work
+escalation. Hybrid mode never implements on the starting branch, including
+`main`; dirty or ambiguous state requires an explicit decision. Existing work
 is never cleaned, stashed, or rewritten implicitly.
 Completed resources are removed only when exact Git and integration evidence
 make that cleanup safe.

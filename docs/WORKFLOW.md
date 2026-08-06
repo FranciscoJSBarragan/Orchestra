@@ -12,7 +12,10 @@ flowchart TD
     MC --> TR["Root recommends standard or critical with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
-    E --> OW["Create task branch and portable worktree"]
+    E --> CM{"Managed or hybrid checkout"}
+    CM -->|"Managed"| OW["Create task branch and portable worktree"]
+    CM -->|"Hybrid"| HB["Create task branch in current clean checkout"]
+    HB --> RC
     OW --> RC["Focused repository context"]
     RC --> C["Evidence-grounded final specification and tier recommendation"]
     C --> P["Plan overview plus one document per phase"]
@@ -155,7 +158,7 @@ playbook.
 
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | `cursor/composer-2.5-fast` | `high` |
+| Standard | `repository_context` | `orchestra_analyst` | `opencode/deepseek-v4-flash` | `high` |
 | Standard | `web_research` | `orchestra_analyst` | `antigravity/gemini-3.6-flash-high` | `high` |
 | Standard | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
@@ -223,17 +226,24 @@ After explicit activation in an execution-capable mode:
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
    provenance, and generated paths relevant to the task. It then resolves the
-   portable worktree root recorded by synchronization, verifies a write canary
-   in the repository directory, chooses the
-   first matching available branch and checkout path, and creates the task
-   worktree before dispatching a capability. The source checkout remains
-   read-only and is never switched or reused for execution.
+   installed checkout mode. Managed mode verifies a write canary below the
+   portable worktree root, chooses the first matching branch/path pair, and
+   creates the task worktree with direct `git worktree add` against the captured
+   full base revision. Hybrid mode verifies the current primary checkout
+   or linked worktree, captures its named branch and exact HEAD, and creates the
+   first matching `orchestra/*` branch there. A clean starting `main` needs no
+   extra prompt because implementation begins only after branch creation.
+   Dirty, detached, conflicted, active-operation, or identity-ambiguous state
+   requires one consolidated decision before mutation.
 5. The root records the exact task-worktree identity in memory before capability
    dispatch, as described in
-   [Task worktree and branch](#task-worktree-and-branch). It then attempts one
-   idempotent `coordination.py task create`. An `invalid` or `unavailable`
-   result is reported as lost observability and the normal inline workflow
-   continues without retry or reduced authority.
+   [Task checkout and branch](#task-checkout-and-branch). It then attempts one
+   idempotent `coordination.py task create`. When the state database is outside
+   the active workspace, this first attempt uses one exact, narrow Guardian
+   escalation instead of first running the known-protected operation
+   unprivileged. An `invalid` or `unavailable` result after that correctly
+   authorized attempt is reported as lost observability and the normal inline
+   workflow continues without retry or reduced authority.
 6. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
    questions from the exact task worktree. The root may skip or reduce this
    dispatch only when it cites the specific prior evidence it reuses (artifact
@@ -275,8 +285,10 @@ After explicit activation in an execution-capable mode:
     requests implementation approval.
 
 Every planning, implementation, review, verification, plan, and commit operation
-uses the exact task worktree. The base checkout remains read-only and scoped
-dirty adoption copies selected paths only into the task worktree.
+uses the exact selected task checkout. Managed mode leaves the base checkout
+read-only; hybrid mode switches only the selected clean checkout to the new
+task branch. Scoped dirty adoption remains available only into a managed task
+worktree unless the user explicitly authorizes carrying named changes in place.
 
 Standard and critical implementation does not begin until the user explicitly
 approves the aligned plan. That approval covers implementation and successful
@@ -286,9 +298,9 @@ committed work passes unchanged, completion does not require an artificial
 commit.
 
 If the user rejects or abandons the task before plan approval, preserve unique
-work. Remove the task worktree and task branch only when both still match
-their captured identity and contain no unique work. No plan has been persisted
-at this point.
+work. Remove a managed task worktree or restore a hybrid starting branch only
+when the exact checkout and task branch still match their captured identity and
+contain no unique work. No plan has been persisted at this point.
 
 ### Local task plan
 
@@ -298,8 +310,13 @@ optional `plan-review` artifacts. After approval, the root writes `active` to
 `git rev-parse --git-path orchestra/plan.md`. It is an intent, exact-bundle, and
 resume aid, not a workflow database.
 
-The file records task and Git identity, active tier, immutable dual model
-configuration when applicable, user and root decisions, authorized preexisting
+If that resolved Git-private path is outside the active workspace, the first
+write uses one exact, narrow Guardian escalation. The root does not probe a
+known-protected plan path with an unprivileged write first.
+
+The file records task and Git identity, checkout mode and resource ownership,
+the hybrid starting branch/revision when applicable, active tier, immutable
+dual model configuration, user and root decisions, authorized preexisting
 changes, and the approved overview verbatim. Its phase manifest maps every
 phase number to the exact artifact ID, private path, artifact revision, progress
 status, accepted commit, blocker, and next action. It does not duplicate phase
@@ -344,6 +361,12 @@ initialized, but a partial, unknown, or corrupt database remains untouched and
 returns `unavailable`. Concurrent registration of one worktree converges on one
 active task identifier.
 
+When that state database is outside the active workspace, each write operation
+uses one exact, narrow Guardian escalation on its first attempt. Existing
+database, WAL, and SHM files already at `0600` are left unchanged; regular files
+with another mode are corrected to `0600`, while symlinks and non-regular files
+remain unsafe and return `unavailable`.
+
 Artifacts live only on the filesystem. Agents write each semantic handoff
 directly as UTF-8 Markdown under the task-private directory resolved by
 `git rev-parse --git-path orchestra/artifacts`, named
@@ -352,9 +375,10 @@ directly as UTF-8 Markdown under the task-private directory resolved by
 the plan manifest reference these exact file names; no database locator
 exists. In a linked worktree this directory lives under the repository's
 shared Git metadata, so under Guardian the write may request one narrow
-automatically reviewed escalation; that escalation is expected and is not a
-blocker. If the artifacts directory cannot be created or written, the agent
-returns the complete report inline instead.
+automatically reviewed escalation on its first attempt; the agent does not try
+the known-protected write unprivileged first. That escalation is expected and
+is not a blocker. If the artifacts directory cannot be created or written, the
+agent returns the complete report inline instead.
 
 The root updates task stage, tier, revision, summary, blocker, and next action
 only at material transitions. Each delegated agent may update its own activity
@@ -378,13 +402,16 @@ membership is selected only by exact packet or manifest IDs, never timestamp or
 list order. Start, final, commit, push, check, and merge facts do not receive
 semantic artifacts.
 
-All coordination operations are fail-soft. `invalid` or `unavailable` status
+All coordination operations are fail-soft after their correctly authorized
+first attempt. `invalid` or `unavailable` status
 cannot block implementation, verification, review, a tier change, commit, or
 delivery. Failed publication returns the full result inline; failed lookup uses
 the inline packet or current source. The helper never runs mutating Git
 commands, grants authority, validates transitions, or triggers another agent.
-Completed metadata remains queryable, while worktree cleanup removes the
-task-private artifact files with the rest of the task Git directory.
+Completed metadata remains queryable. Managed worktree cleanup removes its
+task-private artifacts with the task Git directory; successful hybrid delivery
+removes only the exact plan and artifacts in the preserved checkout's private
+Git directory.
 
 ## Phase execution
 
@@ -555,16 +582,21 @@ Do not cycle on:
 - scope expansion disguised as review;
 - repeated restatements of an already rejected suggestion.
 
-## Task worktree and branch
+## Task checkout and branch
 
-Every formal Orchestra task uses a dedicated Git worktree below the effective
-root resolved from `ORCHESTRA_WORKTREE_ROOT`, the installed
-`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or
-`$HOME/.orchestra/worktrees`, in that order. The root chooses the first matching
-available `orchestra/<task-slug>[-N]` branch and
-`<worktree-root>/<repository>/<task-slug>[-N]` path and creates it with direct
-`git worktree add` against the captured full base revision. It never implements
-in, switches, or reuses the source checkout or a host-managed worktree.
+Every formal Orchestra task uses a fresh `orchestra/<task-slug>[-N]` branch.
+The installed `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode` selects
+`managed` by default or opt-in `hybrid`; an explicit task direction may override
+that value and is recorded in the approved plan.
+
+Managed mode uses a dedicated Git worktree below the effective root resolved
+from `ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
+`$HOME/.orchestra/worktrees`, in that order. Hybrid mode uses the current clean
+primary checkout or linked worktree and creates the task branch from its exact
+captured HEAD with direct Git. It does not require the starting branch to equal
+the latest `main`, so stacked work remains possible, but PR-required delivery
+must prove that its selected base is remotely usable before task mutation.
+Neither mode ever implements on the starting branch or directly on `main`.
 
 Synchronization reads `codex --version` before mutation and requires Codex
 0.146.0 or later. It installs exactly one modern configuration:
@@ -585,15 +617,17 @@ Git metadata remains outside the workspace boundary, so the root issues the
 exact direct Git operation once with a narrow escalation for automatic review.
 A denial is not bypassed or converted to Full Access.
 
-Before `repository_context` or another capability dispatch, the root creates
-the repository directory and writes and removes one temporary canary there. A
-failure blocks the task with the exact path and environment evidence. Existing
+Before `repository_context` or another capability dispatch, the root writes and
+removes one temporary canary in the selected checkout location (creating the
+managed repository directory first when applicable). A failure blocks the task
+with exact path and environment evidence. Existing
 active tasks outside the configured root are not migrated automatically. If
 `git worktree add` fails, the root inspects the exact branch, path, and Git error
 once and blocks before capability dispatch.
 
-The root records checkout path, initial branch and HEAD, base branch and
-revision, and any authorized preexisting changes in transient context. It
+The root records checkout mode, checkout path, starting branch and HEAD, task
+branch, resource ownership, base branch and revision, and any authorized
+preexisting changes in transient context. It
 creates no classifier, registry, or additional workflow state. Fresh tasks
 start at the intended committed base revision. Adopted committed work starts at
 the adopted source HEAD while retaining the integration base. Scoped dirty
@@ -601,16 +635,19 @@ adoption imports selected non-ignored paths through `adopt_worktree.py`;
 imported content may remain unstaged. Ambiguous dirty ownership always blocks.
 
 Reuse is allowed only for the same live pre-approval task or when the approved
-local plan, objective, checkout path, branch, base, and HEAD all identify the
+local plan, objective, checkout mode/path, starting identity, task branch, base,
+and HEAD all identify the
 same resumed task. Missing or conflicting identity blocks reuse. A legacy plan
 with a retired environment field blocks automatic resume unless the root
 verifies that it already identifies the exact sibling task worktree and the
 user authorizes adoption. Preapproval cancellation never discards unique work
 and removes only proven-clean task resources.
 
-After authorized integration or merge, cleanup removes the exact clean task
-worktree, plan, and safe branches. Hold and an open PR intentionally retain the
-task worktree and branch.
+After authorized integration or merge, managed cleanup removes the exact clean
+task worktree, plan, and safe branches. Hybrid cleanup restores the unchanged
+starting branch, preserves the user/host-owned checkout, and removes only the
+guarded Orchestra task branch and private task artifacts. Hold and an open PR
+intentionally retain the selected checkout state and task branch.
 
 Dirty, moved, ambiguous, or unverified resources are never removed. Cleanup
 after a completed mutation returns `partial` for resources that could not be
@@ -698,8 +735,9 @@ needed to make that PR clean. It does not authorize merge unless the user said
 
 After an authorized merge, the PR helper verifies the `MERGED` state against the
 exact reviewed head and performs conservative cleanup. It uses lease-protected
-deletion for an unchanged remote task branch, removes the still-clean task
-worktree, and deletes the local branch with an expected-value guard. This exact
+deletion for an unchanged remote task branch and expected-value guards for local
+resources. Managed mode removes its task worktree; hybrid mode restores the
+starting branch and preserves the checkout. This exact
 merged-head proof permits cleanup after merge, squash, or rebase without
 pretending that all three preserve commit ancestry. An absent remote branch is
 already clean; a moved branch is retained.
@@ -713,12 +751,14 @@ Local integration is a direct alternative, not a degraded PR path. It requires:
 - clean task scope and fresh verification;
 - integration into the intended base without rewriting unrelated history;
 - confirmation of the result;
-- worktree and merged-branch cleanup.
+- mode-aware checkout and merged-branch cleanup.
 
-The mechanical path runs configured checks in the clean task worktree, permits
-only conservative fast-forward integration, verifies that the base contains the
-captured task SHA, and removes only a still-clean integrated worktree and fully
-merged task branch. Divergence returns to the root for resolution.
+The mechanical path runs configured checks in the clean task checkout, permits
+only conservative fast-forward integration, and verifies that the base contains
+the captured task SHA. Managed mode removes its still-clean worktree and branch;
+hybrid mode restores and fast-forwards the unchanged starting branch, preserves
+the checkout, and deletes only the fully merged task branch. Divergence returns
+to the root for resolution.
 
 It does not authorize release, deployment, or production mutation.
 

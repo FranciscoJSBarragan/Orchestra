@@ -188,6 +188,8 @@ def _restrict_state_files(database: Path) -> None:
             ) from error
         if not stat.S_ISREG(mode):
             raise CoordinationUnavailable(f"state database file is unsafe: {path}")
+        if stat.S_IMODE(mode) == 0o600:
+            continue
         try:
             os.chmod(path, 0o600)
         except FileNotFoundError:
@@ -280,8 +282,6 @@ def create_task(
         raise CoordinationInvalid("base revision must be a full Git object name")
     repository_root = _git_root(repository)
     worktree_root = _git_root(worktree)
-    if repository_root == worktree_root:
-        raise CoordinationInvalid("repository and task worktree must be distinct")
     if not _same_repository(repository_root, worktree_root):
         raise CoordinationInvalid("repository and task worktree do not share a Git repository")
     branch = _branch(worktree_root)

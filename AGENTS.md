@@ -82,14 +82,15 @@ force critical. A user-selected standard tier never waives the hard gates.
 Tier changes follow the transition procedure in `docs/WORKFLOW.md`; never
 change tier unilaterally.
 
-## Task worktree
+## Task checkout
 
-Every formal task uses a dedicated Orchestra worktree created with direct
-`git worktree add` against the captured full base revision, after a write
-canary in the resolved worktree root. If creation fails, inspect the named
-branch, path, and Git error once and block before capability dispatch. Never
-implement in or switch the source checkout. Register the task best-effort
-with `coordination.py`; telemetry failure never reduces authority.
+Every formal task uses a fresh collision-free `orchestra/*` branch. Managed
+mode keeps the existing dedicated-worktree flow; opt-in hybrid mode creates
+that branch from the exact HEAD of the current clean primary checkout or linked
+worktree. Never implement on the starting branch or `main`. Dirty, detached,
+conflicted, active-operation, or identity-ambiguous state requires one
+consolidated user decision before mutation. Register the task best-effort with
+`coordination.py`; telemetry failure never reduces authority.
 
 ## Agent flow
 

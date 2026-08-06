@@ -28,13 +28,16 @@ stating the redaction and a safe category or locator.
 Reusable results are complete revision-identified Markdown files in the
 task-private artifacts directory (`git rev-parse --git-path
 orchestra/artifacts`); the file name is the artifact identifier. Writing
-there may request one narrow automatically reviewed Guardian escalation
-because the directory lives under shared Git metadata; that escalation is
+there or updating coordination outside the active workspace uses one exact,
+narrow Guardian escalation on the first attempt; never make a known-protected
+write unprivileged first. Auto-review handles that escalation without a human
+prompt, while a manual reviewer may prompt by design. The escalation is
 expected and is not a blocker. Coordination
 telemetry records only material start, final, or blocker updates and is
-fail-soft: on `invalid` or `unavailable`, or when the artifacts directory
-cannot be written, continue and return the complete result inline; never
-retry-loop or report a workflow blocker solely because publication failed.
+fail-soft only after that correctly authorized attempt: on `invalid` or
+`unavailable`, or when the artifacts directory cannot be written, continue and
+return the complete result inline; never retry-loop or report a workflow
+blocker solely because publication failed.
 
 ## Stop rule
 

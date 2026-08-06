@@ -66,6 +66,7 @@ HELPERS = (
 )
 RETIRED_HELPERS = ("create_worktree.py",)
 MODELCONFIGS = ("native", "external", "dual")
+CHECKOUT_MODES = ("managed", "hybrid")
 DUAL_MODEL_ALIASES = (
     ("gpt-5.6-sol", "orchestra-v1/gpt-5.6-sol"),
     ("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),
@@ -77,6 +78,7 @@ CONFIG_START = b"# orchestra-worktree-root:start"
 CONFIG_END = b"# orchestra-worktree-root:end"
 MANIFEST_PATH = "orchestra/install-manifest.json"
 WORKTREE_ROOT_PATH = "orchestra/worktree-root"
+CHECKOUT_MODE_PATH = "orchestra/checkout-mode"
 RETIRED_RULES_PATHS = ("rules/orchestra.rules",)
 CACHE_TOOLS = ("poetry", "pip", "uv", "npm")
 PERMISSION_BACKENDS = ("profile", "legacy")
@@ -106,6 +108,7 @@ def _result(
     detail: str = "",
     *,
     modelconfig: str | None = None,
+    checkout_mode: str | None = None,
     worktree_root: Path | None = None,
     sandbox_root: Path | None = None,
     cache_roots: dict[str, Path] | None = None,
@@ -122,6 +125,8 @@ def _result(
         payload["detail"] = detail
     if modelconfig is not None:
         payload["modelconfig"] = modelconfig
+    if checkout_mode is not None:
+        payload["checkout_mode"] = checkout_mode
     if worktree_root is not None:
         payload["worktree_root"] = str(worktree_root)
     if sandbox_root is not None:
@@ -460,10 +465,15 @@ def _roles_content(source_root: Path, modelconfig: str) -> bytes:
 
 
 def _inventory(
-    source_root: Path, modelconfig: str, worktree_root: Path
+    source_root: Path,
+    modelconfig: str,
+    checkout_mode: str,
+    worktree_root: Path,
 ) -> dict[tuple[str, str], dict[str, Any]]:
     if modelconfig not in MODELCONFIGS:
         raise SyncError(f"unknown model configuration: {modelconfig}")
+    if checkout_mode not in CHECKOUT_MODES:
+        raise SyncError(f"unknown checkout mode: {checkout_mode}")
     entries: dict[tuple[str, str], dict[str, Any]] = {}
     skill_root = source_root / "codex" / "skills"
     if skill_root.is_symlink() or not skill_root.is_dir():
@@ -516,6 +526,9 @@ def _inventory(
     entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
         "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
     )
+    entries[("codex_home", CHECKOUT_MODE_PATH)] = _entry(
+        "codex_home", CHECKOUT_MODE_PATH, "file", f"{checkout_mode}\n".encode()
+    )
 
     block_source = source_root / "codex/runtime/AGENTS.orchestra.md"
     block = _read_file(block_source, str(block_source))
@@ -548,6 +561,7 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
         in {
             "orchestra/roles.toml",
             WORKTREE_ROOT_PATH,
+            CHECKOUT_MODE_PATH,
             *RETIRED_RULES_PATHS,
         }
         or path
@@ -582,10 +596,11 @@ def _load_manifest(
     list[str],
     str | None,
     str | None,
+    str | None,
 ]:
     path = _safe_path(codex_home, MANIFEST_PATH)
     if not path.exists():
-        return {}, False, [], None, None
+        return {}, False, [], None, None, None
     data = _read_file(path, MANIFEST_PATH)
     def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -601,13 +616,17 @@ def _load_manifest(
     if (
         not isinstance(payload, dict)
         or not {"entries"} <= set(payload)
-        or set(payload) - {"entries", "modelconfig", "permission_backend"}
+        or set(payload)
+        - {"entries", "modelconfig", "checkout_mode", "permission_backend"}
         or not isinstance(payload["entries"], list)
     ):
         raise SyncError("invalid install manifest structure")
     modelconfig = payload.get("modelconfig")
     if modelconfig is not None and modelconfig not in MODELCONFIGS:
         raise SyncError("invalid install manifest modelconfig")
+    checkout_mode = payload.get("checkout_mode")
+    if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
+        raise SyncError("invalid install manifest checkout mode")
     permission_backend = payload.get("permission_backend")
     if (
         permission_backend is not None
@@ -641,7 +660,14 @@ def _load_manifest(
             elif not backup.is_file():
                 raise SyncError(f"referenced backup is not a regular file: {raw['backup']}")
         result[key] = dict(raw)
-    return result, True, auxiliary_drift, modelconfig, permission_backend
+    return (
+        result,
+        True,
+        auxiliary_drift,
+        modelconfig,
+        checkout_mode,
+        permission_backend,
+    )
 
 
 def _managed_span(
@@ -1142,6 +1168,7 @@ def _analyze(
     home: Path,
     codex_home: Path,
     modelconfig: str,
+    checkout_mode: str,
     worktree_root: Path,
     orchestra_root: Path,
     cache_roots: dict[str, Path],
@@ -1154,7 +1181,7 @@ def _analyze(
     list[str],
     list[str],
 ]:
-    desired = _inventory(source_root, modelconfig, worktree_root)
+    desired = _inventory(source_root, modelconfig, checkout_mode, worktree_root)
     config_entry, missing_cache_tools = _desired_config_entry(
         home,
         codex_home,
@@ -1287,6 +1314,7 @@ def _write_manifest(
     codex_home: Path,
     entries: dict[tuple[str, str], dict[str, str]],
     modelconfig: str | None,
+    checkout_mode: str | None,
     permission_backend: str | None,
 ) -> None:
     path = _safe_path(codex_home, MANIFEST_PATH)
@@ -1301,6 +1329,10 @@ def _write_manifest(
         if modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
         payload["modelconfig"] = modelconfig
+    if checkout_mode is not None:
+        if checkout_mode not in CHECKOUT_MODES:
+            raise SyncError(f"unknown checkout mode: {checkout_mode}")
+        payload["checkout_mode"] = checkout_mode
     if permission_backend is not None:
         if permission_backend not in PERMISSION_BACKENDS:
             raise SyncError(f"unknown permission backend: {permission_backend}")
@@ -1475,6 +1507,7 @@ def synchronize(
     *,
     dry_run: bool = False,
     modelconfig: str | None = None,
+    checkout_mode: str | None = None,
     worktree_root: Path | str | None = None,
 ) -> dict[str, Any]:
     """Run one synchronization action against explicit destination roots."""
@@ -1530,11 +1563,15 @@ def synchronize(
             manifest_present,
             auxiliary_drift,
             installed_modelconfig,
+            installed_checkout_mode,
             installed_permission_backend,
         ) = _load_manifest(codex_home)
         if modelconfig is not None and modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
         effective_modelconfig = modelconfig or installed_modelconfig
+        if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
+            raise SyncError(f"unknown checkout mode: {checkout_mode}")
+        effective_checkout_mode = checkout_mode or installed_checkout_mode or "managed"
         if effective_modelconfig is None:
             detail = (
                 "model configuration is not selected; pass "
@@ -1557,6 +1594,7 @@ def synchronize(
             home,
             codex_home,
             effective_modelconfig,
+            effective_checkout_mode,
             effective_worktree_root,
             orchestra_root,
             cache_roots,
@@ -1608,6 +1646,7 @@ def synchronize(
                 changes,
                 str(exc),
                 modelconfig=effective_modelconfig,
+                checkout_mode=effective_checkout_mode,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
                 restart_required=restart_change_pending,
@@ -1620,6 +1659,7 @@ def synchronize(
             changes,
             detail,
             modelconfig=effective_modelconfig,
+            checkout_mode=effective_checkout_mode,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
             restart_required=restart_change_pending,
@@ -1633,6 +1673,7 @@ def synchronize(
             [],
             f"unsupported action: {action}",
             modelconfig=effective_modelconfig,
+            checkout_mode=effective_checkout_mode,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
             **result_context,
@@ -1641,6 +1682,7 @@ def synchronize(
     roots = _roots(home, codex_home)
     current = dict(installed)
     current_modelconfig = installed_modelconfig
+    current_checkout_mode = installed_checkout_mode
     current_permission_backend = installed_permission_backend
     completed: list[dict[str, str]] = []
     for operation in operations:
@@ -1657,15 +1699,19 @@ def synchronize(
                     state["backup_rel"] or current.get(key, {}).get("backup"),
                 )
             next_modelconfig = current_modelconfig
+            next_checkout_mode = current_checkout_mode
             next_permission_backend = current_permission_backend
             if key == ("codex_home", "orchestra/roles.toml"):
                 next_modelconfig = effective_modelconfig
             if key == ("codex_home", "config.toml"):
                 next_permission_backend = permission_backend
+            if key == ("codex_home", CHECKOUT_MODE_PATH):
+                next_checkout_mode = effective_checkout_mode
             _write_manifest(
                 codex_home,
                 next_current,
                 next_modelconfig,
+                next_checkout_mode,
                 next_permission_backend,
             )
         except (OSError, SyncError) as exc:
@@ -1682,6 +1728,7 @@ def synchronize(
                 completed,
                 str(exc),
                 modelconfig=current_modelconfig,
+                checkout_mode=current_checkout_mode,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
                 restart_required=_restart_required(completed),
@@ -1690,12 +1737,14 @@ def synchronize(
             )
         current = next_current
         current_modelconfig = next_modelconfig
+        current_checkout_mode = next_checkout_mode
         current_permission_backend = next_permission_backend
         completed.extend(_preview([operation]))
         del state
 
     if current and (
         current_modelconfig != effective_modelconfig
+        or current_checkout_mode != effective_checkout_mode
         or current_permission_backend != permission_backend
     ):
         try:
@@ -1703,6 +1752,7 @@ def synchronize(
                 codex_home,
                 current,
                 effective_modelconfig,
+                effective_checkout_mode,
                 permission_backend,
             )
         except (OSError, SyncError) as exc:
@@ -1712,6 +1762,7 @@ def synchronize(
                 completed,
                 str(exc),
                 modelconfig=current_modelconfig,
+                checkout_mode=current_checkout_mode,
                 worktree_root=effective_worktree_root,
                 unconfigured_cache_tools=missing_cache_tools,
                 restart_required=_restart_required(completed),
@@ -1719,6 +1770,7 @@ def synchronize(
                 **result_context,
             )
         current_modelconfig = effective_modelconfig
+        current_checkout_mode = effective_checkout_mode
         current_permission_backend = permission_backend
 
     try:
@@ -1727,6 +1779,7 @@ def synchronize(
             _,
             remaining_drift,
             persisted_modelconfig,
+            persisted_checkout_mode,
             persisted_permission_backend,
         ) = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
@@ -1736,6 +1789,7 @@ def synchronize(
             completed,
             str(exc),
             modelconfig=current_modelconfig,
+            checkout_mode=current_checkout_mode,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
             restart_required=_restart_required(completed),
@@ -1769,6 +1823,7 @@ def synchronize(
             completed,
             str(exc),
             modelconfig=persisted_modelconfig,
+            checkout_mode=persisted_checkout_mode,
             worktree_root=effective_worktree_root,
             unconfigured_cache_tools=missing_cache_tools,
             restart_required=_restart_required(completed),
@@ -1787,6 +1842,7 @@ def synchronize(
         completed,
         detail,
         modelconfig=persisted_modelconfig,
+        checkout_mode=persisted_checkout_mode,
         worktree_root=effective_worktree_root,
         unconfigured_cache_tools=final_missing_cache_tools,
         restart_required=_restart_required(completed),
@@ -1805,6 +1861,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             present,
             auxiliary_drift,
             modelconfig,
+            checkout_mode,
             permission_backend,
         ) = _load_manifest(codex_home)
     except (OSError, SyncError) as exc:
@@ -1871,6 +1928,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                     codex_home,
                     next_current,
                     modelconfig,
+                    checkout_mode,
                     next_permission_backend,
                 )
             except (OSError, SyncError) as exc:
@@ -1907,7 +1965,7 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 **result_context,
             )
     try:
-        _, _, remaining_auxiliary, _, _ = _load_manifest(codex_home)
+        _, _, remaining_auxiliary, _, _, _ = _load_manifest(codex_home)
         _cleanup_empty((codex_home / "orchestra/backups"), codex_home)
         _cleanup_empty((codex_home / "orchestra"), codex_home)
     except (OSError, SyncError) as exc:
@@ -1929,10 +1987,12 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     status_parser = subparsers.add_parser("status")
     status_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
+    status_parser.add_argument("--checkout-mode", choices=CHECKOUT_MODES)
     status_parser.add_argument("--worktree-root", type=Path)
     apply_parser = subparsers.add_parser("apply")
     apply_parser.add_argument("--dry-run", action="store_true")
     apply_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
+    apply_parser.add_argument("--checkout-mode", choices=CHECKOUT_MODES)
     apply_parser.add_argument("--worktree-root", type=Path)
     subparsers.add_parser("uninstall")
     return parser
@@ -1953,6 +2013,7 @@ def main(argv: list[str] | None = None) -> int:
             args.command,
             dry_run=getattr(args, "dry_run", False),
             modelconfig=getattr(args, "modelconfig", None),
+            checkout_mode=getattr(args, "checkout_mode", None),
             worktree_root=getattr(args, "worktree_root", None),
         )
     print(json.dumps(payload, sort_keys=True, separators=(",", ":")))

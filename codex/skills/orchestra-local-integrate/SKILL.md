@@ -10,10 +10,10 @@ Keep the integration decision, helper invocation, and blocker handling at the ro
 ## Execute the local contract
 
 1. Confirm [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md) allows local integration and the user explicitly requested it for this task.
-2. Require exact distinct task and base worktree roots, task and base branch names, reviewed task revision, and repository policy.
-3. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root, then have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/integrate_local.py" --task-worktree <task> --base-worktree <base> --task-branch <task-branch> --base-branch <base-branch> --authorized` and read its structured result.
+2. Require checkout mode, exact task/base checkout identity, task and base branch names, reviewed task revision, repository policy, and the captured starting revision for hybrid tasks.
+3. Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root, then have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/integrate_local.py" --task-worktree <task> --base-worktree <base> --task-branch <task-branch> --base-branch <base-branch> --checkout-mode <managed|hybrid> [--start-revision <sha>] --authorized` and read its structured result. Managed task/base roots are distinct; hybrid uses the same checkout root.
 4. Require fresh configured argv checks in the clean task worktree, fast-forward-only integration, and confirmation that the base contains the exact captured task SHA.
-5. Remove the task worktree and its root-owned local plan only after verified integration and only while both worktrees remain clean, then delete the fully merged task branch.
+5. After verified integration, managed mode removes the exact task worktree and branch. Hybrid mode restores and fast-forwards the unchanged starting branch, preserves the checkout, and deletes only the fully merged Orchestra task branch and private task artifacts.
 6. Return `partial` when integration succeeded but conservative cleanup could not finish; return `blocked` before mutation on dirty, divergent, unmerged, ambiguous, unauthorized, or failed-check state.
 
 Never force, reset, clean, rewrite history, remove dirty or unmerged resources, release, deploy, publish, or mutate production.

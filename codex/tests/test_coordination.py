@@ -3,17 +3,75 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import os
 from pathlib import Path
 import sqlite3
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "codex/scripts/coordination.py"
+sys.path.insert(0, str(HELPER.parent))
+_COORDINATION_SPEC = importlib.util.spec_from_file_location(
+    "orchestra_coordination_tests", HELPER
+)
+assert _COORDINATION_SPEC is not None and _COORDINATION_SPEC.loader is not None
+coordination = importlib.util.module_from_spec(_COORDINATION_SPEC)
+_COORDINATION_SPEC.loader.exec_module(coordination)
+
+
+class StateFilePermissionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary_directory.cleanup)
+        self.database = Path(self.temporary_directory.name) / "state.sqlite3"
+
+    def state_files(self) -> tuple[Path, Path, Path]:
+        return (
+            self.database,
+            self.database.with_name(self.database.name + "-wal"),
+            self.database.with_name(self.database.name + "-shm"),
+        )
+
+    def test_secure_state_files_do_not_call_chmod(self) -> None:
+        for path in self.state_files():
+            path.write_bytes(b"")
+            os.chmod(path, 0o600)
+
+        with mock.patch.object(coordination.os, "chmod") as chmod:
+            coordination._restrict_state_files(self.database)
+
+        chmod.assert_not_called()
+
+    def test_insecure_regular_state_files_are_corrected_to_0600(self) -> None:
+        for path in self.state_files():
+            path.write_bytes(b"")
+            os.chmod(path, 0o640)
+
+        coordination._restrict_state_files(self.database)
+
+        for path in self.state_files():
+            self.assertEqual(stat.S_IMODE(os.lstat(path).st_mode), 0o600)
+
+    def test_symlink_state_file_remains_rejected(self) -> None:
+        target = Path(self.temporary_directory.name) / "target"
+        target.write_bytes(b"")
+        self.database.symlink_to(target)
+
+        with self.assertRaises(coordination.CoordinationUnavailable):
+            coordination._restrict_state_files(self.database)
+
+    def test_non_regular_state_file_remains_rejected(self) -> None:
+        self.database.mkdir()
+
+        with self.assertRaises(coordination.CoordinationUnavailable):
+            coordination._restrict_state_files(self.database)
 
 
 class CoordinationTests(unittest.TestCase):
@@ -294,6 +352,28 @@ class CoordinationTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "invalid")
+
+    def test_accepts_hybrid_task_in_repository_checkout(self) -> None:
+        self.git(self.repository, "switch", "-c", "orchestra/hybrid-task")
+
+        result, payload = self.run_cli(
+            "task",
+            "create",
+            "--repository",
+            str(self.repository),
+            "--worktree",
+            str(self.repository),
+            "--base-revision",
+            self.head,
+            "--tier",
+            "standard",
+            "--label",
+            "Hybrid task",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(payload["created"])
+        self.assertEqual(payload["task"]["worktree"], str(self.repository.resolve()))
 
     def test_removed_worktree_keeps_task_metadata(self) -> None:
         task_id = self.create_task(self.task_one)["task"]["id"]

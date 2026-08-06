@@ -88,7 +88,7 @@ Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
 demonstrably fail to converge. Never change tier unilaterally.
 
-## Create the isolated task worktree
+## Select the task checkout and create its branch
 
 After the user chooses the initial tier and before resource creation or any
 capability dispatch, resolve the intended base branch and revision and perform a
@@ -97,38 +97,51 @@ canonical runtime, dependency setup, services, permissions, credential
 categories without reading secrets, verification commands, test-data
 provenance, and generated paths relevant to the task.
 
-Resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, then the single
-absolute line in
-`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, then
-`$HOME/.orchestra/worktrees`. Reject a relative, home-wide, root-wide, symlinked,
-or malformed value. Under that root, use the repository directory name and
-choose the first matching pair of available
-`orchestra/<task-slug>[-N]` branch and
-`<worktree-root>/<repository>/<task-slug>[-N]` checkout path. Create the
-repository directory, write and remove one temporary canary there, and block
-before any capability dispatch if that exact write fails.
+Read `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`; accept only
+`managed` or `hybrid`, default a missing legacy value to `managed`, and let an
+explicit task instruction override it for that task. Record the effective mode
+in the approved plan.
 
-Create the selected checkout with `git worktree add`, using the exact source
-checkout, target path, `orchestra/*` branch, and captured full base revision. If
-creation fails, inspect the exact branch, path, and Git error once and block
-before capability dispatch.
-Never implement in, switch, or reuse the source checkout or a host-managed
-worktree. Fresh work starts at the captured base revision.
-Adopted committed work starts at its source HEAD while retaining the
-integration base; selected dirty paths import only through
-`adopt_worktree.py`.
+Managed mode preserves the isolated flow: resolve the worktree root from
+`ORCHESTRA_WORKTREE_ROOT`, the installed
+`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root` file, or
+`$HOME/.orchestra/worktrees`; prove the repository directory writable; choose
+the first matching `orchestra/<task-slug>[-N]` branch/path pair; and run direct
+`git worktree add` against the captured full base revision.
 
-Keep checkout path, initial branch and HEAD, base branch and revision, and
-authorized preexisting changes in root memory. Use that exact task worktree for
+Hybrid mode uses the current primary checkout or linked worktree. Require a
+named starting branch, exact committed HEAD, no staged, unstaged, or untracked
+changes, no Git operation in progress, and no conflicting Orchestra plan.
+Prove that checkout writable, capture its path, starting branch and revision,
+then create the first matching `orchestra/*` branch there with direct
+`git switch -c <branch> <captured-head>`. A clean `main` needs no extra prompt
+because no work starts until the new branch exists. Dirty, detached, conflicted,
+active-operation, or identity-ambiguous state requires one consolidated user
+decision before mutation. Never implement on the starting branch or directly
+on `main`. A PR-required task also proves the selected base is remotely usable
+before branch creation.
+
+If branch or worktree creation fails, inspect the exact identity and Git error
+once and block before capability dispatch. Selected dirty paths import only
+through `adopt_worktree.py` in managed mode unless the user explicitly
+authorizes carrying exact paths in hybrid mode.
+
+Keep checkout mode and path, starting branch and HEAD, task branch, resource
+ownership, base branch and revision, and authorized preexisting changes in root
+memory. Use that exact task checkout for
 every capability, planning, implementation, verification, review, plan, and
 commit operation. Immediately attempt an idempotent task registration with
 `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task
 create`. Treat `invalid` or `unavailable` as lost observability: report it
-compactly and continue with inline packets without retry, reduced authority, or
-a workflow blocker.
+only after a correctly authorized attempt. When the coordination database is
+outside the active workspace, make that first attempt with one exact, narrow
+Guardian escalation; do not first run the known-protected operation
+unprivileged. Report lost observability compactly and continue with inline
+packets without retry, reduced authority, or a workflow blocker.
 
 Reuse is limited to the same live preapproval task or to a resumed task whose
-approved plan, objective, checkout path, branch, base, and HEAD all match Git.
+approved plan, objective, checkout mode/path, starting identity, task branch,
+base, and HEAD all match Git.
 A legacy plan with a retired environment field blocks automatic resume unless
 the root explicitly verifies that it already identifies the exact Orchestra
 task worktree and the user authorizes adoption. Do not migrate an active
@@ -215,7 +228,10 @@ Every agent-produced semantic handoff is a complete revision-identified
 Markdown artifact written directly to the task-private directory resolved by
 `git rev-parse --git-path orchestra/artifacts`, named
 `<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal; the file name
-is the artifact identifier. Use the conventional kinds `repository-context`,
+is the artifact identifier. If that Git-private path is outside the active
+workspace, use one exact, narrow Guardian escalation on the first write attempt;
+do not probe it with an unprivileged write first. Use the conventional kinds
+`repository-context`,
 `context-delta`, `plan-overview`, `plan-phase`, `plan-review`,
 `implementation-report`, `verification-report`, `implementation-review`,
 `debugging-report`, and `pr-review` only when PR analysis has a downstream
@@ -244,7 +260,9 @@ bundle explicitly maps overview and phase numbers to artifact identifiers; no
 consumer infers the candidate from the newest artifacts.
 
 After approval, the root resolves `git rev-parse --git-path orchestra/plan.md`
-in the task worktree and writes it directly as `active`. It contains
+in the task worktree and writes it directly as `active`. If the resolved path
+is protected, the first write uses one exact, narrow Guardian escalation rather
+than an unprivileged probe. It contains
 task and Git identity, active tier, user and root decisions, authorized
 preexisting changes, the immutable dual model configuration when applicable,
 the approved overview verbatim, and an exact phase
@@ -252,7 +270,8 @@ manifest with each artifact identifier, private path, revision, phase status,
 accepted commit, blocker, and next action. It does not duplicate detailed phase
 documents. The private paths permit resume when SQLite is unavailable. When
 adoption applies, also record adopted source revision, imported paths, existing
-commit range, and remaining phases.
+commit range, and remaining phases. Hybrid plans additionally record the
+starting branch/revision and checkout, branch, and private-artifact ownership.
 
 Use only these statuses:
 
@@ -265,7 +284,7 @@ manifest without new user approval only for a reversible clarification within
 the approved objective and authority; a material scope, public-contract, or
 user-visible behavior change requires new approval. On resume, resolve the Git
 path again and require exact agreement between the plan and Git for checkout
-path, initial identity, current branch, base, HEAD, relevant commits, and user
+mode/path, starting identity, current task branch, base, HEAD, relevant commits, and user
 authority, then resolve the exact artifact identifiers or recorded private
 paths. Git is authoritative for code and history; the plan carries approved
 intent, the exact current bundle, and progress only. A missing or unreadable

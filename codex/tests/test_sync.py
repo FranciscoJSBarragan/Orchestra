@@ -59,6 +59,7 @@ class SyncTests(unittest.TestCase):
         *,
         dry_run: bool = False,
         modelconfig: str | None = "external",
+        checkout_mode: str | None = None,
     ) -> dict[str, object]:
         return sync.synchronize(
             ROOT,
@@ -67,6 +68,7 @@ class SyncTests(unittest.TestCase):
             action,
             dry_run=dry_run,
             modelconfig=modelconfig,
+            checkout_mode=checkout_mode,
             worktree_root=self.worktree_root,
         )
 
@@ -135,6 +137,7 @@ class SyncTests(unittest.TestCase):
         status = self.run_sync("status")
         self.assertEqual(status["status"], "partial")
         self.assertEqual(status["modelconfig"], "external")
+        self.assertEqual(status["checkout_mode"], "managed")
         self.assertEqual(status["sandbox_root"], str(self.orchestra_root))
         self.assertTrue(status["restart_required"])
         self.assertFalse(self.home.exists())
@@ -143,6 +146,7 @@ class SyncTests(unittest.TestCase):
         applied = self.run_sync("apply")
         self.assertEqual(applied["status"], "ok")
         self.assertEqual(applied["modelconfig"], "external")
+        self.assertEqual(applied["checkout_mode"], "managed")
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(
             self.home.joinpath(
@@ -162,6 +166,10 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),
             f"{self.worktree_root}\n",
+        )
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/checkout-mode").read_text(),
+            "managed\n",
         )
         config = self.codex_home.joinpath("config.toml").read_text()
         self.assertIn('approval_policy = "on-request"', config)
@@ -201,6 +209,7 @@ class SyncTests(unittest.TestCase):
         )
         self.assertEqual(len(installed_agents), 4)
         self.assertEqual(self.manifest()["modelconfig"], "external")
+        self.assertEqual(self.manifest()["checkout_mode"], "managed")
         self.assertEqual(
             self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
             ROOT.joinpath("codex/config/roles.external.toml").read_bytes(),
@@ -217,6 +226,38 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(
             self.home.joinpath(".agents/skills/orchestra/SKILL.md").stat().st_mode & 0o777,
             0o644,
+        )
+
+    def test_checkout_mode_defaults_to_managed_and_switches_atomically(self) -> None:
+        installed = self.run_sync("apply")
+        self.assertEqual(installed["checkout_mode"], "managed")
+
+        preview = self.run_sync("apply", dry_run=True, checkout_mode="hybrid")
+        self.assertEqual(preview["status"], "partial")
+        self.assertEqual(preview["checkout_mode"], "hybrid")
+        self.assertIn(
+            {
+                "operation": "update",
+                "path": "orchestra/checkout-mode",
+                "root": "codex_home",
+            },
+            preview["changes"],
+        )
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/checkout-mode").read_text(),
+            "managed\n",
+        )
+
+        switched = self.run_sync("apply", checkout_mode="hybrid")
+        self.assertEqual(switched["status"], "ok")
+        self.assertEqual(switched["checkout_mode"], "hybrid")
+        self.assertEqual(self.manifest()["checkout_mode"], "hybrid")
+        self.assertEqual(
+            self.codex_home.joinpath("orchestra/checkout-mode").read_text(),
+            "hybrid\n",
+        )
+        self.assertEqual(
+            self.run_sync("status", modelconfig=None)["checkout_mode"], "hybrid"
         )
         self.assertEqual(
             self.codex_home.joinpath(
@@ -1142,6 +1183,16 @@ class SyncTests(unittest.TestCase):
         status = self.run_sync("status")
         self.assertEqual(status["status"], "blocked")
         self.assertIn("invalid install manifest modelconfig", status["detail"])
+
+        manifest["modelconfig"] = "external"
+        manifest["checkout_mode"] = "unsupported"
+        (self.codex_home / "orchestra/install-manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        status = self.run_sync("status")
+        self.assertEqual(status["status"], "blocked")
+        self.assertIn("invalid install manifest checkout mode", status["detail"])
 
     def test_failed_switch_restores_roles_and_persisted_selection(self) -> None:
         self.assertEqual(

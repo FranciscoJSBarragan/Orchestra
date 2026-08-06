@@ -12,7 +12,7 @@ import subprocess
 from typing import Any
 
 from policy import blocked, load_policy, run_checks
-from _common import SHA_PATTERN, _git, _run
+from _common import SHA_PATTERN, _git, _run, cleanup_private_task_state
 
 
 CAPSULE_START = "<!-- PR-CONTEXT:start -->"
@@ -448,6 +448,8 @@ def merge_pr(
     method: str,
     authorized: bool,
     policy_path: Path | None,
+    checkout_mode: str = "managed",
+    start_revision: str | None = None,
 ) -> dict[str, Any]:
     """Merge only an explicitly authorized, freshly checked current PR head."""
     if not authorized:
@@ -460,8 +462,12 @@ def merge_pr(
     if error:
         return blocked("base worktree is invalid")
     assert base is not None
-    if repo == base:
-        return blocked("task and base must be distinct Git worktree roots")
+    if checkout_mode not in {"managed", "hybrid"}:
+        return blocked("checkout mode must be managed or hybrid")
+    if checkout_mode == "managed" and repo == base:
+        return blocked("managed task and base must be distinct Git worktree roots")
+    if checkout_mode == "hybrid" and repo != base:
+        return blocked("hybrid task and base must be the same Git checkout")
     if _common_dir(repo) is None or _common_dir(repo) != _common_dir(base):
         return blocked("task and base worktrees do not share a Git repository")
     if (
@@ -470,11 +476,15 @@ def merge_pr(
         or task_branch == base_branch
     ):
         return blocked("task and base branch names are invalid or identical")
-    if (
-        _checked_out_branch(repo) != task_branch
-        or _checked_out_branch(base) != base_branch
-    ):
-        return blocked("task or base worktree is on an unexpected branch")
+    if _checked_out_branch(repo) != task_branch:
+        return blocked("task checkout is on an unexpected branch")
+    if checkout_mode == "managed" and _checked_out_branch(base) != base_branch:
+        return blocked("base worktree is on an unexpected branch")
+    if checkout_mode == "hybrid":
+        if not start_revision:
+            return blocked("hybrid merge requires the captured start revision")
+        if _resolve_commit(repo, f"refs/heads/{base_branch}") != start_revision:
+            return blocked("hybrid starting branch moved after task creation")
     if not REMOTE_PATTERN.fullmatch(remote):
         return blocked("--remote is invalid")
     if _git(repo, "remote", "get-url", remote).returncode:
@@ -529,7 +539,12 @@ def merge_pr(
     )
     if post_result.returncode:
         detail = post_result.stderr.strip() or post_result.stdout.strip() or "no output"
-        return _post_merge_partial(
+        partial = (
+            _hybrid_post_merge_partial
+            if checkout_mode == "hybrid"
+            else _post_merge_partial
+        )
+        return partial(
             f"merge command succeeded but post-state query failed: {detail}",
             clean_head,
         )
@@ -546,7 +561,12 @@ def merge_pr(
         or not isinstance(post.get("mergedAt"), str)
         or not post["mergedAt"].strip()
     ):
-        return _post_merge_partial(
+        partial = (
+            _hybrid_post_merge_partial
+            if checkout_mode == "hybrid"
+            else _post_merge_partial
+        )
+        return partial(
             "merge command succeeded but merged post-state is unverified",
             clean_head,
         )
@@ -559,9 +579,19 @@ def merge_pr(
         "checks": check_result["checks"],
         "merged_at": post["mergedAt"],
     }
-    cleanup = _cleanup_merged_task(
-        repo, base, task_branch, base_branch, remote, clean_head
-    )
+    if checkout_mode == "hybrid":
+        cleanup = _cleanup_merged_hybrid_task(
+            repo,
+            task_branch,
+            base_branch,
+            remote,
+            clean_head,
+            start_revision,
+        )
+    else:
+        cleanup = _cleanup_merged_task(
+            repo, base, task_branch, base_branch, remote, clean_head
+        )
     result.update(cleanup)
     if cleanup["retained_resources"]:
         result["status"] = "partial"
@@ -626,6 +656,111 @@ def _post_merge_partial(reason: str, clean_head: str) -> dict[str, Any]:
     }
 
 
+def _hybrid_post_merge_partial(reason: str, clean_head: str) -> dict[str, Any]:
+    return {
+        "status": "partial",
+        "reason": reason[:500],
+        "head": clean_head,
+        "cleanup": [],
+        "preserved": ["worktree"],
+        "retained_resources": [
+            _retained(resource, "merge post-state is unverified")
+            for resource in ("remote_branch", "local_branch", "private_state")
+        ],
+    }
+
+
+def _cleanup_remote_branch(
+    task: Path, task_branch: str, remote: str, clean_head: str
+) -> tuple[list[str], list[dict[str, str]]]:
+    cleaned: list[str] = []
+    retained: list[dict[str, str]] = []
+    task_ref = f"refs/heads/{task_branch}"
+    remote_state = _git(task, "ls-remote", "--heads", remote, task_ref)
+    if remote_state.returncode:
+        detail = remote_state.stderr.strip() or remote_state.stdout.strip() or "no output"
+        retained.append(_retained("remote_branch", f"remote lookup failed: {detail}"))
+        return cleaned, retained
+    lines = [line.split() for line in remote_state.stdout.splitlines() if line.strip()]
+    if not lines:
+        cleaned.append("remote_branch")
+    elif (
+        len(lines) != 1
+        or len(lines[0]) != 2
+        or lines[0][1] != task_ref
+        or lines[0][0] != clean_head
+    ):
+        retained.append(_retained("remote_branch", "remote task branch is ambiguous or moved"))
+    else:
+        delete_remote = _git(
+            task,
+            "push",
+            f"--force-with-lease={task_ref}:{clean_head}",
+            remote,
+            f":{task_ref}",
+        )
+        if delete_remote.returncode:
+            detail = delete_remote.stderr.strip() or delete_remote.stdout.strip() or "no output"
+            retained.append(
+                _retained("remote_branch", f"lease-protected deletion failed: {detail}")
+            )
+        else:
+            cleaned.append("remote_branch")
+    return cleaned, retained
+
+
+def _cleanup_merged_hybrid_task(
+    task: Path,
+    task_branch: str,
+    base_branch: str,
+    remote: str,
+    clean_head: str,
+    start_revision: str,
+) -> dict[str, Any]:
+    all_resources = ("remote_branch", "local_branch", "private_state")
+    if (
+        not _worktree_clean(task)
+        or _resolve_commit(task, "HEAD") != clean_head
+        or _checked_out_branch(task) != task_branch
+        or _resolve_commit(task, f"refs/heads/{task_branch}") != clean_head
+        or _resolve_commit(task, f"refs/heads/{base_branch}") != start_revision
+    ):
+        reason = "post-merge hybrid checkout identity changed"
+        return {
+            "cleanup": [],
+            "preserved": ["worktree"],
+            "retained_resources": [_retained(resource, reason) for resource in all_resources],
+        }
+
+    cleaned, retained = _cleanup_remote_branch(task, task_branch, remote, clean_head)
+    switch = _git(task, "switch", base_branch)
+    if switch.returncode:
+        detail = switch.stderr.strip() or switch.stdout.strip() or "no output"
+        retained.append(_retained("local_branch", f"cannot restore starting branch: {detail}"))
+        return {"cleanup": cleaned, "preserved": ["worktree"], "retained_resources": retained}
+    if (
+        not _worktree_clean(task)
+        or _checked_out_branch(task) != base_branch
+        or _resolve_commit(task, "HEAD") != start_revision
+    ):
+        retained.append(_retained("local_branch", "starting branch changed while restoring checkout"))
+        return {"cleanup": cleaned, "preserved": ["worktree"], "retained_resources": retained}
+    task_ref = f"refs/heads/{task_branch}"
+    delete_local = _git(task, "update-ref", "-d", task_ref, clean_head)
+    if delete_local.returncode or _resolve_commit(task, task_ref) is not None:
+        detail = delete_local.stderr.strip() or delete_local.stdout.strip() or "local task branch still exists"
+        retained.append(_retained("local_branch", f"expected-SHA deletion failed: {detail}"))
+    else:
+        cleaned.append("local_branch")
+    if not retained:
+        cleanup_error = cleanup_private_task_state(task)
+        if cleanup_error:
+            retained.append(_retained("private_state", cleanup_error))
+        else:
+            cleaned.append("private_state")
+    return {"cleanup": cleaned, "preserved": ["worktree"], "retained_resources": retained}
+
+
 def _cleanup_merged_task(
     task: Path,
     base: Path,
@@ -665,53 +800,11 @@ def _cleanup_merged_task(
             ],
         }
 
-    remote_state = _git(task, "ls-remote", "--heads", remote, task_ref)
-    if remote_state.returncode:
-        detail = (
-            remote_state.stderr.strip()
-            or remote_state.stdout.strip()
-            or "no output"
-        )
-        retained.append(_retained("remote_branch", f"remote lookup failed: {detail}"))
-    else:
-        lines = [
-            line.split()
-            for line in remote_state.stdout.splitlines()
-            if line.strip()
-        ]
-        if not lines:
-            cleaned.append("remote_branch")
-        elif (
-            len(lines) != 1
-            or len(lines[0]) != 2
-            or lines[0][1] != task_ref
-            or lines[0][0] != clean_head
-        ):
-            retained.append(
-                _retained("remote_branch", "remote task branch is ambiguous or moved")
-            )
-        else:
-            delete_remote = _git(
-                task,
-                "push",
-                f"--force-with-lease={task_ref}:{clean_head}",
-                remote,
-                f":{task_ref}",
-            )
-            if delete_remote.returncode:
-                detail = (
-                    delete_remote.stderr.strip()
-                    or delete_remote.stdout.strip()
-                    or "no output"
-                )
-                retained.append(
-                    _retained(
-                        "remote_branch",
-                        f"lease-protected deletion failed: {detail}",
-                    )
-                )
-            else:
-                cleaned.append("remote_branch")
+    remote_cleaned, remote_retained = _cleanup_remote_branch(
+        task, task_branch, remote, clean_head
+    )
+    cleaned.extend(remote_cleaned)
+    retained.extend(remote_retained)
 
     try:
         current = Path.cwd().resolve()
@@ -797,6 +890,8 @@ def parse_args() -> argparse.Namespace:
     merge_parser.add_argument("--method", choices=("merge", "squash", "rebase"), required=True)
     merge_parser.add_argument("--authorized", action="store_true")
     merge_parser.add_argument("--policy", type=Path)
+    merge_parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
+    merge_parser.add_argument("--start-revision")
     return parser.parse_args()
 
 
@@ -831,6 +926,8 @@ def main() -> int:
             args.method,
             args.authorized,
             args.policy,
+            args.checkout_mode,
+            args.start_revision,
         )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

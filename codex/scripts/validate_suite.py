@@ -239,6 +239,7 @@ VALID_MODELS = {
     "orchestra-v1/gpt-5.6-terra",
     "orchestra-v1/gpt-5.6-luna",
     "opencode/glm-5.2",
+    "opencode/deepseek-v4-flash",
 }
 
 DUAL_MODEL_ALIASES = {
@@ -756,12 +757,13 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     direct_consumers = {
         "orchestra": (
             "git worktree add",
+            "git switch -c <branch> <captured-head>",
             "orchestra/<task-slug>[-N]",
             "ORCHESTRA_WORKTREE_ROOT",
-            "<worktree-root>/<repository>/<task-slug>[-N]",
-            "temporary canary",
+            "orchestra/checkout-mode",
+            "Prove that checkout writable",
             "timeout_ms: 600000",
-            "Never implement in, switch, or reuse the source checkout",
+            "Never implement on the starting branch",
             "same live preapproval task",
             "session_model.py",
         ),
@@ -783,7 +785,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "orchestra-local-integrate": (
             "--task-worktree",
             "--base-worktree",
-            "distinct task and base worktree roots",
+            "--checkout-mode",
+            "hybrid uses the same checkout root",
         ),
     }
     for name, required_text in direct_consumers.items():
@@ -809,7 +812,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "$orchestra-delivery-policy",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
-            "collision-free Orchestra-root worktree is the only task checkout",
+            "selected managed or hybrid checkout is the only task checkout",
+            "${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode",
             "${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root",
             "timeout_ms: 600000",
             "Incomplete intended post-mutation cleanup is `partial`",
@@ -909,11 +913,14 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append("sync-contract: CLI must expose --modelconfig")
     if '"--worktree-root"' not in text:
         failures.append("sync-contract: CLI must expose --worktree-root")
+    if '"--checkout-mode"' not in text:
+        failures.append("sync-contract: CLI must expose --checkout-mode")
     for destination in (
         ".agents/skills/",
         "agents/",
         "orchestra/roles.toml",
         "orchestra/worktree-root",
+        "orchestra/checkout-mode",
         "orchestra/scripts/",
         "orchestra/install-manifest.json",
         "AGENTS.md",

@@ -64,7 +64,13 @@ class LocalIntegrationTests(unittest.TestCase):
         self.git(self.task, "commit", "-q", "-m", "adjust check")
         self.task_sha = self.git(self.task, "rev-parse", "HEAD").stdout.strip()
 
-    def run_helper(self, authorized: bool = True) -> tuple[subprocess.CompletedProcess[str], dict]:
+    def run_helper(
+        self,
+        authorized: bool = True,
+        *,
+        checkout_mode: str = "managed",
+        start_revision: str | None = None,
+    ) -> tuple[subprocess.CompletedProcess[str], dict]:
         command = [
             sys.executable,
             str(HELPER),
@@ -79,6 +85,10 @@ class LocalIntegrationTests(unittest.TestCase):
         ]
         if authorized:
             command.append("--authorized")
+        if checkout_mode != "managed":
+            command.extend(("--checkout-mode", checkout_mode))
+        if start_revision:
+            command.extend(("--start-revision", start_revision))
         result = subprocess.run(
             command,
             cwd=self.base,
@@ -99,6 +109,32 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertFalse(self.task.exists())
         self.assertEqual(self.git(self.base, "branch", "--list", "task").stdout, "")
         self.assertEqual(payload["cleanup"], ["worktree", "branch"])
+
+    def test_hybrid_integration_restores_base_branch_and_preserves_checkout(self) -> None:
+        self.git(self.base, "worktree", "remove", str(self.task))
+        self.git(self.base, "switch", "task")
+        start_revision = self.git(self.base, "rev-parse", "main").stdout.strip()
+        private = Path(
+            self.git(self.base, "rev-parse", "--absolute-git-dir").stdout.strip()
+        ) / "orchestra"
+        (private / "artifacts").mkdir(parents=True)
+        (private / "plan.md").write_text("status: completed\n", encoding="utf-8")
+        (private / "artifacts/report.md").write_text("done\n", encoding="utf-8")
+
+        self.task = self.base
+        result, payload = self.run_helper(
+            checkout_mode="hybrid", start_revision=start_revision
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(self.git(self.base, "branch", "--show-current").stdout.strip(), "main")
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
+        self.assertTrue(self.base.exists())
+        self.assertEqual(self.git(self.base, "branch", "--list", "task").stdout, "")
+        self.assertEqual(payload["cleanup"], ["branch", "private_state"])
+        self.assertEqual(payload["preserved"], ["worktree"])
+        self.assertFalse(private.exists())
 
     def test_explicit_authority_is_required_without_mutation(self) -> None:
         base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
@@ -144,6 +180,23 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertIn("check", payload["reason"])
         self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
         self.assertTrue(self.task.exists())
+
+    def test_hybrid_check_cannot_move_starting_branch_before_integration(self) -> None:
+        self.commit_task_policy(["git", "branch", "-f", "main", "HEAD"])
+        self.git(self.base, "worktree", "remove", str(self.task))
+        self.git(self.base, "switch", "task")
+        start_revision = self.git(self.base, "rev-parse", "main").stdout.strip()
+        self.task = self.base
+
+        result, payload = self.run_helper(
+            checkout_mode="hybrid", start_revision=start_revision
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("starting branch changed", payload["reason"])
+        self.assertEqual(
+            self.git(self.base, "branch", "--show-current").stdout.strip(), "task"
+        )
 
     def test_unmerged_moved_branch_is_preserved(self) -> None:
         self.commit_task_policy(["git", "commit", "--allow-empty", "-m", "check moved head"])

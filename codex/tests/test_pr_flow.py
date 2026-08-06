@@ -230,6 +230,8 @@ else:
         method: str = "merge",
         clean_head: str | None = None,
         authorized: bool = True,
+        checkout_mode: str = "managed",
+        start_revision: str | None = None,
     ) -> list[str]:
         args = [
             "merge",
@@ -254,6 +256,10 @@ else:
         ]
         if authorized:
             args.append("--authorized")
+        if checkout_mode != "managed":
+            args.extend(("--checkout-mode", checkout_mode))
+        if start_revision:
+            args.extend(("--start-revision", start_revision))
         return args
 
     def remote_head(self) -> str | None:
@@ -652,6 +658,42 @@ else:
         self.assertIsNone(self.remote_head())
         merge = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "merge"])
         self.assertIn("--rebase", merge)
+
+    def test_hybrid_merge_restores_start_branch_and_preserves_checkout(self) -> None:
+        self.write_policy(passing=True)
+        start_revision = self.git("rev-parse", "main").stdout.strip()
+        private = Path(
+            self.git("rev-parse", "--absolute-git-dir").stdout.strip()
+        ) / "orchestra"
+        (private / "artifacts").mkdir(parents=True)
+        (private / "plan.md").write_text("status: completed\n", encoding="utf-8")
+        (private / "artifacts/report.md").write_text("done\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "switch", "--detach"],
+            cwd=self.base,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        args = self.merge_args(
+            "merge", checkout_mode="hybrid", start_revision=start_revision
+        )
+        base_index = args.index("--base-worktree") + 1
+        args[base_index] = str(self.repo)
+        result, payload = self.run_pr(*args)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertTrue(self.repo.exists())
+        self.assertEqual(self.git("branch", "--show-current").stdout.strip(), "main")
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), start_revision)
+        self.assertEqual(self.git("branch", "--list", "feature").stdout, "")
+        self.assertEqual(
+            payload["cleanup"], ["remote_branch", "local_branch", "private_state"]
+        )
+        self.assertEqual(payload["preserved"], ["worktree"])
+        self.assertFalse(private.exists())
 
     def test_merge_cleanup_accepts_an_absent_remote_branch(self) -> None:
         self.write_policy(passing=True)

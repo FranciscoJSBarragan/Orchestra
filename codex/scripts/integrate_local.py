@@ -13,6 +13,7 @@ from policy import load_policy, run_checks
 from _common import (
     _git,
     blocked,
+    cleanup_private_task_state,
     common_git_dir as _common_git_dir,
     head_branch as _branch,
     head_commit as _head,
@@ -33,21 +34,31 @@ def integrate_local(
     base_branch: str,
     authorized: bool,
     policy_path: Path | None,
+    checkout_mode: str = "managed",
+    start_revision: str | None = None,
 ) -> dict[str, Any]:
     """Verify, fast-forward, confirm containment, and clean only safe resources."""
     if not authorized:
         return blocked("explicit task-level local integration authorization is required")
     task = _worktree_root(task_worktree)
     base = _worktree_root(base_worktree)
-    if task is None or base is None or task == base:
-        return blocked("task and base must be distinct Git worktree roots")
+    if checkout_mode not in {"managed", "hybrid"}:
+        return blocked("checkout mode must be managed or hybrid")
+    if task is None or base is None:
+        return blocked("task and base must be Git worktree roots")
+    if checkout_mode == "managed" and task == base:
+        return blocked("managed task and base must be distinct Git worktree roots")
+    if checkout_mode == "hybrid" and task != base:
+        return blocked("hybrid task and base must be the same Git checkout")
     if _common_git_dir(task) != _common_git_dir(base):
         return blocked("task and base worktrees do not share a Git repository")
-    if _branch(task) != task_branch or _branch(base) != base_branch:
-        return blocked("task or base worktree is on an unexpected branch")
+    if _branch(task) != task_branch:
+        return blocked("task checkout is on an unexpected branch")
+    if checkout_mode == "managed" and _branch(base) != base_branch:
+        return blocked("base worktree is on an unexpected branch")
     if not _clean(task):
         return blocked("task worktree is dirty")
-    if not _clean(base):
+    if checkout_mode == "managed" and not _clean(base):
         return blocked("base worktree is dirty")
 
     policy, policy_result = load_policy(
@@ -65,20 +76,49 @@ def integrate_local(
     branch_ref = _git(task, "rev-parse", "--verify", f"refs/heads/{task_branch}")
     if branch_ref.returncode or branch_ref.stdout.strip() != task_sha:
         return blocked("task branch does not identify the task HEAD")
+    if checkout_mode == "hybrid":
+        if not start_revision:
+            return blocked("hybrid integration requires the captured start revision")
+        start_ref = _git(task, "rev-parse", "--verify", f"refs/heads/{base_branch}")
+        if start_ref.returncode or start_ref.stdout.strip() != start_revision:
+            return blocked("hybrid starting branch moved after task creation")
+        base_sha = start_revision
 
     check_result = run_checks(task, policy["checks"])
     if check_result["status"] != "ok":
         return check_result
     if not _clean(task) or _head(task) != task_sha:
         return blocked("configured checks changed the task worktree or HEAD")
-    if not _clean(base) or _head(base) != base_sha:
+    if checkout_mode == "managed" and (not _clean(base) or _head(base) != base_sha):
         return blocked("base worktree changed before integration")
+    if checkout_mode == "hybrid":
+        current_start = _git(task, "rev-parse", "--verify", f"refs/heads/{base_branch}")
+        if current_start.returncode or current_start.stdout.strip() != base_sha:
+            return blocked("hybrid starting branch changed during configured checks")
 
     ancestor = _git(base, "merge-base", "--is-ancestor", base_sha, task_sha)
     if ancestor.returncode:
         return blocked("task cannot be integrated by fast-forward; root resolution required")
+    if checkout_mode == "hybrid":
+        switch = _git(task, "switch", base_branch)
+        if switch.returncode:
+            return blocked(_command_reason("git switch", switch))
+        if not _clean(task) or _branch(task) != base_branch or _head(task) != base_sha:
+            return {
+                "status": "partial",
+                "reason": "starting branch checkout changed during hybrid integration",
+                "task_sha": task_sha,
+            }
+        base = task
     merge = _git(base, "merge", "--ff-only", task_sha)
     if merge.returncode:
+        if checkout_mode == "hybrid":
+            return {
+                "status": "partial",
+                "reason": _command_reason("git merge --ff-only", merge),
+                "task_sha": task_sha,
+                "preserved": ["worktree", "branch", "private_state"],
+            }
         return blocked(_command_reason("git merge --ff-only", merge))
     contained = _git(base, "merge-base", "--is-ancestor", task_sha, "HEAD")
     if contained.returncode or _head(base) != task_sha:
@@ -99,6 +139,33 @@ def integrate_local(
             "status": "partial",
             "reason": "integration completed but task branch moved; cleanup skipped",
             "task_sha": task_sha,
+        }
+
+    if checkout_mode == "hybrid":
+        delete = _git(base, "branch", "-d", task_branch)
+        if delete.returncode:
+            return {
+                "status": "partial",
+                "reason": _command_reason("git branch -d", delete),
+                "task_sha": task_sha,
+            }
+        cleanup_error = cleanup_private_task_state(base)
+        if cleanup_error:
+            return {
+                "status": "partial",
+                "reason": cleanup_error,
+                "task_sha": task_sha,
+                "cleanup": ["branch"],
+                "preserved": ["worktree"],
+            }
+        return {
+            "status": "ok",
+            "action": "integrated",
+            "task_sha": task_sha,
+            "base_branch": base_branch,
+            "checks": check_result["checks"],
+            "cleanup": ["branch", "private_state"],
+            "preserved": ["worktree"],
         }
 
     remove = _git(base, "worktree", "remove", str(task))
@@ -141,6 +208,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-branch", required=True)
     parser.add_argument("--authorized", action="store_true")
     parser.add_argument("--policy", type=Path)
+    parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
+    parser.add_argument("--start-revision")
     return parser.parse_args()
 
 
@@ -153,6 +222,8 @@ def main() -> int:
         args.base_branch,
         args.authorized,
         args.policy,
+        args.checkout_mode,
+        args.start_revision,
     )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0
