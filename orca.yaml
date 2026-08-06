@@ -1,0 +1,5 @@
+scripts:
+  setup: |
+    python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else "Python 3.11 or later is required")'
+    python3 -m venv hub/tui/.venv
+    hub/tui/.venv/bin/python -m pip install --disable-pip-version-check --no-input -r hub/tui/requirements.txt
