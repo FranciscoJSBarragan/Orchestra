@@ -158,7 +158,7 @@ playbook.
 
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | `opencode/deepseek-v4-flash` | `high` |
+| Standard | `repository_context` | `orchestra_analyst` | `cursor/composer-2.5` | `high` |
 | Standard | `web_research` | `orchestra_analyst` | `antigravity/gemini-3.6-flash-high` | `high` |
 | Standard | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |

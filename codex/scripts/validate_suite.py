@@ -230,6 +230,7 @@ SKILL_NAMES = (
 )
 VALID_MODELS = {
     "antigravity/gemini-3.6-flash-high",
+    "cursor/composer-2.5",
     "cursor/composer-2.5-fast",
     "cursor/grok-4.5",
     "gpt-5.6-sol",

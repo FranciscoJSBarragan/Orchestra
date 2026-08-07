@@ -169,7 +169,7 @@ root session's model and multi-agent version to select its native V2 or external
 V1 matrix before task setup; that model configuration is immutable for the
 task, while tier transitions remain available within it. Legacy installations
 retain their fixed native or external matrix. When the external standard matrix
-assigns `repository_context` to its configured OpenCode model but the internal
+assigns `repository_context` to its configured external model but the internal
 subagent runtime cannot accept that model, only that capability may use its compatible Luna-high
 entry as a transient fallback. The substitution is remembered only for the live
 task and does not create a visible task, alter the installed matrix, or
