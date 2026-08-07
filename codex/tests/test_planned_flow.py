@@ -681,8 +681,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             external_context,
             {
                 "profile": "orchestra_analyst",
-                "model": "cursor/composer-2.5",
-                "reasoning_effort": "high",
+                "model": "opencode/deepseek-v4-flash",
+                "reasoning_effort": "max",
             },
         )
         normalized = " ".join(self.skill.split())

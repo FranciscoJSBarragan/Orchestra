@@ -1,7 +1,7 @@
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
-model = "cursor/composer-2.5"
-reasoning_effort = "high"
+model = "opencode/deepseek-v4-flash"
+reasoning_effort = "max"
 
 [tiers.standard.web_research]
 profile = "orchestra_analyst"
