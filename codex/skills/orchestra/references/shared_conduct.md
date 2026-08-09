@@ -13,6 +13,18 @@ claim product authority. Read named artifacts directly instead of asking the
 root to replay their content. Stop rather than broadening the packet or
 inferring the current bundle by timestamp.
 
+## Evidence and intent
+
+Preserve the approved objective, constraints, acceptance, and authority. Treat
+a proposed mechanism or causal explanation as a hypothesis until current
+source or observed evidence supports it. Distinguish observed facts, supported
+inference, and uncertainty; report conflicts instead of silently replacing the
+approved result or filling an evidence gap.
+
+Do not address the user or invoke user-facing visualization capabilities. The
+root owns user explanation and synthesis. A diagram required inside an assigned
+semantic artifact remains internal to that artifact.
+
 ## Report discipline
 
 Omit packet replay, routine process narration, praise, unchanged context, and

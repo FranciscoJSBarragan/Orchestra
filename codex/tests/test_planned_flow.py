@@ -332,6 +332,104 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         self.assertIn("do not require the root to replay them", worker_input)
 
+    def test_approved_outcome_is_preserved_while_mechanisms_remain_hypotheses(
+        self,
+    ) -> None:
+        root_sources = {
+            "vision": (ROOT / "VISION.md").read_text(),
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "architecture": (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            "source agents": (ROOT / "AGENTS.md").read_text(),
+            "root skill": self.skill,
+            "runtime agents": (
+                ROOT / "codex/runtime/AGENTS.orchestra.md"
+            ).read_text(),
+        }
+        for name, source in root_sources.items():
+            normalized = " ".join(source.lower().split())
+            self.assertIn(
+                "approved objective, constraints, acceptance, and authority",
+                normalized,
+                name,
+            )
+            self.assertIn(
+                "proposed mechanism or causal explanation",
+                normalized,
+                name,
+            )
+            self.assertIn("hypothesis", normalized, name)
+
+        conduct = " ".join(self.shared_conduct.lower().split())
+        for distinction in ("observed facts", "supported inference", "uncertainty"):
+            self.assertIn(distinction, conduct)
+        self.assertIn("report conflicts", conduct)
+        self.assertIn("silently replacing the approved result", conduct)
+
+    def test_user_visualization_is_conditional_root_only_and_non_blocking(
+        self,
+    ) -> None:
+        root_sources = {
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "root skill": self.skill,
+            "runtime agents": (
+                ROOT / "codex/runtime/AGENTS.orchestra.md"
+            ).read_text(),
+        }
+        for name, source in root_sources.items():
+            normalized = " ".join(source.lower().split())
+            self.assertIn(
+                "complex sequence, hierarchy, comparison, or mapping",
+                normalized,
+                name,
+            )
+            self.assertIn("simple explanations", normalized, name)
+            self.assertIn("never blocks", normalized, name)
+            self.assertIn("delegated agents", normalized, name)
+            for distinction in (
+                "verified facts",
+                "supported inference",
+                "uncertainty",
+            ):
+                self.assertIn(distinction, normalized, name)
+
+        conduct = " ".join(self.shared_conduct.lower().split())
+        self.assertIn("do not address the user", conduct)
+        self.assertIn("invoke user-facing visualization capabilities", conduct)
+        self.assertIn("root owns user explanation and synthesis", conduct)
+
+    def test_planning_and_implementation_require_tests_with_behavioral_signal(
+        self,
+    ) -> None:
+        planning = " ".join(
+            (self.references / "technical_planning.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        worker = " ".join(
+            self.instructions("orchestra_implementation_worker").lower().split()
+        )
+        for source in (planning, worker):
+            for requirement in (
+                "observable acceptance journey",
+                "named regression risk",
+                "duplicated coverage",
+                "count-driven tests",
+                "implementation details",
+                "approved contract",
+            ):
+                self.assertIn(requirement, source)
+
+        worker_output = " ".join(
+            self.output_instructions("orchestra_implementation_worker")
+            .lower()
+            .split()
+        )
+        self.assertIn(
+            "behavior or regression risk each test demonstrates",
+            worker_output,
+        )
+
     def test_reviewer_complexity_is_material_not_metric_scoring(self) -> None:
         reviewer = self.instructions("orchestra_reviewer").lower()
         for requirement in (

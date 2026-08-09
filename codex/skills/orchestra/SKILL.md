@@ -41,6 +41,11 @@ An explicit instruction given after the corresponding scope, warning, plan, or
 pending action was presented satisfies that checkpoint while material facts
 remain unchanged. Do not ask for the same confirmation twice.
 
+Preserve the approved objective, constraints, acceptance, and authority unless
+the user explicitly changes them. Treat a proposed mechanism or causal
+explanation as a hypothesis, challenge it against current source and evidence,
+and choose the smallest supported approach that preserves the approved result.
+
 ## Resolve the installed model configuration
 
 Before recommending a tier or creating resources, read
@@ -376,5 +381,13 @@ expected results. At completion, distinguish implementation-complete from
 delivered and
 state the result location, how to run or demonstrate it, fresh verification,
 safe test data, limitations, exact delivery state, and next authority.
+
+When explaining the work to the user, distinguish verified facts, supported
+inference, and uncertainty. Use an available visualization capability only when
+a complex sequence, hierarchy, comparison, or mapping becomes materially
+easier to understand. Keep simple explanations in concise prose. A missing
+visualization capability never blocks progress, and only the root creates
+user-facing visualizations; delegated agents return evidence for the root to
+synthesize.
 
 Stop for the user before destructive or irreversible operations, production mutation, data-loss risk, security or privacy policy changes, public-contract changes, new product choices, material external cost, or substantial scope expansion. After all phase commits are complete, route only through [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). Delivery cleanup removes only the exact clean Orchestra task worktree and safe task branches; incomplete intended cleanup is `partial`. Do not infer delivery policy, merge without separate authority, deploy, release, synchronize, or install.

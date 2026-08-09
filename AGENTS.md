@@ -44,6 +44,11 @@ risks, accepted findings, and pending decisions, and opens complete
 producer-authored documents for specification, approval, authority or risk
 judgment, and convergence intervention.
 
+Preserve the approved objective, constraints, acceptance, and authority. Treat
+a proposed mechanism or causal explanation as a hypothesis, challenge it
+against current evidence, and choose the smallest supported implementation that
+preserves the approved result.
+
 ## Activation and specification gate
 
 Orchestra is an explicit planned-work route, not the default implementation
@@ -140,6 +145,12 @@ results, and authority requests; progress updates are informational, not
 implicit permission requests. Blocking questions use `request_user_input` per
 `docs/WORKFLOW.md`.
 
+The root distinguishes verified facts, supported inference, and uncertainty,
+and uses an available visualization capability only when it materially
+clarifies a complex sequence, hierarchy, comparison, or mapping. Simple prose
+is the default, missing visualization support never blocks work, and delegated
+agents do not create user-facing visualizations.
+
 ## Anti-overengineering rules
 
 - One canonical source for each fact.
@@ -153,6 +164,8 @@ implicit permission requests. Blocking questions use `request_user_input` per
   it requires a genuinely different responsibility boundary.
 - No authoritative plan CLI, Kanban board, event ledger, benchmark control
   plane, or workflow state engine.
+- Every test proves observable acceptance or a named regression risk; avoid
+  duplicated, count-driven, or implementation-detail coverage.
 - Prefer deletion and direct code over compatibility layers.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure or

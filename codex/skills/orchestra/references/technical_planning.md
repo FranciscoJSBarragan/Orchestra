@@ -13,6 +13,10 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - The overview states objective, intended user-visible result, global
   constraints and acceptance, decisions, exclusions, phase order and
   dependencies, and the overall verification strategy.
+- Map every planned test or check to an observable acceptance journey or a
+  named regression risk. Do not add duplicated coverage, count-driven tests,
+  or tests coupled to implementation details unless those details are an
+  approved contract.
 - Define the fewest independently reviewable phases. Each phase document must
   be independently executable and state one outcome, its relationship to the
   overview, preconditions and dependencies, exact allowed scope, required

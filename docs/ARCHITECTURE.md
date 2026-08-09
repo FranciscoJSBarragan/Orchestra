@@ -50,6 +50,15 @@ reading. Current source and Git remain authoritative; task-private evidence
 artifacts let downstream agents navigate prior analysis without requiring the
 root to rewrite it.
 
+The root preserves the approved objective, constraints, acceptance, and
+authority while treating any proposed mechanism or causal explanation as a
+hypothesis to test against current evidence. It owns user-facing explanation
+and distinguishes verified facts, supported inference, and uncertainty. It may
+use an available visualization capability when a complex sequence, hierarchy,
+comparison, or mapping becomes materially clearer. Simple prose is the default,
+missing visualization support is non-blocking, and delegated agents never own
+user-facing visualization.
+
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
 active tier. It performs a short read-only Git and execution-readiness preflight.
@@ -145,6 +154,12 @@ complete inline result or an exact private path already recorded in the
 approved manifest.
 Revision identity still distinguishes a committed revision from a dirty
 worktree or diff state and names affected paths.
+
+Every profile preserves the approved objective, constraints, acceptance, and
+authority. A proposed mechanism or causal explanation is not evidence by
+itself: profiles distinguish observed facts, supported inference, and
+uncertainty, and report a conflict instead of silently broadening or replacing
+the approved result.
 
 For approved implementation, focused read-only inspection of the affected flow
 and relevant callers does not expand edit authority. The worker chooses existing
@@ -463,6 +478,14 @@ Tests protect the few important invariants:
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
+- the root alone uses optional user-facing visualization, only when it
+  materially clarifies a complex relationship and never as a workflow
+  dependency;
+- proposed mechanisms remain hypotheses while the approved objective,
+  constraints, acceptance, and authority are preserved;
+- planned and implemented tests map to observable acceptance or a named
+  regression risk instead of duplicated, count-driven, or implementation-detail
+  coverage;
 - hooks call the validator without adding policy;
 - local integration removes only safely merged Orchestra-owned resources;
 - rejected authority/journal machinery is not introduced.

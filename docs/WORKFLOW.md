@@ -72,6 +72,11 @@ judgment.
 The root is the technical lead: it receives the objective, hard constraints,
 and success criteria, and decides the steps itself.
 
+Preserve the approved objective, constraints, acceptance, and authority unless
+the user explicitly changes them. Treat a proposed mechanism or causal
+explanation as a hypothesis, challenge it against current source and evidence,
+and prefer the smallest supported approach that preserves the approved result.
+
 For requests to answer, explain, review, diagnose, or plan: inspect the
 relevant materials and report the result; implement nothing.
 
@@ -427,6 +432,12 @@ Git directory.
 Each phase has one outcome, allowed scope, acceptance criteria, and verification
 set. A phase-specific subplan is created only when the phase cannot be safely
 delegated from the main plan.
+
+Every planned or added test maps to an observable acceptance journey or a named
+regression risk. Do not add duplicated coverage, count-driven tests, or tests
+coupled to implementation details unless those details are an approved
+contract. Each implementation handoff states the behavior or regression risk
+demonstrated by every changed test.
 
 The loop is:
 
@@ -786,6 +797,13 @@ state the result location, how to run or demonstrate it, verification performed,
 safe test data, limitations, exact delivery state, and the next authority needed.
 The same material transitions are exposed through coordination snapshots for
 external querying, without requiring the user to open each agent conversation.
+
+For user explanations, the root distinguishes verified facts, supported
+inference, and uncertainty, and uses an available visualization capability only
+when a complex sequence, hierarchy, comparison, or mapping becomes materially
+easier to understand. Simple explanations remain concise prose and an
+unavailable visualization capability never blocks progress. Delegated agents
+report evidence to the root and do not create user-facing visualizations.
 
 A question whose answer is required to continue uses `request_user_input`
 without `autoResolutionMs` when the tool is available and remains open until

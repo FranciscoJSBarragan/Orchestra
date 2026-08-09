@@ -47,11 +47,24 @@ the user, recommends any justified tier change, chooses the next capability
 dispatch, handles ordinary blockers, and makes the final technical judgment
 from fresh evidence.
 
+The approved objective, constraints, acceptance, and authority remain fixed
+unless the user explicitly changes them. A proposed mechanism or causal
+explanation is a hypothesis rather than part of the desired outcome: the root
+challenges weak assumptions against current evidence and chooses the smallest
+supported mechanism that preserves the approved user-visible result.
+
 The root owns the task plan and composes focused capabilities with four stable
 agent responsibilities: analysis, implementation, independent review, and
 verification. That separation protects context and independence without
 creating a new profile for every domain or removing technical responsibility
 from the root.
+
+User-facing explanations stay concise and distinguish verified facts,
+supported inference, and uncertainty. When the host provides a visualization
+capability, the root uses it only when a complex sequence, hierarchy,
+comparison, or mapping becomes materially easier to understand. Simple
+explanations remain prose, a missing visualization capability never blocks the
+workflow, and phase agents do not create user-facing visualizations.
 
 The active tier controls assignment intensity, not user authority. A user may
 choose either tier or direct a safe transition between them after a concise
@@ -87,6 +100,11 @@ fails. More checks are not automatically safer. A helper or gate is an
 improvement only when it reduces expected total cost while protecting a
 demonstrated requirement or realistic risk. The root's engineering judgment is
 part of that control surface, not a gap that must be replaced with machinery.
+
+Every planned or added test maps to an observable acceptance journey or a named
+regression risk. Duplicated coverage, tests added only to increase counts, and
+brittle coupling to implementation details consume cost without adding useful
+evidence unless those details are themselves an approved contract.
 
 ### Bounded autonomy
 
