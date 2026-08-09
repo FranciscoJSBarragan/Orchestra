@@ -22,7 +22,7 @@ Use this internal playbook only with the `orchestra_verifier` profile and the ex
 - Require test-data provenance, creation or reset method, safe identifiers, and
   cleanup when the check uses mutable data. Reuse repository fixtures or seeds.
 - Record each command or scenario, exit status, salient output, observed behavior, and any permitted generated or temporary side effects.
-- Retain only explicitly permitted test processes for reuse by this same verifier during the phase. Report their exact handles on every return. On the root's phase-teardown request, stop only those owned processes, report the result, and do not run new verification.
+- Follow shared resource hygiene: stop owned test processes before every handoff and recreate them when a later rerun needs them. Retain a process only when the packet explicitly authorizes its category for phase reuse, and report its exact handle on every return.
 - Distinguish product failure, test failure, flaky or nondeterministic evidence, and environment/tooling failure. Never reinterpret skipped, partial, stale, or failed evidence as passing.
 - Re-run only checks affected by an accepted fix unless a canonical full-suite gate is explicitly required.
 

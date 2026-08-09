@@ -209,9 +209,13 @@ Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and one verifier for each used verification capability available for fixes,
 reruns, and delta review. Analysis agents are one-shot except that a technical
 planner remains open through a dispatched plan-review correction loop. Before
-the phase commit, the root closes the phase cohort and cleans
-only its known temporary processes and browser tabs; those handles remain
-transient and never become a registry.
+each handoff, every agent closes its own temporary processes, terminal sessions,
+and task tabs unless its packet explicitly authorizes an exact resource category
+for phase reuse. Before the phase commit, the root follows up only on authorized
+retained resources or incomplete cleanup, stops its own shared processes, and
+retires the phase cohort with the lifecycle evidence available to the active
+multi-agent protocol. Resource handles remain transient and never become a
+registry.
 
 Browser work defaults to Codex's isolated in-app Browser. An explicit route may
 select it or Computer Use with Chrome from the start; otherwise Chrome is a

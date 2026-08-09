@@ -19,6 +19,6 @@ Use this internal playbook only with the `orchestra_verifier` profile and the ex
   environment, exact revision, and test-data provenance, creation or reset
   method, safe identifiers, and cleanup.
 - Remain source-read-only and do not implement fixes or accept conclusions supplied by the implementation owner without observing the behavior.
-- Retain only the dedicated task tab for reuse by this same verifier during the phase and report its handle. On the root's phase-teardown request, close only that tab and report whether cleanup completed.
+- Follow shared resource hygiene: close the dedicated task tab before every handoff and open a new dedicated tab when a later rerun needs one. Retain it only when the packet explicitly authorizes browser-tab reuse for the phase, and report its exact handle.
 
 Return `blocked` when the selected route or its authorized fallback is unavailable, a dedicated tab cannot be opened safely, required access or test data is unavailable, or the scenario would disturb unrelated state or cross a destructive, production, payment, security, privacy, or irreversible boundary.

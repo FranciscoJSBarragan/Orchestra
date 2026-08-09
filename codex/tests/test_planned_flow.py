@@ -238,9 +238,9 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         existing_output_fields = {
             "orchestra_analyst": ("evidence", "planned", "diagnosed", "blocked", "produced artifact identifiers", "candidate bundle", "blockers", "material risks", "decisions requested"),
-            "orchestra_implementation_worker": ("implemented", "blocked", "implementation-report", "changed paths", "tests changed", "verification commands", "owned temporary resources", "remaining risks"),
+            "orchestra_implementation_worker": ("implemented", "blocked", "implementation-report", "changed paths", "tests changed", "verification commands", "cleanup status", "retained-resources declaration", "remaining risks"),
             "orchestra_reviewer": ("accepted", "findings", "blocked", "review target", "stable identifier", "verification or authority gaps", "rejected pr feedback"),
-            "orchestra_verifier": ("passed", "failed", "blocked", "verification-report", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "owned temporary resources"),
+            "orchestra_verifier": ("passed", "failed", "blocked", "verification-report", "commands or interaction steps", "observed output or behavior", "evidence references", "environment details", "cleanup status", "retained-resources declaration"),
         }
         conduct = " ".join(self.shared_conduct.lower().split())
         for omission in (
@@ -1211,7 +1211,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             "Keep it open for meaningful delta review",
             "same reviewer",
             "call `close_agent`",
-            "so their descendants close as well",
+            "so descendants close as well",
+            "Under V2, where no true close operation is exposed",
+            "require every phase agent to be `completed`",
             "Never scan for or kill unrelated processes",
         ):
             self.assertIn(contract, routing)
@@ -1285,13 +1287,58 @@ class PlannedFlowContractTests(unittest.TestCase):
         verifier = self.instructions("orchestra_verifier")
         worker = self.instructions("orchestra_implementation_worker")
         analyst = self.instructions("orchestra_analyst")
+        reviewer = self.instructions("orchestra_reviewer")
+        conduct = " ".join(self.shared_conduct.split())
+        for contract in (
+            "Track every task-owned resource you create",
+            "local servers, managed or detached processes",
+            "exec or PTY terminal sessions",
+            "in-app Browser tabs",
+            "Computer Use browser tabs or windows",
+            "always attempt cleanup before a final, failed, or blocked handoff",
+            "Never rely on agent completion or an agent-close operation",
+            "Never scan globally for processes",
+            "close unrelated tabs, windows, authenticated sessions, terminals, or user state",
+            "Analysts and reviewers retain no resources across a handoff",
+            "Implementers and verifiers also clean by default",
+            "packet explicitly authorizes that exact resource category",
+            "`cleanup: pass | partial | blocked`",
+            "`retained_resources: none`",
+            "type, exact handle, owner, and authorized reason",
+            "Do not persist cleanup fields or resource handles in semantic artifacts",
+            "Do not create a resource registry, hook, wrapper, or persisted cleanup state",
+        ):
+            self.assertIn(contract, conduct)
+
+        for name in PROFILE_NAMES:
+            profile = self.instructions(name)
+            self.assertIn("shared_conduct.md", profile, name)
+            self.assertIn("owned-resource cleanup", profile, name)
+
+        for profile in (analyst, worker, reviewer, verifier):
+            self.assertNotIn("When the root requests phase teardown", profile)
+            self.assertNotIn("phase-teardown request", profile)
+
         for profile in (verifier, worker):
-            for contract in (
-                "Retain only explicitly permitted temporary processes",
-                "phase teardown",
-                "owned resources",
-            ):
-                self.assertIn(contract, profile)
+            normalized = " ".join(profile.split())
+            self.assertIn(
+                "Availability preserves agent context, not tool resources",
+                normalized,
+            )
+            self.assertIn("recreate", normalized)
+            self.assertIn("outside the reusable report", normalized)
+
+        playbooks = (
+            self.references / "frontend_implementation.md",
+            self.references / "browser_acceptance.md",
+            self.references / "runtime_verification.md",
+        )
+        for path in playbooks:
+            playbook = " ".join(path.read_text().split())
+            self.assertIn("before every handoff", playbook, path.name)
+            self.assertIn("packet explicitly authorizes", playbook, path.name)
+            self.assertNotIn("phase-teardown request", playbook, path.name)
+
         self.assertIn(
             "Repository-context, web-research, architecture-analysis, and "
             "difficult-debugging analysts are one-shot agents",
@@ -1307,12 +1354,37 @@ class PlannedFlowContractTests(unittest.TestCase):
             "Keep agent and resource handles only in root memory",
             "material start/final/blocker activities",
             "never packets, resource handles",
+            "Do not contact an agent that reported `cleanup: pass` with "
+            "`retained_resources: none`",
+            "one parallel cleanup-only follow-up",
+            "only to owners that reported authorized retained resources, "
+            "`partial`, or `blocked`",
+            "root-owned resource or an exact safely addressable handle",
+            "Consume `cleanup` and `retained_resources` with every stable handoff",
+            "A `cleanup: pass` result with no retained resources causes no follow-up",
+            "A `blocked` cleanup prevents downstream dispatch",
+            "one cleanup-only follow-up to the same owner",
+            "block the phase instead of retry-looping",
         ):
             self.assertIn(contract, normalized_skill)
         self.assertIn(
             "an unclosed source-read-only task tab is partial cleanup",
             self.skill.lower(),
         )
+
+        protocol_sources = (
+            self.skill,
+            (ROOT / "docs/WORKFLOW.md").read_text(),
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+        )
+        for source in protocol_sources:
+            normalized = " ".join(source.lower().split())
+            self.assertIn("under v1", normalized)
+            self.assertIn("close_agent", normalized)
+            self.assertIn("under v2", normalized)
+            self.assertIn("no true close operation", normalized)
+            self.assertIn("completed", normalized)
+            self.assertIn("no active descendant", normalized)
 
     def test_commit_and_pr_observation_remain_root_owned(self) -> None:
         commit_skill = (

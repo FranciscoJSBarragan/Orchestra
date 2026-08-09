@@ -13,6 +13,36 @@ claim product authority. Read named artifacts directly instead of asking the
 root to replay their content. Stop rather than broadening the packet or
 inferring the current bundle by timestamp.
 
+## Owned resource hygiene
+
+Track every task-owned resource you create in live assignment context: local
+servers, managed or detached processes, exec or PTY terminal sessions, in-app
+Browser tabs, Computer Use browser tabs or windows, and comparable tool
+sessions. Reuse a resource within the current assignment only while it remains
+necessary. Stop or close it as soon as it is no longer needed and always attempt
+cleanup before a final, failed, or blocked handoff. Never rely on agent
+completion or an agent-close operation to clean resources for you.
+
+Clean only resources you created or that the packet explicitly assigns to you.
+Never scan globally for processes, kill by an ambiguous match, or close
+unrelated tabs, windows, authenticated sessions, terminals, or user state.
+Analysts and reviewers retain no resources across a handoff. Implementers and
+verifiers also clean by default and recreate what a later accepted fix or rerun
+needs. They may retain a resource only when the packet explicitly authorizes
+that exact resource category for phase reuse.
+
+Every return includes `cleanup: pass | partial | blocked` and
+`retained_resources: none` or a list containing each resource's type, exact
+handle, owner, and authorized reason. `pass` means every resource due for
+cleanup was closed; explicitly authorized retained resources may still be
+listed. `partial` is limited to an inaccessible or unclosed source-read-only
+task tab or window. `blocked` means a task-owned process, terminal session, or
+resource capable of writing the worktree remains, or safe ownership cannot be
+established. Cleanup status is independent of the capability outcome. Do not
+persist cleanup fields or resource handles in semantic artifacts or
+coordination. Do not create a resource registry, hook, wrapper, or persisted
+cleanup state.
+
 ## Evidence and intent
 
 Preserve the approved objective, constraints, acceptance, and authority. Treat

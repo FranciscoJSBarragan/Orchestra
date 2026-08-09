@@ -15,7 +15,7 @@ Use this internal playbook only with the `orchestra_implementation_worker` profi
   availability or required-capability gap. `in_app` and `chrome` use only their
   selected surface.
 - A functional failure, application timeout, or selector problem never triggers fallback. On an allowed technical fallback, close the in-app task tab and repeat the complete visual scenario in a new Chrome task tab. Do not substitute the Chrome browser plugin or standalone automation.
-- Open or reuse only the implementation owner's task-dedicated tab, keep it separate from independent acceptance, and preserve unrelated tabs and sessions. Report any tab or test-process handle retained for phase reuse. On the root's phase-teardown request, stop only owned temporary processes and close only the implementation tab.
+- Open or reuse only the implementation owner's task-dedicated tab, keep it separate from independent acceptance, and preserve unrelated tabs and sessions. Follow shared resource hygiene: close the implementation tab and owned temporary processes before every handoff, then recreate them when a later accepted fix needs them. Retain a tab or process only when the packet explicitly authorizes its category for phase reuse, and report its exact handle.
 - Visual iteration is implementation evidence, not independent acceptance. Never claim acceptance of your own work; the root dispatches `browser_acceptance` separately when required.
 
 Return `blocked` when the UI or product decision is unresolved, approved paths are insufficient, unrelated work would be overwritten, or the selected browser route and any authorized fallback are unavailable when visual iteration is necessary.

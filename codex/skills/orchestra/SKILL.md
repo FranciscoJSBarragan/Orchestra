@@ -218,14 +218,24 @@ carry its minimum objective and focused factual questions because no context
 artifact exists yet. Do not replay objective, scope, acceptance, verification,
 plan details, findings, or evidence already present in a named artifact. When
 applicable, include `browser_route: auto | in_app | chrome`, runtime-only test
-data or elevation facts not represented in the approved phase, and ownership of
-exact generated paths, temporary processes, or task tabs. Reuse still-valid
+data or elevation facts not represented in the approved phase, ownership of
+exact generated paths, temporary processes, or task tabs, and explicit
+phase-reuse authorization for any resource allowed to survive a handoff. Reuse still-valid
 evidence and send only changed context deltas after the first pass. Do not fork
 full conversation history unless a demonstrated context dependency requires
 it. Keep agent and resource handles only in root memory. The coordination store
 may retain task snapshots and material start/final/blocker activities, but
 never packets, resource handles, previous clean PR heads, authority bundles,
 or workflow logs.
+
+Consume `cleanup` and `retained_resources` with every stable handoff. A
+`cleanup: pass` result with no retained resources causes no follow-up. An
+authorized retained resource remains in root memory until phase teardown. A
+`partial` result is non-blocking only for a source-read-only task tab or window
+and is retried once at phase teardown. A `blocked` cleanup prevents downstream
+dispatch and receives one cleanup-only follow-up to the same owner; if that
+follow-up does not clear the blocker, block the phase instead of retry-looping
+or taking over an ambiguously owned resource.
 
 For every coordination write, keep machine-facing `tier`, `stage`, `status`,
 activity `capability`, and activity `state` labels in English. Write
@@ -359,7 +369,7 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 9. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Pass exact overview, phase, and implementation-report identifiers plus explicit verification authority and revision. Create at most one verifier per used capability and reuse it for affected reruns. Each verifier publishes a complete `verification-report` for its capability and evaluated revision. Once a stable revision packet is under verification, stop speculative root source review. Interrupt only when the revision changed or a confirmed finding invalidates the packet. If verification returns `failed`, return its exact report identifier and accepted finding identifiers to the same implementation owner and re-verify. If it returns `blocked`, the root decides whether review proceeds on source alone and records the reason in review evidence. Dispose any verifier context discoveries before downstream use. Dispatch `independent_review` only after every required verifier has passed or its blocker is explicitly accepted.
 10. Then dispatch one `independent_review` agent with exact overview, phase, implementation, and verification artifact identifiers. Keep it open for meaningful delta review. The reviewer independently inspects source and diff, publishes a complete initial `implementation-review`, and on later passes publishes a meaningful delta that names its full-review base and prior finding dispositions. Context discoveries remain read-only report entries and receive root disposition rather than silent fixes. For a second critical review, reuse `independent_review` only for a named measurable risk and independently detectable defect class.
 11. Return the review artifact and only accepted stable finding identifiers to the same implementation owner; do not restate the findings. Preserve its original capability, rerun affected verification with the same verifier, and send exact replacement reports plus the meaningful delta to the same reviewer.
-12. After final evidence is consumed and every material context discovery has an explicit disposition, ask each phase resource owner to stop only its exact owned temporary processes and close only its task tabs. Stop root-owned shared test processes. Consume cleanup, then call `close_agent` on the implementation owner, reviewer, and every verifier so their descendants close as well. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. Never scan for or kill unrelated processes or close unrelated browser state.
+12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Under V1, call `close_agent` on every phase agent after owner cleanup so descendants close as well. Under V2, where no true close operation is exposed, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
 13. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update that phase's status and commit in the manifest. Git is the commit authority; do not create a commit artifact.
 14. When the same causal failure repeats, correction cycles fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess, recommend a tier change, dispatch `difficult_debugging`, or ask the user at an authority boundary. The debugger publishes `debugging-report`; return its exact identifier to the same owner without root-authored diagnosis replay. Distinct legitimate findings alone are not an escalation trigger.
 15. After every phase is reviewed, verified, torn down, and committed, set `plan.md` to `completed` and best-effort mirror that descriptive state. Failure to update coordination never changes the commit or plan result.
@@ -390,8 +400,9 @@ never broadens task authority.
 
 At a user-directed tier change, wait for the current tool call to settle,
 collect the exact revision and dirty diff, evidence, progress, pending work, and
-owned resources, then stop those resources and close only live phase agents
-whose assignment changes. Do not revert, restart, or create a transition commit.
+any explicitly retained resources, then request cleanup only from their owners
+and retire only live phase agents whose assignment changes. Do not revert,
+restart, or create a transition commit.
 Update the active tier and Decisions in the plan, then create replacements only
 when needed with a compact continuation packet. The replacement worker owns the
 remaining phase. Preserve evidence for the unchanged revision and conditions;
@@ -400,7 +411,7 @@ tier best-effort; coordination failure never delays or reverses the transition.
 
 ## Root-owned mechanical operations
 
-Phase commit and phase teardown are not profiles or capabilities. After review and verification pass, the root performs teardown with the runtime's existing agent-close primitive and exact resource handles, then uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
+Phase commit and phase teardown are not profiles or capabilities. Agents clean their owned resources before each handoff; after review and verification pass, the root performs only the fallback cleanup described above, then retires the cohort with V1 `close_agent` or V2 completed-state evidence. It uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
 
 Report only material phase transitions, findings or decisions, blockers, fresh
 verification results, and authority requests. Each update states current state,

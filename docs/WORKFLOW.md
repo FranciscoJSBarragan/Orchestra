@@ -27,7 +27,7 @@ flowchart TD
     W --> F["Execute the next phase"]
     F --> R["Review and verify"]
     R -->|"Material finding"| F
-    R -->|"Accepted"| X["Close phase agents and owned temporary resources"]
+    R -->|"Accepted"| X["Confirm cleanup and retire phase agents"]
     X --> M["Root commits the phase"]
     M --> N{"More phases?"}
     N -->|"Yes"| F
@@ -520,7 +520,12 @@ The loop is:
    sends one consolidated finding packet containing evidence, impact, and
    acceptance, never provisional or superseding directions. It also disposes
    any returned context-discovery identifiers before routing a dependent
-   consumer.
+   consumer. It consumes cleanup status at the same handoff: `pass` with no
+   retained resource causes no follow-up, authorized retention stays in root
+   memory until phase teardown, `partial` is non-blocking only for a
+   source-read-only task tab or window, and `blocked` prevents downstream
+   dispatch. A blocked cleanup receives one cleanup-only follow-up to the same
+   owner; failure to clear it blocks the phase without a retry loop.
 3. The root creates at most one verifier for each applicable capability and
    passes exact overview, phase, implementation-report, authority, and revision.
    Every capability publishes a complete `verification-report`. If verification
@@ -546,7 +551,8 @@ The loop is:
 6. Re-run affected verification with the same verifier and send exact
    replacement reports plus the meaningful delta to the same reviewer.
 7. After final evidence is consumed and every material context discovery has an
-   explicit disposition, the root performs the phase teardown described below.
+   explicit disposition, the root performs the minimal phase teardown described
+   below, following up only on retained resources or incomplete cleanup.
 8. When teardown permits the phase to close, the root commits with direct Git
    or the narrow exact-path helper and records the commit in the phase manifest.
    No commit artifact duplicates Git.
@@ -565,9 +571,10 @@ not dispatch an agent merely to operate or explain Git.
 The active tier may change in either direction only after explicit user
 direction. Wait for the current tool call to settle, collect the exact revision
 and dirty-diff state, accepted evidence, completed acceptance, pending work, and
-owned resources, then stop those resources and close only live phase agents
-whose assignment changes. Do not revert work, restart the workflow, or create a
-transition commit. Update the plan's active tier and Decisions, then create
+any explicitly retained resources, then request cleanup only from their owners
+and retire only live phase agents whose assignment changes. Do not revert work,
+restart the workflow, or create a transition commit. Update the plan's active
+tier and Decisions, then create
 replacement agents only when needed with a compact continuation packet. The new
 implementation worker owns the remaining phase and receives later accepted
 findings. Evidence for the unchanged revision and conditions remains valid; a
@@ -580,20 +587,28 @@ Orchestra task rooted in the matching model selector entry.
 ### Phase teardown
 
 The root keeps only an in-memory list of the agents and temporary resources it
-created for the current phase. It closes one-shot repository, planning, plan
-audit, web research, or difficult-debugging agents after consuming their
-result. The implementation owner, independent reviewer, and each capability
-verifier remain open through the phase so fixes, reruns, and delta review reuse
-their relevant context. Persisted activity rows are observability snapshots, not
-resource handles or cleanup authority.
+created or explicitly permitted an agent to retain for the current phase. Every
+agent closes its own servers, managed or detached processes, terminal sessions,
+and task tabs before a final, failed, or blocked handoff by default. Analysts
+and reviewers retain none. Implementation owners and verifiers remain open
+through the phase so fixes, reruns, and delta review reuse their context, not
+their tool resources; they recreate resources as needed unless the packet
+explicitly authorizes retention of an exact category. Persisted activity rows
+are observability snapshots, not resource handles or cleanup authority.
 
 After final review and verification pass, but before phase commit, the root:
 
-1. asks resource-owning phase agents to stop only the exact servers or processes
-   they started and close only their task-dedicated browser tabs;
-2. stops any shared temporary process the root itself started;
-3. consumes the teardown results, then calls `close_agent` for every phase
-   agent, which also closes its descendants;
+1. consumes each phase agent's latest `cleanup: pass | partial | blocked` and
+   `retained_resources` declaration and does not contact an agent that reported
+   `pass` with no retained resources;
+2. sends one parallel cleanup-only follow-up, without new implementation or
+   verification work, only to owners with authorized retained resources or
+   `partial` or `blocked` cleanup, while stopping shared temporary processes the
+   root itself started;
+3. consumes those results, then under V1 calls `close_agent` for every phase
+   agent so descendants close as well; under V2, where no true close operation
+   is exposed, requires every phase agent to be completed with no active
+   descendant or retained resource;
 4. confirms that no known agent or owned process with worktree write access
    remains active.
 
@@ -601,7 +616,9 @@ An active write-capable agent or owned process blocks the commit. Failure to
 close a source-read-only browser tab is reported as partial cleanup but does not
 invalidate otherwise accepted evidence or the Git commit. Orchestra never scans
 for or kills unrelated processes, closes unrelated tabs or sessions, persists a
-resource registry, or adds cleanup behavior to the phase-commit helper.
+resource registry, or adds cleanup behavior to the phase-commit helper. The
+root directly stops only a root-owned resource or an exact safely addressable
+handle reported by its owner.
 Best-effort activity clearing occurs after the real teardown evidence is
 consumed and can never affect the commit result.
 

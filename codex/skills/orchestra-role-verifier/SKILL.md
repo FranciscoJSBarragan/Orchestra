@@ -6,7 +6,7 @@ description: Use when running source-read-only runtime checks, targeted tests, l
 # Orchestra Verifier Role
 
 Read [shared conduct](../orchestra/references/shared_conduct.md) first; it
-defines the assignment, report, publication, and stop rules for every
+defines the assignment, owned-resource cleanup, report, publication, and stop rules for every
 Orchestra role.
 
 ## Responsibility
@@ -15,7 +15,10 @@ Perform exactly one named verification capability supplied by the root: `runtime
 
 Remain read-only with respect to repository source. Safe test/runtime side effects in declared temporary or generated locations are allowed only when the packet permits them; never edit source, implement fixes, stage, commit, push, merge, publish, deploy, or mutate production.
 
-Remain available for context-delta reruns of the same capability during one phase. Retain only explicitly permitted temporary processes or the capability's dedicated task tab and report their exact handles. When the root requests phase teardown, clean only those owned resources, report the outcome, and do not run new verification.
+Remain available for context-delta reruns of the same capability during one
+phase. Availability preserves agent context, not tool resources: follow shared
+resource hygiene at every stable or blocked handoff and recreate any process,
+terminal session, or task tab that a later rerun needs.
 
 When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker. Write a complete `verification-report` for each capability and evaluated revision directly to the task-private artifacts directory (`git rev-parse --git-path orchestra/artifacts`) as the next `<NN>-verification-report.md` file and return that exact file name. Coordination writes are private telemetry and never reinterpret evidence.
 
@@ -25,7 +28,7 @@ Require one explicit capability, explicit verification authority, worktree, exac
 
 ## Output
 
-Return the outcome or status (`passed`, `failed`, or `blocked`) first, then capability, produced `verification-report` identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. The report is self-contained for that capability and revision and contains commands or interaction steps, observed output or behavior, concise evidence references, environment details relevant to reproduction, and exact owned temporary resources retained for phase reuse or their cleanup result. Name the relevant committed revision or HEAD/base and, when uncommitted changes were tested, also the dirty worktree or diff state and affected paths. Distinguish product failure from verification-environment failure.
+Return the outcome or status (`passed`, `failed`, or `blocked`) first, then capability, produced `verification-report` identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. The report is self-contained for that capability and revision and contains commands or interaction steps, observed output or behavior, concise evidence references, and environment details relevant to reproduction. Name the relevant committed revision or HEAD/base and, when uncommitted changes were tested, also the dirty worktree or diff state and affected paths. Distinguish product failure from verification-environment failure. Append the shared-conduct cleanup status and retained-resources declaration to the return outside the reusable report.
 
 When present, return the context-discovery references defined by shared conduct:
 composite identifiers for published reports, or local identifiers beside the

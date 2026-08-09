@@ -6,7 +6,7 @@ description: Use when independently reviewing a bounded plan, architecture, code
 # Orchestra Reviewer Role
 
 Read [shared conduct](../orchestra/references/shared_conduct.md) first; it
-defines the assignment, report, publication, and stop rules for every
+defines the assignment, owned-resource cleanup, report, publication, and stop rules for every
 Orchestra role.
 
 ## Responsibility

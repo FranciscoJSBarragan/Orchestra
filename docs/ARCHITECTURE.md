@@ -78,9 +78,15 @@ evidence, before formal planning; the user chooses.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, one verifier per used verification capability,
-and only the temporary processes or tabs created for that phase. It reuses the
-phase agents for fixes, reruns, and delta review, then tears down those known
-resources before commit. Agent and resource handles remain in memory.
+and only explicitly retained temporary processes or tabs created for that
+phase. Agents close their owned resources before each handoff by default while
+remaining available for fixes, reruns, and delta review. Before commit, the
+root follows up only on authorized retention or incomplete cleanup. Agent and
+resource handles remain in memory.
+At any earlier handoff, blocked cleanup prevents downstream dispatch and
+receives one cleanup-only return to the same owner; failure to clear it blocks
+the phase. A source-read-only task tab or window may remain partial until phase
+teardown.
 Best-effort activity snapshots expose material progress but do not prove that an
 agent or process is live and never participate in commit safety.
 
@@ -163,6 +169,17 @@ complete inline result or an exact private path already recorded in the
 approved manifest.
 Revision identity still distinguishes a committed revision from a dirty
 worktree or diff state and names affected paths.
+
+Every profile applies the same owner-cleanup contract. It tracks task-owned
+servers, managed or detached processes, terminal sessions, in-app Browser tabs,
+and Computer Use browser tabs or windows in live context; closes them before a
+final, failed, or blocked handoff; and preserves unrelated user state. Analysts
+and reviewers never retain resources across a handoff. Implementers and
+verifiers may retain only a resource category explicitly authorized by the
+packet and report its exact handle. Each handoff declares cleanup as `pass`,
+`partial`, or `blocked` plus any authorized retained resources. This is an
+agent instruction and transient return contract, not semantic artifact content,
+a registry, or a mechanical guarantee.
 
 When a role discovers new material context outside the immediate report
 purpose, it records a conditional evidence-backed entry with a report-local
@@ -394,11 +411,16 @@ windows, authenticated sessions, processes, and user state are preserved.
 
 ## Phase resource lifecycle
 
-Phase agents may retain exact owned test processes and task tabs for reuse
-within their phase. Before commit, the root requests teardown from each resource
-owner, stops root-owned shared test processes, consumes those results, and calls
-`close_agent` on every phase agent so descendants close as well. An active agent
-or process capable of writing the worktree blocks commit; an unclosed
+Phase agents clean exact owned test processes, terminal sessions, and task tabs
+before every handoff by default, recreating them for a later fix or rerun when
+needed. Only packet-authorized resource categories may be retained for phase
+reuse, with exact handles reported. Before commit, the root skips agents that
+reported `cleanup: pass` and no retained resources, sends one parallel
+cleanup-only follow-up to owners with retained resources or incomplete cleanup,
+and stops root-owned shared test processes. Under V1 it then calls
+`close_agent`; under V2, which exposes no true close operation, it requires
+completed agents with no active descendants or retained resources. An active
+agent or process capable of writing the worktree blocks commit; an unclosed
 source-read-only task tab is reported as partial cleanup without invalidating
 the commit.
 
@@ -490,7 +512,8 @@ Tests protect the few important invariants:
 - task resume requires exact plan, path, branch, base, and HEAD;
 - local plan resume reconciles against Git instead of overriding it;
 - phase owners, reviewers, and capability verifiers are reused only within one
-  phase and close before its commit;
+  phase, clean owned resources before each handoff, and retire before its
+  commit using the active protocol's lifecycle evidence;
 - the synchronized Guardian defaults remain distinct from an authoritative
   explicit task, host, or launcher permission choice, and under Guardian test
   failures use at most one exact automatically reviewed boundary escalation

@@ -6,7 +6,7 @@ description: Use when implementing scoped code and test changes for one approved
 # Orchestra Implementer Role
 
 Read [shared conduct](../orchestra/references/shared_conduct.md) first; it
-defines the assignment, report, publication, and stop rules for every
+defines the assignment, owned-resource cleanup, report, publication, and stop rules for every
 Orchestra role.
 
 ## Responsibility
@@ -20,7 +20,10 @@ documentation only when the approved objective and allowed paths already
 authorize that source change; otherwise report the discovery reference defined
 by shared conduct and stop before making the out-of-scope edit.
 
-Remain available for accepted fixes throughout one phase. Retain only explicitly permitted temporary processes or the implementation task tab and report their exact handles. When the root requests phase teardown, stop only those owned resources, report the outcome, and do not change source or run new implementation work.
+Remain available for accepted fixes throughout one phase. Availability preserves
+agent context, not tool resources: follow shared resource hygiene at every stable
+or blocked handoff and recreate any process, terminal session, or task tab that
+a later accepted fix needs.
 
 When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker. Write a complete `implementation-report` for every stable handoff directly to the task-private artifacts directory (`git rev-parse --git-path orchestra/artifacts`) as the next `<NN>-implementation-report.md` file and return that exact file name. Coordination is descriptive and never grants edit authority.
 
@@ -30,7 +33,7 @@ Require one explicit implementation capability, explicit edit authority and limi
 
 ## Output
 
-Return the outcome or status (`implemented` or `blocked`) first, then capability, produced `implementation-report` identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. The report is self-contained for the stable handoff and contains changed paths, concise implementation notes, accepted finding identifiers addressed, tests changed and the behavior or regression risk each test demonstrates, verification commands and observed results, exact owned temporary resources retained for phase reuse or their cleanup result, and remaining risks. Name the relevant committed revision or HEAD/base and, when uncommitted changes were handled, also the dirty worktree or diff state and paths inspected or tested.
+Return the outcome or status (`implemented` or `blocked`) first, then capability, produced `implementation-report` identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. The report is self-contained for the stable handoff and contains changed paths, concise implementation notes, accepted finding identifiers addressed, tests changed and the behavior or regression risk each test demonstrates, verification commands and observed results, and remaining risks. Name the relevant committed revision or HEAD/base and, when uncommitted changes were handled, also the dirty worktree or diff state and paths inspected or tested. Append the shared-conduct cleanup status and retained-resources declaration to the return outside the reusable report.
 
 When present, return the context-discovery references defined by shared conduct:
 composite identifiers for published reports, or local identifiers beside the
