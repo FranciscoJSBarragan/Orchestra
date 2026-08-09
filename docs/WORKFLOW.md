@@ -521,8 +521,8 @@ The loop is:
    acceptance, never provisional or superseding directions. It also disposes
    any returned context-discovery identifiers before routing a dependent
    consumer. It consumes cleanup status at the same handoff: `pass` with no
-   retained resource causes no follow-up, authorized retention stays in root
-   memory until phase teardown, `partial` is non-blocking only for a
+   retained resource causes no follow-up, authorized non-browser retention
+   stays in root memory until phase teardown, `partial` is non-blocking only for a
    source-read-only task tab or window, and `blocked` prevents downstream
    dispatch. A blocked cleanup receives one cleanup-only follow-up to the same
    owner; failure to clear it blocks the phase without a retry loop.
@@ -593,8 +593,9 @@ and task tabs before a final, failed, or blocked handoff by default. Analysts
 and reviewers retain none. Implementation owners and verifiers remain open
 through the phase so fixes, reruns, and delta review reuse their context, not
 their tool resources; they recreate resources as needed unless the packet
-explicitly authorizes retention of an exact category. Persisted activity rows
-are observability snapshots, not resource handles or cleanup authority.
+explicitly authorizes retention of an exact non-browser category. Browser task
+tabs are never retained across a handoff. Persisted activity rows are
+observability snapshots, not resource handles or cleanup authority.
 
 After final review and verification pass, but before phase commit, the root:
 
@@ -640,23 +641,34 @@ never broadens the task's approved authority.
 Packets for `frontend_implementation` browser work and `browser_acceptance`
 carry `browser_route: auto | in_app | chrome`:
 
-- `auto` explicitly selects Codex's in-app Browser first. After supported
-  connection recovery, it may fall back to Computer Use with Chrome only when
-  the in-app Browser is unavailable or cannot provide required authentication,
-  extension, native-dialog, browser-specific, or system-integration behavior.
+- `auto` explicitly selects the dedicated Chrome connector first. After
+  supported connection recovery, it may fall back to Codex's in-app Browser
+  only when Chrome is unavailable or has a technical capability gap that the
+  in-app Browser can satisfy.
 - `in_app` selects only the in-app Browser.
-- `chrome` selects only Computer Use with Chrome.
+- `chrome` selects only the dedicated Chrome connector.
 
 An explicit route from the user, relayed by the root or given directly in the
 agent conversation, must be attempted even when the scenario is a canary for a
-previously failing tool, wins, and remains fixed unless that instruction also
-permits fallback. An agent may return the selected route's technical blocker but
+previously failing tool, wins, and remains fixed without fallback. An agent may
+return the selected route's technical blocker but
 may not veto or substitute it. A functional failure, application timeout, or
-selector problem never causes a switch. On an allowed fallback, close the
-in-app task tab, open an independent Chrome task tab, and repeat the complete
-scenario so evidence from different browser surfaces is never combined into one
-pass. Frontend iteration and independent browser acceptance use separate tabs
-and evidence.
+selector problem never causes a switch. On an allowed `auto` fallback, capture
+the Chrome blocker, close any task-owned Chrome tab already created, open a new
+in-app Browser task tab, and repeat the complete scenario so evidence from
+different browser surfaces is never combined into one pass. If both surfaces
+are unavailable, return `blocked`. Computer Use and standalone browser
+automation are not substitutes for either route.
+
+Every visual interaction or acceptance run creates a fresh task-owned tab on
+its selected surface. It never claims or reuses a user tab or a tab from an
+earlier run. The owner closes that exact tab before every successful, failed, or
+blocked handoff and opens a new one for any later fix or rerun; browser tabs are
+never eligible for phase retention. Browser-work handoffs also stop their owned
+supporting processes and report `retained_resources: none`. Frontend iteration
+and independent browser acceptance use separate tabs and evidence. Orchestra
+preserves unrelated tabs, authenticated sessions, windows, and browser state
+and never closes the Chrome application or a shared window.
 
 ## Review policy
 

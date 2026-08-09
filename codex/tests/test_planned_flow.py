@@ -1173,32 +1173,56 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(field, self.skill)
 
-    def test_browser_routing_prefers_in_app_and_honors_explicit_selection(
+    def test_browser_routing_prefers_chrome_and_honors_explicit_selection(
         self,
     ) -> None:
         browser = (self.references / "browser_acceptance.md").read_text()
         frontend = (self.references / "frontend_implementation.md").read_text()
         for contract in (
             "Require `browser_route: auto | in_app | chrome`",
-            "explicitly select Codex's in-app Browser first",
-            "fall back to Computer Use with Chrome only",
-            "remains fixed unless that instruction also authorizes fallback",
+            "explicitly select the dedicated Chrome connector first",
+            "fall back to Codex's in-app Browser only",
+            "remains fixed without fallback",
             "functional failure, application timeout, or selector problem never triggers fallback",
             "repeat the complete scenario",
-            "Do not substitute the Chrome browser plugin",
-            "preserve all unrelated tabs",
+            "Do not substitute Computer Use or standalone browser automation",
+            "create a fresh task-dedicated tab",
+            "Never claim or reuse a user's existing tab",
+            "close the dedicated task tab before every handoff, whether successful, failed, or blocked",
+            "Never retain the task tab or another owned resource across a browser-acceptance handoff",
+            "never close the Chrome application or a shared window",
+            "Preserve all unrelated tabs",
         ):
             self.assertIn(contract, browser)
         normalized_frontend = " ".join(frontend.split())
         for contract in (
             "`browser_route: auto | in_app | chrome`",
-            "Codex's in-app Browser first",
-            "Computer Use with Chrome",
+            "dedicated Chrome connector first",
+            "Codex's in-app Browser only",
             "never triggers fallback",
             "repeat the complete visual scenario",
+            "create a fresh implementation-owned task tab",
+            "never claim or reuse a user tab",
+            "before every handoff, whether successful, failed, or blocked",
+            "Retain no task tab or supporting process across the handoff",
+            "return `retained_resources: none`",
             "separate from independent acceptance",
         ):
             self.assertIn(contract, normalized_frontend)
+        for retired in (
+            "Computer Use with Chrome",
+            "Chrome browser plugin",
+            "in-app Browser first",
+        ):
+            self.assertNotIn(retired, browser)
+            self.assertNotIn(retired, frontend)
+        for profile in (
+            "orchestra_implementation_worker",
+            "orchestra_verifier",
+        ):
+            role_input = " ".join(self.input_instructions(profile).split())
+            self.assertIn("`auto` carries its defined technical fallback", role_input)
+            self.assertIn("a user-selected route is strict", role_input)
         self.assertIn("Never claim acceptance of your own work", frontend)
         self.assertIn("browser acceptance is an independent verifier dispatch", self.skill)
 
@@ -1294,7 +1318,11 @@ class PlannedFlowContractTests(unittest.TestCase):
             "local servers, managed or detached processes",
             "exec or PTY terminal sessions",
             "in-app Browser tabs",
-            "Computer Use browser tabs or windows",
+            "Chrome connector tabs",
+            "Browser tabs are stricter than other resources",
+            "never claim or reuse a user tab or a prior run's tab",
+            "Browser tabs are never eligible for phase retention",
+            "never means closing the browser application",
             "always attempt cleanup before a final, failed, or blocked handoff",
             "Never rely on agent completion or an agent-close operation",
             "Never scan globally for processes",
@@ -1336,8 +1364,20 @@ class PlannedFlowContractTests(unittest.TestCase):
         for path in playbooks:
             playbook = " ".join(path.read_text().split())
             self.assertIn("before every handoff", playbook, path.name)
-            self.assertIn("packet explicitly authorizes", playbook, path.name)
             self.assertNotIn("phase-teardown request", playbook, path.name)
+        runtime_playbook = " ".join(
+            (self.references / "runtime_verification.md").read_text().split()
+        )
+        self.assertIn("packet explicitly authorizes", runtime_playbook)
+        browser_playbook = " ".join(
+            (self.references / "browser_acceptance.md").read_text().split()
+        )
+        self.assertIn(
+            "Never retain the task tab or another owned resource across a browser-acceptance handoff",
+            browser_playbook,
+        )
+        self.assertIn("open a fresh one for every rerun", browser_playbook)
+        self.assertIn("return `retained_resources: none`", browser_playbook)
 
         self.assertIn(
             "Repository-context, web-research, architecture-analysis, and "

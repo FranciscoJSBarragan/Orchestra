@@ -220,7 +220,8 @@ plan details, findings, or evidence already present in a named artifact. When
 applicable, include `browser_route: auto | in_app | chrome`, runtime-only test
 data or elevation facts not represented in the approved phase, ownership of
 exact generated paths, temporary processes, or task tabs, and explicit
-phase-reuse authorization for any resource allowed to survive a handoff. Reuse still-valid
+phase-reuse authorization for any non-browser resource allowed to survive a
+handoff. Browser task tabs are never eligible for phase reuse. Reuse still-valid
 evidence and send only changed context deltas after the first pass. Do not fork
 full conversation history unless a demonstrated context dependency requires
 it. Keep agent and resource handles only in root memory. The coordination store
@@ -383,7 +384,7 @@ once for concrete blocker evidence; elapsed time alone is not a failure. Interru
 for cancellation, a material scope change, or indispensable information that
 invalidates the current assignment.
 
-Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed unless fallback is also authorized. A profile may report that route's technical blocker but may not veto or substitute it. `auto` explicitly selects Codex's in-app Browser first and may use Computer Use with Chrome only for a technical availability or capability gap. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed fallback, close the in-app task tab and repeat the complete scenario in a separate Chrome task tab. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
+Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed without fallback. A profile may report that route's technical blocker but may not veto or substitute it. `auto` explicitly selects the dedicated Chrome connector first and may use Codex's in-app Browser only for a technical availability or capability gap that the in-app Browser can satisfy; `chrome` and `in_app` remain strict. Computer Use and standalone browser automation are not route substitutes. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the Chrome blocker, close any task-owned Chrome tab, and repeat the complete scenario in a new in-app Browser task tab without combining evidence. Every run creates a fresh task-owned tab, never claims or reuses a user or prior-run tab, and closes its exact tab and supporting processes before every successful, failed, or blocked handoff. Browser-work handoffs retain nothing and report `retained_resources: none`; browser control ends with the task tab rather than by closing the Chrome application or a shared window. Preserve unrelated tabs, sessions, windows, and browser state. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
 
 Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
 as the default. The active permission choice for the task, host, or launcher

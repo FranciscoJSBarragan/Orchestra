@@ -78,7 +78,7 @@ evidence, before formal planning; the user chooses.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, one verifier per used verification capability,
-and only explicitly retained temporary processes or tabs created for that
+and only explicitly retained non-browser temporary processes created for that
 phase. Agents close their owned resources before each handoff by default while
 remaining available for fixes, reruns, and delta review. Before commit, the
 root follows up only on authorized retention or incomplete cleanup. Agent and
@@ -171,15 +171,16 @@ Revision identity still distinguishes a committed revision from a dirty
 worktree or diff state and names affected paths.
 
 Every profile applies the same owner-cleanup contract. It tracks task-owned
-servers, managed or detached processes, terminal sessions, in-app Browser tabs,
-and Computer Use browser tabs or windows in live context; closes them before a
-final, failed, or blocked handoff; and preserves unrelated user state. Analysts
-and reviewers never retain resources across a handoff. Implementers and
-verifiers may retain only a resource category explicitly authorized by the
-packet and report its exact handle. Each handoff declares cleanup as `pass`,
-`partial`, or `blocked` plus any authorized retained resources. This is an
-agent instruction and transient return contract, not semantic artifact content,
-a registry, or a mechanical guarantee.
+servers, managed or detached processes, terminal sessions, Chrome connector
+tabs, and in-app Browser tabs in live context; closes them before a final,
+failed, or blocked handoff; and preserves unrelated user state. Analysts and
+reviewers never retain resources across a handoff. Implementers and verifiers
+may retain only an explicitly authorized non-browser resource category and
+report its exact handle. Browser tabs are always fresh per run and never
+retained across a handoff. Each handoff declares cleanup as `pass`, `partial`,
+or `blocked` plus any authorized retained resources. This is an agent
+instruction and transient return contract, not semantic artifact content, a
+registry, or a mechanical guarantee.
 
 When a role discovers new material context outside the immediate report
 purpose, it records a conditional evidence-backed entry with a report-local
@@ -394,27 +395,35 @@ syntax, type, compile, lint, import, assertion, validation-contract, and
 CLI-usage failures remain real failures.
 
 Browser packets use the transient `browser_route` value `auto`, `in_app`, or
-`chrome`. An explicit user route is attempted even as a tool canary and fixed
-unless fallback is also authorized; an agent may report its technical blocker
-but may not veto or substitute it.
-Without an explicit route, `auto` selects Codex's in-app Browser first and uses
-Computer Use with Chrome only for a technical availability or capability gap.
-The root may select Chrome directly when the named scenario requires existing
-Chrome state, an extension, a native dialog, browser-specific behavior, or
-system integration.
+`chrome`. An explicit user route is attempted even as a tool canary and remains
+fixed without fallback; an agent may report its technical blocker but may not
+veto or substitute it.
+Without an explicit route, `auto` selects the dedicated Chrome connector first
+and uses Codex's in-app Browser only for a technical availability or capability
+gap that the in-app Browser can satisfy. `chrome` and `in_app` select only their
+named surface. Computer Use and standalone browser automation are not browser
+route substitutes.
 
-Frontend iteration and independent browser acceptance use separate task tabs.
-An allowed fallback closes the in-app task tab and repeats the complete scenario
-in a new Chrome task tab. Product failures, timeouts, and selector errors remain
-evidence on the selected surface and never trigger fallback. Unrelated tabs,
-windows, authenticated sessions, processes, and user state are preserved.
+Every browser run creates a new task-owned tab rather than claiming or reusing a
+user tab or a prior run's tab. Frontend iteration and independent browser
+acceptance use separate task tabs. An allowed `auto` fallback captures the
+Chrome blocker, closes any task-owned Chrome tab already created, and repeats
+the complete scenario in a new in-app Browser task tab. Product failures,
+timeouts, and selector errors remain evidence on the selected surface and never
+trigger fallback. Each task tab is closed before a successful, failed, or
+blocked handoff and a rerun opens another new tab; browser tabs cannot be
+retained for phase reuse. Browser-work handoffs stop their owned supporting
+processes and report `retained_resources: none`. Unrelated tabs, windows,
+authenticated sessions, processes, and user state are preserved, and Orchestra
+never closes the Chrome application or a shared window.
 
 ## Phase resource lifecycle
 
 Phase agents clean exact owned test processes, terminal sessions, and task tabs
 before every handoff by default, recreating them for a later fix or rerun when
-needed. Only packet-authorized resource categories may be retained for phase
-reuse, with exact handles reported. Before commit, the root skips agents that
+needed. Only packet-authorized non-browser resource categories may be retained
+for phase reuse, with exact handles reported; browser task tabs never qualify.
+Before commit, the root skips agents that
 reported `cleanup: pass` and no retained resources, sends one parallel
 cleanup-only follow-up to owners with retained resources or incomplete cleanup,
 and stops root-owned shared test processes. Under V1 it then calls
@@ -520,8 +529,9 @@ Tests protect the few important invariants:
   with no denial retry;
 - the root recommends a tier, the user selects it, and a user-directed tier
   transition preserves unchanged work and evidence;
-- browser routing honors explicit selection and otherwise prefers the in-app
-  Browser with capability-based Chrome fallback;
+- browser routing honors explicit selection and otherwise prefers the Chrome
+  connector with capability-based in-app Browser fallback, using a fresh
+  task-owned tab per run and closing it before every handoff;
 - the first review covers the bounded target while delta reviews stay focused;
 - the implicit greenfield skill never silently activates Orchestra;
 - PR-open authority includes the review/fix/push loop but not implicit merge;

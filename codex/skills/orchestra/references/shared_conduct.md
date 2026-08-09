@@ -17,19 +17,27 @@ inferring the current bundle by timestamp.
 
 Track every task-owned resource you create in live assignment context: local
 servers, managed or detached processes, exec or PTY terminal sessions, in-app
-Browser tabs, Computer Use browser tabs or windows, and comparable tool
+Browser tabs, Chrome connector tabs, and comparable tool
 sessions. Reuse a resource within the current assignment only while it remains
 necessary. Stop or close it as soon as it is no longer needed and always attempt
 cleanup before a final, failed, or blocked handoff. Never rely on agent
 completion or an agent-close operation to clean resources for you.
+
+Browser tabs are stricter than other resources: create a fresh task-owned tab
+for every browser run, never claim or reuse a user tab or a prior run's tab, and
+close the exact owned tab before every successful, failed, or blocked handoff.
+Browser tabs are never eligible for phase retention, even when a packet permits
+another resource category. Ending browser control never means closing the
+browser application, a shared window, an authenticated session, or unrelated
+tabs.
 
 Clean only resources you created or that the packet explicitly assigns to you.
 Never scan globally for processes, kill by an ambiguous match, or close
 unrelated tabs, windows, authenticated sessions, terminals, or user state.
 Analysts and reviewers retain no resources across a handoff. Implementers and
 verifiers also clean by default and recreate what a later accepted fix or rerun
-needs. They may retain a resource only when the packet explicitly authorizes
-that exact resource category for phase reuse.
+needs. They may retain a non-browser resource only when the packet explicitly
+authorizes that exact resource category for phase reuse.
 
 Every return includes `cleanup: pass | partial | blocked` and
 `retained_resources: none` or a list containing each resource's type, exact

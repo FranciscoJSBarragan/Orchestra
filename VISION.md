@@ -210,19 +210,22 @@ and one verifier for each used verification capability available for fixes,
 reruns, and delta review. Analysis agents are one-shot except that a technical
 planner remains open through a dispatched plan-review correction loop. Before
 each handoff, every agent closes its own temporary processes, terminal sessions,
-and task tabs unless its packet explicitly authorizes an exact resource category
-for phase reuse. Before the phase commit, the root follows up only on authorized
-retained resources or incomplete cleanup, stops its own shared processes, and
-retires the phase cohort with the lifecycle evidence available to the active
-multi-agent protocol. Resource handles remain transient and never become a
-registry.
+and task tabs; only a non-browser resource category explicitly authorized by
+the packet may survive for phase reuse. Before the phase commit, the root
+follows up only on authorized retained resources or incomplete cleanup, stops
+its own shared processes, and retires the phase cohort with the lifecycle
+evidence available to the active multi-agent protocol. Resource handles remain
+transient and never become a registry.
 
-Browser work defaults to Codex's isolated in-app Browser. An explicit route may
-select it or Computer Use with Chrome from the start; otherwise Chrome is a
-fallback only when the in-app Browser is unavailable or lacks a capability
-required by the scenario. A user-selected route is attempted even as a tool
-canary and is never vetoed or substituted. A product failure never triggers a
-browser switch.
+Browser work defaults to the dedicated Chrome connector in a fresh
+task-owned tab. The `auto` route falls back to Codex's isolated in-app Browser
+only when Chrome is technically unavailable or lacks a capability that the
+in-app Browser can provide. An explicit `chrome` or `in_app` route remains
+fixed, is attempted even as a tool canary, and is never vetoed or substituted.
+Each browser run closes its exact task tab before any handoff and a rerun opens
+a new one; Orchestra never claims a user's existing tab or closes the Chrome
+application, a shared window, or unrelated browser state. A product failure
+never triggers a browser switch.
 
 ### Idea-to-project continuity
 
