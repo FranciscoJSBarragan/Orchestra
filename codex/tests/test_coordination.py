@@ -217,6 +217,60 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([task["id"] for task in filtered["tasks"]], [task_id])
 
+    def test_localized_visible_text_round_trips_with_canonical_labels(self) -> None:
+        task_id = self.create_task(self.task_one)["task"]["id"]
+        result, updated = self.run_cli(
+            "task",
+            "update",
+            "--task",
+            task_id,
+            "--tier",
+            "standard",
+            "--stage",
+            "implementation",
+            "--status",
+            "active",
+            "--summary",
+            "Fase 2 en progreso — revisión de integración",
+            "--blocker",
+            "Esperando `git status` en /ruta/técnica",
+            "--next-action",
+            "Continuar con la verificación",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        task = updated["task"]
+        self.assertEqual(task["tier"], "standard")
+        self.assertEqual(task["stage"], "implementation")
+        self.assertEqual(task["status"], "active")
+        self.assertEqual(
+            task["summary"],
+            "Fase 2 en progreso — revisión de integración",
+        )
+        self.assertEqual(task["blocker"], "Esperando `git status` en /ruta/técnica")
+        self.assertEqual(task["next_action"], "Continuar con la verificación")
+
+        result, activity = self.run_cli(
+            "activity",
+            "set",
+            "--task",
+            task_id,
+            "--agent",
+            "verifier-1",
+            "--capability",
+            "runtime_verification",
+            "--state",
+            "running",
+            "--summary",
+            "Verificación técnica en progreso",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(activity["activity"]["capability"], "runtime_verification")
+        self.assertEqual(activity["activity"]["state"], "running")
+        self.assertEqual(
+            activity["activity"]["summary"],
+            "Verificación técnica en progreso",
+        )
+
     def test_completed_task_does_not_reserve_a_reused_worktree_path(self) -> None:
         first = self.create_task(self.task_one)
         result, _ = self.run_cli(

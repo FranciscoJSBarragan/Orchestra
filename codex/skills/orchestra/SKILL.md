@@ -221,6 +221,15 @@ may retain task snapshots and material start/final/blocker activities, but
 never packets, resource handles, previous clean PR heads, authority bundles,
 or workflow logs.
 
+For every coordination write, keep machine-facing `tier`, `stage`, `status`,
+activity `capability`, and activity `state` labels in English. Write
+user-visible task `summary`, `blocker`, `next_action`, and activity `summary`
+in the user-facing language selected by applicable instructions; when no
+language is configured, use the language of the user's conversation. Preserve
+literal errors, commands, paths, and identifiers verbatim inside localized
+prose. Keep `plan.md`, semantic artifacts, code, and technical logs in English;
+do not add or infer a persisted locale.
+
 Use `coordination.py activity set` only for material start, final, or blocker
 updates; there are no heartbeats. Request outcome-first, lossless structured returns
 and never impose a token, line, file, finding, test, or explanation cap.

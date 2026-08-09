@@ -386,6 +386,15 @@ at start, final outcome, or blocker; there are no heartbeats. Stages and states
 are descriptive labels with no transition graph. Timestamps indicate freshness
 but never prove that an agent or process is live.
 
+Coordination keeps machine-facing `tier`, `stage`, `status`, activity
+`capability`, and activity `state` labels in English. User-visible task
+`summary`, `blocker`, `next_action`, and activity `summary` use the user-facing
+language selected by applicable instructions, falling back to the language of
+the user's conversation when none is configured. Localized prose preserves
+literal errors, commands, paths, and identifiers verbatim. This language policy
+does not change the English-only internal plan, semantic artifacts, code, or
+technical logs, and requires no locale field or coordination schema change.
+
 Every packet carries capability, explicit authority, worktree, exact target
 artifact IDs and roles, stop conditions, current revision, accepted finding
 IDs, and only the new context delta. Initial repository context also carries

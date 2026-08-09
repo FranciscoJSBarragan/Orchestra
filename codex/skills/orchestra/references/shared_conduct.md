@@ -39,6 +39,15 @@ fail-soft only after that correctly authorized attempt: on `invalid` or
 return the complete result inline; never retry-loop or report a workflow
 blocker solely because publication failed.
 
+For coordination writes, keep machine-facing `tier`, `stage`, `status`,
+activity `capability`, and activity `state` labels in English. Write
+user-visible task `summary`, `blocker`, `next_action`, and activity `summary`
+in the user-facing language selected by applicable instructions, falling back
+to the language of the user's conversation when none is configured. Preserve
+literal errors, commands, paths, and identifiers verbatim inside localized
+prose. Semantic artifacts, code, and technical logs remain in English; never
+persist a locale in coordination.
+
 ## Stop rule
 
 Stop and report the smallest concrete blocker when the capability is missing

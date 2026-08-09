@@ -465,6 +465,30 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("<NN>-plan-phase-p<number>.md", planning)
         self.assertIn("complete replacement", planning)
 
+    def test_coordination_localizes_only_user_visible_snapshot_text(self) -> None:
+        sources = {
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "root skill": self.skill,
+            "runtime": (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+            "shared conduct": self.shared_conduct,
+        }
+        for name, source in sources.items():
+            normalized = " ".join(source.lower().split())
+            for field in ("`summary`", "`blocker`", "`next_action`"):
+                self.assertIn(field, normalized, name)
+            self.assertIn("activity `summary`", normalized, name)
+            self.assertIn("user-facing language", normalized, name)
+            self.assertIn("language of the user's conversation", normalized, name)
+            self.assertIn("machine-facing", normalized, name)
+            self.assertIn("labels in english", normalized, name)
+            self.assertIn("literal errors, commands, paths, and identifiers", normalized, name)
+            self.assertIn("semantic artifacts", normalized, name)
+            self.assertIn("technical logs", normalized, name)
+
+        root_contract = " ".join(self.skill.lower().split())
+        self.assertIn("keep `plan.md`", root_contract)
+        self.assertIn("do not add or infer a persisted locale", root_contract)
+
     def test_document_handoffs_use_exact_bundle_members_without_root_replay(self) -> None:
         normalized = " ".join(self.skill.split())
         for contract in (
