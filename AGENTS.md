@@ -111,6 +111,12 @@ through the phase and closes before the phase commit. Waiting, observation
 boundaries, verification ordering, and review policy are specified in
 `docs/WORKFLOW.md`.
 
+Any role records newly discovered material context only in its existing report.
+At a stable handoff the root assigns its explicit disposition and routes exact
+identifiers; only authorized versioned source changes make knowledge durable
+across tasks. Discovery never expands agent authority or creates a new context
+store or artifact kind.
+
 ## Execution and commits
 
 Use the fewest independently reviewable phases. After plan approval the root

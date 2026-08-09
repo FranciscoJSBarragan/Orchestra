@@ -25,6 +25,14 @@ Require one explicit capability, explicit authority, worktree, revision identity
 
 Return the outcome or status (`evidence`, `planned`, `diagnosed`, or `blocked` as applicable) first, then capability, produced artifact identifiers or candidate bundle, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete direct evidence-backed documents inline. Each reusable report preserves observed facts separated from inference, unresolved questions, source references, and revision identity: name the relevant committed revision or HEAD/base and, when uncommitted changes were inspected, also the dirty worktree or diff state and affected paths. Plan artifacts remain advisory until the user approves the exact bundle; only the root writes or updates the approved local task plan.
 
+When present, return the context-discovery references defined by shared conduct:
+composite identifiers for published reports, or local identifiers beside the
+complete inline fallback. Do not replay published report content. For
+`repository_context`, the requested repository-context result or targeted
+`context-delta` is the primary report rather than a context discovery; use the
+conditional section only for additional material context outside that bounded
+answer.
+
 ## Stop conditions
 
 Stop when the capability is missing, unsupported, or not singular; the required reference or evidence is unavailable; scope is unbounded; canonical sources conflict; a public or high-impact decision requires user authority; or the requested action would mutate source or external state. Return the smallest concrete blocker and never fill an evidence gap with an unsupported guess.

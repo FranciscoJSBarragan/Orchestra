@@ -93,6 +93,15 @@ check. A root-originated correctness investigation completes against the
 current source and diff before it produces one consolidated finding packet with
 evidence, impact, and acceptance.
 
+At that stable boundary, the root also owns disposition of material context
+discoveries returned from any role. It may route the producing report to a
+named current-task consumer, validate a consequential claim through one
+targeted `repository_context` delta, replace an affected phase, persist durable
+knowledge through an already-authorized source-documentation edit, or explicitly
+defer or discard the candidate. This judgment never runs concurrently with an
+active mutable implementation owner and never lets a discovery expand its
+producer's authority.
+
 ### Base profiles and capabilities
 
 Orchestra has exactly four behavior-only base profiles:
@@ -154,6 +163,15 @@ complete inline result or an exact private path already recorded in the
 approved manifest.
 Revision identity still distinguishes a committed revision from a dirty
 worktree or diff state and names affected paths.
+
+When a role discovers new material context outside the immediate report
+purpose, it records a conditional evidence-backed entry with a report-local
+stable identifier and returns the composite artifact-and-entry identifier when
+publication succeeds. On inline fallback it returns the local identifier beside
+the complete report, which downstream packets keep together. The entry remains
+part of the existing report kind. It is not an authority grant, canonical
+documentation, or a separate artifact, and no empty section is emitted when
+nothing new was found.
 
 Every profile preserves the approved objective, constraints, acceptance, and
 authority. A proposed mechanism or causal explanation is not evidence by
@@ -266,6 +284,14 @@ Artifact `kind` is a file-naming convention:
 analysis has a downstream semantic consumer. Corrected overview and phase
 documents are immutable complete replacements. Mechanical start, completion,
 commit, push, check, and merge facts remain activity, Git, or GitHub state.
+
+Material context discoveries remain sections of those existing reports and
+share their task-private lifecycle. They become cross-task knowledge only when
+an authorized implementation changes the repository's canonical versioned
+documentation (or the applicable existing Orchestra guidance); task cleanup
+does not promote them automatically. `repository_context` alone may validate a
+reported candidate into a targeted `context-delta`. No discovery registry,
+global context file, coordination column, or additional artifact kind exists.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
@@ -478,6 +504,11 @@ Tests protect the few important invariants:
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
+- every material context discovery has an evidence-backed composite identifier
+  when published, or a local identifier kept with its complete inline fallback,
+  plus an explicit root disposition, while only `repository_context` can
+  publish a validating `context-delta` and durable promotion requires
+  authorized versioned source;
 - the root alone uses optional user-facing visualization, only when it
   materially clarifies a complex relationship and never as a workflow
   dependency;

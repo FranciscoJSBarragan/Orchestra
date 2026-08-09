@@ -270,6 +270,102 @@ class PlannedFlowContractTests(unittest.TestCase):
                 self.assertIn(identity, output, name)
             self.assertNotIn("otherwise name", output, name)
 
+    def test_material_context_discoveries_use_existing_reports_and_root_disposition(
+        self,
+    ) -> None:
+        conduct = " ".join(self.shared_conduct.lower().split())
+        for contract in (
+            "conditional `context discoveries` section",
+            "report-local stable identifier",
+            "observed fact, supported inference, or unresolved uncertainty",
+            "evidence and locator",
+            "inspected revision",
+            "material impact",
+            "named downstream consumer when known",
+            "<artifact-identifier>#ctx-001",
+            "complete inline report with its report-local `ctx-001`",
+            "keep that report and local id together",
+            "omit the section and discovery identifiers",
+            "do not repeat unchanged context",
+            "root alone assigns its disposition",
+        ):
+            self.assertIn(contract, conduct)
+
+        for name in PROFILE_NAMES:
+            output = " ".join(self.output_instructions(name).lower().split())
+            for contract in (
+                "context-discovery references",
+                "composite identifiers for published reports",
+                "local identifiers beside the complete inline fallback",
+            ):
+                self.assertIn(contract, output, name)
+
+        worker = " ".join(
+            self.instructions("orchestra_implementation_worker").lower().split()
+        )
+        for boundary in (
+            "context discovery never expands edit authority",
+            "canonical repository documentation",
+            "approved objective and allowed paths already authorize",
+        ):
+            self.assertIn(boundary, worker)
+
+        reviewer = " ".join(
+            self.instructions("orchestra_reviewer").lower().split()
+        )
+        self.assertIn("remain read-only and report-only", reviewer)
+        self.assertIn("never becomes a silent documentation edit", reviewer)
+
+        repository_context = " ".join(
+            (self.references / "repository_context.md").read_text().lower().split()
+        )
+        for contract in (
+            "after plan approval",
+            "only at a stable handoff",
+            "composite context-discovery identifier",
+            "inspect the claim independently",
+            "targeted `context-delta`",
+        ):
+            self.assertIn(contract, repository_context)
+
+        root_sources = {
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "root skill": self.skill,
+            "runtime": (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+        }
+        for name, source in root_sources.items():
+            normalized = " ".join(source.lower().split())
+            for disposition in (
+                "`route`",
+                "`validate`",
+                "`replan`",
+                "`persist`",
+                "`defer`",
+                "`discard`",
+            ):
+                self.assertIn(disposition, normalized, name)
+            self.assertIn("stable handoff", normalized, name)
+            self.assertIn("only `repository_context`", normalized, name)
+            self.assertIn("before phase teardown", normalized, name)
+            self.assertIn("inline", normalized, name)
+
+        durable_sources = {
+            "vision": (ROOT / "VISION.md").read_text(),
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "architecture": (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            "source agents": (ROOT / "AGENTS.md").read_text(),
+            "root skill": self.skill,
+            "runtime": (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+        }
+        for name, source in durable_sources.items():
+            normalized = " ".join(source.lower().split())
+            self.assertIn("material context", normalized, name)
+            self.assertIn("versioned", normalized, name)
+
+        combined = "\n".join(durable_sources.values()) + "\n" + self.shared_conduct
+        self.assertNotIn("<NN>-context-discovery", combined)
+        self.assertNotIn("context-discovery-report", combined)
+
     def test_worker_minimality_requires_focused_comprehension_and_supported_cause(
         self,
     ) -> None:

@@ -27,6 +27,11 @@ Require one explicit capability, explicit verification authority, worktree, exac
 
 Return the outcome or status (`passed`, `failed`, or `blocked`) first, then capability, produced `verification-report` identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. The report is self-contained for that capability and revision and contains commands or interaction steps, observed output or behavior, concise evidence references, environment details relevant to reproduction, and exact owned temporary resources retained for phase reuse or their cleanup result. Name the relevant committed revision or HEAD/base and, when uncommitted changes were tested, also the dirty worktree or diff state and affected paths. Distinguish product failure from verification-environment failure.
 
+When present, return the context-discovery references defined by shared conduct:
+composite identifiers for published reports, or local identifiers beside the
+complete inline fallback. Do not replay published report content. A discovered
+fact never changes the observed pass, fail, or blocker outcome.
+
 ## Stop conditions
 
 Stop when the capability is missing, unsupported, or not singular; the required playbook, runtime, access, test data, or trustworthy evidence is unavailable; source modification would be required; or an interaction crosses destructive, production, payment, security, privacy, or irreversible boundaries. Report the concrete blocker without changing implementation.

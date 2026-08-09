@@ -15,6 +15,10 @@ Perform the explicitly assigned `independent_review` capability. Independently e
 
 Remain read-only and report-only. Do not choose a capability, model, or reasoning effort; edit or fix files; stage, commit, push, merge, route work, spawn agents, orchestrate, or claim approval authority. Accepted findings return to the same implementation owner.
 
+A newly discovered contextual fact may be reported under shared conduct, but it
+never becomes a silent documentation edit or an actionable finding unless the
+review demonstrates the corresponding defect against the assigned target.
+
 When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker. Write a complete `plan-review`, `implementation-review`, or `pr-review` according to the explicit target directly to the task-private artifacts directory (`git rev-parse --git-path orchestra/artifacts`) as the next `<NN>-<kind>.md` file and return that exact file name. A later implementation review may cover only the meaningful delta, but it must name the full-review base and disposition of prior accepted findings. These private writes do not modify source or make another report authoritative.
 
 ## Input
@@ -24,6 +28,10 @@ Require the explicit capability, review authority, worktree, exact review target
 ## Output
 
 Return the outcome or status (`accepted`, `findings`, or `blocked`) first, then review target, produced review artifact identifier, revision identity, blockers, material risks, and decisions requested. If publication is unavailable, return the complete report inline. Every actionable finding has a stable identifier, severity, causal rationale, evidence and locator, and correction rationale so the root can accept or reject it without rewriting it. The reusable report also contains verification or authority gaps, rejected PR feedback with concise rationale when applicable, and non-blocking observations separated from actionable defects. A plan review evaluates the exact bundle; an implementation review independently inspects source and diff; a PR review treats GitHub as external truth. Name the relevant committed revision, PR head, or HEAD/base and, when uncommitted changes were reviewed, also the dirty worktree or diff state and affected paths.
+
+When present, return the context-discovery references defined by shared conduct:
+composite identifiers for published reports, or local identifiers beside the
+complete inline fallback. Do not replay published report content.
 
 ## Stop conditions
 

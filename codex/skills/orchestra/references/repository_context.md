@@ -26,6 +26,12 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - A later context pass publishes a complete targeted `context-delta` artifact
   rather than rewriting earlier evidence. A changed HEAD requires reinspection
   only for referenced paths, contracts, or facts affected by the delta.
+- After plan approval, accept a validation dispatch only at a stable handoff
+  with an exact producing artifact and composite context-discovery identifier,
+  or the complete inline fallback and its local identifier, plus revision,
+  affected paths, and one bounded factual question. Inspect the claim
+  independently and publish a targeted `context-delta`; the producer's report
+  is evidence to evaluate, not authority or a reason to expand the scan.
 
 Return `blocked` when the questions or boundaries are missing, the requested
 scan is unbounded, canonical sources conflict, a feasibility-determining fact

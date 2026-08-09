@@ -143,6 +143,18 @@ identifiers, explicit authority, revision, accepted finding identifiers, and
 only new deltas; it does not repeatedly summarize content already available to
 the next agent.
 
+Material context discovered after planning remains in the producing agent's
+existing semantic report with evidence, revision, impact, and a stable local
+identifier. The root decides whether to route that report to a current-task
+consumer, validate the claim through a targeted repository-context delta,
+replace an affected plan member, persist durable knowledge in authorized
+versioned source documentation, or explicitly defer or discard it. Discovery
+does not grant authority, make the claim canonical, or permit an agent to edit
+an earlier artifact. Task-private reports support the current task; knowledge
+that must survive task cleanup becomes durable only through an authorized
+source change. This uses the existing report kinds and creates no shared
+mutable context document, artifact kind, registry, or memory system.
+
 Waiting is passive coordination, not a status interrogation. The root uses
 ten-minute wait windows that return immediately on completion, treats timeout
 as continued work, and never interrupts merely to request progress. Thirty
@@ -259,6 +271,9 @@ Orchestra succeeds when:
   every agent conversation;
 - downstream agents consume exact producer-authored documents without
   root-authored summary chains;
+- material context discoveries reach a named current-task consumer or receive
+  an explicit root disposition, while cross-task knowledge is preserved only
+  through authorized versioned source;
 - the root opens complete documents mainly for approval, risk, authority, or
   convergence judgment;
 - the root context remains focused and user communication stays clear;
