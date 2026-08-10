@@ -108,6 +108,16 @@ defer or discard the candidate. This judgment never runs concurrently with an
 active mutable implementation owner and never lets a discovery expand its
 producer's authority.
 
+Approved plans expose context without creating a context store: the overview
+contains a provenance-preserving `Review context` index and each phase names its
+exact evidence dependencies plus exact, non-glob `Context maintenance paths` or
+`none`. The implementation reviewer consumes the cited evidence directly and
+records `Context basis` while remaining read-only. A validated descriptive
+correction returns to the same implementation owner, then receives a fresh
+repository-context delta, affected verification, and delta review. Normative or
+uncertain conflicts remain intent, implementation, planning, or authority
+questions rather than automatic documentation updates.
+
 ### Base profiles and capabilities
 
 Orchestra has exactly four behavior-only base profiles:
@@ -169,6 +179,11 @@ complete inline result or an exact private path already recorded in the
 approved manifest.
 Revision identity still distinguishes a committed revision from a dirty
 worktree or diff state and names affected paths.
+
+The implementation-review packet additionally carries the exact
+`repository-context` and `context-delta` evidence required by the approved
+overview and phase, or complete labeled inline fallbacks. This is routed
+evidence, not a profile, capability, persisted packet, or new artifact kind.
 
 Every profile applies the same owner-cleanup contract. It tracks task-owned
 servers, managed or detached processes, terminal sessions, Chrome connector
@@ -272,6 +287,11 @@ revisions, progress, commits, blocker, and next action. Phase details are not
 duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
 state; the plan carries approved intent, exact bundle selection, and progress.
 
+Every overview includes the semantic `Review context` section, and every phase
+includes semantic context dependencies plus `Context maintenance paths` set to
+exact versioned human-readable documentation paths or `none`. These sections
+add no `plan.md` manifest field, coordination column, or workflow state.
+
 Branches and worktrees are Git resources, not a new Orchestra state store.
 Every new formal task uses an Orchestra-owned collision-free branch. Managed
 mode owns its portable worktree; hybrid mode preserves the user/host-owned
@@ -310,6 +330,14 @@ documentation (or the applicable existing Orchestra guidance); task cleanup
 does not promote them automatically. `repository_context` alone may validate a
 reported candidate into a targeted `context-delta`. No discovery registry,
 global context file, coordination column, or additional artifact kind exists.
+
+Each discovery preserves evidence status separately from context role:
+`descriptive` current-state information, `normative` intended behavior or
+constraint, or `uncertain`. Only a validated descriptive claim at an exact
+phase-authorized documentation path may receive `persist`; executable
+configuration and operational data remain normal implementation scope. The
+same owner makes the change, repository context revalidates it independently,
+and the same reviewer evaluates the meaningful delta before commit.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
@@ -545,11 +573,18 @@ Tests protect the few important invariants:
 - PR-open authority includes the review/fix/push loop but not implicit merge;
 - authorized PR merge cleans only exact unchanged local and remote task resources;
 - accepted review findings return to the same implementation owner;
+- implementation review receives exact project-context evidence, records its
+  `Context basis`, and blocks acceptance when a material judgment depends on
+  missing, stale, or conflicting context;
 - every material context discovery has an evidence-backed composite identifier
   when published, or a local identifier kept with its complete inline fallback,
   plus an explicit root disposition, while only `repository_context` can
   publish a validating `context-delta` and durable promotion requires
   authorized versioned source;
+- validated descriptive context corrections use exact non-glob phase paths,
+  return to the same implementation owner, and receive revalidation,
+  verification, and delta review; normative conflicts never follow code
+  automatically;
 - the root alone uses optional user-facing visualization, only when it
   materially clarifies a complex relationship and never as a workflow
   dependency;

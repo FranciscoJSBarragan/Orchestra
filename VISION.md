@@ -161,6 +161,19 @@ that must survive task cleanup becomes durable only through an authorized
 source change. This uses the existing report kinds and creates no shared
 mutable context document, artifact kind, registry, or memory system.
 
+The approved overview exposes a bounded, provenance-preserving `Review context`,
+and each phase identifies both the exact context evidence its review consumes
+and exact versioned documentation under `Context maintenance paths` when
+conditionally authorized for maintenance. Independent implementation review
+consumes that evidence directly, records `Context basis`, and remains read-only. When review
+finds stale project information, the root validates the claim independently;
+only a confirmed descriptive fact may return to the same implementation owner
+for an authorized documentation correction. The corrected source receives a
+fresh repository-context revalidation delta, affected verification, and delta
+review before commit.
+Normative sources express intent or constraints and never follow current code
+automatically merely because the two conflict.
+
 Waiting is passive coordination, not a status interrogation. The root uses
 ten-minute wait windows that return immediately on completion, treats timeout
 as continued work, and never interrupts merely to request progress. Thirty
@@ -199,6 +212,9 @@ Formal planning produces one overview and one self-contained document per
 phase. The approved local plan preserves that overview and the exact phase
 manifest rather than duplicating every phase. An implementation owner receives
 the overview, its exact phase, and only explicitly required prior outputs.
+The overview's review-context index points to exact repository evidence rather
+than replacing it; each phase uses exact, non-glob documentation-maintenance
+paths or explicitly states that none are authorized.
 
 The installed assignment remains authoritative. A dual installation uses the
 root session's model and multi-agent version to select its native V2 or external
@@ -287,6 +303,9 @@ Orchestra succeeds when:
 - material context discoveries reach a named current-task consumer or receive
   an explicit root disposition, while cross-task knowledge is preserved only
   through authorized versioned source;
+- independent phase review consumes exact project-context evidence, blocks on
+  material stale or conflicting context, and re-reviews validated documentation
+  corrections made by the same implementation owner;
 - the root opens complete documents mainly for approval, risk, authority, or
   convergence judgment;
 - the root context remains focused and user communication stays clear;

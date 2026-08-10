@@ -231,7 +231,10 @@ new context delta; and stop conditions. Initial repository context may also
 carry its minimum objective and focused factual questions because no context
 artifact exists yet. Do not replay objective, scope, acceptance, verification,
 plan details, findings, or evidence already present in a named artifact. When
-applicable, include `browser_route: auto | in_app | chrome`, runtime-only test
+applicable, an implementation-review packet includes every exact
+`repository-context` and `context-delta` required by the approved overview and
+current phase, or each complete inline fallback with its stable label and
+revision. Also include `browser_route: auto | in_app | chrome`, runtime-only test
 data or elevation facts not represented in the approved phase, ownership of
 exact generated paths, temporary processes, or task tabs, and explicit
 phase-reuse authorization for any non-browser resource allowed to survive a
@@ -293,32 +296,51 @@ Every role may include a conditional `Context discoveries` section in the
 semantic report it already produces. Entries use report-local stable IDs such
 as `CTX-001` and return composite references such as
 `<artifact-identifier>#CTX-001`; they carry evidence and locator, inspected
-revision, evidence classification, material impact, and a named downstream
-consumer when known. If publication is unavailable, return the complete inline
+revision, evidence classification, material impact, mandatory `Affected
+judgment`, and a named current-phase or identified later-phase consumer. They
+also classify the individual claim as `descriptive` current state,
+`normative` intended behavior or constraint, or `uncertain`. If publication
+is unavailable, return the complete inline
 report with its report-local ID and keep both together in every dependent
-packet. Omit the section and return field when there is no new material context.
-A discovery is neither a new artifact kind nor authority, and no agent edits an
-earlier artifact or claims that the candidate is canonical. Only
-`repository_context` may publish a `context-delta`; every other capability keeps
-a discovery inside its existing report kind.
+packet. Omit incidental context without both a material judgment and named
+current-task consumer. A discovery is neither a new artifact kind nor
+authority, and no agent edits an earlier artifact or claims that the candidate
+is canonical. Only `repository_context` may publish a `context-delta`; every
+other capability keeps a discovery inside its existing report kind.
 
 At a stable handoff, never while an implementation owner is actively mutating
 the worktree, give each returned material discovery one explicit disposition:
 `route` its exact report and composite ID to a named current-task consumer when
 the evidence is sufficient, keeping any inline fallback and local ID together;
-`validate` a consequential, uncertain, or disputed claim through one bounded
-`repository_context` dispatch that publishes a targeted `context-delta`;
+`validate` a claim only when at least one possible result can change
+current-task acceptance, a finding disposition, replanning, or `persist` for
+its named consumer, using one bounded `repository_context` dispatch;
 `replan` by creating a complete replacement for an affected phase under the
 existing approval rules; `persist` through the responsible implementation owner
-only when an approved phase already
-authorizes the canonical versioned documentation path, using `replan` first
-when that in-authority phase is missing; `defer` an out-of-scope but useful
+only for a validated `descriptive` claim when an approved phase already lists
+the exact versioned human-readable documentation path under `Context
+maintenance paths`, using `replan` first when that in-authority phase is
+missing; `defer` an out-of-scope but useful
 follow-up; or `discard` a duplicate, immaterial, disproven, or unsupported
 candidate. When a later phase depends on the result, capture that dependency in
 its complete replacement phase. These dispositions create no registry, plan
-field, coordination state, global context file, or cross-task memory. Before
-phase teardown, every material discovery has a disposition; `defer` and
-`discard` are valid non-blocking outcomes.
+manifest or `plan.md` state field, coordination state, global context file, or
+cross-task memory. A `normative` or `uncertain` conflict never becomes a
+documentation rewrite merely because current code differs; executable
+configuration, databases, generated data, and operational data remain normal
+implementation scope. Before
+phase teardown, every material discovery has a disposition; discard without
+validation any entry missing its affected judgment or named consumer.
+
+When stale context names the exact material review judgment it makes
+unreliable, do not accept or commit until it is resolved; incidental stale
+information is omitted and never blocks. For an authorized descriptive
+correction, return its discovery ID, `persist`, validating delta, and exact
+maintenance path to the same owner. After the edit, always obtain targeted
+repository-context revalidation for the changed paths and dirty revision,
+rerun affected verification, and send only new or replaced evidence to the
+same reviewer. This post-edit proof bypasses the earlier relevance pruning.
+An unresolved named material context basis blocks phase commit.
 
 ## Maintain the local task plan
 
@@ -329,6 +351,16 @@ dependencies, exact allowed scope, required behavior, acceptance, verification,
 outputs consumed later, risks, exclusions, and stop conditions. The candidate
 bundle explicitly maps overview and phase numbers to artifact identifiers; no
 consumer infers the candidate from the newest artifacts.
+
+Every overview contains `Review context` with exact context artifact IDs and
+revisions or labeled inline fallbacks, canonical source paths, and only the
+material architecture, runtime, exposure, persistence, user-visible surface,
+risks, invariants, and exclusions. Each fact or group states `Review use`,
+naming the exact acceptance, risk, invariant, exclusion, or phase dependency it
+informs; omit unused facts and cited evidence bodies. Every phase names exact
+context dependencies and uses `Context maintenance paths: none` unless an
+exact versioned documentation path is already a named current-task consumer.
+Never use globs. These sections add no `plan.md` manifest or workflow-state field.
 
 After approval, the root resolves `git rev-parse --git-path orchestra/plan.md`
 in the task worktree and writes it directly as `active`. If the resolved path
@@ -375,15 +407,18 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 1. Complete the mandatory read-only execution preflight and user confirmation from the minimum brief, establish the exact selected checkout, and attempt the fail-soft task registration. Then dispatch `repository_context` to an `orchestra_analyst` with bounded factual questions there. The analyst publishes each result as a revision-identified context artifact when available and otherwise returns the complete inline report. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and revision); otherwise dispatch. Consume the one-shot result and close that agent and its descendants before continuing.
 2. Continue the specification dialogue using the repository evidence. Dispatch additional `repository_context` only for a newly material factual question, request only the targeted context delta, and close each one-shot analyst and its descendants after consuming its result. Add `web_research` only for necessary time-sensitive external evidence. Then present and confirm the complete specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Propose one to three observable user journeys, including the main path and any material failure behavior, in non-technical language. Recommend any justified tier change; the user chooses whether to adopt it. Request only the context delta related to the newly discovered risk.
 3. Final specification confirmation is the checkpoint to draft the plan; do not require a second literal request to make a plan. Dispatch `technical_planning` unless the root is handling a genuinely trivial single-phase `luna` or `standard` task directly. The planner reads exact context artifacts and publishes one `plan-overview` plus one `plan-phase` per phase, returning their exact candidate bundle. Keep a dispatched planner open through any plan-review corrections. For a trivial direct plan, the root still produces the same overview-plus-phase shape.
+   Require `Review context` in the overview and exact context dependencies plus
+   `Context maintenance paths` in every phase, including when the root authors
+   the trivial plan directly.
 4. After the complete formal bundle exists, the root reads its overview, phase index, named risks, and any detail necessary for judgment, then decides whether independent plan review is proportionate. A trivial single-phase `luna` or `standard` plan may skip review. A non-trivial multi-phase or cross-component plan receives one review. A critical plan receives a focused review whose packet names its measurable risk, supporting evidence, affected area, and independently detectable defect class. Complexity alone is insufficient.
 5. A plan reviewer reads the exact candidate overview and every current phase artifact and publishes `plan-review` with stable finding identifiers. Return accepted identifiers and that review artifact to the same planner. The planner publishes full replacement documents only for affected members and returns a new complete bundle. Additional review covers the changed members and interactions. The root observes convergence after a second material review; before a third correction, or immediately for marginal, contradictory, or out-of-scope findings, it reads the exact bundle and reviews, accepts or rejects findings by identifier, and corrects direction. This is an intelligent checkpoint, not a persisted counter or mechanical limit. Close planner and plan reviewer after the bundle is accepted.
 6. Have the root present the exact accepted bundle at the user's altitude and request explicit user approval. Stop before implementation. Specification confirmation authorizes plan drafting, not implementation. On approval, write `plan.md` as the approved overview and exact phase manifest.
-7. For each approved phase, best-effort update the task stage, then select exactly one implementation capability and owner. Pass explicit edit authority, worktree, plan-manifest path, exact overview identifier, exact current phase identifier, revision, stop conditions, accepted finding identifiers, and only new context. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase. The worker reads objective, scope, acceptance, verification, and dependencies from the approved artifacts, reads only prior outputs explicitly required by that phase, records material activity, and publishes a complete `implementation-report` for each stable handoff. While the implementation owner is active and has not returned an outcome or blocker, treat the implementation state as mutable: wait without reading the evolving diff, running speculative canaries against it, or sending design corrections. Continue only user dialogue, agent/resource coordination, and root-owned setup that does not inspect or exercise the evolving implementation. Intervene only for an owner-reported blocker, a material user scope change, or indispensable external evidence that invalidates the assignment.
+7. For each approved phase, best-effort update the task stage, then select exactly one implementation capability and owner. Pass explicit edit authority, worktree, plan-manifest path, exact overview identifier, exact current phase identifier, revision, stop conditions, accepted finding identifiers, and only new context. A context-maintenance fix additionally carries the exact discovery identifier, root `persist` disposition, validating context delta, and exact phase-listed maintenance path. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase. The worker reads objective, scope, acceptance, verification, and dependencies from the approved artifacts, reads only prior outputs explicitly required by that phase, records material activity, and publishes a complete `implementation-report` for each stable handoff. While the implementation owner is active and has not returned an outcome or blocker, treat the implementation state as mutable: wait without reading the evolving diff, running speculative canaries against it, or sending design corrections. Continue only user dialogue, agent/resource coordination, and root-owned setup that does not inspect or exercise the evolving implementation. Intervene only for an owner-reported blocker, a material user scope change, or indispensable external evidence that invalidates the assignment.
 8. At each implementation-owner handoff, consume the implementation artifact or inline fallback and perform at most one bounded check of exact Git identity, status, allowed-path scope, `git diff --check`, and the declared evidence inventory. If the root directly investigates a possible correctness defect, complete and confirm that investigation against the exact current source and diff before contacting the owner or pausing the phase cohort. Send one consolidated finding packet with evidence, impact, and acceptance; never send provisional or superseding directions.
    Dispose any returned context-discovery identifiers before routing a dependent consumer.
 9. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Pass exact overview, phase, and implementation-report identifiers plus explicit verification authority and revision. Create at most one verifier per used capability and reuse it for affected reruns. Each verifier publishes a complete `verification-report` for its capability and evaluated revision. Once a stable revision packet is under verification, stop speculative root source review. Interrupt only when the revision changed or a confirmed finding invalidates the packet. If verification returns `failed`, return its exact report identifier and accepted finding identifiers to the same implementation owner and re-verify. If it returns `blocked`, the root decides whether review proceeds on source alone and records the reason in review evidence. Dispose any verifier context discoveries before downstream use. Dispatch `independent_review` only after every required verifier has passed or its blocker is explicitly accepted.
-10. Then dispatch one `independent_review` agent with exact overview, phase, implementation, and verification artifact identifiers. Keep it open for meaningful delta review. The reviewer independently inspects source and diff, publishes a complete initial `implementation-review`, and on later passes publishes a meaningful delta that names its full-review base and prior finding dispositions. Context discoveries remain read-only report entries and receive root disposition rather than silent fixes. For a second critical review, reuse `independent_review` only for a named measurable risk and independently detectable defect class.
-11. Return the review artifact and only accepted stable finding identifiers to the same implementation owner; do not restate the findings. Preserve its original capability, rerun affected verification with the same verifier, and send exact replacement reports plus the meaningful delta to the same reviewer.
+10. Then dispatch one `independent_review` agent with exact overview, phase, implementation, verification, and required context identifiers or labeled inline fallbacks. Keep it open for meaningful delta review. It judges approved intent before project guardrails, source, diff, and verification; publishes an initial `implementation-review` whose `Context basis` names only evidence actually consulted; and later receives only new or replaced evidence while naming the full-review base. It opens context only for a named `Review use`. A context discovery requires an exact `Affected judgment` and current-task consumer; incidental context is omitted, and only a named material judgment can block. For a second critical review, reuse `independent_review` only for a named measurable risk and independently detectable defect class.
+11. Return the review artifact and accepted finding IDs to the same owner; do not restate the findings. Validate stale context only when at least one result can change acceptance, a finding disposition, replanning, or required `persist`; otherwise discard it without dispatch. Send a confirmed descriptive correction to the same owner only with `persist`, its validating delta, and an exact authorized path. After correction, rerun affected verification and always obtain a post-edit context delta for the changed paths and dirty revision. Send only replacement reports, fresh context evidence, and the meaningful delta to the same reviewer. Never accept or commit while a named material context judgment remains unresolved.
 12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Under V1, call `close_agent` on every phase agent after owner cleanup so descendants close as well. Under V2, where no true close operation is exposed, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
 13. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update that phase's status and commit in the manifest. Git is the commit authority; do not create a commit artifact.
 14. When the same causal failure repeats, correction cycles fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess, recommend a tier change, dispatch `difficult_debugging`, or ask the user at an authority boundary. The debugger publishes `debugging-report`; return its exact identifier to the same owner without root-authored diagnosis replay. Distinct legitimate findings alone are not an escalation trigger.

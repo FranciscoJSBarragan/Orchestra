@@ -13,6 +13,15 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - The overview states objective, intended user-visible result, global
   constraints and acceptance, decisions, exclusions, phase order and
   dependencies, and the overall verification strategy.
+- Every overview contains a `Review context` section. It names the exact
+  `repository-context` and `context-delta` artifact identifiers and inspected
+  revisions, or a stable label and revision for each complete inline fallback;
+  the canonical source paths consulted; and only the task-relevant
+  architecture, runtime, exposure, persistence, user-visible surface, primary
+  risks, invariants, and exclusions. For each included fact or coherent group,
+  add `Review use` naming the exact acceptance, risk, invariant, exclusion, or
+  phase dependency it informs. Omit anything without a current-task use and do
+  not copy cited evidence bodies. Treat the section as a bounded index.
 - Map every planned test or check to an observable acceptance journey or a
   named regression risk. Do not add duplicated coverage, count-driven tests,
   or tests coupled to implementation details unless those details are an
@@ -22,6 +31,15 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   overview, preconditions and dependencies, exact allowed scope, required
   behavior, acceptance criteria, verification, outputs consumed by later
   phases, material risks, exclusions, and stop conditions.
+- Each phase names the exact review-context evidence it consumes and contains
+  `Context maintenance paths`. Use `none` unless an exact versioned
+  human-readable documentation path is already a named current-phase or
+  identified later-phase consumer; list only exact repository-relative paths
+  and never use glob metacharacters or directory-wide authority. A listed path
+  authorizes correction only after a validated `descriptive` discovery and
+  an explicit root `persist` disposition. Executable configuration,
+  databases, generated data, and operational data remain normal implementation
+  scope.
 - Preserve cross-phase invariants and assign one implementation owner per phase. Split frontend and non-frontend work only when ownership cannot remain safely bounded.
 - Identify assumptions and unresolved authority decisions explicitly. Do not
   silently convert them into implementation choices. A persisted type, schema
@@ -42,6 +60,10 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   replacement overview or phase documents only for affected members. Return a
   new complete bundle mapping and identify every replacement; do not publish a
   patch that forces later consumers to reconstruct a phase.
+- When a validated context delta changes evidence consumed by a later phase,
+  publish a complete replacement for that phase with the new exact dependency.
+  Do not silently widen `Context maintenance paths`; use the same replacement
+  and approval rules as any other authority change.
 - Use only the context delta supplied by the root in addition to named
   artifacts. Write each publication directly to the task-private artifacts
   directory (`git rev-parse --git-path orchestra/artifacts`): the overview as

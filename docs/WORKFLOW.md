@@ -301,7 +301,17 @@ After explicit activation in an execution-capable mode:
    neither root nor downstream agents reconstruct it from a summary or choose
    members by timestamp. A genuinely trivial single-phase `luna` or `standard`
    task may be authored directly by the root, but uses the same two-document
-   shape.
+   shape. Every overview contains `Review context`: exact context artifact IDs
+   and revisions or stable inline-fallback labels, canonical source paths, and
+   only the material architecture, runtime, exposure, persistence,
+   user-visible surface, risks, invariants, and exclusions. Each included fact
+   or group states `Review use`, naming the exact acceptance, risk, invariant,
+   exclusion, or phase dependency it informs; omit facts with no current-task
+   use and never copy cited evidence bodies into the overview. Every phase names
+   its exact context dependencies and declares `Context maintenance paths` as
+   `none`, unless an exact repository-relative versioned documentation path
+   is already a named current-phase or identified later-phase consumer. Globs
+   and directory-wide authority are forbidden.
 10. After the complete bundle exists, the root reads the overview, phase index,
    named risks, and only the detail needed for judgment. It may skip review for
    a trivial single-phase `luna` or `standard` plan. A non-trivial multi-phase
@@ -386,6 +396,13 @@ objective and authority creates a complete replacement phase and the root
 updates its manifest entry. A material scope, public-contract, or user-visible
 behavior change requires renewed user approval.
 
+`Review context` and `Context maintenance paths` are semantic sections of the
+approved overview and phase artifacts; they add no `plan.md` status, manifest
+field, coordination state, or new artifact kind. A later validated context
+delta that changes a future dependency produces a complete replacement for the
+affected phase. Widening a maintenance path follows the same replacement and
+authority rules.
+
 ### Coordination snapshots and artifacts
 
 The installed
@@ -434,7 +451,10 @@ technical logs, and requires no locale field or coordination schema change.
 
 Every packet carries capability, explicit authority, worktree, exact target
 artifact IDs and roles, stop conditions, current revision, accepted finding
-IDs, and only the new context delta. Initial repository context also carries
+IDs, and only the new context delta. An implementation-review packet also
+carries every exact `repository-context` and `context-delta` required by the
+approved overview and current phase, or each complete inline fallback with its
+stable label and revision. Initial repository context also carries
 its minimum objective and focused questions. Later agents read objective,
 scope, acceptance, verification, plan details, and findings directly from named
 documents. A changed HEAD invalidates only affected evidence.
@@ -451,19 +471,24 @@ semantic artifacts.
 ### Material context discovery and promotion
 
 Any delegated role may discover a material fact, supported inference, or
-unresolved uncertainty that is relevant beyond its immediate assignment but is
-not represented in the exact artifacts it received. The agent records it only
-inside its existing semantic report under a conditional `Context discoveries`
-section. Each entry has a report-local stable identifier such as `CTX-001`, its
-evidence and locator, inspected revision, evidence classification, material
-impact, and the named downstream consumer when one is already known. The
+unresolved uncertainty absent from its exact inputs. Record it under the
+existing report's conditional `Context discoveries` section only when it
+affects a named material judgment in the current phase or a named dependency of
+an identified later phase. Each entry has a report-local stable identifier such
+as `CTX-001`, evidence and locator, inspected revision, evidence classification,
+material impact, mandatory `Affected judgment`, and the named current-task
+consumer. It also classifies the claim separately as `descriptive`
+current-state information, `normative` intended behavior or constraint, or
+`uncertain` when the source's role cannot be established. Classification
+applies to the individual claim, not an entire mixed-purpose file. The
 globally unambiguous reference for a published report is the composite
 `<artifact-identifier>#CTX-001`. When publication is unavailable, the agent
 returns the complete inline report with its report-local `CTX-001`, and the root
 keeps that inline report and local ID together in every dependent packet. The
-agent omits the section and return field when there is no new material context,
-and never repeats unchanged context, turns a guess into a fact, edits an earlier
-artifact, or claims that a discovery is authoritative.
+agent omits incidental stale information with no such consumer as well as the
+section and return field when there is no qualifying context. It never repeats
+unchanged context, turns a guess into a fact, edits an earlier artifact, or
+claims that a discovery is authoritative.
 
 A context discovery grants no new edit, plan, product, or delivery authority.
 It is not a new artifact kind and does not enter coordination or another state
@@ -480,19 +505,27 @@ dispositions:
   its complete inline fallback and local ID, are included in that consumer's
   packet;
 - `validate`: a consequential, uncertain, or disputed factual claim receives
-  one bounded post-approval `repository_context` dispatch against the exact
-  report, discovery ID, revision, and affected paths; the one-shot analyst
-  publishes a targeted `context-delta` and closes after consumption;
+  one bounded post-approval `repository_context` dispatch only when at least
+  one possible result can change current-task acceptance, a finding
+  disposition, replanning, or a `persist` required by its named consumer. The
+  packet carries the exact report, discovery ID, affected judgment, consumer,
+  revision, and paths; the one-shot analyst publishes a targeted
+  `context-delta` with claim result, both classifications, source paths,
+  revision, source type, and decision effect, then closes after consumption;
 - `replan`: a discovery changes an approved phase or later dependency, so the
   affected phase becomes a complete replacement artifact and the root updates
   the manifest; material scope, public-contract, or user-visible behavior
   changes still require renewed approval;
 - `persist`: knowledge needs to survive task-artifact cleanup, so the current
-  or future responsible implementation owner may update the repository's
-  canonical versioned documentation only when an approved phase objective and
-  edit authority include that path; if no such phase exists, the root uses
-  `replan` when the change remains within approved authority, and otherwise uses
-  `defer` or requests the newly required authority;
+  responsible implementation owner may update the repository's canonical
+  versioned human-readable documentation only for a validated `descriptive`
+  claim and an exact path already listed under the phase's `Context maintenance
+  paths`; if no such phase exists, the root uses `replan` when the change
+  remains within approved authority, and otherwise uses `defer` or requests the
+  newly required authority. A `normative` or `uncertain` conflict is never
+  rewritten to match current code automatically; executable configuration,
+  databases, generated data, and operational data remain normal implementation
+  scope;
 - `defer`: a useful out-of-scope candidate is reported as an explicit follow-up
   without silently expanding the current task; or
 - `discard`: the candidate is duplicate, immaterial, disproven, or unsupported.
@@ -503,7 +536,20 @@ captured through the existing complete replacement-phase mechanism rather than
 an implicit packet-only assumption. Before phase teardown, every reported
 material discovery has an explicit disposition; `defer` and `discard` are valid
 non-blocking outcomes. Task-private artifacts remain current-task evidence and
-are not cross-task memory.
+are not cross-task memory. If a role nevertheless returns a discovery without
+an affected judgment and named current-task consumer, the root applies discard
+without validation or another agent dispatch.
+
+A stale-context claim that names the exact material review judgment it makes
+unreliable cannot be deferred into an `accepted` phase; an incidental
+discrepancy neither creates a discovery nor blocks. After an authorized
+documentation correction, the root always dispatches one bounded
+`repository_context` revalidation against the exact changed paths and dirty
+revision, reruns affected documentation or project verification, and returns
+only the fresh context delta and replacement verification evidence to the same
+reviewer for delta review. This post-edit proof is not pruned by the earlier
+relevance gate. A material unresolved, stale, or conflicting context basis
+blocks phase commit only with its affected judgment named.
 
 All coordination operations are fail-soft after their correctly authorized
 first attempt. `invalid` or `unavailable` status
@@ -536,7 +582,10 @@ The loop is:
    `plan.md` path, exact overview and current phase IDs, revision, accepted
    finding IDs, stop conditions, and only new context. The worker reads scope,
    acceptance, verification, and dependencies from those documents and reads
-   only prior outputs explicitly required by the phase. While active,
+   only prior outputs explicitly required by the phase. A context-maintenance
+   fix additionally carries the exact discovery ID, root `persist` disposition,
+   validating context delta, and exact path already listed under `Context
+   maintenance paths`. While active,
    the task-worktree implementation is mutable: the root waits and limits
    itself to user dialogue, agent/resource coordination, and root-owned setup
    that does not inspect or exercise the evolving implementation. It does not
@@ -573,17 +622,39 @@ The loop is:
    disposition before downstream use.
 4. Only after required verification passes or an environment blocker is
    explicitly accepted does one reviewer receive exact overview, phase,
-   implementation, and verification IDs. It independently inspects source and
-   diff, publishes a complete initial `implementation-review`, and later
+   implementation, and verification IDs, plus every exact repository-context
+   artifact or inline fallback required by the approved overview and current
+   phase. It independently inspects source and diff, evaluates approved intent
+   before project guardrails and current implementation evidence, publishes a
+   complete initial `implementation-review` with `Context basis`, and later
    publishes meaningful deltas naming the full-review base and prior finding
-   dispositions. Context discovered during review remains a read-only report
-   entry and never becomes a silent fix.
+   dispositions. `Context basis` names only evidence actually consulted, and a
+   delta review receives only new or replaced evidence rather than replaying the
+   full packet. The reviewer opens full context only for a named `Review use`
+   whose judgment depends on it. A context discovery remains read-only and
+   requires its exact `Affected judgment` and named current-task consumer;
+   incidental stale information is omitted. Missing, stale, or conflicting
+   context returns `blocked` only when that exact material judgment is named,
+   after independently resolvable findings are reported.
 5. The review artifact and accepted stable finding IDs return to the same owner;
-   the root does not restate findings.
-6. Re-run affected verification with the same verifier and send exact
-   replacement reports plus the meaningful delta to the same reviewer.
+   the root does not restate findings. For a potentially stale context
+   discovery, the root first confirms that at least one validation result can
+   change acceptance, a finding disposition, replanning, or a `persist` needed
+   by the named consumer; otherwise it uses `discard` without dispatch. Only a
+   confirmed `descriptive` claim at an exact authorized versioned
+   documentation path receives `persist` and returns to that same owner;
+   `normative` or `uncertain` conflicts are corrected as implementation defects,
+   replanned, deferred, or taken to the applicable authority boundary rather
+   than rewritten to follow code automatically.
+6. Re-run affected verification with the same verifier. After context
+   documentation changes, also run one targeted repository-context
+   revalidation against the exact changed paths and current dirty revision.
+   Send only its fresh context delta, exact replacement verification reports,
+   and the meaningful implementation delta to the same reviewer.
 7. After final evidence is consumed and every material context discovery has an
-   explicit disposition, the root performs the minimal phase teardown described
+   explicit disposition, require the reviewer to have an unblocked current
+   context basis. A material unresolved, stale, or conflicting context basis
+   blocks commit. The root then performs the minimal phase teardown described
    below, following up only on retained resources or incomplete cleanup.
 8. When teardown permits the phase to close, the root commits with direct Git
    or the narrow exact-path helper and records the commit in the phase manifest.
@@ -708,6 +779,15 @@ and never closes the Chrome application or a shared window.
 The first independent review completes the entire bounded target and returns all
 known material findings together. Later reviews inspect only the meaningful
 delta and interactions affected by accepted fixes.
+
+Implementation review follows approved user intent, material project
+guardrails, current source and diff, and verification evidence in that order.
+It records only the exact context basis actually used. Context evidence must
+name its review use; a discovery or blocker must name the affected material
+judgment and current-task consumer. Incidental stale information is omitted. A
+stale descriptive fact may become an authorized documentation correction only
+after decision-changing independent validation; normative intent is never
+silently rewritten to match current implementation.
 
 Automatically fix findings that demonstrate:
 

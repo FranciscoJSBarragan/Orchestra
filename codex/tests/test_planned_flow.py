@@ -311,11 +311,13 @@ class PlannedFlowContractTests(unittest.TestCase):
             "evidence and locator",
             "inspected revision",
             "material impact",
-            "named downstream consumer when known",
+            "mandatory `affected judgment`",
+            "named current-task consumer",
             "<artifact-identifier>#ctx-001",
             "complete inline report with its report-local `ctx-001`",
             "keep that report and local id together",
-            "omit the section and discovery identifiers",
+            "omit incidental stale information",
+            "omit the section when nothing qualifies",
             "do not repeat unchanged context",
             "root alone assigns its disposition",
         ):
@@ -336,7 +338,10 @@ class PlannedFlowContractTests(unittest.TestCase):
         for boundary in (
             "context discovery never expands edit authority",
             "canonical repository documentation",
-            "approved objective and allowed paths already authorize",
+            "root packet supplies an explicit `persist` disposition",
+            "validating `context-delta` confirms a `descriptive` claim",
+            "`context maintenance paths`",
+            "without glob authority",
         ):
             self.assertIn(boundary, worker)
 
@@ -395,6 +400,206 @@ class PlannedFlowContractTests(unittest.TestCase):
         combined = "\n".join(durable_sources.values()) + "\n" + self.shared_conduct
         self.assertNotIn("<NN>-context-discovery", combined)
         self.assertNotIn("context-discovery-report", combined)
+
+    def test_phase_review_context_is_traced_and_corrected_without_self_review(
+        self,
+    ) -> None:
+        planning = " ".join(
+            (self.references / "technical_planning.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        for contract in (
+            "`review context` section",
+            "`repository-context` and `context-delta` artifact identifiers",
+            "canonical source paths consulted",
+            "architecture, runtime, exposure, persistence, user-visible surface",
+            "`context maintenance paths`",
+            "exact repository-relative paths",
+            "never use glob metacharacters",
+            "validated `descriptive` discovery",
+            "explicit root `persist` disposition",
+        ):
+            self.assertIn(contract, planning)
+
+        repository_context = " ".join(
+            (self.references / "repository_context.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        for contract in (
+            "evidence classification",
+            "context classification",
+            "`descriptive`",
+            "`normative`",
+            "`uncertain`",
+            "classify the claim, not an entire mixed-purpose file",
+            "never treat current code as proof that a normative source is stale",
+            "claim result (`confirmed`, `disproved`, or `unresolved`)",
+            "revalidation dispatch",
+            "current dirty revision",
+        ):
+            self.assertIn(contract, repository_context)
+
+        reviewer = " ".join(
+            self.instructions("orchestra_reviewer").lower().split()
+        )
+        for contract in (
+            "approved user intent and acceptance",
+            "overview's `review context`",
+            "current source and diff",
+            "verification evidence",
+            "every exact `repository-context` or `context-delta`",
+            "complete inline fallback and stable label",
+            "every `implementation-review` contains `context basis`",
+            "missing, stale, or conflicting project context",
+            "never fill the context gap with assumptions",
+            "remain read-only and report-only",
+        ):
+            self.assertIn(contract, reviewer)
+
+        worker = " ".join(
+            self.instructions("orchestra_implementation_worker").lower().split()
+        )
+        for contract in (
+            "exact discovery identifier",
+            "root `persist` disposition",
+            "validating `context-delta`",
+            "exact phase-listed maintenance path",
+            "versioned human-readable context documentation",
+            "executable configuration, databases, generated data, and operational data",
+            "targeted `repository_context` revalidation",
+            "do not claim that editing the documentation proves",
+            "never independently accept or review your own work",
+        ):
+            self.assertIn(contract, worker)
+
+        routing_sources = {
+            "vision": (ROOT / "VISION.md").read_text(),
+            "workflow": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "architecture": (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            "source agents": (ROOT / "AGENTS.md").read_text(),
+            "root skill": self.skill,
+            "runtime": (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+        }
+        for name, source in routing_sources.items():
+            normalized = " ".join(source.lower().split())
+            for contract in (
+                "review context",
+                "context maintenance paths",
+                "context basis",
+                "same implementation owner",
+                "revalidation",
+                "delta review",
+                "normative",
+            ):
+                self.assertIn(contract, normalized, name)
+
+        root_contract = " ".join(self.skill.lower().split())
+        self.assertIn("blocks phase commit", root_contract)
+        self.assertIn("no `plan.md` manifest or workflow-state field", root_contract)
+        self.assertNotIn("<NN>-review-context", "\n".join(routing_sources.values()))
+        self.assertNotIn("<NN>-context-basis", "\n".join(routing_sources.values()))
+
+    def test_phase_review_context_requires_demonstrable_relevance(self) -> None:
+        planning = " ".join(
+            (self.references / "technical_planning.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        for contract in (
+            "`review use`",
+            "exact acceptance, risk, invariant, exclusion, or phase dependency",
+            "omit anything without a current-task use",
+            "do not copy cited evidence bodies",
+            "use `none` unless",
+            "named current-phase or identified later-phase consumer",
+        ):
+            self.assertIn(contract, planning)
+
+        shared = " ".join(self.shared_conduct.lower().split())
+        for contract in (
+            "mandatory `affected judgment`",
+            "named current-task consumer",
+            "omit incidental stale information",
+            "when nothing qualifies",
+        ):
+            self.assertIn(contract, shared)
+
+        reviewer = " ".join(
+            self.instructions("orchestra_reviewer").lower().split()
+        )
+        for contract in (
+            "named `review use`",
+            "routed-but-unopened evidence",
+            "exact `affected judgment`",
+            "omit incidental stale information",
+            "never list evidence merely because the packet routed it",
+            "an incidental discrepancy never blocks",
+            "state that judgment in the blocker",
+        ):
+            self.assertIn(contract, reviewer)
+
+        repository_context = " ".join(
+            (self.references / "repository_context.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        for contract in (
+            "mandatory `affected judgment`",
+            "named current-task consumer",
+            "at least one possible result could change acceptance",
+            "return `blocked` without scanning",
+            "effect on the named judgment and consumer",
+            "post-edit revalidation is mandatory",
+            "bypasses the earlier decision-change admission gate",
+        ):
+            self.assertIn(contract, repository_context)
+
+        workflow = " ".join(
+            (ROOT / "docs/WORKFLOW.md").read_text().lower().split()
+        )
+        runtime = " ".join(
+            (ROOT / "codex/runtime/AGENTS.orchestra.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        root_contract = " ".join(self.skill.lower().split())
+        for name, source in (
+            ("workflow", workflow),
+            ("root skill", root_contract),
+            ("runtime", runtime),
+        ):
+            for contract in (
+                "review use",
+                "affected judgment",
+                "named current-task consumer",
+                "discard without validation",
+                "only new or replaced evidence",
+                "incidental",
+            ):
+                self.assertIn(contract, source, name)
+
+        self.assertIn(
+            "post-edit proof bypasses the earlier relevance pruning",
+            root_contract,
+        )
+        self.assertLess(len(self.skill.splitlines()), 500)
+
+        combined = "\n".join((workflow, root_contract, runtime, reviewer, shared))
+        for forbidden in (
+            "context token budget",
+            "context size limit",
+            "context counter",
+            "<nn>-review-use",
+            "context-relevance-report",
+        ):
+            self.assertNotIn(forbidden, combined)
 
     def test_worker_minimality_requires_focused_comprehension_and_supported_cause(
         self,

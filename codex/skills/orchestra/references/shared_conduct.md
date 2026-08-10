@@ -65,25 +65,29 @@ semantic artifact remains internal to that artifact.
 
 ## Material context discoveries
 
-When the assigned work reveals new material context that is relevant beyond the
-immediate assignment and absent from the exact input artifacts, record it only
-inside the report kind already required by the capability under a conditional
-`Context discoveries` section. Give each entry a report-local stable identifier
-such as `CTX-001`; classify it as an observed fact, supported inference, or
-unresolved uncertainty; and include evidence and locator, inspected revision,
-material impact, and a named downstream consumer when known. Return any
+When assigned work reveals new material context absent from its exact inputs,
+record it under the existing report's conditional `Context discoveries`
+section only when it affects a named material judgment in the current phase or
+a named dependency of an identified later phase. Give each entry a report-local
+stable identifier such as `CTX-001`; classify it as an observed fact,
+supported inference, or unresolved uncertainty; and include evidence and
+locator, inspected revision, material impact, mandatory `Affected judgment`,
+and the named current-task consumer. Also classify the claim separately as
+`descriptive` current state, `normative` intended behavior or constraint, or
+`uncertain`. Apply classification to the claim, not a mixed-purpose file.
+Return any
 discovery from a published report using the composite
 `<artifact-identifier>#CTX-001` so it remains unambiguous without a global
 registry. When publication is unavailable, return the complete inline report
 with its report-local `CTX-001`; the root must keep that report and local ID
 together when routing it.
 
-Omit the section and discovery identifiers when there is no new material
-context. Do not repeat unchanged context, create a separate context-discovery
-artifact, edit an earlier artifact, present a candidate as canonical, or infer
-new edit, plan, product, delivery, or user authority from the discovery. The
-root alone assigns its disposition and decides whether another capability or an
-authorized versioned source change consumes it.
+Omit incidental stale information without both a material judgment and named
+current-task consumer, and omit the section when nothing qualifies. Do not
+repeat unchanged context, create a separate artifact, edit an earlier artifact,
+present a candidate as canonical, or infer new authority. The root alone
+assigns its disposition and decides whether another capability or an authorized
+versioned source change consumes it.
 
 ## Report discipline
 

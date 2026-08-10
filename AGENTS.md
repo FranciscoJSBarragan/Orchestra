@@ -113,11 +113,21 @@ through the phase and closes before the phase commit. Waiting, observation
 boundaries, verification ordering, and review policy are specified in
 `docs/WORKFLOW.md`.
 
+Every approved overview carries a provenance-preserving `Review context`, and
+every phase names its exact context dependencies plus exact non-glob `Context
+maintenance paths` or `none`. Implementation review receives that evidence
+directly and reports `Context basis`. Reviewers remain read-only: a validated
+descriptive correction returns to the same implementation owner, then receives
+repository-context revalidation, affected verification, and delta review.
+Normative or uncertain conflicts never update documentation merely to match
+current code.
+
 Any role records newly discovered material context only in its existing report.
 At a stable handoff the root assigns its explicit disposition and routes exact
 identifiers; only authorized versioned source changes make knowledge durable
 across tasks. Discovery never expands agent authority or creates a new context
-store or artifact kind.
+store or artifact kind. Executable configuration, databases, generated data,
+and operational data are not context-maintenance paths.
 
 ## Execution and commits
 
