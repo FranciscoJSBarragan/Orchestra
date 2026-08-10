@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from unittest import mock
 
@@ -1125,6 +1126,15 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(
             self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
             expected_dual,
+        )
+        installed_roles = tomllib.loads(expected_dual.decode("utf-8"))
+        modes = installed_roles["modes"]
+        self.assertNotIn("luna", modes["native"]["tiers"])
+        luna = modes["external"]["tiers"]["luna"]
+        self.assertEqual(len(luna), 10)
+        self.assertEqual(
+            {assignment["model"] for assignment in luna.values()},
+            {"orchestra-v1/gpt-5.6-luna"},
         )
         self.assertEqual(
             self.run_sync("status", modelconfig=None)["modelconfig"],

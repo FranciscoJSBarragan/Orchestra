@@ -66,8 +66,12 @@ comparison, or mapping becomes materially easier to understand. Simple
 explanations remain prose, a missing visualization capability never blocks the
 workflow, and phase agents do not create user-facing visualizations.
 
-The active tier controls assignment intensity, not user authority. A user may
-choose either tier or direct a safe transition between them after a concise
+The active tier controls assignment intensity, not user authority. Native tasks
+offer standard and critical; external tasks may additionally use Luna as a
+cost-focused opt-in when the user explicitly prioritizes cost for ordinary,
+bounded work. Standard remains the default recommendation, and material risk
+still calls for standard or critical. A user may choose an available tier or
+direct a safe transition within the selected mode after a concise
 recommendation. Independent authority boundaries for production, security,
 payments, destructive actions, and delivery remain in force.
 
@@ -78,7 +82,9 @@ through Orchestra, and ordinary change, plan, or implementation requests remain
 direct work. Only an explicit `$orchestra` invocation or an unequivocal
 imperative to use or start Orchestra activates the workflow. Orchestra then
 recommends standard execution by default and critical scrutiny for actual
-high-impact risk; the user makes the final tier choice.
+high-impact risk. External Luna is considered only when the user explicitly
+prioritizes cost for ordinary, bounded work; the user makes the final tier
+choice.
 
 ### Quality per token
 

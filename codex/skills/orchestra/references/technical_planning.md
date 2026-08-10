@@ -34,7 +34,7 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   and reset, commands, and generated paths. Add a preparation phase only when
   current evidence demonstrates that the task needs one.
 - Expect the root to decide whether the complete candidate bundle needs
-  independent review. A trivial single-phase standard bundle may skip it;
+  independent review. A trivial single-phase Luna or standard bundle may skip it;
   non-trivial multi-phase or cross-component bundles require one review, and a
   critical bundle requires a review focused on its named measurable risk.
 - Remain available while a dispatched plan review is active. Read the exact

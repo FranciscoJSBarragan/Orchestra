@@ -1,6 +1,6 @@
 ---
 name: orchestra
-description: Use only for an explicit `$orchestra` invocation or an unequivocal imperative to use or start Orchestra; align the specification, create an approved standard or critical implementation plan, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
+description: Use only for an explicit `$orchestra` invocation or an unequivocal imperative to use or start Orchestra; align the specification, create an approved implementation plan using a tier available in the selected mode, coordinate implementation, independent review and verification, commit accepted phases, and hand completed commits to explicit delivery-policy routing.
 ---
 
 # Orchestra
@@ -70,25 +70,37 @@ changes the selected model configuration.
 
 ## Recommend and transition tiers
 
-Recommend `Tier: standard|critical — <matching condition>: <one-line evidence>`
-from the minimum brief before creating formal task resources. When the brief
-needs clarification, ask those questions and give the tier recommendation in
-the same single message rather than sequential interactions. Explain the
-material risk and expected scrutiny or cost in one concise summary, then obtain
-the user's explicit tier choice. The user may choose `standard` after a
-`critical` recommendation; that choice changes model and workflow intensity but
-never waives separate authority gates for production, migrations, data,
-security, payments, destructive actions, or other high-impact mutations. After
-focused repository evidence and final specification confirmation, recommend any
-justified tier change and let the user choose.
+Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
+from the minimum brief before creating formal task resources. Native mode
+offers `standard` and `critical`. External mode additionally offers `luna`, but
+recommend it only when the user explicitly prioritizes cost for ordinary,
+bounded work; otherwise `standard` remains the default. When the brief needs
+clarification, ask those questions and give the tier recommendation in the same
+single message rather than sequential interactions. Explain the material risk
+and expected scrutiny or cost in one concise summary, then obtain the user's
+explicit tier choice. Material risk calls for `standard` or `critical`. The
+user may still choose `luna` or `standard` after a higher recommendation; that
+choice changes model and workflow intensity but never waives separate authority
+gates for production, migrations, data, security, payments, destructive
+actions, or other high-impact mutations. After focused repository evidence and
+final specification confirmation, recommend any justified tier change and let
+the user choose.
 
 Destructive means irreversible loss of unique data or work. An operation whose reversibility is proven by a cheap preflight (for example `git branch --contains` showing the commits exist in the base, or state that is regenerable) is not destructive and does not force critical.
 
-Use `standard` for ordinary planned features and fixes. Select `critical` for security-sensitive work, credentials, payments, migrations, destructive actions, production changes, or comparable high-impact risk.
+Use `standard` for ordinary planned features and fixes. In external mode, use
+`luna` only as the user's explicit cost-focused choice for ordinary, bounded
+work. Select `critical` for security-sensitive work, credentials, payments,
+migrations, destructive actions, production changes, or comparable high-impact
+risk.
 
-Tier exemplars: standard covers ordinary planned features and fixes; critical covers schema migrations, auth/payment/credential changes, unrecoverable deletion, and production mutation.
+Tier exemplars: Luna covers cost-prioritized bounded ordinary work in external
+mode; standard covers ordinary planned features and fixes; critical covers
+schema migrations, auth/payment/credential changes, unrecoverable deletion,
+and production mutation.
 
-The active tier may change in either direction after explicit user direction.
+The active tier may change among those available in the selected mode after
+explicit user direction.
 Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
 demonstrably fail to converge. Never change tier unilaterally.
@@ -205,7 +217,9 @@ Compose assignments as follows:
 
 These seven files are the complete playbook inventory: `repository_context`, `web_research`, `technical_planning`, `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and `runtime_verification`. Architecture guidance is one shared reference, not an eighth playbook. Do not create a playbook for `general_implementation`, `independent_review`, or `architecture_analysis`.
 
-Standard and critical may use all ten capabilities. Do not dispatch a capability absent from the selected tier and never create root, commit, polling, PR-triage, or delivery assignments.
+Every defined tier uses all ten capabilities. Do not dispatch a capability
+absent from the selected tier and never create root, commit, polling,
+PR-triage, or delivery assignments.
 
 ## Keep compact context
 
@@ -352,7 +366,7 @@ log, or workflow state engine.
 The coordination snapshot never substitutes for `plan.md`, supplies missing
 authority, or validates plan transitions.
 
-## Route standard and critical work
+## Route tiered work
 
 Every dispatch starts from a clean context: under multi-agent V2 pass
 `fork_turns: none` explicitly on every spawn; under V1 never set
@@ -360,8 +374,8 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 
 1. Complete the mandatory read-only execution preflight and user confirmation from the minimum brief, establish the exact selected checkout, and attempt the fail-soft task registration. Then dispatch `repository_context` to an `orchestra_analyst` with bounded factual questions there. The analyst publishes each result as a revision-identified context artifact when available and otherwise returns the complete inline report. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and revision); otherwise dispatch. Consume the one-shot result and close that agent and its descendants before continuing.
 2. Continue the specification dialogue using the repository evidence. Dispatch additional `repository_context` only for a newly material factual question, request only the targeted context delta, and close each one-shot analyst and its descendants after consuming its result. Add `web_research` only for necessary time-sensitive external evidence. Then present and confirm the complete specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Propose one to three observable user journeys, including the main path and any material failure behavior, in non-technical language. Recommend any justified tier change; the user chooses whether to adopt it. Request only the context delta related to the newly discovered risk.
-3. Final specification confirmation is the checkpoint to draft the plan; do not require a second literal request to make a plan. Dispatch `technical_planning` unless the root is handling a genuinely trivial single-phase standard task directly. The planner reads exact context artifacts and publishes one `plan-overview` plus one `plan-phase` per phase, returning their exact candidate bundle. Keep a dispatched planner open through any plan-review corrections. For a trivial direct plan, the root still produces the same overview-plus-phase shape.
-4. After the complete formal bundle exists, the root reads its overview, phase index, named risks, and any detail necessary for judgment, then decides whether independent plan review is proportionate. A trivial single-phase standard plan may skip review. A non-trivial multi-phase or cross-component plan receives one review. A critical plan receives a focused review whose packet names its measurable risk, supporting evidence, affected area, and independently detectable defect class. Complexity alone is insufficient.
+3. Final specification confirmation is the checkpoint to draft the plan; do not require a second literal request to make a plan. Dispatch `technical_planning` unless the root is handling a genuinely trivial single-phase `luna` or `standard` task directly. The planner reads exact context artifacts and publishes one `plan-overview` plus one `plan-phase` per phase, returning their exact candidate bundle. Keep a dispatched planner open through any plan-review corrections. For a trivial direct plan, the root still produces the same overview-plus-phase shape.
+4. After the complete formal bundle exists, the root reads its overview, phase index, named risks, and any detail necessary for judgment, then decides whether independent plan review is proportionate. A trivial single-phase `luna` or `standard` plan may skip review. A non-trivial multi-phase or cross-component plan receives one review. A critical plan receives a focused review whose packet names its measurable risk, supporting evidence, affected area, and independently detectable defect class. Complexity alone is insufficient.
 5. A plan reviewer reads the exact candidate overview and every current phase artifact and publishes `plan-review` with stable finding identifiers. Return accepted identifiers and that review artifact to the same planner. The planner publishes full replacement documents only for affected members and returns a new complete bundle. Additional review covers the changed members and interactions. The root observes convergence after a second material review; before a third correction, or immediately for marginal, contradictory, or out-of-scope findings, it reads the exact bundle and reviews, accepts or rejects findings by identifier, and corrects direction. This is an intelligent checkpoint, not a persisted counter or mechanical limit. Close planner and plan reviewer after the bundle is accepted.
 6. Have the root present the exact accepted bundle at the user's altitude and request explicit user approval. Stop before implementation. Specification confirmation authorizes plan drafting, not implementation. On approval, write `plan.md` as the approved overview and exact phase manifest.
 7. For each approved phase, best-effort update the task stage, then select exactly one implementation capability and owner. Pass explicit edit authority, worktree, plan-manifest path, exact overview identifier, exact current phase identifier, revision, stop conditions, accepted finding identifiers, and only new context. Use `general_implementation` normally or `frontend_implementation` for a primarily frontend phase; never dispatch both as parallel owners of the same phase. Keep this implementation agent open and send accepted fixes back to it throughout the phase. The worker reads objective, scope, acceptance, verification, and dependencies from the approved artifacts, reads only prior outputs explicitly required by that phase, records material activity, and publishes a complete `implementation-report` for each stable handoff. While the implementation owner is active and has not returned an outcome or blocker, treat the implementation state as mutable: wait without reading the evolving diff, running speculative canaries against it, or sending design corrections. Continue only user dialogue, agent/resource coordination, and root-owned setup that does not inspect or exercise the evolving implementation. Intervene only for an owner-reported blocker, a material user scope change, or indispensable external evidence that invalidates the assignment.

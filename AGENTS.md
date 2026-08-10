@@ -79,13 +79,15 @@ never changes or respawns the root.
 ## Tier selection
 
 Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
-the user's explicit choice. `standard` covers ordinary planned features and
-fixes; `critical` covers security-sensitive work, credentials, payments,
-migrations, destructive actions, or production changes. Destructive means
-irreversible loss of unique data or work; proven-reversible operations do not
-force critical. A user-selected standard tier never waives the hard gates.
-Tier changes follow the transition procedure in `docs/WORKFLOW.md`; never
-change tier unilaterally.
+the user's explicit choice. Native offers `standard` and `critical`; external
+additionally offers `luna` only as a cost-focused opt-in for ordinary bounded
+work when the user explicitly prioritizes cost. `standard` remains the default.
+`critical` covers security-sensitive work, credentials, payments, migrations,
+destructive actions, or production changes. Destructive means irreversible
+loss of unique data or work; proven-reversible operations do not force
+critical. A user-selected `luna` or `standard` tier never waives the hard
+gates. Tier changes follow the transition procedure in `docs/WORKFLOW.md`;
+never change tier unilaterally.
 
 ## Task checkout
 

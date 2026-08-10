@@ -374,12 +374,31 @@ class FullModeFixtureTest(unittest.TestCase):
             self.root / "docs/WORKFLOW.md"
         )
         self.assertEqual(set(matrices), {"native", "external"})
+        self.assertEqual(set(matrices["native"]), {"standard", "critical"})
+        self.assertEqual(
+            set(matrices["external"]), {"luna", "standard", "critical"}
+        )
         for assignments in matrices.values():
             self.assertEqual(len(assignments["standard"]), 10)
             self.assertEqual(len(assignments["critical"]), 10)
+        self.assertEqual(len(matrices["external"]["luna"]), 10)
         self.assertEqual(
             matrices["native"]["critical"], matrices["external"]["critical"]
         )
+
+    def test_mutated_luna_reasoning_cell_is_rejected_against_roles(self) -> None:
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            workflow.read_text(encoding="utf-8").replace(
+                "| Luna | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |",
+                "| Luna | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `high` |",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("external.luna.repository_context", result.stdout)
 
     def test_mutated_workflow_model_cell_is_rejected_against_roles(self) -> None:
         workflow = self.root / "docs/WORKFLOW.md"

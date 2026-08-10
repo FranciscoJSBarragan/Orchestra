@@ -352,19 +352,26 @@ CodexBridge `orchestra-v1/` alias. The bridge publishes those aliases only in
 catalog mode, marks them V1, rewrites them to their native target before
 forwarding, and never sends them through CLIProxyAPI.
 
-The two logical modes differ only in their standard assignments and share one
-critical capability/profile/reasoning matrix; external critical uses the V1 Sol
-alias so it never crosses protocol versions. Skills pass the selected explicit
-overrides when spawning a profile. Profiles contain behavior; playbooks contain
-capability instructions only for the seven capabilities listed above, and
-architecture guidance remains one shared reference.
+The two logical modes differ in their standard assignments, and external alone
+adds the cost-focused `luna` tier. They share one critical
+capability/profile/reasoning matrix; external critical uses the V1 Sol alias so
+it never crosses protocol versions. The external Luna source assignments use
+the native Luna slug, while dual composition rewrites them to the Orchestra V1
+Luna alias. Skills pass the selected explicit overrides when spawning a
+profile. Profiles contain behavior; playbooks contain capability instructions
+only for the seven capabilities listed above, and architecture guidance remains
+one shared reference.
 
 The task's active tier is a user-selected lookup key inside its immutable mode.
-It may change in either direction without changing that mode. Because spawned
-agents cannot change model or reasoning effort, a safe transition replaces only
-live agents whose assignment differs and passes them a compact continuation
-packet. Changing between native V2 and external V1 requires a new task started
-from the matching root selector entry.
+Native accepts `standard` and `critical`; external additionally accepts `luna`
+as an opt-in only when the user explicitly prioritizes cost for ordinary,
+bounded work. `standard` remains the default recommendation, and material risk
+still calls for `standard` or `critical`. The active tier may change only after
+explicit user direction without changing the mode. Because spawned agents
+cannot change model or reasoning effort, a safe transition replaces only live
+agents whose assignment differs and passes them a compact continuation packet.
+Changing between native V2 and external V1 requires a new task started from the
+matching root selector entry.
 
 Assignment resolution still prefers the exact installed model. A narrow runtime
 compatibility rule permits only `repository_context` to retry internally with
@@ -508,7 +515,8 @@ Tests protect the few important invariants:
   crossing from dual native V2 into V1;
 - dual routing derives an immutable task mode from the root model and
   multi-agent version, while legacy native and external installs remain fixed;
-- only standard and critical assignments are valid;
+- native defines only standard and critical assignments, while external adds
+  exactly one complete Luna assignment matrix;
 - plan approval permits phase commits but not merge/deploy;
 - every formal task creates one collision-free `orchestra/*` branch before work;
 - managed mode creates an isolated Orchestra-root worktree, while hybrid mode

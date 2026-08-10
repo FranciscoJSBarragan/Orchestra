@@ -147,7 +147,9 @@ class CoordinationTests(unittest.TestCase):
             self.fail(result.stdout + result.stderr)
         return result, payload
 
-    def create_task(self, worktree: Path, label: str = "Task") -> dict:
+    def create_task(
+        self, worktree: Path, label: str = "Task", tier: str = "standard"
+    ) -> dict:
         result, payload = self.run_cli(
             "task",
             "create",
@@ -158,13 +160,39 @@ class CoordinationTests(unittest.TestCase):
             "--base-revision",
             self.head,
             "--tier",
-            "standard",
+            tier,
             "--label",
             label,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         return payload
+
+    def test_luna_tier_round_trips_without_schema_change(self) -> None:
+        created = self.create_task(self.task_one, tier="luna")
+        self.assertEqual(created["task"]["tier"], "luna")
+
+        result, updated = self.run_cli(
+            "task",
+            "update",
+            "--task",
+            created["task"]["id"],
+            "--tier",
+            "standard",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(updated["task"]["tier"], "standard")
+
+        result, restored = self.run_cli(
+            "task",
+            "update",
+            "--task",
+            created["task"]["id"],
+            "--tier",
+            "luna",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(restored["task"]["tier"], "luna")
 
     def test_tasks_are_idempotent_queryable_and_freely_updatable(self) -> None:
         first = self.create_task(self.task_one, "First")

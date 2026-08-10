@@ -1,3 +1,53 @@
+[tiers.luna.repository_context]
+profile = "orchestra_analyst"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.luna.web_research]
+profile = "orchestra_analyst"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.luna.technical_planning]
+profile = "orchestra_analyst"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.architecture_analysis]
+profile = "orchestra_analyst"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.difficult_debugging]
+profile = "orchestra_analyst"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.general_implementation]
+profile = "orchestra_implementation_worker"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.frontend_implementation]
+profile = "orchestra_implementation_worker"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.independent_review]
+profile = "orchestra_reviewer"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
+
+[tiers.luna.browser_acceptance]
+profile = "orchestra_verifier"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+[tiers.luna.runtime_verification]
+profile = "orchestra_verifier"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
 model = "opencode/deepseek-v4-flash"

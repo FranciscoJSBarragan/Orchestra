@@ -114,9 +114,13 @@ class PlannedFlowContractTests(unittest.TestCase):
             "browser_acceptance": "orchestra_verifier",
             "runtime_verification": "orchestra_verifier",
         }
-        for roles in self.role_matrices.values():
-            self.assertEqual(set(roles), {"standard", "critical"})
-            for tier in ("standard", "critical"):
+        expected_tiers = {
+            "native": {"standard", "critical"},
+            "external": {"luna", "standard", "critical"},
+        }
+        for modelconfig, roles in self.role_matrices.items():
+            self.assertEqual(set(roles), expected_tiers[modelconfig])
+            for tier in expected_tiers[modelconfig]:
                 self.assertEqual(
                     {name: value["profile"] for name, value in roles[tier].items()},
                     standard,
@@ -137,6 +141,29 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.role_matrices["native"]["critical"],
             self.role_matrices["external"]["critical"],
         )
+        luna = self.role_matrices["external"]["luna"]
+        self.assertEqual(
+            {assignment["model"] for assignment in luna.values()},
+            {"gpt-5.6-luna"},
+        )
+        self.assertEqual(
+            {
+                capability: assignment["reasoning_effort"]
+                for capability, assignment in luna.items()
+            },
+            {
+                "repository_context": "xhigh",
+                "web_research": "xhigh",
+                "technical_planning": "max",
+                "architecture_analysis": "max",
+                "difficult_debugging": "max",
+                "general_implementation": "max",
+                "frontend_implementation": "max",
+                "independent_review": "max",
+                "browser_acceptance": "xhigh",
+                "runtime_verification": "xhigh",
+            },
+        )
 
     def test_dual_matrix_preserves_legacy_assignments_with_v1_native_aliases(
         self,
@@ -149,6 +176,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         aliases = {
             "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
             "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
+            "gpt-5.6-luna": "orchestra-v1/gpt-5.6-luna",
         }
         expected_external = {
             tier: {
@@ -169,6 +197,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         for assignment in self.dual_modes["external"]["tiers"]["critical"].values():
             self.assertEqual(assignment["model"], "orchestra-v1/gpt-5.6-sol")
+        for assignment in self.dual_modes["external"]["tiers"]["luna"].values():
+            self.assertEqual(assignment["model"], "orchestra-v1/gpt-5.6-luna")
 
     def test_seven_playbooks_and_shared_architecture_reference_are_composed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
@@ -705,7 +735,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         normalized = " ".join(self.skill.split())
         for contract in (
             "After the complete formal bundle exists",
-            "trivial single-phase standard plan may skip review",
+            "trivial single-phase `luna` or `standard` plan may skip review",
             "non-trivial multi-phase or cross-component plan receives one review",
             "critical plan receives a focused review",
             "same planner",
@@ -1501,9 +1531,9 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_user_selects_and_can_transition_tier_without_restart(self) -> None:
         routing = " ".join(self.skill.split())
         for contract in (
-            "The user may choose `standard` after a `critical` recommendation",
+            "The user may still choose `luna` or `standard` after a higher recommendation",
             "never waives separate authority gates",
-            "active tier may change in either direction",
+            "active tier may change among those available in the selected mode",
             "Never change tier unilaterally",
             "Do not revert, restart, or create a transition commit",
             "replacement worker owns the remaining phase",

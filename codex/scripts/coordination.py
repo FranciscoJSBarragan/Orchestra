@@ -23,6 +23,7 @@ from _common import SHA_PATTERN
 
 
 SCHEMA_VERSION = 1
+TIERS = ("luna", "standard", "critical")
 SCHEMA_STATEMENTS = (
     """
     CREATE TABLE tasks (
@@ -487,7 +488,7 @@ def _parser() -> argparse.ArgumentParser:
     task_create.add_argument("--repository", type=Path, required=True)
     task_create.add_argument("--worktree", type=Path, required=True)
     task_create.add_argument("--base-revision", required=True)
-    task_create.add_argument("--tier", choices=("standard", "critical"), required=True)
+    task_create.add_argument("--tier", choices=TIERS, required=True)
     task_create.add_argument("--label", required=True)
     task_create.add_argument("--stage", default="context")
     task_create.add_argument("--status", default="active")
@@ -497,7 +498,7 @@ def _parser() -> argparse.ArgumentParser:
     task_show.add_argument("--task", required=True)
     task_update = task_commands.add_parser("update")
     task_update.add_argument("--task", required=True)
-    task_update.add_argument("--tier", choices=("standard", "critical"))
+    task_update.add_argument("--tier", choices=TIERS)
     task_update.add_argument("--stage")
     task_update.add_argument("--status")
     task_update.add_argument("--summary")

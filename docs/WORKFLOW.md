@@ -9,7 +9,7 @@ flowchart TD
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     B --> MC["Resolve installed native V2 or external V1 model configuration"]
-    MC --> TR["Root recommends standard or critical with risk and cost-benefit"]
+    MC --> TR["Root recommends the available tier with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
     E --> CM{"Managed or hybrid checkout"}
@@ -144,6 +144,14 @@ the shared architecture guidance reference also used with `technical_planning`
 or `independent_review` when architecture is named; it has no dedicated
 playbook.
 
+The native mode offers `standard` and `critical`. The external mode additionally
+offers `luna` as a cost-focused opt-in for ordinary, bounded work when the user
+explicitly prioritizes cost. `standard` remains the default recommendation.
+Material risk still calls for `standard` or `critical`; choosing `luna` after a
+warning never waives production, migration, data, security, payment,
+destructive-action, or delivery authority gates. Tier transitions remain
+user-directed and cannot change the task's selected mode.
+
 ### Native standard configuration
 
 | Tier | Capability | Base profile | Model | Reasoning |
@@ -173,6 +181,26 @@ playbook.
 | Standard | `independent_review` | `orchestra_reviewer` | `gpt-5.6-terra` | `high` |
 | Standard | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-terra` | `medium` |
 | Standard | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-terra` | `high` |
+
+### External Luna configuration
+
+| Tier | Capability | Base profile | Model | Reasoning |
+| --- | --- | --- | --- | --- |
+| Luna | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
+| Luna | `web_research` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
+| Luna | `technical_planning` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
+| Luna | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
+| Luna | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
+| Luna | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-luna` | `max` |
+| Luna | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-luna` | `max` |
+| Luna | `independent_review` | `orchestra_reviewer` | `gpt-5.6-luna` | `max` |
+| Luna | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
+| Luna | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
+
+The external source matrix uses the native Luna slug. A dual installation
+rewrites every one of these assignments to the
+`orchestra-v1/gpt-5.6-luna` compatibility alias. Luna agents remain leaf
+workers; the Sol root retains orchestration and descendant ownership.
 
 In the dual matrix, every native model named by the external configuration is
 resolved through its `orchestra-v1/` compatibility alias. Cursor, OpenCode, and
@@ -221,11 +249,14 @@ After explicit activation in an execution-capable mode:
    successful read-only session inspection and selects `native` or `external`
    from the root model and multi-agent version before tier selection. A legacy
    matrix remains fixed. The selected dual mode is immutable for the task.
-3. From that brief, the root recommends an initial standard or critical tier
-   with one concise explanation of material risk, added scrutiny, and expected
-   cost-benefit. The user explicitly chooses the active tier. A user-selected
-   standard tier does not waive separate authority gates for production,
-   migrations, data, security, payments, destructive actions, or delivery.
+3. From that brief, the root recommends an available tier with one concise
+   explanation of material risk, added scrutiny, and expected cost-benefit.
+   Native offers `standard` or `critical`; external may recommend `luna` only
+   when ordinary bounded work has an explicit cost priority, and otherwise
+   defaults to `standard`. The user explicitly chooses the active tier. A
+   user-selected `luna` or `standard` tier does not waive separate authority
+   gates for production, migrations, data, security, payments, destructive
+   actions, or delivery.
 4. The root resolves the intended base branch and revision and performs a short
    read-only Git preflight. It also reads repository policy and identifies the
    canonical runtime, dependency setup, services, permissions, credential
@@ -268,12 +299,13 @@ After explicit activation in an execution-capable mode:
    exact context artifacts and publishes one complete `plan-overview` plus one
    complete `plan-phase` per phase. It returns an explicit candidate bundle;
    neither root nor downstream agents reconstruct it from a summary or choose
-   members by timestamp. A genuinely trivial single-phase standard task may be
-   authored directly by the root, but uses the same two-document shape.
+   members by timestamp. A genuinely trivial single-phase `luna` or `standard`
+   task may be authored directly by the root, but uses the same two-document
+   shape.
 10. After the complete bundle exists, the root reads the overview, phase index,
    named risks, and only the detail needed for judgment. It may skip review for
-   a trivial single-phase standard plan. A non-trivial multi-phase or
-   cross-component plan receives one independent review. A critical plan
+   a trivial single-phase `luna` or `standard` plan. A non-trivial multi-phase
+   or cross-component plan receives one independent review. A critical plan
    receives a focused review naming its measurable risk, supporting evidence,
    affected area, and detectable defect class.
 11. A dispatched reviewer reads the exact bundle and publishes `plan-review`
@@ -568,8 +600,9 @@ not dispatch an agent merely to operate or explain Git.
 
 ### Tier transition
 
-The active tier may change in either direction only after explicit user
-direction. Wait for the current tool call to settle, collect the exact revision
+The active tier may change among those available in the selected mode only
+after explicit user direction. Wait for the current tool call to settle,
+collect the exact revision
 and dirty-diff state, accepted evidence, completed acceptance, pending work, and
 any explicitly retained resources, then request cleanup only from their owners
 and retire only live phase agents whose assignment changes. Do not revert work,

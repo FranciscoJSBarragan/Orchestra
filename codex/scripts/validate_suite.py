@@ -246,6 +246,7 @@ VALID_MODELS = {
 DUAL_MODEL_ALIASES = {
     "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
     "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
+    "gpt-5.6-luna": "orchestra-v1/gpt-5.6-luna",
 }
 
 
@@ -259,8 +260,9 @@ def check_required_paths(root: Path) -> list[str]:
 
 
 _ASSIGNMENT_TABLE_HEADERS = {
-    "native": "### Native standard configuration",
-    "external": "### External standard configuration",
+    "native_standard": "### Native standard configuration",
+    "external_standard": "### External standard configuration",
+    "external_luna": "### External Luna configuration",
     "critical": "### Shared critical configuration",
 }
 _ASSIGNMENT_COLUMN_LABELS = (
@@ -278,7 +280,7 @@ _ASSIGNMENT_ROW = re.compile(
 def parse_assignment_matrices(
     path: Path,
 ) -> dict[str, dict[str, dict[str, tuple[str, str, str]]]]:
-    """Parse both standard matrices and their shared critical matrix."""
+    """Parse native and external matrices, including Luna and shared critical."""
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -368,12 +370,21 @@ def parse_assignment_matrices(
 
     critical = parse_section(_ASSIGNMENT_TABLE_HEADERS["critical"], "critical")
     return {
-        name: {
-            "standard": parse_section(heading, "standard"),
+        "native": {
+            "standard": parse_section(
+                _ASSIGNMENT_TABLE_HEADERS["native_standard"], "standard"
+            ),
             "critical": dict(critical),
-        }
-        for name, heading in _ASSIGNMENT_TABLE_HEADERS.items()
-        if name != "critical"
+        },
+        "external": {
+            "luna": parse_section(
+                _ASSIGNMENT_TABLE_HEADERS["external_luna"], "luna"
+            ),
+            "standard": parse_section(
+                _ASSIGNMENT_TABLE_HEADERS["external_standard"], "standard"
+            ),
+            "critical": dict(critical),
+        },
     }
 
 
@@ -449,8 +460,9 @@ def check_roles_and_profiles(root: Path) -> list[str]:
         tiers = roles.get("tiers")
         expected_assignments = expected_matrices[modelconfig]
         if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
+            expected_tiers = ", ".join(expected_assignments)
             failures.append(
-                f"role-contract: {relative} must define standard and critical"
+                f"role-contract: {relative} must define {expected_tiers}"
             )
             continue
         tiers_by_config[modelconfig] = tiers

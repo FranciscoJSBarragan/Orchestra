@@ -123,17 +123,25 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("Ask only genuine gaps", self.skill)
         self.assertIn("candidate plan", self.skill)
 
-    def test_only_standard_and_critical_assignments_exist(self) -> None:
-        for modelconfig in ("native", "external"):
-            roles = tomllib.loads(
-                (
-                    ROOT / f"codex/config/roles.{modelconfig}.toml"
-                ).read_text()
+    def test_native_and_external_expose_only_their_approved_tiers(self) -> None:
+        source_roles = {
+            modelconfig: tomllib.loads(
+                (ROOT / f"codex/config/roles.{modelconfig}.toml").read_text()
             )
+            for modelconfig in ("native", "external")
+        }
+        self.assertEqual(
+            set(source_roles["native"]["tiers"]),
+            {"standard", "critical"},
+        )
+        self.assertEqual(
+            set(source_roles["external"]["tiers"]),
+            {"luna", "standard", "critical"},
+        )
+        for roles in source_roles.values():
             self.assertEqual(set(roles), {"tiers"})
-            self.assertEqual(set(roles["tiers"]), {"standard", "critical"})
-            self.assertEqual(len(roles["tiers"]["standard"]), 10)
-            self.assertEqual(len(roles["tiers"]["critical"]), 10)
+            for assignments in roles["tiers"].values():
+                self.assertEqual(len(assignments), 10)
         dual = tomllib.loads(
             _sync.compose_dual_matrix(
                 (ROOT / "codex/config/roles.native.toml").read_text(),
@@ -142,11 +150,21 @@ class RoutingActivationContractTests(unittest.TestCase):
         )
         self.assertEqual(set(dual), {"modes"})
         self.assertEqual(set(dual["modes"]), {"native", "external"})
+        self.assertEqual(
+            set(dual["modes"]["native"]["tiers"]), {"standard", "critical"}
+        )
+        self.assertEqual(
+            set(dual["modes"]["external"]["tiers"]),
+            {"luna", "standard", "critical"},
+        )
         for mode in dual["modes"].values():
             self.assertEqual(set(mode), {"tiers"})
-            self.assertEqual(set(mode["tiers"]), {"standard", "critical"})
-            self.assertEqual(len(mode["tiers"]["standard"]), 10)
-            self.assertEqual(len(mode["tiers"]["critical"]), 10)
+            for assignments in mode["tiers"].values():
+                self.assertEqual(len(assignments), 10)
+        flat_skill = self._flat(self.skill)
+        self.assertIn("External mode additionally offers `luna`", flat_skill)
+        self.assertIn("`standard` remains the default", flat_skill)
+        self.assertIn("explicitly prioritizes cost", flat_skill)
         self.assertNotIn("Tier: light", self.skill)
 
     def test_dual_mode_is_detected_before_tier_and_immutable_per_task(self) -> None:

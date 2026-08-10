@@ -34,19 +34,22 @@ together.
 ## Delivery model
 
 Orchestra starts only from explicit activation. It reuses the conversation,
-classifies any prior candidate checkpoint, recommends a standard or critical
-tier, and creates one collision-free `orchestra/<task-slug>[-N]` branch before
-repository analysis. Managed mode creates a dedicated Git worktree under a
-portable Orchestra root; opt-in hybrid mode uses the current clean primary
-checkout or linked worktree and creates the task branch there. Every formal
-task works only on its Orchestra branch and supports hold, PR, or local
-integration when policy allows.
+classifies any prior candidate checkpoint, and recommends an available tier.
+Native offers standard and critical; external additionally offers Luna as a
+cost-focused opt-in for ordinary, bounded work when the user explicitly
+prioritizes cost. It then creates one collision-free
+`orchestra/<task-slug>[-N]` branch before repository analysis. Managed mode
+creates a dedicated Git worktree under a portable Orchestra root; opt-in hybrid
+mode uses the current clean primary checkout or linked worktree and creates the
+task branch there. Every formal task works only on its Orchestra branch and
+supports hold, PR, or local integration when policy allows.
 
 After plan approval, Orchestra scales implementation, review, and verification
-to the active tier. The user may direct a safe tier change in either direction
-without restarting the workflow or discarding valid work. Tier choice changes
-model and scrutiny intensity; it never waives separate authority for production,
-security, payments, destructive operations, merge, release, or deployment.
+to the active tier. The user may direct a safe tier change among the tiers
+available in the selected mode without restarting the workflow or discarding
+valid work. Tier choice changes model and scrutiny intensity; it never waives
+separate authority for production, security, payments, destructive operations,
+merge, release, or deployment.
 
 The four profiles are `orchestra_analyst`,
 `orchestra_implementation_worker`, `orchestra_reviewer`, and
