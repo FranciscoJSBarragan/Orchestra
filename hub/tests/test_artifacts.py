@@ -18,26 +18,53 @@ class ArtifactDiscoveryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(tempfile.mkdtemp())
 
-    def test_linked_worktree_resolves_the_private_git_directory(self) -> None:
+    def test_linked_worktree_resolves_worktree_local_state(self) -> None:
         worktree = support.make_worktree(self.root, linked=True)
         support.write_artifact(worktree, "01-repository-context.md")
         directory = artifacts_directory(worktree)
         assert directory is not None
-        self.assertIn("worktrees", directory.parts)
+        self.assertEqual(directory.parent, worktree / ".orchestra")
         self.assertEqual(directory.name, "artifacts")
         self.assertEqual(
             [entry["id"] for entry in artifact_entries(str(worktree))],
             ["01-repository-context.md"],
         )
 
-    def test_plain_repository_resolves_git_directory(self) -> None:
+    def test_plain_repository_resolves_worktree_local_state(self) -> None:
         worktree = support.make_worktree(self.root)
         support.write_artifact(worktree, "01-plan-overview.md")
         self.assertEqual(
             artifacts_directory(worktree),
-            worktree / ".git" / "orchestra" / "artifacts",
+            worktree / ".orchestra" / "artifacts",
         )
         self.assertEqual(len(artifact_entries(str(worktree))), 1)
+
+    def test_existing_legacy_directory_remains_readable(self) -> None:
+        worktree = support.make_worktree(self.root, linked=True)
+        marker = (worktree / ".git").read_text(encoding="utf-8")
+        gitdir = Path(marker.removeprefix("gitdir:").strip())
+        legacy = gitdir / "orchestra" / "artifacts"
+        legacy.mkdir(parents=True)
+        (legacy / "01-repository-context.md").write_text(
+            "legacy\n", encoding="utf-8"
+        )
+
+        self.assertEqual(artifacts_directory(worktree), legacy)
+        self.assertEqual(
+            [entry["id"] for entry in artifact_entries(str(worktree))],
+            ["01-repository-context.md"],
+        )
+
+    def test_workspace_and_legacy_directories_are_ambiguous(self) -> None:
+        worktree = support.make_worktree(self.root, linked=True)
+        support.write_artifact(worktree, "01-repository-context.md")
+        marker = (worktree / ".git").read_text(encoding="utf-8")
+        gitdir = Path(marker.removeprefix("gitdir:").strip())
+        legacy = gitdir / "orchestra" / "artifacts"
+        legacy.mkdir(parents=True)
+
+        self.assertIsNone(artifacts_directory(worktree))
+        self.assertEqual(artifact_entries(str(worktree)), [])
 
     def test_names_yield_kind_phase_and_ordinal_order(self) -> None:
         worktree = support.make_worktree(self.root, linked=True)
@@ -87,6 +114,15 @@ class ArtifactDiscoveryTests(unittest.TestCase):
         symlinked.mkdir()
         os.symlink(empty / ".git", symlinked / ".git")
         self.assertIsNone(artifacts_directory(symlinked))
+
+        unsafe = support.make_worktree(self.root / "unsafe")
+        os.symlink(self.root, unsafe / ".orchestra")
+        self.assertIsNone(artifacts_directory(unsafe))
+
+        unowned = support.make_worktree(self.root / "unowned")
+        (unowned / ".orchestra").mkdir()
+        (unowned / ".orchestra/.gitignore").write_text("*\n", encoding="utf-8")
+        self.assertIsNone(artifacts_directory(unowned))
 
 
 if __name__ == "__main__":

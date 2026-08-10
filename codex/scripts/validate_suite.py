@@ -893,6 +893,7 @@ def check_direct_sync(root: Path) -> list[str]:
         )
     if tuple(constants.get("HELPERS", ())) != (
         "coordination.py",
+        "task_state.py",
         "commit_phase.py",
         "adopt_worktree.py",
         "session_model.py",
@@ -901,7 +902,7 @@ def check_direct_sync(root: Path) -> list[str]:
         "integrate_local.py",
         "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly eight helpers")
+        failures.append("sync-contract: sync inventory must name exactly nine helpers")
     if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external", "dual"):
         failures.append(
             "sync-contract: modelconfig choices must be exactly native, external, and dual"

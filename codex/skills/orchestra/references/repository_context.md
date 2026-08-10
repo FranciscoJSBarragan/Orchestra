@@ -27,8 +27,9 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   verification commands, runtime and dependency expectations, required services
   and permissions, credential categories without reading secrets, test-data
   provenance, and generated or cache paths.
-- Write the complete revision-identified result directly to the task-private
-  artifacts directory (`git rev-parse --git-path orchestra/artifacts`) as the
+- Write the complete revision-identified result directly to the exact
+  task-private artifacts directory supplied by the packet, normally
+  `<worktree>/.orchestra/artifacts`, as the
   next `<NN>-repository-context.md` file. Return that exact file name instead
   of replaying its content. If the directory cannot be created or written,
   return the same complete report inline; publication failure is not a blocker.

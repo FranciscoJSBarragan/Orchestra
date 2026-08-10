@@ -100,7 +100,7 @@ def insert_activity(database: Path, task_id: str, **overrides) -> dict:
 
 
 def make_worktree(root: Path, *, linked: bool = False) -> Path:
-    """Create a worktree-shaped directory whose Git dir holds artifacts."""
+    """Create a primary- or linked-worktree-shaped directory."""
     worktree = root / "worktree"
     worktree.mkdir(parents=True, exist_ok=True)
     if linked:
@@ -114,6 +114,13 @@ def make_worktree(root: Path, *, linked: bool = False) -> Path:
 
 def write_artifact(worktree: Path, name: str, body: str = "report\n") -> Path:
     """Publish an artifact file the way an Orchestra agent does."""
+    state = worktree / ".orchestra"
+    if not state.exists():
+        state.mkdir()
+        (state / ".gitignore").write_text(
+            artifacts.STATE_MARKER_CONTENT,
+            encoding="utf-8",
+        )
     directory = artifacts.artifacts_directory(worktree)
     assert directory is not None
     directory.mkdir(parents=True, exist_ok=True)

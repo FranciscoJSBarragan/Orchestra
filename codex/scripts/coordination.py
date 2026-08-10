@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Maintain fail-soft Orchestra task and activity snapshots.
 
-Artifact content lives directly in each task's private
-`git rev-parse --git-path orchestra/artifacts` directory; the filesystem is
-the only locator and this helper never tracks it.
+Artifact content lives directly in each task's worktree-local
+`.orchestra/artifacts` directory; the filesystem is the only locator and this
+helper never tracks it. Legacy tasks may retain their prior Git-private path.
 """
 
 from __future__ import annotations

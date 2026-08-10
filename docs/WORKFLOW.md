@@ -273,18 +273,25 @@ After explicit activation in an execution-capable mode:
    requires one consolidated decision before mutation.
 5. The root records the exact task-worktree identity in memory before capability
    dispatch, as described in
-   [Task checkout and branch](#task-checkout-and-branch). It then attempts one
+   [Task checkout and branch](#task-checkout-and-branch). It runs one idempotent
+   `task_state.py init --worktree <task-worktree>` inside the writable checkout,
+   keeps the returned state, plan, and artifacts paths in memory, and passes the
+   exact artifacts path to every producer. Initialization creates the reserved
+   ignored `.orchestra/` directory, leaves Git status unchanged, and blocks on
+   a tracked, ambiguous, or unsafe collision. A detected legacy task continues
+   on its legacy paths without copy or dual write. The root then attempts one
    idempotent `coordination.py task create`. When the state database is outside
    the active workspace, this first attempt uses one exact, narrow Guardian
    escalation instead of first running the known-protected operation
    unprivileged. An `invalid` or `unavailable` result after that correctly
-   authorized attempt is reported as lost observability and the normal inline
-   workflow continues without retry or reduced authority.
+   authorized attempt is reported as lost observability; the root omits the
+   task identifier from every later agent packet and the normal workflow
+   continues without another coordination attempt or reduced authority.
 6. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
    questions from the exact task worktree. The root may skip or reduce this
    dispatch only when it cites the specific prior evidence it reuses (artifact
    and revision); otherwise dispatch. The analyst publishes a revision-identified
-   context artifact when coordination is available and returns its identifier.
+   context artifact to the exact task-private artifacts path and returns its identifier.
    Publication failure returns the full inline report instead. Consume the
    result and close the one-shot analyst.
 7. The orchestrator continues the user dialogue using that evidence. Additional
@@ -354,12 +361,10 @@ contain no unique work. No plan has been persisted at this point.
 Before approval, the provisional specification remains in conversation while
 the formal candidate exists only as private `plan-overview`, `plan-phase`, and
 optional `plan-review` artifacts. After approval, the root writes `active` to
-`git rev-parse --git-path orchestra/plan.md`. It is an intent, exact-bundle, and
-resume aid, not a workflow database.
-
-If that resolved Git-private path is outside the active workspace, the first
-write uses one exact, narrow Guardian escalation. The root does not probe a
-known-protected plan path with an unprivileged write first.
+the exact plan path returned by task-state initialization, normally
+`<task-worktree>/.orchestra/plan.md`. It is an intent, exact-bundle, and resume
+aid, not a workflow database. New-task plan writes remain inside the writable
+checkout and require no protected-path escalation.
 
 The file records task and Git identity, checkout mode and resource ownership,
 the hybrid starting branch/revision when applicable, active tier, immutable
@@ -422,17 +427,20 @@ with another mode are corrected to `0600`, while symlinks and non-regular files
 remain unsafe and return `unavailable`.
 
 Artifacts live only on the filesystem. Agents write each semantic handoff
-directly as UTF-8 Markdown under the task-private directory resolved by
-`git rev-parse --git-path orchestra/artifacts`, named
+directly as UTF-8 Markdown under the exact task-private artifacts directory
+returned by `task_state.py init`, normally
+`<task-worktree>/.orchestra/artifacts`, named
 `<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal (for example
 `03-plan-phase-p2.md`). The file name is the artifact identifier. Packets and
 the plan manifest reference these exact file names; no database locator
-exists. In a linked worktree this directory lives under the repository's
-shared Git metadata, so under Guardian the write may request one narrow
-automatically reviewed escalation on its first attempt; the agent does not try
-the known-protected write unprivileged first. That escalation is expected and
-is not a blocker. If the artifacts directory cannot be created or written, the
-agent returns the complete report inline instead.
+exists. `task_state.py` creates a self-ignored ownership marker and artifacts
+directory after branch/worktree creation, refuses tracked or unsafe collisions,
+and proves that the private state leaves Git status unchanged. New-task
+publication therefore stays inside the writable checkout without a
+protected-write escalation under Guardian. A detected legacy task continues
+using its exact Git-private paths without migration or dual writes. If the
+selected artifacts directory cannot be written, the agent returns the complete
+report inline instead.
 
 The root updates task stage, tier, revision, summary, blocker, and next action
 only at material transitions. Each delegated agent may update its own activity
@@ -557,10 +565,10 @@ cannot block implementation, verification, review, a tier change, commit, or
 delivery. Failed publication returns the full result inline; failed lookup uses
 the inline packet or current source. The helper never runs mutating Git
 commands, grants authority, validates transitions, or triggers another agent.
-Completed metadata remains queryable. Managed worktree cleanup removes its
-task-private artifacts with the task Git directory; successful hybrid delivery
-removes only the exact plan and artifacts in the preserved checkout's private
-Git directory.
+Completed metadata remains queryable. Successful managed delivery removes the
+exact worktree-local task state before removing the task worktree; successful
+hybrid delivery removes that same state after restoring the preserved checkout.
+Legacy tasks retain the prior Git-private cleanup path until they complete.
 
 ## Phase execution
 
@@ -867,15 +875,21 @@ verifies that it already identifies the exact sibling task worktree and the
 user authorizes adoption. Preapproval cancellation never discards unique work
 and removes only proven-clean task resources.
 
-After authorized integration or merge, managed cleanup removes the exact clean
-task worktree, plan, and safe branches. Hybrid cleanup restores the unchanged
-starting branch, preserves the user/host-owned checkout, and removes only the
-guarded Orchestra task branch and private task artifacts. Hold and an open PR
-intentionally retain the selected checkout state and task branch.
+After authorized integration or merge, managed cleanup removes the exact
+worktree-local `.orchestra/` state before removing the clean task worktree and
+safe branches. Hybrid cleanup restores the unchanged starting branch, preserves
+the user/host-owned checkout, and removes only the guarded Orchestra task branch
+and its worktree-local state. Hold and an open PR intentionally retain the
+selected checkout state and task branch. Preapproval cancellation uses the same
+state helper and never recursively deletes an unrecognized directory.
 
 Dirty, moved, ambiguous, or unverified resources are never removed. Cleanup
 after a completed mutation returns `partial` for resources that could not be
 cleaned safely.
+Because `.orchestra/` is intentionally ignored, an explicit user-run
+`git clean -x` may remove it; Orchestra never runs that destructive clean, and
+a missing approved plan blocks automatic resume under the normal reconciliation
+rules.
 
 ## Agent waiting
 

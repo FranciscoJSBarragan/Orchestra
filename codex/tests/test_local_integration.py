@@ -58,6 +58,17 @@ class LocalIntegrationTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def initialize_state(self, repo: Path) -> Path:
+        private = repo / ".orchestra"
+        (private / "artifacts").mkdir(parents=True)
+        (private / ".gitignore").write_text(
+            "# Orchestra task-private state; removed after successful delivery.\n*\n",
+            encoding="utf-8",
+        )
+        (private / "plan.md").write_text("status: completed\n", encoding="utf-8")
+        (private / "artifacts/report.md").write_text("done\n", encoding="utf-8")
+        return private
+
     def commit_task_policy(self, command: list[str]) -> None:
         self.write_policy(self.task, command)
         self.git(self.task, "add", "orchestra.toml")
@@ -99,27 +110,25 @@ class LocalIntegrationTests(unittest.TestCase):
         return result, json.loads(result.stdout)
 
     def test_clean_fast_forward_integrates_and_cleans_resources(self) -> None:
+        self.initialize_state(self.task)
         result, payload = self.run_helper()
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["task_sha"], self.task_sha)
-        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
+        self.assertEqual(
+            self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha
+        )
         self.assertEqual((self.base / "feature.txt").read_text(), "feature\n")
         self.assertFalse(self.task.exists())
         self.assertEqual(self.git(self.base, "branch", "--list", "task").stdout, "")
-        self.assertEqual(payload["cleanup"], ["worktree", "branch"])
+        self.assertEqual(payload["cleanup"], ["private_state", "worktree", "branch"])
 
     def test_hybrid_integration_restores_base_branch_and_preserves_checkout(self) -> None:
         self.git(self.base, "worktree", "remove", str(self.task))
         self.git(self.base, "switch", "task")
         start_revision = self.git(self.base, "rev-parse", "main").stdout.strip()
-        private = Path(
-            self.git(self.base, "rev-parse", "--absolute-git-dir").stdout.strip()
-        ) / "orchestra"
-        (private / "artifacts").mkdir(parents=True)
-        (private / "plan.md").write_text("status: completed\n", encoding="utf-8")
-        (private / "artifacts/report.md").write_text("done\n", encoding="utf-8")
+        private = self.initialize_state(self.base)
 
         self.task = self.base
         result, payload = self.run_helper(
@@ -135,6 +144,23 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertEqual(payload["cleanup"], ["branch", "private_state"])
         self.assertEqual(payload["preserved"], ["worktree"])
         self.assertFalse(private.exists())
+
+    def test_private_state_cleanup_failure_is_partial_and_preserves_resources(self) -> None:
+        private = self.initialize_state(self.task)
+        (private / "unknown.txt").write_text("do not delete\n", encoding="utf-8")
+
+        result, payload = self.run_helper()
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        self.assertIn("unknown entries", payload["reason"])
+        self.assertEqual(payload["cleanup"], [])
+        self.assertEqual(
+            payload["preserved"], ["worktree", "branch", "private_state"]
+        )
+        self.assertTrue((private / "unknown.txt").is_file())
+        self.assertTrue(self.task.exists())
+        self.assertTrue(self.git(self.base, "branch", "--list", "task").stdout.strip())
 
     def test_explicit_authority_is_required_without_mutation(self) -> None:
         base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()

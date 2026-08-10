@@ -168,20 +168,33 @@ def integrate_local(
             "preserved": ["worktree"],
         }
 
+    merged = _git(base, "branch", "--merged", base_branch, "--format=%(refname:short)")
+    merged_branches = set(merged.stdout.splitlines()) if not merged.returncode else set()
+    if task_branch not in merged_branches:
+        return {
+            "status": "partial",
+            "reason": "task branch is not fully merged; cleanup skipped",
+            "task_sha": task_sha,
+            "cleanup": [],
+            "preserved": ["worktree", "branch", "private_state"],
+        }
+    cleanup_error = cleanup_private_task_state(task)
+    if cleanup_error:
+        return {
+            "status": "partial",
+            "reason": cleanup_error,
+            "task_sha": task_sha,
+            "cleanup": [],
+            "preserved": ["worktree", "branch", "private_state"],
+        }
     remove = _git(base, "worktree", "remove", str(task))
     if remove.returncode:
         return {
             "status": "partial",
             "reason": _command_reason("git worktree remove", remove),
             "task_sha": task_sha,
-        }
-    merged = _git(base, "branch", "--merged", base_branch, "--format=%(refname:short)")
-    merged_branches = set(merged.stdout.splitlines()) if not merged.returncode else set()
-    if task_branch not in merged_branches:
-        return {
-            "status": "partial",
-            "reason": "task branch is not fully merged; branch deletion skipped",
-            "task_sha": task_sha,
+            "cleanup": ["private_state"],
+            "preserved": ["worktree", "branch"],
         }
     delete = _git(base, "branch", "-d", task_branch)
     if delete.returncode:
@@ -196,7 +209,7 @@ def integrate_local(
         "task_sha": task_sha,
         "base_branch": base_branch,
         "checks": check_result["checks"],
-        "cleanup": ["worktree", "branch"],
+        "cleanup": ["private_state", "worktree", "branch"],
     }
 
 

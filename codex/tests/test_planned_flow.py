@@ -849,7 +849,8 @@ class PlannedFlowContractTests(unittest.TestCase):
         for contract in (
             "coordination.py",
             "task create",
-            "git rev-parse --git-path orchestra/artifacts",
+            "task_state.py",
+            "<task-worktree>/.orchestra/artifacts",
             "the file name is the artifact identifier",
             "material start, final, or blocker",
             "there are no heartbeats",
@@ -870,6 +871,9 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn("first attempt", contract_source.lower())
             self.assertIn("known-protected", contract_source.lower())
             self.assertIn("narrow guardian escalation", contract_source.lower())
+        for contract_source in (normalized_skill, workflow, shared_conduct):
+            self.assertIn("without", contract_source.lower())
+            self.assertIn("protected-write escalation", contract_source.lower())
         self.assertIn("correctly authorized attempt", normalized_skill.lower())
         self.assertIn("correctly authorized attempt", workflow.lower())
         self.assertIn("correctly authorized attempt", runtime.lower())
@@ -1378,22 +1382,16 @@ class PlannedFlowContractTests(unittest.TestCase):
             )
 
             def plan_path(worktree: Path) -> Path:
-                result = subprocess.run(
-                    ["git", "-C", str(worktree), "rev-parse", "--git-path", "orchestra/plan.md"],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-                path = Path(result.stdout.strip())
-                return path if path.is_absolute() else worktree / path
+                return worktree.resolve() / ".orchestra" / "plan.md"
 
             base_plan = plan_path(base).resolve()
             linked_plan = plan_path(linked).resolve()
             self.assertNotEqual(base_plan, linked_plan)
-            self.assertIn(".git/orchestra/plan.md", base_plan.as_posix())
-            self.assertIn(".git/worktrees/linked/orchestra/plan.md", linked_plan.as_posix())
+            self.assertEqual(base_plan.parent.name, ".orchestra")
+            self.assertEqual(linked_plan.parent.name, ".orchestra")
 
-        self.assertIn("git rev-parse --git-path orchestra/plan.md", self.skill)
+        self.assertIn("<task-worktree>/.orchestra/plan.md", self.skill)
+        self.assertIn("task_state.py", self.skill)
         for status in ("`active`", "`blocked`", "`completed`"):
             self.assertIn(status, self.skill)
         self.assertNotIn("`draft`", self.skill)

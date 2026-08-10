@@ -116,8 +116,8 @@ Activity defaults: `agent-1 / implementation / running / "Implementing" /
 > **Superseded:** there is no `artifacts` table and no `insert_artifact`.
 > `support.py` provides `make_worktree(root, linked=...)` and
 > `write_artifact(worktree, name)`, which publish real
-> `<NN>-<kind>[-p<phase>].md` files under the worktree's private
-> `orchestra/artifacts` directory.
+> `<NN>-<kind>[-p<phase>].md` files under the worktree-local private
+> `.orchestra/artifacts` directory.
 
 `test_support.py` creates a temporary state database and asserts
 `PRAGMA user_version == coordination.SCHEMA_VERSION`; it then uses the insert
@@ -363,7 +363,7 @@ def parse_timestamp(value: str) -> datetime:
 > **Superseded:** `ARTIFACT_FIELDS` lives in `orchestra_hub/artifacts.py` and is
 > `("id", "kind", "phase", "created_at")`. Detail runs no artifact query at all:
 > it calls `artifact_entries(task["worktree"])`, which lists the task-private
-> `orchestra/artifacts` directory (newest ordinal first) reading names and
+> `.orchestra/artifacts` directory (newest ordinal first) reading names and
 > mtimes only.
 
 Run → PASS. **Commit:** `hub: allowlisted payloads, attention, repositories`.

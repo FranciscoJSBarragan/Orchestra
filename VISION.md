@@ -141,6 +141,11 @@ signals. A lightweight local coordination projection may retain task snapshots
 and task-private evidence artifacts so later agents can navigate prior work
 without root-authored replay. That projection never authorizes, validates, or
 blocks Git, tier, phase, commit, or delivery operations.
+New tasks keep their plan and semantic artifacts in one self-ignored
+`.orchestra/` directory inside the selected worktree. This state remains
+writable under normal workspace permissions, is removed only by guarded task
+cleanup, and never depends on protected Git-metadata writes. Legacy tasks may
+finish on their original private paths without dual writes.
 
 Semantic handoffs are document-first across the whole workflow. Context,
 planning, implementation, verification, debugging, and review agents publish
@@ -281,6 +286,8 @@ protected shared Git metadata receives one exact automatically reviewed
 escalation. Hybrid mode never implements on the starting branch, including
 `main`; dirty or ambiguous state requires an explicit decision. Existing work
 is never cleaned, stashed, or rewritten implicitly.
+After branch/worktree creation, a deterministic helper initializes the ignored
+worktree-local task state without changing Git status or requiring escalation.
 Completed resources are removed only when exact Git and integration evidence
 make that cleanup safe.
 

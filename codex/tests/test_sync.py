@@ -162,6 +162,9 @@ class SyncTests(unittest.TestCase):
             self.codex_home.joinpath("orchestra/scripts/coordination.py").is_file()
         )
         self.assertTrue(
+            self.codex_home.joinpath("orchestra/scripts/task_state.py").is_file()
+        )
+        self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/session_model.py").is_file()
         )
         self.assertEqual(

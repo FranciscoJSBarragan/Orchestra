@@ -1,10 +1,10 @@
-"""Read-only artifact discovery from the task-private Git directory.
+"""Read-only discovery from one worktree-local Orchestra artifact directory.
 
 Orchestra artifacts have no database locator: they are UTF-8 Markdown files
 named `<NN>-<kind>[-p<phase>].md` under the directory resolved by
-`git rev-parse --git-path orchestra/artifacts` inside the task worktree. The
-Hub resolves that directory without running Git and reads names and mtimes
-only; artifact content is never read or served.
+`<worktree>/.orchestra/artifacts`. The Hub retains read compatibility with the
+legacy Git-private location, resolves both layouts without running Git, and
+reads names and mtimes only; artifact content is never read or served.
 """
 from __future__ import annotations
 
@@ -17,10 +17,15 @@ ARTIFACT_NAME = re.compile(
     r"^\d+-(?P<kind>[a-z0-9-]+?)(?:-p(?P<phase>\d+))?\.md$"
 )
 GITDIR_PREFIX = "gitdir:"
+STATE_DIRECTORY = ".orchestra"
+STATE_MARKER = ".gitignore"
+STATE_MARKER_CONTENT = (
+    "# Orchestra task-private state; removed after successful delivery.\n"
+    "*\n"
+)
 
 
-def artifacts_directory(worktree: Path) -> Path | None:
-    """Resolve `<git-dir>/orchestra/artifacts` for a worktree, or None."""
+def _legacy_artifacts_directory(worktree: Path) -> Path | None:
     marker = worktree / ".git"
     if marker.is_symlink():
         return None
@@ -42,6 +47,36 @@ def artifacts_directory(worktree: Path) -> Path | None:
             gitdir = worktree / gitdir
         return gitdir / "orchestra" / "artifacts"
     return None
+
+
+def artifacts_directory(worktree: Path) -> Path | None:
+    """Resolve worktree-local artifacts, or an existing legacy directory."""
+    legacy = _legacy_artifacts_directory(worktree)
+    if legacy is None:
+        return None
+    private = worktree / STATE_DIRECTORY
+    workspace_exists = private.exists() or private.is_symlink()
+    legacy_exists = legacy.exists() or legacy.is_symlink()
+    if workspace_exists and legacy_exists:
+        return None
+    if workspace_exists:
+        ownership = private / STATE_MARKER
+        if (
+            private.is_symlink()
+            or not private.is_dir()
+            or ownership.is_symlink()
+            or not ownership.is_file()
+        ):
+            return None
+        try:
+            if ownership.read_text(encoding="utf-8") != STATE_MARKER_CONTENT:
+                return None
+        except OSError:
+            return None
+        return private / "artifacts"
+    if legacy_exists:
+        return legacy
+    return private / "artifacts"
 
 
 def _created_at(path: Path) -> str:

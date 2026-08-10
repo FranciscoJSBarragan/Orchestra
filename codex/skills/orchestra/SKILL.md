@@ -147,14 +147,22 @@ Keep checkout mode and path, starting branch and HEAD, task branch, resource
 ownership, base branch and revision, and authorized preexisting changes in root
 memory. Use that exact task checkout for
 every capability, planning, implementation, verification, review, plan, and
-commit operation. Immediately attempt an idempotent task registration with
+commit operation. Immediately run `python3
+"${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_state.py" init --worktree
+<task-worktree>` once. Keep its exact `state`, `plan`, and `artifacts` paths in
+root memory and pass the artifacts path to every producing agent. This
+workspace-local initialization must leave Git status unchanged and blocks
+before dispatch when the reserved path is tracked, ambiguous, or unsafe. An
+existing legacy result remains on its legacy paths for that task without
+copying or dual-writing it. Then attempt an idempotent task registration with
 `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task
 create`. Treat `invalid` or `unavailable` as lost observability: report it
 only after a correctly authorized attempt. When the coordination database is
 outside the active workspace, make that first attempt with one exact, narrow
 Guardian escalation; do not first run the known-protected operation
-unprivileged. Report lost observability compactly and continue with inline
-packets without retry, reduced authority, or a workflow blocker.
+unprivileged. Report lost observability compactly, omit the coordination task
+identifier from every later agent packet, and continue without another
+coordination attempt, reduced authority, or a workflow blocker.
 
 Reuse is limited to the same live preapproval task or to a resumed task whose
 approved plan, objective, checkout mode/path, starting identity, task branch,
@@ -164,7 +172,8 @@ the root explicitly verifies that it already identifies the exact Orchestra
 task worktree and the user authorizes adoption. Do not migrate an active
 checkout from an older sibling location into the configured root. On preapproval
 abandonment, never discard unique work; remove only proven-clean resources
-created for the live task. A draft may exist only as a clearly labeled private
+created for the live task, using `task_state.py cleanup` before removing a
+managed worktree or restoring a hybrid checkout. A draft may exist only as a clearly labeled private
 artifact; no approved `plan.md` is persisted before approval. If adopted
 committed work later passes unchanged, allow completion without an artificial
 commit.
@@ -268,12 +277,13 @@ Use `coordination.py activity set` only for material start, final, or blocker
 updates; there are no heartbeats. Request outcome-first, lossless structured returns
 and never impose a token, line, file, finding, test, or explanation cap.
 Every agent-produced semantic handoff is a complete revision-identified
-Markdown artifact written directly to the task-private directory resolved by
-`git rev-parse --git-path orchestra/artifacts`, named
+Markdown artifact written directly to the exact task-private artifacts path
+returned by `task_state.py init`, normally
+`<task-worktree>/.orchestra/artifacts`, named
 `<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal; the file name
-is the artifact identifier. If that Git-private path is outside the active
-workspace, use one exact, narrow Guardian escalation on the first write attempt;
-do not probe it with an unprivileged write first. Use the conventional kinds
+is the artifact identifier. New tasks never request protected-write escalation
+for semantic artifacts. A resumed legacy task continues using the exact legacy
+path returned by the initializer. Use the conventional kinds
 `repository-context`,
 `context-delta`, `plan-overview`, `plan-phase`, `plan-review`,
 `implementation-report`, `verification-report`, `implementation-review`,
@@ -362,10 +372,9 @@ context dependencies and uses `Context maintenance paths: none` unless an
 exact versioned documentation path is already a named current-task consumer.
 Never use globs. These sections add no `plan.md` manifest or workflow-state field.
 
-After approval, the root resolves `git rev-parse --git-path orchestra/plan.md`
-in the task worktree and writes it directly as `active`. If the resolved path
-is protected, the first write uses one exact, narrow Guardian escalation rather
-than an unprivileged probe. It contains
+After approval, the root writes `active` directly to the exact `plan` path
+returned by `task_state.py init`, normally
+`<task-worktree>/.orchestra/plan.md`. It contains
 task and Git identity, active tier, user and root decisions, authorized
 preexisting changes, the immutable dual model configuration when applicable,
 the approved overview verbatim, and an exact phase
@@ -385,8 +394,8 @@ Use only these statuses:
 Only the root writes the plan. A replacement phase artifact may update the
 manifest without new user approval only for a reversible clarification within
 the approved objective and authority; a material scope, public-contract, or
-user-visible behavior change requires new approval. On resume, resolve the Git
-path again and require exact agreement between the plan and Git for checkout
+user-visible behavior change requires new approval. On resume, resolve the
+task-state path again and require exact agreement between the plan and Git for checkout
 mode/path, starting identity, current task branch, base, HEAD, relevant commits, and user
 authority, then resolve the exact artifact identifiers or recorded private
 paths. Git is authoritative for code and history; the plan carries approved

@@ -102,17 +102,18 @@ stating the redaction and a safe category or locator.
 ## Publication and telemetry
 
 Reusable results are complete revision-identified Markdown files in the
-task-private artifacts directory (`git rev-parse --git-path
-orchestra/artifacts`); the file name is the artifact identifier. Writing
-there or updating coordination outside the active workspace uses one exact,
+exact task-private artifacts directory supplied by the root, normally
+`<worktree>/.orchestra/artifacts`; the file name is the artifact identifier.
+New-task artifact publication is workspace-local and never requires a
+protected-write escalation. A legacy task uses the exact legacy path supplied
+by the root. Updating coordination outside the active workspace uses one exact,
 narrow Guardian escalation on the first attempt; never make a known-protected
-write unprivileged first. Auto-review handles that escalation without a human
-prompt, while a manual reviewer may prompt by design. The escalation is
-expected and is not a blocker. Coordination
+write unprivileged first. Coordination
 telemetry records only material start, final, or blocker updates and is
 fail-soft only after that correctly authorized attempt: on `invalid` or
-`unavailable`, or when the artifacts directory cannot be written, continue and
-return the complete result inline; never retry-loop or report a workflow
+`unavailable`, the root omits the coordination task identifier from later
+packets. When the artifacts directory cannot be written, return the complete
+result inline; never retry-loop or report a workflow
 blocker solely because publication failed.
 
 For coordination writes, keep machine-facing `tier`, `stage`, `status`,

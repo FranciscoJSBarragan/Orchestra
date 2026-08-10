@@ -65,14 +65,15 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   Do not silently widen `Context maintenance paths`; use the same replacement
   and approval rules as any other authority change.
 - Use only the context delta supplied by the root in addition to named
-  artifacts. Write each publication directly to the task-private artifacts
-  directory (`git rev-parse --git-path orchestra/artifacts`): the overview as
+  artifacts. Write each publication directly to the exact task-private
+  artifacts directory supplied by the packet, normally
+  `<worktree>/.orchestra/artifacts`: the overview as
   the next `<NN>-plan-overview.md` file and each phase as
   `<NN>-plan-phase-p<number>.md`. If the directory cannot be created or
   written, return the same complete documents inline.
 - Return the candidate bundle to the root for review and user approval. Only
   the root writes or updates the approved overview and exact phase manifest at
-  `git rev-parse --git-path orchestra/plan.md`.
+  the plan path supplied by the root, normally `<worktree>/.orchestra/plan.md`.
 
 Return `blocked` when evidence is insufficient, a feasibility-determining fact
 is unresolved, scope is materially ambiguous, canonical sources conflict, a

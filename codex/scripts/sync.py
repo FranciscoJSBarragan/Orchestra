@@ -56,6 +56,7 @@ LEGACY_AGENTS = (
 )
 HELPERS = (
     "coordination.py",
+    "task_state.py",
     "commit_phase.py",
     "adopt_worktree.py",
     "session_model.py",

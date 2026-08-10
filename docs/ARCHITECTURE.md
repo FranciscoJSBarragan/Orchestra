@@ -242,9 +242,10 @@ They should remain readable and route to deeper references only when needed.
 ### Mechanical helpers
 
 Scripts perform operations that demonstrably benefit from deterministic
-behavior: bounded Git inspection, loading delivery policy, running configured
-argv checks, opening or observing a PR through direct `gh`, merging an
-authorized clean PR with guarded task-resource cleanup, integrating a local
+behavior: bounded Git inspection, initializing and safely cleaning the one
+reserved worktree-local task-state directory, loading delivery policy, running
+configured argv checks, opening or observing a PR through direct `gh`, merging
+an authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
 validating the suite. `coordination.py` is a separate fail-soft task and
 activity snapshot helper; it never performs Git mutations or product decisions.
@@ -263,10 +264,10 @@ Orchestra may persist only contracts with direct consumers:
 - repository delivery policy;
 - one non-authoritative local task snapshot store at
   `$HOME/.orchestra/state.sqlite3`;
-- revision-identified Markdown artifacts in each task worktree's private
-  `git rev-parse --git-path orchestra/artifacts` directory;
-- one root-owned approved task plan per confirmed checkout, resolved with
-  `git rev-parse --git-path orchestra/plan.md`;
+- revision-identified Markdown artifacts in each task worktree's ignored
+  `.orchestra/artifacts` directory;
+- one root-owned approved task plan per confirmed checkout at
+  `.orchestra/plan.md`;
 - concise commit intent and validation in Git history;
 - compact optional-helper result (`committed` with `sha`,
   `nothing_to_commit`, or `blocked` with the observed reason);
@@ -295,7 +296,8 @@ add no `plan.md` manifest field, coordination column, or workflow state.
 Branches and worktrees are Git resources, not a new Orchestra state store.
 Every new formal task uses an Orchestra-owned collision-free branch. Managed
 mode owns its portable worktree; hybrid mode preserves the user/host-owned
-checkout and owns only the task branch and private task artifacts. The same live preapproval task may
+checkout and owns only the task branch and reserved worktree-local private
+state. The same live preapproval task may
 continue in memory; later reuse requires the approved plan's checkout path,
 branch, base, and HEAD to agree with Git. Rejected planning and completed
 delivery clean only resources that exact Git evidence proves safe.
@@ -310,10 +312,13 @@ transitions. The store retains completed task metadata. It has no
 authority, event history, heartbeat requirement, delete command, or automatic
 import of preexisting tasks. A failed update is telemetry loss, not workflow
 failure. Artifacts are plain files in the task-private
-`git rev-parse --git-path orchestra/artifacts` directory, named
+`.orchestra/artifacts` directory initialized after branch/worktree creation, named
 `<NN>-<kind>[-p<phase>].md`; the file name is the identifier, the filesystem
-is the only locator, and they follow the task worktree lifecycle. Agents
-return inline evidence when artifact publication fails.
+is the only locator, and they follow the task worktree lifecycle. The
+self-ignored ownership marker keeps Git status clean; tracked, ambiguous, or
+unsafe collisions block before capability dispatch. Legacy tasks continue on
+their prior Git-private paths without migration or dual writes. Agents return
+inline evidence when artifact publication fails.
 
 Artifact `kind` is a file-naming convention:
 `repository-context`, `context-delta`, `plan-overview`, `plan-phase`,
@@ -549,6 +554,9 @@ Tests protect the few important invariants:
 - every formal task creates one collision-free `orchestra/*` branch before work;
 - managed mode creates an isolated Orchestra-root worktree, while hybrid mode
   branches in place only from a clean primary checkout or linked worktree;
+- task setup creates one ignored `.orchestra/` state directory inside the
+  selected worktree, rejects unsafe collisions, leaves Git status clean, and
+  supplies exact plan and artifact paths without protected-write escalation;
 - neither mode implements directly on the starting branch or `main`;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
@@ -595,6 +603,8 @@ Tests protect the few important invariants:
   coverage;
 - hooks call the validator without adding policy;
 - local integration removes only safely merged Orchestra-owned resources;
+- managed and hybrid delivery remove only the recognized worktree-local task
+  state, while hold and an unmerged PR retain it;
 - rejected authority/journal machinery is not introduced.
 
 ## Complexity safeguards

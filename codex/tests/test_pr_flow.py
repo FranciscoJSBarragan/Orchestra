@@ -628,11 +628,13 @@ else:
 
     def test_merge_fake_success_uses_selected_method(self) -> None:
         self.write_policy(passing=True)
-        plan_path_result = self.git("rev-parse", "--git-path", "orchestra/plan.md")
-        plan_path = Path(plan_path_result.stdout.strip())
-        if not plan_path.is_absolute():
-            plan_path = self.repo / plan_path
-        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        private = self.repo / ".orchestra"
+        private.mkdir()
+        (private / ".gitignore").write_text(
+            "# Orchestra task-private state; removed after successful delivery.\n*\n",
+            encoding="utf-8",
+        )
+        plan_path = private / "plan.md"
         plan_path.write_text("status: completed\n", encoding="utf-8")
 
         result, payload = self.run_pr(*self.merge_args("rebase"))
@@ -642,7 +644,8 @@ else:
         self.assertEqual(payload["method"], "rebase")
         self.assertEqual(payload["merged_at"], "2026-07-14T12:00:00Z")
         self.assertEqual(
-            payload["cleanup"], ["remote_branch", "worktree", "local_branch"]
+            payload["cleanup"],
+            ["remote_branch", "private_state", "worktree", "local_branch"],
         )
         self.assertEqual(payload["retained_resources"], [])
         self.assertFalse(self.repo.exists())
@@ -662,10 +665,12 @@ else:
     def test_hybrid_merge_restores_start_branch_and_preserves_checkout(self) -> None:
         self.write_policy(passing=True)
         start_revision = self.git("rev-parse", "main").stdout.strip()
-        private = Path(
-            self.git("rev-parse", "--absolute-git-dir").stdout.strip()
-        ) / "orchestra"
+        private = self.repo / ".orchestra"
         (private / "artifacts").mkdir(parents=True)
+        (private / ".gitignore").write_text(
+            "# Orchestra task-private state; removed after successful delivery.\n*\n",
+            encoding="utf-8",
+        )
         (private / "plan.md").write_text("status: completed\n", encoding="utf-8")
         (private / "artifacts/report.md").write_text("done\n", encoding="utf-8")
         subprocess.run(
@@ -770,6 +775,27 @@ else:
         )
         self.assertTrue(self.repo.exists())
         self.assertIsNone(self.remote_head())
+
+    def test_merge_cleanup_rejects_unrecognized_private_state(self) -> None:
+        private = self.repo / ".orchestra"
+        private.mkdir()
+        (private / ".gitignore").write_text(
+            "# Orchestra task-private state; removed after successful delivery.\n*\n",
+            encoding="utf-8",
+        )
+        (private / "unknown.txt").write_text("do not delete\n", encoding="utf-8")
+
+        result, payload = self.run_pr(*self.merge_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        retained = {
+            item["resource"]: item["reason"]
+            for item in payload["retained_resources"]
+        }
+        self.assertIn("unknown entries", retained["private_state"])
+        self.assertEqual(set(retained), {"private_state", "worktree", "local_branch"})
+        self.assertTrue((private / "unknown.txt").is_file())
 
 
 if __name__ == "__main__":

@@ -822,6 +822,18 @@ def _cleanup_merged_task(
             )
             return {"cleanup": cleaned, "retained_resources": retained}
 
+    cleanup_error = cleanup_private_task_state(task)
+    if cleanup_error:
+        retained.extend(
+            [
+                _retained("private_state", cleanup_error),
+                _retained("worktree", "task private state was not cleaned"),
+                _retained("local_branch", "task worktree was not removed"),
+            ]
+        )
+        return {"cleanup": cleaned, "retained_resources": retained}
+    cleaned.append("private_state")
+
     remove = _git(base, "worktree", "remove", str(task))
     if remove.returncode:
         detail = remove.stderr.strip() or remove.stdout.strip() or "no output"

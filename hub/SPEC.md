@@ -139,8 +139,9 @@ never from `SELECT *` passthrough.
 - Artifact: `id, kind, phase, created_at`, all derived from the artifact file
   name (`<NN>-<kind>[-p<phase>].md`) and its mtime. Artifacts have no database
   row: they are discovered by listing the task-private directory resolved from
-  the worktree's Git directory (`orchestra/artifacts`). Only names and mtimes
-  are read; the absolute filesystem `path` is **never** serialized.
+  the worktree (`.orchestra/artifacts`), with read compatibility for an existing
+  legacy Git-private directory. Only names and mtimes are read; the absolute
+  filesystem `path` is **never** serialized.
 
 Local repository/worktree paths are exposed deliberately: they are part of
 the product. Artifact content, prompts, diffs, and environment variables are

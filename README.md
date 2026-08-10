@@ -57,7 +57,9 @@ The four profiles are `orchestra_analyst`,
 Codex agents. The root selects explicit capability assignments and their
 applicable internal references. The approved
 formal plan is written directly as `active` to one root-owned, unversioned path
-resolved by `git rev-parse --git-path orchestra/plan.md`. Provisional specs and
+at `<task-worktree>/.orchestra/plan.md`. Semantic reports live beside it under
+`.orchestra/artifacts`; the self-ignored task state stays outside Git history
+and requires only normal workspace access. Provisional specs and
 unapproved plans are not persisted. Git, not the plan, remains authoritative
 for code and history. Safe local integration or an authorized PR merge removes
 only the exact clean task resources; `hold` and unmerged work remain available.
