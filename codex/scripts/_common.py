@@ -71,9 +71,31 @@ def common_git_dir(repo: Path) -> Path | None:
 
 
 def head_commit(repo: Path) -> str | None:
-    result = _git(repo, "rev-parse", "--verify", "HEAD^{commit}")
+    return resolve_commit(repo, "HEAD")
+
+
+def resolve_commit(repo: Path, revision: str) -> str | None:
+    result = _git(repo, "rev-parse", "--verify", f"{revision}^{{commit}}")
     sha = result.stdout.strip()
     return sha if not result.returncode and SHA_PATTERN.fullmatch(sha) else None
+
+
+def require_expected_revision(
+    repo: Path, revision: str, expected_revision: str
+) -> tuple[str | None, dict[str, Any] | None]:
+    """Resolve one revision and require the exact full SHA supplied by the plan."""
+    if not SHA_PATTERN.fullmatch(expected_revision):
+        return None, blocked("expected task revision must be a full commit SHA")
+    actual_revision = resolve_commit(repo, revision)
+    if actual_revision is None:
+        return None, blocked("task revision does not resolve to a commit")
+    if actual_revision != expected_revision:
+        return None, blocked(
+            "task revision does not match the completed plan revision",
+            expected_task_revision=expected_revision,
+            task_revision=actual_revision,
+        )
+    return actual_revision, None
 
 
 def head_branch(repo: Path) -> str | None:

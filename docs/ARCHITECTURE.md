@@ -661,6 +661,13 @@ import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
 when useful, never an agent.
 
+The approved plan remains the source of the terminal phase commit. PR open, PR
+merge, and local integration receive that exact full SHA as an explicit helper
+argument and compare it with their effective task head before checks or
+mutation. Helpers do not parse `plan.md` and no delivery state is duplicated.
+Accepted PR fixes within approved intent update the affected terminal manifest
+commit before push; new scope creates a new task.
+
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:
 one source of truth, narrow roles, deterministic helpers, and deletion of

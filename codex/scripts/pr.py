@@ -12,7 +12,14 @@ import subprocess
 from typing import Any
 
 from policy import blocked, load_policy, run_checks
-from _common import SHA_PATTERN, _git, _run, cleanup_private_task_state
+from _common import (
+    SHA_PATTERN,
+    _git,
+    _run,
+    cleanup_private_task_state,
+    require_expected_revision,
+    resolve_commit as _resolve_commit,
+)
 
 
 CAPSULE_START = "<!-- PR-CONTEXT:start -->"
@@ -68,12 +75,6 @@ def _repository_root(repo: Path) -> tuple[Path | None, dict[str, Any] | None]:
     if Path(result.stdout.strip()).resolve() != resolved:
         return None, blocked("--repo must be the Git worktree root")
     return resolved, None
-
-
-def _resolve_commit(repo: Path, revision: str) -> str | None:
-    result = _git(repo, "rev-parse", "--verify", f"{revision}^{{commit}}")
-    sha = result.stdout.strip()
-    return sha if not result.returncode and SHA_PATTERN.fullmatch(sha) else None
 
 
 def _checked_out_branch(repo: Path) -> str | None:
@@ -139,6 +140,7 @@ def open_pr(
     title: str,
     body_file: Path,
     context_file: Path,
+    expected_task_revision: str,
     authorized: bool,
     policy_path: Path | None,
 ) -> dict[str, Any]:
@@ -161,9 +163,14 @@ def open_pr(
     if not title.strip() or not base or not head:
         return blocked("base, head, and title are required")
     base_sha = _resolve_commit(repo, base)
-    head_sha = _resolve_commit(repo, head)
-    if base_sha is None or head_sha is None:
-        return blocked("base or head does not resolve to a commit")
+    head_sha, revision_error = require_expected_revision(
+        repo, head, expected_task_revision
+    )
+    if revision_error:
+        return revision_error
+    if base_sha is None:
+        return blocked("base does not resolve to a commit")
+    assert head_sha is not None
 
     commits = _git(repo, "log", "--format=%H%x09%s", f"{base}..{head}")
     if commits.returncode:
@@ -445,6 +452,7 @@ def merge_pr(
     repository: str,
     pr_number: int,
     clean_head: str,
+    expected_task_revision: str,
     method: str,
     authorized: bool,
     policy_path: Path | None,
@@ -493,6 +501,19 @@ def merge_pr(
         return blocked("--repository must be OWNER/REPO")
     if method not in {"merge", "squash", "rebase"}:
         return blocked("merge method must be merge, squash, or rebase")
+
+    task_revision, revision_error = require_expected_revision(
+        repo, "HEAD", expected_task_revision
+    )
+    if revision_error:
+        return revision_error
+    clean_revision, revision_error = require_expected_revision(
+        repo, clean_head, expected_task_revision
+    )
+    if revision_error:
+        return revision_error
+    assert task_revision is not None and clean_revision is not None
+
     policy, policy_result = load_policy(
         policy_path.resolve() if policy_path else repo / "orchestra.toml"
     )
@@ -881,6 +902,7 @@ def parse_args() -> argparse.Namespace:
     open_parser.add_argument("--title", required=True)
     open_parser.add_argument("--body-file", type=Path, required=True)
     open_parser.add_argument("--context-file", type=Path, required=True)
+    open_parser.add_argument("--expected-task-revision", required=True)
     open_parser.add_argument("--authorized", action="store_true")
     open_parser.add_argument("--policy", type=Path)
 
@@ -899,6 +921,7 @@ def parse_args() -> argparse.Namespace:
     merge_parser.add_argument("--repository", required=True)
     merge_parser.add_argument("--pr", type=int, required=True)
     merge_parser.add_argument("--clean-head", required=True)
+    merge_parser.add_argument("--expected-task-revision", required=True)
     merge_parser.add_argument("--method", choices=("merge", "squash", "rebase"), required=True)
     merge_parser.add_argument("--authorized", action="store_true")
     merge_parser.add_argument("--policy", type=Path)
@@ -918,6 +941,7 @@ def main() -> int:
             args.title,
             args.body_file,
             args.context_file,
+            args.expected_task_revision,
             args.authorized,
             args.policy,
         )
@@ -935,6 +959,7 @@ def main() -> int:
             args.repository,
             args.pr,
             args.clean_head,
+            args.expected_task_revision,
             args.method,
             args.authorized,
             args.policy,

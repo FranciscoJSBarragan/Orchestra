@@ -291,6 +291,12 @@ worktree-local task state without changing Git status or requiring escalation.
 Completed resources are removed only when exact Git and integration evidence
 make that cleanup safe.
 
+Completion freezes the approved objective, acceptance, and artifact selection.
+The terminal phase commit may advance only for a reviewed PR fix that stays
+inside that approved intent; new scope starts a new task. PR and local delivery
+must match the effective task head to that terminal manifest commit before any
+external or integration mutation.
+
 ## Success criteria
 
 Orchestra succeeds when:
@@ -301,6 +307,7 @@ Orchestra succeeds when:
 - review effort finds or prevents meaningful defects;
 - failures explain the cause and the next useful action;
 - local integration removes only exact, safely merged task resources;
+- delivery rejects a task head that is not the terminal manifest commit;
 - the PR path can open, review, fix, push, converge, merge when authorized, and
   clean exact task resources without losing intent;
 - concurrent tasks and their material activity can be queried without opening

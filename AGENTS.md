@@ -113,6 +113,10 @@ through the phase and closes before the phase commit. Waiting, observation
 boundaries, verification ordering, and review policy are specified in
 `docs/WORKFLOW.md`.
 
+Phase plans distinguish targeted implementation handoff checks from the
+independent verification gate. A canonical full suite belongs to the verifier
+once unless repository policy explicitly requires another full gate.
+
 Every approved overview carries a provenance-preserving `Review context`, and
 every phase names its exact context dependencies plus exact non-glob `Context
 maintenance paths` or `none`. Implementation review receives that evidence
@@ -140,13 +144,18 @@ execution is not an agent profile. Coordination snapshots are fail-soft
 observability and never grant authority. Preserve unrelated and uncommitted
 user work.
 
+Completion freezes approved intent and artifact selection. Accepted PR fixes
+inside that intent may advance the affected terminal manifest commit after
+review and verification; new scope after completion requires a new task.
+
 ## Delivery
 
 Repository policy is explicit; if absent, ask once and recommend `hybrid`.
 `open PR` authorizes review/fix/commit/push cycles until clean; merge remains
 separately authorized. Local integration requires explicit direction, fresh
-verification, and guarded cleanup. Never deploy, release, publish, or mutate
-production without explicit scope.
+verification, an exact match between task HEAD and the terminal manifest
+commit, and guarded cleanup. PR open and merge require the same revision match.
+Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Permissions and browser routing
 
@@ -162,6 +171,9 @@ Report only material transitions, findings, blockers, fresh verification
 results, and authority requests; progress updates are informational, not
 implicit permission requests. Blocking questions use `request_user_input` per
 `docs/WORKFLOW.md`.
+
+A normal `wait_agent` timeout is not a material transition and produces no
+user-facing update unless the user asks.
 
 The root distinguishes verified facts, supported inference, and uncertainty,
 and uses an available visualization capability only when it materially

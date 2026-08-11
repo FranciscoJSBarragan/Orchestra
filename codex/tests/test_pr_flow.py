@@ -191,7 +191,7 @@ else:
         )
         return result, json.loads(result.stdout)
 
-    def open_args(self) -> list[str]:
+    def open_args(self, expected_task_revision: str | None = None) -> list[str]:
         return [
             "open",
             "--repo",
@@ -208,6 +208,8 @@ else:
             str(self.body_file),
             "--context-file",
             str(self.context_file),
+            "--expected-task-revision",
+            expected_task_revision or self.head,
             "--authorized",
         ]
 
@@ -229,6 +231,7 @@ else:
         self,
         method: str = "merge",
         clean_head: str | None = None,
+        expected_task_revision: str | None = None,
         authorized: bool = True,
         checkout_mode: str = "managed",
         start_revision: str | None = None,
@@ -251,6 +254,8 @@ else:
             "7",
             "--clean-head",
             clean_head or self.head,
+            "--expected-task-revision",
+            expected_task_revision or self.head,
             "--method",
             method,
         ]
@@ -362,6 +367,21 @@ else:
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("authorization", payload["reason"])
         self.assertEqual(self.log_entries(), [])
+
+    def test_open_blocks_manifest_revision_mismatch_before_gh(self) -> None:
+        base_revision = self.git("rev-parse", "main").stdout.strip()
+
+        result, payload = self.run_pr(*self.open_args(base_revision))
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("completed plan revision", payload["reason"])
+        self.assertEqual(payload["expected_task_revision"], base_revision)
+        self.assertEqual(payload["task_revision"], self.head)
+        self.assertEqual(self.log_entries(), [])
+
+        accepted_result, accepted = self.run_pr(*self.open_args(self.head))
+        self.assertEqual(accepted_result.returncode, 0)
+        self.assertEqual(accepted["status"], "ok")
 
     def test_open_blocks_missing_or_local_only_policy_before_gh(self) -> None:
         (self.repo / "orchestra.toml").unlink()
@@ -529,11 +549,26 @@ else:
         self.assertEqual(self.log_entries(), [])
 
         self.write_policy(passing=True)
+        base_revision = self.git("rev-parse", "main").stdout.strip()
         result, payload = self.run_pr(
-            *self.merge_args("squash", clean_head="b" * 40)
+            *self.merge_args("squash", clean_head=base_revision)
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("local HEAD", payload["reason"])
+        self.assertIn("completed plan revision", payload["reason"])
+        self.assertEqual(self.log_entries(), [])
+
+    def test_merge_blocks_manifest_revision_mismatch_before_checks_and_gh(self) -> None:
+        self.write_policy(passing=False)
+        base_revision = self.git("rev-parse", "main").stdout.strip()
+
+        result, payload = self.run_pr(
+            *self.merge_args(expected_task_revision=base_revision)
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("completed plan revision", payload["reason"])
+        self.assertEqual(payload["expected_task_revision"], base_revision)
+        self.assertEqual(payload["task_revision"], self.head)
         self.assertEqual(self.log_entries(), [])
 
     def test_merge_blocks_failed_checks_without_calling_gh_merge(self) -> None:

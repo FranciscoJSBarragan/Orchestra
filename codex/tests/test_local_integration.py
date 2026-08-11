@@ -79,6 +79,7 @@ class LocalIntegrationTests(unittest.TestCase):
         self,
         authorized: bool = True,
         *,
+        expected_task_revision: str | None = None,
         checkout_mode: str = "managed",
         start_revision: str | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], dict]:
@@ -93,6 +94,8 @@ class LocalIntegrationTests(unittest.TestCase):
             "task",
             "--base-branch",
             "main",
+            "--expected-task-revision",
+            expected_task_revision or self.task_sha,
         ]
         if authorized:
             command.append("--authorized")
@@ -206,6 +209,30 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertIn("check", payload["reason"])
         self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
         self.assertTrue(self.task.exists())
+
+    def test_manifest_revision_mismatch_blocks_before_configured_checks(self) -> None:
+        self.commit_task_policy([sys.executable, "-c", "raise SystemExit(23)"])
+        base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
+
+        result, payload = self.run_helper(expected_task_revision=base_before)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("completed plan revision", payload["reason"])
+        self.assertEqual(payload["expected_task_revision"], base_before)
+        self.assertEqual(payload["task_revision"], self.task_sha)
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
+        self.assertEqual(self.git(self.task, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
+        self.assertTrue(self.task.exists())
+
+    def test_expected_revision_must_be_a_full_commit_sha(self) -> None:
+        base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
+
+        result, payload = self.run_helper(expected_task_revision="HEAD")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("full commit SHA", payload["reason"])
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
+        self.assertEqual(self.git(self.task, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
 
     def test_hybrid_check_cannot_move_starting_branch_before_integration(self) -> None:
         self.commit_task_policy(["git", "branch", "-f", "main", "HEAD"])

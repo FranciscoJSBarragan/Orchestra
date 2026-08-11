@@ -401,6 +401,17 @@ objective and authority creates a complete replacement phase and the root
 updates its manifest entry. A material scope, public-contract, or user-visible
 behavior change requires renewed user approval.
 
+Setting the plan to `completed` freezes its approved objective, acceptance,
+and artifact selection. During an authorized PR review, an accepted fix may
+advance the affected phase's terminal commit only when it remains inside that
+approved intent and is verified, reviewed, and committed through the existing
+phase path; the root updates the manifest before pushing it. A new objective,
+user-visible behavior, or material scope after `completed` or `hold` requires a
+new Orchestra task and plan rather than reopening or rewriting the old one.
+Before PR or local delivery, the root reads the terminal commit from the
+completed manifest and requires the effective task head to match it exactly.
+An unexplained mismatch blocks continuation and delivery under that plan.
+
 `Review context` and `Context maintenance paths` are semantic sections of the
 approved overview and phase artifacts; they add no `plan.md` status, manifest
 field, coordination state, or new artifact kind. A later validated context
@@ -575,6 +586,14 @@ Legacy tasks retain the prior Git-private cleanup path until they complete.
 Each phase has one outcome, allowed scope, acceptance criteria, and verification
 set. A phase-specific subplan is created only when the phase cannot be safely
 delegated from the main plan.
+
+The phase's existing `Verification` section distinguishes `Implementation
+handoff checks`, the smallest targeted checks the owner needs for a stable
+handoff, from the `Independent verification gate`, which owns any canonical
+full-suite command. The planner never assigns the same full-suite gate to both
+roles. After an accepted fix, the verifier reruns only affected checks unless
+the repository explicitly requires another full gate. Configured delivery
+checks remain a separate final delivery boundary.
 
 Every planned or added test maps to an observable acceptance journey or a named
 regression risk. Do not add duplicated coverage, count-driven tests, or tests
@@ -901,6 +920,10 @@ assess once for concrete blocker evidence, but elapsed time alone never marks
 the assignment failed. Interruptions are reserved for cancellation, material
 scope changes, or indispensable invalidating information.
 
+A normal `timed_out` result is not a user-visible transition and produces no
+progress update unless the user asks. The 30-minute assessment is reported only
+when it establishes a material blocker or another reportable transition.
+
 ## Commit path
 
 Plan approval covers commits at successful phase boundaries. Commit execution
@@ -951,7 +974,8 @@ The unchanged public PR skills preserve the proven behavioral chain:
    review-thread state.
 4. The root evaluates actionable feedback against intent, current code, and
    scope, using an independent `orchestra_reviewer` when code-review judgment is useful.
-5. The implementation owner applies accepted fixes, verifies them, commits, and
+5. The implementation owner applies accepted fixes and verifies them. The root
+   commits them, updates the affected phase's terminal manifest commit, and
    pushes.
 6. The loop continues until two complete clean observations occur on the same
    head. The root passes the first clean head directly to the second observation
@@ -993,7 +1017,9 @@ Local integration is a direct alternative, not a degraded PR path. It requires:
 
 The mechanical path runs configured checks in the clean task checkout, permits
 only conservative fast-forward integration, and verifies that the base contains
-the captured task SHA. Managed mode removes its still-clean worktree and branch;
+the captured task SHA. Before those checks, it requires the task HEAD to equal
+the terminal commit supplied from the completed plan manifest. Managed mode
+removes its still-clean worktree and branch;
 hybrid mode restores and fast-forwards the unchanged starting branch, preserves
 the checkout, and deletes only the fully merged task branch. Divergence returns
 to the root for resolution.

@@ -26,6 +26,13 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   named regression risk. Do not add duplicated coverage, count-driven tests,
   or tests coupled to implementation details unless those details are an
   approved contract.
+- Within each phase's existing `Verification` section, distinguish
+  `Implementation handoff checks`, the smallest targeted checks required for a
+  stable owner handoff, from the `Independent verification gate`. Assign a
+  canonical full-suite command only to the independent verifier, never both
+  roles. After fixes, require only affected reruns unless repository policy
+  explicitly requires another full gate; configured delivery checks remain a
+  separate final boundary.
 - Define the fewest independently reviewable phases. Each phase document must
   be independently executable and state one outcome, its relationship to the
   overview, preconditions and dependencies, exact allowed scope, required

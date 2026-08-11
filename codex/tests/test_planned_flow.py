@@ -1017,8 +1017,35 @@ class PlannedFlowContractTests(unittest.TestCase):
             "`interrupt: true`",
             "After 30 accumulated minutes",
             "elapsed time alone is not a failure",
+            "A normal timeout is not a user-visible transition",
         ):
             self.assertIn(contract, normalized)
+
+    def test_planning_assigns_full_suite_only_to_independent_verification(self) -> None:
+        planning = (self.references / "technical_planning.md").read_text()
+        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        for source in (self.skill, planning, workflow):
+            normalized = " ".join(source.split())
+            self.assertIn("Implementation handoff checks", normalized)
+            self.assertIn("Independent verification gate", normalized)
+            self.assertIn("canonical full", normalized)
+
+    def test_completed_manifest_revision_gates_delivery_and_new_scope(self) -> None:
+        delivery = (
+            ROOT / "codex/skills/orchestra-delivery-policy/SKILL.md"
+        ).read_text()
+        pr_review = (
+            ROOT / "codex/skills/orchestra-pr-review/SKILL.md"
+        ).read_text()
+        combined = " ".join((self.skill + delivery + pr_review).split())
+        for contract in (
+            "terminal manifest commit",
+            "effective task head",
+            "update the affected phase's terminal manifest commit",
+            "New scope",
+            "new task",
+        ):
+            self.assertIn(contract, combined)
 
     def test_implementation_handoff_bounds_root_observation_and_findings(
         self,

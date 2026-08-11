@@ -787,10 +787,16 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "independent_review",
             "same implementation owner",
         ),
+        "orchestra-pr-open": (
+            "pr.py",
+            "--expected-task-revision",
+            "completed manifest",
+        ),
         "orchestra-pr-merge": (
             "--base-worktree",
             "--task-branch",
             "--base-branch",
+            "--expected-task-revision",
             "--remote",
             "lease",
             "retained resource",
@@ -798,6 +804,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "orchestra-local-integrate": (
             "--task-worktree",
             "--base-worktree",
+            "--expected-task-revision",
             "--checkout-mode",
             "hybrid uses the same checkout root",
         ),

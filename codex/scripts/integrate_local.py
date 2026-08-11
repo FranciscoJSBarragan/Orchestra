@@ -18,6 +18,7 @@ from _common import (
     head_branch as _branch,
     head_commit as _head,
     is_clean as _clean,
+    require_expected_revision,
     worktree_root as _worktree_root,
 )
 
@@ -34,6 +35,7 @@ def integrate_local(
     base_branch: str,
     authorized: bool,
     policy_path: Path | None,
+    expected_task_revision: str,
     checkout_mode: str = "managed",
     start_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -61,6 +63,13 @@ def integrate_local(
     if checkout_mode == "managed" and not _clean(base):
         return blocked("base worktree is dirty")
 
+    task_sha, revision_error = require_expected_revision(
+        task, "HEAD", expected_task_revision
+    )
+    if revision_error:
+        return revision_error
+    assert task_sha is not None
+
     policy, policy_result = load_policy(
         policy_path.resolve() if policy_path else task / "orchestra.toml"
     )
@@ -69,10 +78,9 @@ def integrate_local(
     if policy["mode"] not in {"hybrid", "local-direct"}:
         return blocked("delivery policy does not permit local integration")
 
-    task_sha = _head(task)
     base_sha = _head(base)
-    if task_sha is None or base_sha is None:
-        return blocked("task or base HEAD is invalid")
+    if base_sha is None:
+        return blocked("base HEAD is invalid")
     branch_ref = _git(task, "rev-parse", "--verify", f"refs/heads/{task_branch}")
     if branch_ref.returncode or branch_ref.stdout.strip() != task_sha:
         return blocked("task branch does not identify the task HEAD")
@@ -219,6 +227,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-worktree", type=Path, required=True)
     parser.add_argument("--task-branch", required=True)
     parser.add_argument("--base-branch", required=True)
+    parser.add_argument("--expected-task-revision", required=True)
     parser.add_argument("--authorized", action="store_true")
     parser.add_argument("--policy", type=Path)
     parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
@@ -235,6 +244,7 @@ def main() -> int:
         args.base_branch,
         args.authorized,
         args.policy,
+        args.expected_task_revision,
         args.checkout_mode,
         args.start_revision,
     )
