@@ -6,7 +6,10 @@
 flowchart TD
     U["Normal chat"] --> Q{"User intent"}
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
+    Q -->|"Capture for later"| IN["Durable inbox item; no activation"]
+    Q -->|"Explicit $orchestra-task"| DT["Create or resume durable item and dedicated root UUID"]
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
+    DT --> B
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     B --> MC["Resolve installed native V2 or external V1 model configuration"]
     MC --> TR["Root recommends the available tier with risk and cost-benefit"]
@@ -42,9 +45,9 @@ flowchart TD
 ## Orchestrator behavior
 
 Orchestra is an explicit planned-work route. It activates only through
-`$orchestra` or an unequivocal imperative to use or start Orchestra. Ordinary
-plan requests, descriptive mentions, and direct change, fix, or implementation
-work remain outside Orchestra.
+`$orchestra`, `$orchestra-task`, or an unequivocal imperative to use or start
+Orchestra. Ordinary plan requests, descriptive mentions, task capture, and
+direct change, fix, or implementation work remain outside Orchestra.
 
 If Orchestra is invoked in a planning-only host mode, reuse the conversation,
 identify the latest candidate checkpoint, and pause before branch, worktree,
@@ -103,6 +106,49 @@ When user participation is genuinely required — physical observation,
 another device, an account or approval only the user holds — batch every
 needed check into one consolidated request with expected results, instead of
 sequential single questions.
+
+## Durable task intake
+
+The installed `task_control.py` helper is a harness-neutral JSON boundary for a
+small local inbox. `task create` and `task note` accept caller-stable
+idempotency keys and bounded source references. Capturing a task does not
+activate Orchestra, launch Codex, or authorize implementation. Any harness may
+capture; only an explicit `$orchestra-task` invocation starts or continues its
+run.
+
+The helper stores task, note, run, and turn continuity in
+`$HOME/.orchestra/control.sqlite3`. It has no daemon: each run command opens
+Codex App Server over stdio, starts or resumes the exact persisted thread UUID,
+executes one structured turn, records its checkpoint, and exits. The initial
+turn recommends a tier and waits. After the user chooses, the same root follows
+the normal checkout and mandatory `repository_context` route, synthesizes a
+candidate specification, and stops. That discovery result does not authorize
+implementation; the existing specification, planning, and implementation gates
+remain unchanged.
+
+Turn creation and replies are idempotent. The thread UUID is persisted before
+the first turn starts, and the exact turn UUID is persisted before waiting for
+completion. A transport failure after either boundary becomes
+`needs_reconciliation`; it is never retried blindly. Reconciliation may adopt
+only the structured result of that exact persisted turn when `thread/read`
+shows it completed. Otherwise user intervention remains required.
+
+`task cancel` records a durable request and an active driver issues
+`turn/interrupt` for the exact persisted turn. It preserves the thread UUID,
+prior checkpoint, notes, worktree, and artifacts. `run reopen` starts a new
+continuation turn on that thread and never replays an earlier turn. App Server
+approval, permission, and user-input requests are persisted as fingerprinted
+interactions. A `run resolve` response is consumed once only by an exact
+matching request; a mismatch creates a new pending interaction.
+
+`task archive` and `task restore` mirror Codex thread archive state when a
+thread exists. Archiving is reversible, is blocked by an unresolved turn, and
+never deletes branches, worktrees, artifacts, plans, or thread history. The
+control database is intake and continuity state only; Git, the approved
+`plan.md`, and explicit user authority remain authoritative for formal work.
+The installed stdio MCP server adapts this same JSON controller. Its write
+tools require harness approval and cannot authorize a tier, plan, commit, or
+delivery.
 
 ## Tier flows and models
 

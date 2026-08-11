@@ -27,6 +27,10 @@ CANONICAL = (
 class RoutingActivationContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
+        self.task_skill = (ROOT / "codex/skills/orchestra-task/SKILL.md").read_text()
+        self.task_metadata = (
+            ROOT / "codex/skills/orchestra-task/agents/openai.yaml"
+        ).read_text()
         self.workflow = (ROOT / "docs/WORKFLOW.md").read_text()
         self.agents = (ROOT / "AGENTS.md").read_text()
         self.runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
@@ -107,6 +111,20 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("remain outside Orchestra", self.runtime)
         self.assertIn("descriptive mentions", self.skill)
         self.assertIn("Ordinary plan requests", self._flat(self.workflow))
+
+    def test_durable_intake_requires_explicit_task_skill_and_stops_at_discovery(self) -> None:
+        frontmatter = self.task_skill.split("---", 2)[1]
+        normalized_skill = self._flat(self.task_skill)
+        self.assertIn("explicit `$orchestra-task` invocation", frontmatter)
+        self.assertIn("Do not use for ordinary mentions", frontmatter)
+        self.assertIn("allow_implicit_invocation: false", self.task_metadata)
+        self.assertIn("candidate specification", normalized_skill)
+        self.assertIn("mandatory Orchestra repository context", normalized_skill)
+        self.assertIn("Never interpret task status as implementation authority", normalized_skill)
+        for path in (ROOT / "VISION.md", ROOT / "docs/WORKFLOW.md"):
+            normalized = self._flat(path.read_text())
+            self.assertIn("Capturing a task does not activate Orchestra", normalized)
+            self.assertIn("does not authorize implementation", normalized)
 
     def test_explicit_specification_gate_fields_remain(self) -> None:
         flat_skill = self._flat(self.skill)

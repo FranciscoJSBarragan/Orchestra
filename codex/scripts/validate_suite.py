@@ -42,6 +42,9 @@ REQUIRED_PATHS = (
     "codex/scripts/validate_suite.py",
     "codex/scripts/sync.py",
     "codex/scripts/coordination.py",
+    "codex/scripts/task_state.py",
+    "codex/scripts/task_control.py",
+    "codex/scripts/task_mcp.py",
     "codex/scripts/commit_phase.py",
     "codex/scripts/adopt_worktree.py",
     "codex/scripts/session_model.py",
@@ -58,6 +61,14 @@ REQUIRED_PATHS = (
     "codex/agents/orchestra_verifier.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
+    "codex/skills/orchestra-task/SKILL.md",
+    "codex/skills/orchestra-task/agents/openai.yaml",
+    "codex/control/orchestra_control/__init__.py",
+    "codex/control/orchestra_control/db.py",
+    "codex/control/orchestra_control/service.py",
+    "codex/control/orchestra_control/app_server.py",
+    "codex/control/orchestra_control/cli.py",
+    "codex/control/orchestra_control/mcp.py",
     "codex/skills/orchestra-project-start/SKILL.md",
     "codex/skills/orchestra-project-start/agents/openai.yaml",
     "codex/skills/orchestra/references/repository_context.md",
@@ -91,6 +102,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_coordination.py",
+    "codex/tests/test_task_control.py",
     "codex/tests/test_adopt_worktree.py",
     "codex/tests/test_session_model.py",
     "codex/tests/test_routing_activation.py",
@@ -216,6 +228,7 @@ LEGACY_PROFILE_NAMES = (
 
 SKILL_NAMES = (
     "orchestra",
+    "orchestra-task",
     "orchestra-project-start",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
@@ -890,7 +903,7 @@ def check_direct_sync(root: Path) -> list[str]:
     if commands != {"status", "apply", "uninstall"}:
         failures.append("sync-contract: CLI must expose exactly status, apply, and uninstall")
     if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly eight skills")
+        failures.append("sync-contract: sync inventory must name exactly thirteen skills")
     if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
         failures.append("sync-contract: sync inventory must name exactly four agents")
     if set(constants.get("LEGACY_AGENTS", ())) != set(LEGACY_PROFILE_NAMES):
@@ -901,6 +914,8 @@ def check_direct_sync(root: Path) -> list[str]:
     if tuple(constants.get("HELPERS", ())) != (
         "coordination.py",
         "task_state.py",
+        "task_control.py",
+        "task_mcp.py",
         "commit_phase.py",
         "adopt_worktree.py",
         "session_model.py",
@@ -909,7 +924,7 @@ def check_direct_sync(root: Path) -> list[str]:
         "integrate_local.py",
         "_common.py",
     ):
-        failures.append("sync-contract: sync inventory must name exactly nine helpers")
+        failures.append("sync-contract: sync inventory must name exactly eleven helpers")
     if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external", "dual"):
         failures.append(
             "sync-contract: modelconfig choices must be exactly native, external, and dual"

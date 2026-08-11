@@ -20,6 +20,7 @@ from typing import Any
 
 SKILLS = (
     "orchestra",
+    "orchestra-task",
     "orchestra-project-start",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
@@ -57,6 +58,8 @@ LEGACY_AGENTS = (
 HELPERS = (
     "coordination.py",
     "task_state.py",
+    "task_control.py",
+    "task_mcp.py",
     "commit_phase.py",
     "adopt_worktree.py",
     "session_model.py",
@@ -524,6 +527,17 @@ def _inventory(
         entries[("codex_home", destination)] = _entry(
             "codex_home", destination, "file", _read_file(source, str(source))
         )
+    control_root = source_root / "codex" / "control"
+    if control_root.is_symlink() or not control_root.is_dir():
+        raise SyncError(f"expected a source directory: {control_root}")
+    for source in _walk_files(control_root):
+        relative = source.relative_to(control_root).as_posix()
+        if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
+            continue
+        destination = f"orchestra/control/{relative}"
+        entries[("codex_home", destination)] = _entry(
+            "codex_home", destination, "file", _read_file(source, str(source))
+        )
     entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
         "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
     )
@@ -570,6 +584,7 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             f"orchestra/scripts/{name}"
             for name in (*HELPERS, *RETIRED_HELPERS)
         }
+        or (len(parts) >= 3 and parts[:2] == ("orchestra", "control"))
     )
 
 
@@ -731,6 +746,7 @@ def _config_block(
     *,
     backend: str,
     parsed: dict[str, Any],
+    codex_home: Path,
 ) -> bytes:
     _ = writable_roots, parsed
     lines = [CONFIG_START]
@@ -740,6 +756,17 @@ def _config_block(
                 b'approval_policy = "on-request"',
                 b'approvals_reviewer = "auto_review"',
                 f'default_permissions = "{PERMISSION_PROFILE}"'.encode(),
+                b"",
+                b"[mcp_servers.orchestra_tasks]",
+                f'command = "{sys.executable}"'.encode(),
+                (
+                    'args = ["'
+                    + str(codex_home / "orchestra/scripts/task_mcp.py")
+                    + '"]'
+                ).encode(),
+                b"required = false",
+                b"tool_timeout_sec = 3600",
+                b'default_tools_approval_mode = "writes"',
             )
         )
     else:
@@ -1110,6 +1137,7 @@ def _desired_config_entry(
         desired_roots,
         backend=backend,
         parsed=parsed,
+        codex_home=codex_home,
     )
     if owner is not None:
         span = _config_span(current)

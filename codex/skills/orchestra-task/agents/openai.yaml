@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Task"
+  short_description: "Save and start a durable Orchestra discovery task"
+  default_prompt: "Use $orchestra-task to save this task and start its dedicated Orchestra discovery thread."
+policy:
+  allow_implicit_invocation: false

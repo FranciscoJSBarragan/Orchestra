@@ -188,7 +188,7 @@ Sync results use:
 - `blocked`: safety, ownership, drift, configuration, or validation prevented
   the operation; resolve the named blocker before retrying.
 
-Eight skills and their internal playbook references install under
+Thirteen skills and their internal playbook references install under
 `$HOME/.agents/skills/`. Four agent profiles install under
 `$CODEX_HOME/agents/`; capability assignments and runtime helpers install under
 `$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
@@ -230,6 +230,32 @@ Completed task metadata remains queryable. Worktree cleanup may make old
 artifact locators unavailable. Sync and uninstall manage the helper but never
 own or remove the database. There is no daemon, HTTP server, MCP server, global
 executable, event ledger, heartbeat system, or dashboard in this version.
+
+## Durable task intake
+
+Direct sync also installs `$orchestra-task` and its local JSON helper. Any
+harness can capture an item without activating Orchestra; only an explicit
+`$orchestra-task` invocation starts a dedicated Codex-Orchestra discovery
+thread:
+
+```sh
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task list
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task create \
+  --title "<title>" --brief "<objective>" --idempotency-key "<stable-key>"
+```
+
+The helper stores private state in `$HOME/.orchestra/control.sqlite3`. Direct
+sync also registers the local stdio `orchestra_tasks` MCP server, exposing the
+same task, run, cancellation, archive, reconciliation, and interaction
+operations. Write tools remain subject to harness approval. The store is
+separate from fail-soft coordination snapshots and never substitutes for
+Orchestra's approved `plan.md`, Git, or user authority. A started item first
+asks for the tier, then runs normal repository context and stops at a candidate
+specification on the same persistent root UUID. It never starts implementation
+automatically. Cancellation preserves its thread and checkpoint; reopening
+continues that thread without blind replay. The menu bar manages local inbox
+items while Hub data remains GET-only. There is no daemon, remote MCP
+transport, mutable web console, or migration from another task system.
 
 Artifacts are the semantic handoff channel across context, planning,
 implementation, verification, debugging, and review. Formal planning publishes

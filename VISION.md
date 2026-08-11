@@ -79,12 +79,32 @@ payments, destructive actions, and delivery remain in force.
 
 Workflow selection belongs to the user. A planning-only host mode never mutates
 through Orchestra, and ordinary change, plan, or implementation requests remain
-direct work. Only an explicit `$orchestra` invocation or an unequivocal
-imperative to use or start Orchestra activates the workflow. Orchestra then
-recommends standard execution by default and critical scrutiny for actual
-high-impact risk. External Luna is considered only when the user explicitly
-prioritizes cost for ordinary, bounded work; the user makes the final tier
-choice.
+direct work. Only an explicit `$orchestra` or `$orchestra-task` invocation, or
+an unequivocal imperative to use or start Orchestra, activates the workflow.
+Orchestra then recommends standard execution by default and critical scrutiny
+for actual high-impact risk. External Luna is considered only when the user
+explicitly prioritizes cost for ordinary, bounded work; the user makes the
+final tier choice.
+
+### Durable intake and discovery continuity
+
+Any chat or harness may capture a concise software task in a private local
+inbox for later use. Capturing a task does not activate Orchestra and does not
+authorize implementation. It does not start a Codex thread or choose a tier; it
+records the user's brief and origin so another supported harness can find the
+same item without replaying the conversation.
+
+An explicit `$orchestra-task` invocation starts or continues one dedicated,
+persistent Codex root for that item. The root uses the normal Orchestra route:
+it recommends the initial tier, waits for the user's choice, gathers focused
+repository context, and stops at a candidate specification. Brainstorming may
+continue on the same thread UUID until the user confirms the specification;
+formal planning and implementation retain their existing approval gates.
+Archiving is reversible and never implies deletion of Git or Orchestra work.
+Cancellation is also reversible: it interrupts only the exact active turn,
+preserves the dedicated thread and durable work, and requires an explicit
+reopen. The JSON CLI and local stdio MCP adapter retain the same authority
+gates.
 
 ### Quality per token
 
@@ -301,6 +321,8 @@ external or integration mutation.
 
 Orchestra succeeds when:
 
+- a task can be captured durably without starting Orchestra, then explicitly
+  resumed into one discovery thread without losing its origin or UUID;
 - ordinary tasks finish without workflow repair or manual state cleanup;
 - accepted phases leave no active write-capable agent or owned test process;
 - phase commits are routine and traceable;

@@ -78,7 +78,7 @@ class SyncTests(unittest.TestCase):
 
     def source_fixture(self) -> Path:
         fixture = Path(self.temporary.name) / "source"
-        for directory in ("skills", "agents"):
+        for directory in ("skills", "agents", "control"):
             shutil.copytree(ROOT / "codex" / directory, fixture / "codex" / directory)
         (fixture / "codex/config").mkdir(parents=True)
         for modelconfig in ("native", "external"):
@@ -167,6 +167,9 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/session_model.py").is_file()
         )
+        self.assertTrue(
+            self.codex_home.joinpath("orchestra/scripts/task_mcp.py").is_file()
+        )
         self.assertEqual(
             self.codex_home.joinpath("orchestra/worktree-root").read_text(),
             f"{self.worktree_root}\n",
@@ -179,6 +182,9 @@ class SyncTests(unittest.TestCase):
         self.assertIn('approval_policy = "on-request"', config)
         self.assertIn('approvals_reviewer = "auto_review"', config)
         self.assertIn('default_permissions = ":workspace"', config)
+        self.assertIn("[mcp_servers.orchestra_tasks]", config)
+        self.assertIn('default_tools_approval_mode = "writes"', config)
+        self.assertIn("orchestra/scripts/task_mcp.py", config)
         self.assertNotIn("orchestra-workspace", config)
         self.assertNotIn("[permissions.", config)
         self.assertNotIn("[sandbox_workspace_write]", config)
