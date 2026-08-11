@@ -182,7 +182,7 @@ class SyncTests(unittest.TestCase):
         self.assertIn('approval_policy = "on-request"', config)
         self.assertIn('approvals_reviewer = "auto_review"', config)
         self.assertIn('default_permissions = ":workspace"', config)
-        self.assertIn("[mcp_servers.orchestra_tasks]", config)
+        self.assertIn("mcp_servers.orchestra_tasks = {", config)
         self.assertIn('default_tools_approval_mode = "writes"', config)
         self.assertIn("orchestra/scripts/task_mcp.py", config)
         self.assertNotIn("orchestra-workspace", config)
@@ -641,6 +641,34 @@ class SyncTests(unittest.TestCase):
         self.assertIn("[mcp_servers.example]", restored)
         self.assertIn('command = "example-server"', restored)
         self.assertNotIn("orchestra-workspace", restored)
+
+    def test_codex_inserted_mcp_table_inside_marker_is_recovered(self) -> None:
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        config = self.codex_home / "config.toml"
+        installed = config.read_bytes()
+        injected = (
+            b"[mcp_servers.node_repl]\n"
+            b'command = "node-repl"\n\n'
+        )
+        config.write_bytes(
+            installed.replace(sync.CONFIG_END + b"\n", injected + sync.CONFIG_END + b"\n", 1)
+        )
+
+        status = self.run_sync("status")
+        self.assertEqual(status["status"], "partial")
+        self.assertNotIn("owned managed block drift", status.get("detail", ""))
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+
+        repaired = config.read_text()
+        self.assertIn("mcp_servers.orchestra_tasks = {", repaired)
+        self.assertNotIn("[mcp_servers.orchestra_tasks]", repaired)
+        self.assertLess(
+            repaired.index("# orchestra-worktree-root:end"),
+            repaired.index("[mcp_servers.node_repl]"),
+        )
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertIn("[mcp_servers.node_repl]", config.read_text())
+        self.assertIn('command = "node-repl"', config.read_text())
 
     def test_permission_rewrite_preserves_multiline_strings_byte_for_byte(
         self,

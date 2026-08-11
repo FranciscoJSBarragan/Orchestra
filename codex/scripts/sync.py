@@ -723,6 +723,48 @@ def _config_span(data: bytes) -> tuple[int, int] | None:
     )
 
 
+def _owned_config_parts(
+    data: bytes, owner_digest: str
+) -> tuple[bytes, bytes] | None:
+    """Recognize an owned block plus MCP tables inserted before its end marker."""
+
+    span = _config_span(data)
+    if span is None:
+        return None
+    block = data[span[0] : span[1]]
+    if _digest(block) == owner_digest:
+        return block, b""
+    marker = block.rfind(CONFIG_END)
+    if marker < 0:
+        return None
+    for name, start, _ in _table_spans(block):
+        if not name.startswith("mcp_servers.") or name == "mcp_servers.orchestra_tasks":
+            continue
+        prefix = block[:start].rstrip(b"\n") + b"\n"
+        candidate = prefix + CONFIG_END + b"\n"
+        if _digest(candidate) != owner_digest:
+            continue
+        extension = block[start:marker]
+        normalized = data[: span[0]] + candidate + extension + data[span[1] :]
+        _parse_config(normalized)
+        return candidate, extension
+    return None
+
+
+def _normalize_owned_config(
+    data: bytes, recovery: tuple[bytes, bytes] | None
+) -> bytes:
+    if recovery is None or not recovery[1]:
+        return data
+    span = _config_span(data)
+    if span is None:
+        raise SyncError("owned managed block is missing from config.toml")
+    managed, extension = recovery
+    normalized = data[: span[0]] + managed + extension + data[span[1] :]
+    _parse_config(normalized)
+    return normalized
+
+
 def _entry_span(entry: dict[str, Any], data: bytes) -> tuple[int, int] | None:
     if entry["type"] == "managed_block":
         return _block_span(data)
@@ -751,22 +793,19 @@ def _config_block(
     _ = writable_roots, parsed
     lines = [CONFIG_START]
     if backend == "profile":
+        command = json.dumps(sys.executable)
+        wrapper = json.dumps(str(codex_home / "orchestra/scripts/task_mcp.py"))
         lines.extend(
             (
                 b'approval_policy = "on-request"',
                 b'approvals_reviewer = "auto_review"',
                 f'default_permissions = "{PERMISSION_PROFILE}"'.encode(),
-                b"",
-                b"[mcp_servers.orchestra_tasks]",
-                f'command = "{sys.executable}"'.encode(),
                 (
-                    'args = ["'
-                    + str(codex_home / "orchestra/scripts/task_mcp.py")
-                    + '"]'
+                    "mcp_servers.orchestra_tasks = { "
+                    f"command = {command}, args = [{wrapper}], required = false, "
+                    "tool_timeout_sec = 3600, "
+                    'default_tools_approval_mode = "writes" }'
                 ).encode(),
-                b"required = false",
-                b"tool_timeout_sec = 3600",
-                b'default_tools_approval_mode = "writes"',
             )
         )
     else:
@@ -1140,8 +1179,7 @@ def _desired_config_entry(
         codex_home=codex_home,
     )
     if owner is not None:
-        span = _config_span(current)
-        if span is None or _digest(current[span[0] : span[1]]) != owner["digest"]:
+        if _owned_config_parts(current, owner["digest"]) is None:
             raise SyncError("owned managed block drift in config.toml")
         return (
             _entry(
@@ -1242,6 +1280,11 @@ def _analyze(
         else:
             current = _read_file(path, entry["path"]) if path.exists() else b""
             span = _entry_span(entry, current)
+            config_recovery = (
+                _owned_config_parts(current, owner["digest"])
+                if owner is not None and entry["type"] == "managed_config"
+                else None
+            )
             if owner is None:
                 if span is not None:
                     raise SyncError(f"unmanaged Orchestra markers in {entry['path']}")
@@ -1254,7 +1297,11 @@ def _analyze(
                 continue
             if not path.exists() or span is None:
                 raise SyncError(f"owned managed block is missing from {entry['path']}")
-            if _digest(current[span[0] : span[1]]) != owner["digest"]:
+            if entry["type"] == "managed_config":
+                matches = config_recovery is not None
+            else:
+                matches = _digest(current[span[0] : span[1]]) == owner["digest"]
+            if not matches:
                 raise SyncError(f"owned managed block drift in {entry['path']}")
             if current[span[0] : span[1]] != entry["content"]:
                 kind = (
@@ -1262,9 +1309,10 @@ def _analyze(
                     if entry["type"] == "managed_config"
                     else "update_block"
                 )
-                operations.append(
-                    _operation(kind, entry, current, preserve_backup=True)
-                )
+                operation = _operation(kind, entry, current, preserve_backup=True)
+                if config_recovery is not None and config_recovery[1]:
+                    operation["config_recovery"] = config_recovery
+                operations.append(operation)
 
     for key in sorted(set(installed) - set(desired)):
         owner = installed[key]
@@ -1443,18 +1491,24 @@ def _apply_operation(
             content = _insert_config_block(before or b"", entry["content"])
             _atomic_write(path, content, roots[entry["root"]])
         elif kind == "update_config_block":
-            span = _config_span(before)
+            normalized = _normalize_owned_config(
+                before, operation.get("config_recovery")
+            )
+            span = _config_span(normalized)
             assert span is not None
-            content = _render_managed_config(before, entry["content"])
+            content = _render_managed_config(normalized, entry["content"])
             _atomic_write(path, content, roots[entry["root"]])
         elif kind == "delete":
             if entry["type"] in {"managed_block", "managed_config"}:
                 if entry["type"] == "managed_config":
+                    normalized = _normalize_owned_config(
+                        before, operation.get("config_recovery")
+                    )
                     restore = operation.get("restore")
                     if restore is not None:
-                        remaining = _restore_permission_config(before, restore)
+                        remaining = _restore_permission_config(normalized, restore)
                     else:
-                        remaining = _strip_permission_config(before)
+                        remaining = _strip_permission_config(normalized)
                     _parse_config(remaining)
                 else:
                     span = _entry_span(entry, before)
@@ -1914,7 +1968,17 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             data = _read_file(path, owner["path"])
             if owner["type"] in {"managed_block", "managed_config"}:
                 span = _entry_span(owner, data)
-                matches = span is not None and _digest(data[span[0] : span[1]]) == owner["digest"]
+                recovery = (
+                    _owned_config_parts(data, owner["digest"])
+                    if owner["type"] == "managed_config"
+                    else None
+                )
+                matches = (
+                    recovery is not None
+                    if owner["type"] == "managed_config"
+                    else span is not None
+                    and _digest(data[span[0] : span[1]]) == owner["digest"]
+                )
             else:
                 matches = _digest(data) == owner["digest"]
             if not matches:
@@ -1942,6 +2006,8 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 data,
                 preserve_backup=owner["type"] == "managed_config",
             )
+            if owner["type"] == "managed_config" and recovery is not None and recovery[1]:
+                operation["config_recovery"] = recovery
             if owner["type"] == "managed_config" and "backup" in owner:
                 operation["restore"] = _read_file(backup, owner["backup"])
             state = _apply_operation(operation, roots, codex_home)
