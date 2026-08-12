@@ -600,6 +600,16 @@ Tests protect the few important invariants:
   selected worktree, rejects unsafe collisions, leaves Git status clean, and
   supplies exact plan and artifact paths without protected-write escalation;
 - neither mode implements directly on the starting branch or `main`;
+- a fresh canonical-base task resolves and fetches the configured upstream
+  before fixing its base revision; a fetch failure blocks, while an absent
+  remote/upstream permits an explicitly identified local base that is not
+  remotely verified;
+- managed mode branches directly from the verified upstream commit without
+  updating the base checkout; hybrid mode accepts equality, fast-forwards a
+  strictly behind clean base, and blocks when the local base is ahead or
+  diverged;
+- explicit noncanonical bases preserve stacked work, and setup never performs
+  a pull, implicit merge, or rebase;
 - scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
   import into the clean task worktree;
 - fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
@@ -681,9 +691,12 @@ Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
 never clean. Managed task worktree creation remains a direct root
-`git worktree add` operation using the configured path and exact base commit.
-Hybrid task setup uses direct `git switch -c` in the selected clean checkout
-against its captured HEAD. Synchronization records the absolute root, checkout
+`git worktree add` operation using the configured path and exact fetched
+upstream commit for a remotely tracked canonical base. Hybrid task setup first
+resolves and fetches that upstream, uses `git merge --ff-only <upstream>` only
+when the clean local base is strictly behind, and then uses direct
+`git switch -c` against its captured HEAD. Ahead or diverged bases block instead
+of being rewritten. Synchronization records the absolute root, checkout
 mode, and one reversible Codex permission backend.
 Codex 0.146.0 or later receives the built-in `:workspace` profile with
 `approval_policy = "on-request"` and

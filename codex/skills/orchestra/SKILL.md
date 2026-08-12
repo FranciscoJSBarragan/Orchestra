@@ -109,25 +109,16 @@ canonical runtime, dependency setup, services, permissions, credential
 categories without reading secrets, verification commands, test-data
 provenance, and generated paths relevant to the task.
 
+For a fresh task on the repository's canonical base branch, resolve its configured upstream and fetch only its remote branch before fixing the base revision. A configured upstream whose fetch fails blocks task setup. With no remote or upstream, proceed locally only after identifying the base as not remotely verified. Preserve an explicitly selected noncanonical base at its captured commit for stacked work. Never run `git pull`, create an implicit merge, or rebase during setup.
+
 Read `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`; accept only
 `managed` or `hybrid`, default a missing legacy value to `managed`, and let an
 explicit task instruction override it for that task. Record the effective mode
 in the approved plan.
 
-Managed mode preserves the isolated flow: resolve the worktree root from
-`ORCHESTRA_WORKTREE_ROOT`, the installed
-`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root` file, or
-`$HOME/.orchestra/worktrees`; prove the repository directory writable; choose
-the first matching `orchestra/<task-slug>[-N]` branch/path pair; and run direct
-`git worktree add` against the captured full base revision.
+Managed mode preserves the isolated flow: resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed `${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root` file, or `$HOME/.orchestra/worktrees`; prove the repository directory writable; choose the first matching `orchestra/<task-slug>[-N]` branch/path pair; and run direct `git worktree add` against the fetched upstream's verified full commit without updating the base checkout, or the unverified local base when no upstream exists.
 
-Hybrid mode uses the current primary checkout or linked worktree. Require a
-named starting branch, exact committed HEAD, no staged, unstaged, or untracked
-changes, no Git operation in progress, and no conflicting Orchestra plan.
-Prove that checkout writable, capture its path, starting branch and revision,
-then create the first matching `orchestra/*` branch there with direct
-`git switch -c <branch> <captured-head>`. A clean `main` needs no extra prompt
-because no work starts until the new branch exists. Dirty, detached, conflicted,
+Hybrid mode uses the current primary checkout or linked worktree. Require a named starting branch, exact committed HEAD, clean status, no Git operation in progress, and no conflicting Orchestra plan. Prove that checkout writable. For a clean canonical base, proceed when equal to its fetched upstream, fast-forward when strictly behind with `git merge --ff-only <upstream>`, and block for one user decision when ahead or diverged. Capture its path, branch, and revision, then create `orchestra/*` with direct `git switch -c <branch> <captured-head>`. Equal or strictly behind needs no extra prompt because work starts only on the new branch. Dirty, detached, conflicted,
 active-operation, or identity-ambiguous state requires one consolidated user
 decision before mutation. Never implement on the starting branch or directly
 on `main`. A PR-required task also proves the selected base is remotely usable
@@ -137,6 +128,8 @@ If branch or worktree creation fails, inspect the exact identity and Git error
 once and block before capability dispatch. Selected dirty paths import only
 through `adopt_worktree.py` in managed mode unless the user explicitly
 authorizes carrying exact paths in hybrid mode.
+
+If fetching changes an adopted prepared task revision, request only a focused `repository_context` delta and reopen specification confirmation only for a material change.
 
 Keep checkout mode and path, starting branch and HEAD, task branch, resource
 ownership, base branch and revision, and authorized preexisting changes in root

@@ -971,7 +971,22 @@ class PlannedFlowContractTests(unittest.TestCase):
             "`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`",
             "`$HOME/.orchestra/worktrees`",
             "`git worktree add`",
-            "captured full base revision",
+            "configured upstream",
+            "fetch only its remote branch",
+            "verified full commit",
+            "without updating the base checkout",
+            "proceed when equal",
+            "strictly behind",
+            "ahead or diverged",
+            "`git merge --ff-only <upstream>`",
+            "configured upstream whose fetch fails blocks",
+            "not remotely verified",
+            "explicitly selected noncanonical base",
+            "stacked work",
+            "Never run `git pull`",
+            "implicit merge",
+            "rebase during setup",
+            "focused `repository_context` delta",
             "`git switch -c <branch> <captured-head>`",
             "Never implement on the starting branch or directly on `main`",
             "Dirty, detached, conflicted",
@@ -993,7 +1008,16 @@ class PlannedFlowContractTests(unittest.TestCase):
             normalized = " ".join(source.split()).lower()
             for contract in (
                 "git worktree add",
-                "full base revision",
+                "configured upstream",
+                "verified full commit",
+                "fetch fail",
+                "not remotely verified",
+                "strictly behind",
+                "ahead or diverged",
+                "git merge --ff-only <upstream>",
+                "git pull",
+                "implicit merge",
+                "rebase",
                 "git error",
                 "capability dispatch",
             ):
@@ -1003,6 +1027,47 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("managed mode", root_contract)
         self.assertIn("hybrid mode", root_contract)
         self.assertIn("never implement on the starting branch or `main`", root_contract)
+
+    def test_canonical_base_sync_contract_is_consistent_across_sources(self) -> None:
+        sources = (
+            self.skill,
+            (ROOT / "AGENTS.md").read_text(),
+            (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
+            (ROOT / "docs/WORKFLOW.md").read_text(),
+            (ROOT / "docs/ARCHITECTURE.md").read_text(),
+            (ROOT / "VISION.md").read_text(),
+        )
+        for source in sources:
+            normalized = " ".join(source.split()).lower()
+            for contract in (
+                "canonical base",
+                "configured upstream",
+                "fetch",
+                "managed mode",
+                "hybrid mode",
+                "strictly behind",
+                "ahead or diverged",
+                "not remotely verified",
+                "noncanonical base",
+                "stacked work",
+            ):
+                self.assertIn(contract, normalized)
+
+        workflow = " ".join((ROOT / "docs/WORKFLOW.md").read_text().split()).lower()
+        for canonical_behavior in (
+            "without updating the local base checkout",
+            "configured upstream fetch failure blocks",
+            "proceeds when the commits are equal",
+            "fast-forwards a strictly behind clean base",
+            "blocks for a user decision when the local base is ahead or diverged",
+        ):
+            self.assertIn(canonical_behavior, workflow)
+        for prohibited_behavior in (
+            "never runs `git pull`",
+            "creates an implicit merge",
+            "rebases the base",
+        ):
+            self.assertIn(prohibited_behavior, workflow)
 
     def test_agent_waiting_is_long_non_interruptive_and_timeout_is_not_failure(
         self,

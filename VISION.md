@@ -311,7 +311,15 @@ routes eligible boundary requests through
 current task, host, or launcher remains authoritative at runtime. Sync installs
 no custom permission profile, writable-root list, command rule, or Git bridge.
 After a real write canary passes in the task's repository directory, the root
-creates the exact branch and, in managed mode, its worktree with direct Git; under Guardian,
+resolves and fetches the configured upstream for a fresh canonical-base task.
+Managed mode creates the exact branch and worktree directly from the verified
+remote commit without updating the base checkout. Hybrid mode fast-forwards a
+strictly behind clean canonical base, while an ahead or diverged base blocks for
+a user decision. A failed configured-upstream fetch blocks; a repository with
+no remote/upstream may proceed only with its local base explicitly identified
+as not remotely verified. Explicit noncanonical bases remain unchanged for
+stacked work. Orchestra never pulls, implicitly merges, or rebases setup work.
+Under Guardian,
 protected shared Git metadata receives one exact automatically reviewed
 escalation. Hybrid mode never implements on the starting branch, including
 `main`; dirty or ambiguous state requires an explicit decision. Existing work

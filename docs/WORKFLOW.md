@@ -323,17 +323,31 @@ After explicit activation in an execution-capable mode:
    gates for production, migrations, data, security, payments, destructive
    actions, or delivery.
 4. The root resolves the intended base branch and revision and performs a short
-   read-only Git preflight. It also reads repository policy and identifies the
+   read-only Git preflight. For a fresh task on the repository's canonical base
+   branch, it resolves that branch's configured upstream before fixing the base
+   revision and fetches only the corresponding remote branch. A configured
+   upstream whose fetch fails blocks task setup. A repository without a remote
+   or upstream may use the local canonical branch only when the root identifies
+   it explicitly as not remotely verified. An explicitly selected noncanonical
+   base, including stacked work, remains unchanged. It also reads repository
+   policy and identifies the
    canonical runtime, dependency setup, services, permissions, credential
    categories without reading secrets, verification commands, test-data
    provenance, and generated paths relevant to the task. It then resolves the
    installed checkout mode. Managed mode verifies a write canary below the
    portable worktree root, chooses the first matching branch/path pair, and
-   creates the task worktree with direct `git worktree add` against the captured
-   full base revision. Hybrid mode verifies the current primary checkout
-   or linked worktree, captures its named branch and exact HEAD, and creates the
-   first matching `orchestra/*` branch there. A clean starting `main` needs no
-   extra prompt because implementation begins only after branch creation.
+   creates the task worktree with direct `git worktree add` against the fetched
+   upstream's verified full commit when the canonical base has an upstream, or
+   against the explicitly unverified local base otherwise. It never updates the
+   managed base checkout. Hybrid mode verifies the current primary checkout or
+   linked worktree. A clean canonical base that equals its fetched upstream
+   proceeds directly; one strictly behind is fast-forwarded with
+   `git merge --ff-only <upstream>` before the root captures its exact HEAD and
+   creates the first matching `orchestra/*` branch. A canonical base that is
+   ahead or diverged blocks for one consolidated user decision. Orchestra never
+   runs `git pull`, creates an implicit merge, or rebases the base. A clean
+   canonical base needs no extra prompt when equal or strictly behind because
+   implementation begins only after branch creation.
    Dirty, detached, conflicted, active-operation, or identity-ambiguous state
    requires one consolidated decision before mutation.
 5. The root records the exact task-worktree identity in memory before capability
@@ -911,9 +925,20 @@ Managed mode uses a dedicated Git worktree below the effective root resolved
 from `ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
 `$HOME/.orchestra/worktrees`, in that order. Hybrid mode uses the current clean
 primary checkout or linked worktree and creates the task branch from its exact
-captured HEAD with direct Git. It does not require the starting branch to equal
-the latest `main`, so stacked work remains possible, but PR-required delivery
-must prove that its selected base is remotely usable before task mutation.
+captured HEAD with direct Git. For a fresh task on the repository's canonical
+base branch, the root resolves its configured upstream, fetches that remote
+branch, and compares the two commits before fixing the task base. Managed mode
+creates from the fetched upstream commit without updating the local base
+checkout. Hybrid mode proceeds when the commits are equal, fast-forwards a
+strictly behind clean base with `git merge --ff-only <upstream>`, and blocks for
+a user decision when the local base is ahead or diverged. A configured upstream
+fetch failure blocks. With no remote or upstream, the root may proceed from the
+local canonical base only after identifying it as not remotely verified.
+Orchestra never runs `git pull`, creates an implicit merge, or rebases the base.
+
+An explicitly selected noncanonical base remains at its captured commit, so
+stacked work stays possible; a PR-required task must still prove that selected
+base is remotely usable before task mutation.
 Neither mode ever implements on the starting branch or directly on `main`.
 
 Synchronization reads `codex --version` before mutation and requires Codex
@@ -949,6 +974,11 @@ start at the intended committed base revision. Adopted committed work starts at
 the adopted source HEAD while retaining the integration base. Scoped dirty
 adoption imports selected non-ignored paths through `adopt_worktree.py`;
 imported content may remain unstaged. Ambiguous dirty ownership always blocks.
+When fetching the canonical base changes the revision of an adopted prepared
+Kanban task, the root requests only a focused `repository_context` delta from
+the prepared revision to the fetched revision. It reopens specification
+confirmation only when that delta materially changes the confirmed objective,
+behavior, constraints, acceptance, exclusions, decisions, or open questions.
 
 Reuse is allowed only for the same live pre-approval task or when the approved
 local plan, objective, checkout mode/path, starting identity, task branch, base,

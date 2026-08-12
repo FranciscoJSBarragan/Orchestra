@@ -102,7 +102,14 @@ never change tier unilaterally.
 Every formal task uses a fresh collision-free `orchestra/*` branch. Managed
 mode keeps the existing dedicated-worktree flow; opt-in hybrid mode creates
 that branch from the exact HEAD of the current clean primary checkout or linked
-worktree. Never implement on the starting branch or `main`. Dirty, detached,
+worktree. A fresh task on the canonical base resolves and fetches its configured
+upstream before fixing the base revision. Managed mode branches from that
+verified commit without updating the base checkout; hybrid mode proceeds when
+equal, fast-forwards a strictly behind clean base, and blocks when ahead or
+diverged. A fetch failure blocks, while no remote/upstream permits only an
+explicitly identified local base that is not remotely verified. Explicit noncanonical
+bases preserve stacked work. Setup never pulls, implicitly merges, or rebases.
+Never implement on the starting branch or `main`. Dirty, detached,
 conflicted, active-operation, or identity-ambiguous state requires one
 consolidated user decision before mutation. Register the task best-effort with
 `coordination.py`; telemetry failure never reduces authority.
