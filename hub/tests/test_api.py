@@ -335,6 +335,42 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(by_id[ready_only["id"]]["status"], "ready")
         self.assertEqual(by_id[ready_only["id"]]["worktree"], "")
 
+    def test_prepared_task_fingerprint_ignores_timestamp_only_changes(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        prepared = support.insert_prepared_task(
+            control_database,
+            id="22222222-2222-4222-8222-222222222222",
+            short_id="A2",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            before = summary_payload(
+                coordination,
+                self.config,
+                NOW,
+                control_connection=control,
+            )
+            control.execute(
+                "UPDATE tasks SET updated_at = ? WHERE id = ?",
+                ("2099-01-01T00:00:00Z", prepared["id"]),
+            )
+            control.commit()
+            after = summary_payload(
+                coordination,
+                self.config,
+                NOW,
+                control_connection=control,
+            )
+        finally:
+            coordination.close()
+            control.close()
+        self.assertEqual(
+            before["tasks"][0]["material_fingerprint"],
+            after["tasks"][0]["material_fingerprint"],
+        )
+
     def test_prepared_task_detail_accepts_short_id(self) -> None:
         control_database = support.create_control_db(self.state_root)
         support.insert_prepared_task(control_database, short_id="A1")

@@ -1,8 +1,6 @@
 """Allowlisted Hub API payloads for prepared and adopted Orchestra tasks."""
 from __future__ import annotations
 
-import hashlib
-import json
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,12 +39,6 @@ def parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def _prepared_fingerprint(task: Mapping[str, object]) -> str:
-    payload = {field: str(task[field]) for field in TASK_FIELDS}
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
 def task_summary(
     row: Mapping[str, object],
     *,
@@ -57,11 +49,7 @@ def task_summary(
         field: row[field] if field in row.keys() else None
         for field in TASK_FIELDS
     }
-    task["material_fingerprint"] = (
-        material_fingerprint(task)
-        if task["worktree"]
-        else _prepared_fingerprint(task)
-    )
+    task["material_fingerprint"] = material_fingerprint(task)
     task["current_activity"] = list(
         row["current_activity"] if "current_activity" in row.keys() else []
     )
