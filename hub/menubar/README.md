@@ -1,7 +1,7 @@
 # OrchestraHubMenu
 
-Native macOS menu bar viewer for the Orchestra Hub and local task inbox. Hub
-data remains read-only; local inbox actions invoke the installed JSON helper.
+Native macOS menu bar viewer for the Orchestra Hub. It is strictly read-only;
+prepared and active tasks both arrive through the Hub GET API.
 
 ## Build
 
@@ -18,15 +18,12 @@ signing, no third-party dependencies.
 open build/OrchestraHubMenu.app
 ```
 
-Status item title: `◦` (idle) · `Repo:N` (one active repo) ·
-`N repos·M` (several) · `⚠ Hub` (unreachable). The menu lists active
-tasks per repository; blockers are marked with their text below.
-
-The Local inbox section lists open, cancelled, and archived tasks. It can
-cancel (after confirmation), reopen, archive, and restore them. The helper path
-resolves from `ORCHESTRA_TASK_CONTROL`, then `CODEX_HOME`, then
-`~/.codex/orchestra/scripts/task_control.py`. Actions run asynchronously and
-never mutate Hub HTTP state.
+The status item uses an icon alone when idle, `<repo> <count>` for one active
+repository, `<n> repos · <tasks>` for several, and `!` when unreachable. The
+menu lists prepared and active tasks per repository, prefixes known tasks with
+their human ID, and marks blockers with their text below. It exposes only
+`Open panel`, `Refresh now`, and `Quit`; task mutation happens from an
+authorized chat or local CLI, never from the menu bar.
 
 ## Autostart (LaunchAgent)
 

@@ -3,13 +3,16 @@ import unittest
 
 import support  # noqa: F401  (sys.path setup)
 import coordination
+from orchestra_control import db as control_db
 from orchestra_hub.api import ACTIVITY_FIELDS, TASK_FIELDS
-from orchestra_hub.db import SUPPORTED_SCHEMA_VERSIONS
+from orchestra_hub.db import SUPPORTED_CONTROL_SCHEMA_VERSIONS, SUPPORTED_SCHEMA_VERSIONS
 
 # Tables and columns the Hub actually reads. A coordinator change that drops or
 # renames any of them must fail here even when SCHEMA_VERSION is unchanged.
 REQUIRED_SHAPE = {
-    "tasks": set(TASK_FIELDS),
+    "tasks": set(TASK_FIELDS) - {
+        "short_id", "initiative", "blocked_by", "parallel_with"
+    },
     "activities": set(ACTIVITY_FIELDS) | {"task_id"},
 }
 
@@ -22,6 +25,7 @@ class SchemaCrossCheckTest(unittest.TestCase):
             "(fields, queries, fingerprint), then update "
             "SUPPORTED_SCHEMA_VERSIONS deliberately.",
         )
+        self.assertIn(control_db.SCHEMA_VERSION, SUPPORTED_CONTROL_SCHEMA_VERSIONS)
 
     def test_installed_schema_provides_every_column_the_hub_reads(self) -> None:
         connection = sqlite3.connect(":memory:")

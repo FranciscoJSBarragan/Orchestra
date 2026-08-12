@@ -1,29 +1,16 @@
-"""JSON command-line interface for local task intake and Orchestra discovery."""
+"""JSON command-line interface for the local prepared-task Kanban."""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
-import sys
 from typing import Any
 import uuid
 
-from .app_server import (
-    AppServerError,
-    TurnInterrupted,
-    completed_result_from_thread,
-    execute_turn,
-    read_thread,
-    set_thread_archived,
-)
 from .service import ControlError, ControlService
-
-
-DEFAULT_MODEL = "gpt-5.6-sol"
-DEFAULT_EFFORT = "medium"
 
 
 class JsonParser(argparse.ArgumentParser):
@@ -37,134 +24,69 @@ def emit(status: str, **values: Any) -> int:
     return 0 if status == "ok" else 1
 
 
-def repository_identity(value: str) -> tuple[Path, str]:
+def repository_identity(value: str) -> tuple[Path, str, Path]:
     root = Path(value).expanduser().resolve()
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel", "HEAD^{commit}"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    lines = result.stdout.splitlines()
-    if result.returncode or len(lines) != 2 or Path(lines[0]).resolve() != root:
-        raise ControlError("invalid", f"not a canonical Git worktree root: {root}")
-    return root, lines[1]
-
-
-def initial_prompt(task: dict[str, Any], task_id: str) -> str:
-    return f"""$orchestra
-
-Adopt durable task {task_id}: {task['title']}
-
-Objective brief: {task['brief']}
-
-This is a discovery-first Control Plane run. Reuse the normal Orchestra contract. First recommend the initial tier and stop for the user's explicit choice. After the tier is supplied, run mandatory repository_context, synthesize a candidate specification, and stop again. Do not draft the formal plan until the user confirms that specification. Do not implement without exact plan approval. Delivery is hold.
-
-Return only the JSON object required by the turn output schema. Put the user-facing checkpoint or outcome in message. Use a stable checkpoint_id for questions. List exact artifact identifiers and retained resources when known.
-"""
-
-
-def response_prompt(task_id: str, response_to: str | None, text: str) -> str:
-    reference = response_to or "the current open checkpoint"
-    return f"""Continue durable task {task_id} on this exact thread. The user response to {reference} is:
-
-{text}
-
-Follow the existing Orchestra discovery/approval contract. Return only the JSON object required by the output schema, including the next checkpoint or final outcome. Do not infer implementation, commit, or delivery authority beyond the user's exact response.
-"""
-
-
-def reopen_prompt(task_id: str) -> str:
-    return f"""Continue durable task {task_id} on this exact thread after its reversible interruption.
-
-Resume from the durable conversation and current Orchestra checkpoint. Do not replay a prior command or infer new authority. If an exact resolved interaction is presented again, use only its persisted one-use response. Return only the JSON object required by the output schema.
-"""
-
-
-def drive_turn(
-    service: ControlService,
-    *,
-    run: dict[str, Any],
-    turn: dict[str, Any],
-    prompt: str,
-    codex_bin: str,
-    model: str,
-    effort: str,
-) -> dict[str, Any]:
-    run_id = run["id"]
-    turn_id = turn["id"]
-
-    def on_thread(value: str) -> None:
-        service.update_transport(run_id=run_id, turn_record_id=turn_id, thread_uuid=value)
-
-    def on_turn(value: str) -> None:
-        service.update_transport(run_id=run_id, turn_record_id=turn_id, active_turn_id=value)
-
-    def on_interaction(method: str, params: dict[str, Any]) -> dict[str, Any] | None:
-        thread_uuid = str(params.get("threadId") or service.get_run(run_id).get("thread_uuid") or "")
-        turn_uuid = str(params.get("turnId") or service.get_run(run_id).get("active_turn_id") or "")
-        item_id = params.get("itemId")
-        canonical = json.dumps(
-            {"method": method, "params": params},
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        fingerprint = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-        _, response = service.record_interaction(
-            run_id=run_id,
-            turn_record_id=turn_id,
-            thread_uuid=thread_uuid,
-            turn_uuid=turn_uuid,
-            item_id=str(item_id) if item_id is not None else None,
-            method=method,
-            params=params,
-            fingerprint=fingerprint,
-        )
-        return response
-
     try:
-        thread_uuid, active_turn, result = execute_turn(
-            codex_bin=codex_bin,
-            repository=Path(run["repository"]),
-            prompt=prompt,
-            thread_uuid=run.get("thread_uuid"),
-            model=model,
-            effort=effort,
-            message_id=turn_id,
-            on_thread=on_thread,
-            on_turn=on_turn,
-            should_cancel=lambda: service.cancellation_requested(run_id),
-            on_interaction=on_interaction,
+        identity = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel", "HEAD^{commit}"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
-    except TurnInterrupted as error:
-        if error.reason == "needs_user":
-            return service.mark_needs_user(run_id, turn_id)
-        return service.mark_cancelled(run_id, turn_id)
-    except AppServerError as error:
-        if error.ambiguous:
-            return service.update_transport(
-                run_id=run_id, turn_record_id=turn_id, ambiguous=error.reason
+        common_dir_result = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise ControlError("unavailable", f"cannot inspect Git repository: {error}") from error
+    lines = identity.stdout.splitlines()
+    if (
+        identity.returncode
+        or common_dir_result.returncode
+        or len(lines) != 2
+        or Path(lines[0]).resolve() != root
+    ):
+        raise ControlError("invalid", f"not a canonical Git worktree root: {root}")
+    common_dir = Path(common_dir_result.stdout.strip()).resolve()
+    return root, lines[1], common_dir
+
+
+def ancestor_checker(repository: Path, head_revision: str):
+    def contains(revision: str) -> bool:
+        try:
+            result = subprocess.run(
+                ["git", "merge-base", "--is-ancestor", revision, head_revision],
+                cwd=repository,
+                capture_output=True,
+                text=True,
+                check=False,
             )
-        blocked = {
-            "kind": "blocked",
-            "checkpoint_id": None,
-            "message": error.reason,
-            "recommended_tier": None,
-            "artifacts": [],
-            "retained_resources": [],
-        }
-        return service.update_transport(
-            run_id=run_id, turn_record_id=turn_id, completed_result=blocked
-        )
-    return service.update_transport(
-        run_id=run_id,
-        turn_record_id=turn_id,
-        thread_uuid=thread_uuid,
-        active_turn_id=active_turn,
-        completed_result=result,
-    )
+        except OSError as error:
+            raise ControlError("unavailable", f"cannot verify delivered revision: {error}") from error
+        if result.returncode == 0:
+            return True
+        if result.returncode == 1:
+            return False
+        # A delivery object that is not present in this checkout is the normal
+        # stale-checkout case. Adoption reports the dependency as blocked and
+        # asks for an explicit checkout update instead of pulling implicitly.
+        return False
+
+    return contains
+
+
+def _read_document(path: Path, label: str) -> str:
+    try:
+        resolved = path.expanduser().resolve(strict=True)
+        if not resolved.is_file():
+            raise OSError("not a regular file")
+        return resolved.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ControlError("invalid", f"cannot read {label}: {error}") from error
 
 
 def build_parser() -> JsonParser:
@@ -172,8 +94,9 @@ def build_parser() -> JsonParser:
     parser.add_argument("--state-root", type=Path)
     groups = parser.add_subparsers(dest="group", required=True)
     task = groups.add_parser("task")
-    task_commands = task.add_subparsers(dest="command", required=True)
-    create = task_commands.add_parser("create")
+    commands = task.add_subparsers(dest="command", required=True)
+
+    create = commands.add_parser("create")
     create.add_argument("--title", required=True)
     create.add_argument("--brief", required=True)
     create.add_argument("--source-harness", default="local")
@@ -181,54 +104,62 @@ def build_parser() -> JsonParser:
     create.add_argument("--source-message", default="")
     create.add_argument("--repository")
     create.add_argument("--idempotency-key", default=None)
-    for name in ("get", "archive", "restore", "cancel"):
-        command = task_commands.add_parser(name)
+
+    for name in ("get", "archive", "restore"):
+        command = commands.add_parser(name)
         command.add_argument("--task", required=True)
-        if name in ("archive", "restore"):
-            command.add_argument("--codex-bin", default="codex")
-    listing = task_commands.add_parser("list")
+
+    decompose = commands.add_parser("decompose")
+    decompose.add_argument("--task", required=True)
+    manifest = decompose.add_mutually_exclusive_group(required=True)
+    manifest.add_argument("--manifest-file", type=Path)
+    manifest.add_argument("--manifest-json", help=argparse.SUPPRESS)
+    decompose.add_argument("--confirmed", action="store_true")
+    decompose.add_argument("--idempotency-key", required=True)
+
+    listing = commands.add_parser("list")
     listing.add_argument("--include-archived", action="store_true")
-    note = task_commands.add_parser("note")
+
+    note = commands.add_parser("note")
     note.add_argument("--task", required=True)
     note.add_argument("--body", required=True)
     note.add_argument("--source-harness", default="local")
     note.add_argument("--source-reference", default="")
     note.add_argument("--idempotency-key", default=None)
 
-    run = groups.add_parser("run")
-    run_commands = run.add_subparsers(dest="command", required=True)
-    start = run_commands.add_parser("start")
-    start.add_argument("--task", required=True)
-    start.add_argument("--repository")
-    start.add_argument("--idempotency-key", default=None)
-    start.add_argument("--codex-bin", default="codex")
-    start.add_argument("--model", default=DEFAULT_MODEL)
-    start.add_argument("--effort", default=DEFAULT_EFFORT)
-    respond = run_commands.add_parser("respond")
-    respond.add_argument("--task", required=True)
-    respond.add_argument("--text", required=True)
-    respond.add_argument("--response-to")
-    respond.add_argument("--idempotency-key", default=None)
-    respond.add_argument("--codex-bin", default="codex")
-    respond.add_argument("--model", default=DEFAULT_MODEL)
-    respond.add_argument("--effort", default=DEFAULT_EFFORT)
-    status = run_commands.add_parser("status")
-    status.add_argument("--task", required=True)
-    reconcile = run_commands.add_parser("reconcile")
-    reconcile.add_argument("--task", required=True)
-    reconcile.add_argument("--codex-bin", default="codex")
-    reopen = run_commands.add_parser("reopen")
-    reopen.add_argument("--task", required=True)
-    reopen.add_argument("--idempotency-key", default=None)
-    reopen.add_argument("--codex-bin", default="codex")
-    reopen.add_argument("--model", default=DEFAULT_MODEL)
-    reopen.add_argument("--effort", default=DEFAULT_EFFORT)
-    interactions = run_commands.add_parser("interactions")
-    interactions.add_argument("--task", required=True)
-    interactions.add_argument("--include-consumed", action="store_true")
-    resolve = run_commands.add_parser("resolve")
-    resolve.add_argument("--interaction", required=True)
-    resolve.add_argument("--response", required=True)
+    prepare = commands.add_parser("prepare")
+    prepare.add_argument("--task", required=True)
+    prepare.add_argument("--repository", required=True)
+    prepare.add_argument("--prepared-revision")
+    context = prepare.add_mutually_exclusive_group(required=True)
+    context.add_argument("--repository-context")
+    context.add_argument("--repository-context-file", type=Path)
+    specification = prepare.add_mutually_exclusive_group(required=True)
+    specification.add_argument("--specification")
+    specification.add_argument("--specification-file", type=Path)
+    prepare.add_argument("--confirmed", action="store_true")
+
+    adopt = commands.add_parser("adopt")
+    adopt.add_argument("--task", required=True)
+    adopt.add_argument("--repository", required=True)
+
+    transfer = commands.add_parser("transfer")
+    transfer.add_argument("--task", required=True)
+    transfer.add_argument("--stable-checkpoint", action="store_true")
+
+    finish = commands.add_parser("finish")
+    finish.add_argument("--task", required=True)
+    finish.add_argument("--repository", required=True)
+    finish.add_argument("--task-revision", required=True)
+
+    delivery = commands.add_parser("record-delivery")
+    delivery.add_argument("--task", required=True)
+    delivery.add_argument("--repository", required=True)
+    delivery.add_argument("--task-revision", required=True)
+    delivery.add_argument("--delivery-revision", required=True)
+    delivery.add_argument(
+        "--kind", required=True, choices=("local-integration", "pr-merge")
+    )
     return parser
 
 
@@ -236,8 +167,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     service = ControlService(args.state_root)
     try:
-        if args.group == "task" and args.command == "create":
-            key = args.idempotency_key or str(uuid.uuid4())
+        if args.group != "task":
+            raise ControlError("invalid", "unsupported command group")
+        if args.command == "create":
             task = service.create_task(
                 title=args.title,
                 brief=args.brief,
@@ -245,14 +177,41 @@ def main(argv: list[str] | None = None) -> int:
                 source_conversation=args.source_conversation,
                 source_message=args.source_message,
                 repository=args.repository,
-                idempotency_key=key,
+                idempotency_key=args.idempotency_key or str(uuid.uuid4()),
             )
             return emit("ok", task=task)
-        if args.group == "task" and args.command == "get":
+        if args.command == "get":
             return emit("ok", task=service.get_task(args.task))
-        if args.group == "task" and args.command == "list":
+        if args.command == "decompose":
+            if args.manifest_json is not None and os.environ.get("ORCHESTRA_MCP_INTERNAL") != "1":
+                raise ControlError("invalid", "inline decomposition manifest is reserved for MCP")
+            raw_manifest = (
+                args.manifest_json
+                if args.manifest_json is not None
+                else _read_document(args.manifest_file, "decomposition manifest")
+            )
+            try:
+                manifest = json.loads(raw_manifest)
+            except json.JSONDecodeError as error:
+                raise ControlError("invalid", f"invalid decomposition manifest JSON: {error}") from error
+            cards = manifest.get("cards") if isinstance(manifest, dict) else None
+            if not isinstance(cards, list):
+                raise ControlError("invalid", "decomposition manifest cards must be an array")
+            for card in cards:
+                if not isinstance(card, dict) or not isinstance(card.get("repository"), str):
+                    raise ControlError("invalid", "each decomposition card requires a repository")
+                repository, _, _ = repository_identity(card["repository"])
+                card["repository"] = str(repository)
+            result = service.decompose_task(
+                task_ref=args.task,
+                manifest=manifest,
+                confirmed=args.confirmed,
+                idempotency_key=args.idempotency_key,
+            )
+            return emit("ok", **result)
+        if args.command == "list":
             return emit("ok", tasks=service.list_tasks(args.include_archived))
-        if args.group == "task" and args.command == "note":
+        if args.command == "note":
             note = service.add_note(
                 task_id=args.task,
                 body=args.body,
@@ -261,151 +220,91 @@ def main(argv: list[str] | None = None) -> int:
                 idempotency_key=args.idempotency_key or str(uuid.uuid4()),
             )
             return emit("ok", note=note)
-        if args.group == "task" and args.command == "cancel":
-            return emit("ok", run=service.request_cancel(args.task))
-        if args.group == "task" and args.command in ("archive", "restore"):
-            archived = args.command == "archive"
-            task = service.get_task(args.task)
-            runs = task.get("runs", [])
-            latest = runs[-1] if runs else None
-            if archived and latest and latest.get("active_turn_id"):
-                return emit("busy", reason="task has an unresolved active turn")
-            if latest and latest.get("thread_uuid"):
-                try:
-                    set_thread_archived(
-                        codex_bin=args.codex_bin,
-                        thread_uuid=latest["thread_uuid"],
-                        archived=archived,
-                    )
-                except AppServerError as error:
-                    return emit("blocked", reason=error.reason)
-            return emit("ok", task=service.set_archived(args.task, archived))
-        if args.group == "run" and args.command == "status":
-            return emit("ok", run=service.latest_run(args.task))
-        if args.group == "run" and args.command == "interactions":
+        if args.command == "prepare":
+            repository, observed_revision, common_dir = repository_identity(args.repository)
+            requested_revision = args.prepared_revision or observed_revision
+            if requested_revision != observed_revision:
+                raise ControlError(
+                    "invalid",
+                    "prepared revision must match the repository's current HEAD",
+                )
+            context = (
+                args.repository_context
+                if args.repository_context is not None
+                else _read_document(args.repository_context_file, "repository context")
+            )
+            specification = (
+                args.specification
+                if args.specification is not None
+                else _read_document(args.specification_file, "specification")
+            )
+            prepared = service.prepare_task(
+                task_ref=args.task,
+                repository=str(repository),
+                prepared_revision=observed_revision,
+                repository_common_dir=str(common_dir),
+                repository_context=context,
+                specification=specification,
+                confirmed=args.confirmed,
+            )
+            return emit("ok", task=prepared)
+        if args.command == "adopt":
+            repository, revision, common_dir = repository_identity(args.repository)
+            adopted = service.adopt_task(
+                task_ref=args.task,
+                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                repository=str(repository),
+                current_revision=revision,
+                repository_common_dir=str(common_dir),
+                ancestor_contains=ancestor_checker(repository, revision),
+            )
+            next_action = (
+                "resume the existing Orchestra checkout and plan"
+                if adopted["resume_existing_checkout"]
+                else "activate Orchestra and create the task checkout using installed policy"
+            )
+            return emit("ok", task=adopted, next_action=next_action)
+        if args.command == "transfer":
+            transferred = service.transfer_task(
+                task_ref=args.task,
+                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                stable_checkpoint=args.stable_checkpoint,
+            )
             return emit(
                 "ok",
-                interactions=service.list_interactions(args.task, args.include_consumed),
+                task=transferred,
+                next_action=f"open another native Codex chat and ask it to adopt {transferred['short_id']}",
             )
-        if args.group == "run" and args.command == "resolve":
-            try:
-                response = json.loads(args.response)
-            except json.JSONDecodeError as error:
-                raise ControlError("invalid", f"invalid interaction response JSON: {error}") from error
-            return emit("ok", interaction=service.resolve_interaction(args.interaction, response))
-        if args.group == "run" and args.command == "start":
-            task = service.get_task(args.task)
-            repository_value = args.repository or task.get("repository")
-            if not repository_value:
-                return emit("needs_repository", task_id=args.task)
-            repository, revision = repository_identity(repository_value)
-            run = service.prepare_run(args.task, str(repository), revision)
-            turn = service.prepare_turn(
-                run_id=run["id"],
-                text=initial_prompt(task, args.task),
-                idempotency_key=args.idempotency_key or f"start:{args.task}",
+        if args.command == "finish":
+            repository, revision, common_dir = repository_identity(args.repository)
+            requested_revision = args.task_revision
+            if requested_revision != revision:
+                raise ControlError("invalid", "task revision must match the repository's current HEAD")
+            completed = service.finish_task(
+                task_ref=args.task,
+                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                repository=str(repository),
+                terminal_revision=revision,
+                repository_common_dir=str(common_dir),
             )
-            if turn["status"] == "completed":
-                return emit("ok", run=service.get_run(run["id"]))
-            if turn["status"] != "prepared":
-                return emit(turn["status"], reason="start turn is not safe to replay", run=run)
-            result = drive_turn(
-                service,
-                run=run,
-                turn=turn,
-                prompt=turn["input_text"],
-                codex_bin=args.codex_bin,
-                model=args.model,
-                effort=args.effort,
+            return emit("ok", task=completed)
+        if args.command == "record-delivery":
+            repository, _, common_dir = repository_identity(args.repository)
+            completed = service.record_delivery(
+                task_ref=args.task,
+                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                repository=str(repository),
+                task_revision=args.task_revision,
+                delivery_revision=args.delivery_revision,
+                kind=args.kind,
+                repository_common_dir=str(common_dir),
             )
-            return emit("ok", run=result)
-        if args.group == "run" and args.command == "respond":
-            run = service.latest_run(args.task)
-            turn = service.prepare_turn(
-                run_id=run["id"],
-                text=args.text,
-                idempotency_key=args.idempotency_key or str(uuid.uuid4()),
-                response_to=args.response_to,
+            return emit("ok", task=completed)
+        if args.command in ("archive", "restore"):
+            return emit(
+                "ok",
+                task=service.set_archived(args.task, args.command == "archive"),
             )
-            if turn["status"] == "completed":
-                return emit("ok", run=service.get_run(run["id"]))
-            if turn["status"] != "prepared":
-                return emit(turn["status"], reason="turn is not safe to replay", run=run)
-            result = drive_turn(
-                service,
-                run=run,
-                turn=turn,
-                prompt=response_prompt(args.task, args.response_to, args.text),
-                codex_bin=args.codex_bin,
-                model=args.model,
-                effort=args.effort,
-            )
-            return emit("ok", run=result)
-        if args.group == "run" and args.command == "reopen":
-            run = service.reopen(args.task)
-            turn = service.prepare_turn(
-                run_id=run["id"],
-                text=reopen_prompt(args.task),
-                idempotency_key=args.idempotency_key or str(uuid.uuid4()),
-            )
-            result = drive_turn(
-                service,
-                run=run,
-                turn=turn,
-                prompt=turn["input_text"],
-                codex_bin=args.codex_bin,
-                model=args.model,
-                effort=args.effort,
-            )
-            return emit("ok", run=result)
-        if args.group == "run" and args.command == "reconcile":
-            run = service.latest_run(args.task)
-            if not run.get("thread_uuid"):
-                return emit("needs_reconciliation", reason="run has no persisted thread UUID", run=run)
-            active_turn_id = run.get("active_turn_id")
-            if not active_turn_id:
-                return emit(
-                    "needs_reconciliation",
-                    reason="run has no exact active turn to reconcile",
-                    run=run,
-                )
-            run_detail = service.get_run(run["id"])
-            local_turns = [
-                turn for turn in run_detail["turns"] if turn.get("turn_uuid") == active_turn_id
-            ]
-            if len(local_turns) != 1:
-                return emit(
-                    "needs_reconciliation",
-                    reason="active turn does not map to one local turn record",
-                    run=run,
-                )
-            try:
-                observed = read_thread(codex_bin=args.codex_bin, thread_uuid=run["thread_uuid"])
-                result = completed_result_from_thread(
-                    observed,
-                    thread_uuid=run["thread_uuid"],
-                    turn_uuid=active_turn_id,
-                )
-            except AppServerError as error:
-                reconciled = service.update_transport(
-                    run_id=run["id"],
-                    turn_record_id=local_turns[0]["id"],
-                    ambiguous=error.reason,
-                )
-                return emit("needs_reconciliation", reason=error.reason, run=reconciled)
-            if result is None:
-                return emit(
-                    "needs_reconciliation",
-                    reason="persisted active turn is not completed with a valid result",
-                    run=run,
-                )
-            reconciled = service.update_transport(
-                run_id=run["id"],
-                turn_record_id=local_turns[0]["id"],
-                active_turn_id=active_turn_id,
-                completed_result=result,
-            )
-            return emit("ok", run=reconciled)
         raise ControlError("invalid", "unsupported command")
     except ControlError as error:
         return emit(error.status, reason=error.reason)

@@ -148,9 +148,13 @@ class CoordinationTests(unittest.TestCase):
         return result, payload
 
     def create_task(
-        self, worktree: Path, label: str = "Task", tier: str = "standard"
+        self,
+        worktree: Path,
+        label: str = "Task",
+        tier: str = "standard",
+        task_id: str | None = None,
     ) -> dict:
-        result, payload = self.run_cli(
+        arguments = [
             "task",
             "create",
             "--repository",
@@ -163,10 +167,64 @@ class CoordinationTests(unittest.TestCase):
             tier,
             "--label",
             label,
-        )
+        ]
+        if task_id is not None:
+            arguments.extend(("--task-id", task_id))
+        result, payload = self.run_cli(*arguments)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         return payload
+
+    def test_create_accepts_prepared_task_uuid_and_rejects_identity_collision(self) -> None:
+        prepared_uuid = "11111111-1111-4111-8111-111111111111"
+        first = self.create_task(self.task_one, task_id=prepared_uuid)
+        repeated = self.create_task(self.task_one, task_id=prepared_uuid)
+        self.assertTrue(first["created"])
+        self.assertFalse(repeated["created"])
+        self.assertEqual(first["task"]["id"], prepared_uuid)
+
+        result, collision = self.run_cli(
+            "task",
+            "create",
+            "--task-id",
+            prepared_uuid,
+            "--repository",
+            str(self.repository),
+            "--worktree",
+            str(self.task_two),
+            "--base-revision",
+            self.head,
+            "--tier",
+            "standard",
+            "--label",
+            "Collision",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(collision["status"], "invalid")
+        self.assertIn("task id already belongs", collision["reason"])
+
+    def test_explicit_uuid_cannot_adopt_an_existing_worktree_snapshot(self) -> None:
+        existing = self.create_task(self.task_one)
+        result, collision = self.run_cli(
+            "task",
+            "create",
+            "--task-id",
+            "22222222-2222-4222-8222-222222222222",
+            "--repository",
+            str(self.repository),
+            "--worktree",
+            str(self.task_one),
+            "--base-revision",
+            self.head,
+            "--tier",
+            "standard",
+            "--label",
+            "Different UUID",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(collision["status"], "invalid")
+        self.assertIn("different task id", collision["reason"])
+        self.assertNotEqual(existing["task"]["id"], "22222222-2222-4222-8222-222222222222")
 
     def test_luna_tier_round_trips_without_schema_change(self) -> None:
         created = self.create_task(self.task_one, tier="luna")
@@ -321,6 +379,12 @@ class CoordinationTests(unittest.TestCase):
 
     def test_concurrent_activity_updates_keep_each_agent(self) -> None:
         task_id = self.create_task(self.task_one)["task"]["id"]
+        database = self.state_root / "state.sqlite3"
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE tasks SET updated_at = '2000-01-01T00:00:00Z' WHERE id = ?",
+                (task_id,),
+            )
         processes = [
             subprocess.Popen(
                 self.command(
@@ -356,6 +420,7 @@ class CoordinationTests(unittest.TestCase):
             {activity["agent_id"] for activity in shown["activities"]},
             {f"agent-{index}" for index in range(8)},
         )
+        self.assertNotEqual(shown["task"]["updated_at"], "2000-01-01T00:00:00Z")
 
         result, cleared = self.run_cli(
             "activity",

@@ -35,7 +35,7 @@ Orchestra/
 ├── .githooks/                 # versioned thin wrappers only
 └── codex/
     ├── agents/                # four behavior-only base profiles
-    ├── control/               # local durable intake and App Server continuity
+    ├── control/               # local prepared-task Kanban and native-chat ownership
     ├── skills/                # public lanes and internal playbook references
     ├── scripts/               # deterministic mechanical helpers
     └── tests/
@@ -46,23 +46,21 @@ Orchestra/
 ### Durable task intake
 
 `codex/control/orchestra_control` and the thin `task_control.py` entry point own
-one private local inbox and its Codex App Server continuity. Their direct
-consumers are `$orchestra-task`, the stdio MCP adapter, the macOS menu bar, and
-harnesses using the JSON CLI. Capture is inert. An explicit start owns one persistent root
-thread UUID, advances one structured turn per helper invocation, and hands the
-result back to the invoking harness. There is no daemon, background worker,
-remote MCP transport, or mutable Hub endpoint.
+one private prepared-task Kanban. Their direct consumers are
+`$orchestra-task`, the stdio MCP adapter, the read-only Hub, and harnesses using
+the JSON CLI. Capture and preparation are inert. They never launch Codex,
+create a checkout, select permissions, or own an implementation process.
 
-`control.sqlite3` owns task briefs, origin references, notes, thread and turn
-UUIDs, and the latest structured checkpoint. It does not mirror Git state,
-approve tiers or plans, or validate Orchestra transitions. Open items remain
-until explicitly archived; archive is reversible and the database survives
-sync and uninstall. Exact UUID reconciliation exists because App Server may
-complete a turn after the invoking process loses its response. It adopts only
-the matching completed turn and otherwise remains blocked instead of retrying.
-The store also records cancellation and exact pending App Server interactions.
-Responses are consumed once only by a matching fingerprint. MCP and the menu
-bar invoke the same controller instead of maintaining parallel workflow state.
+`control.sqlite3` owns UUID and immutable human ID, briefs, origin references,
+notes, preparation state, revision and document digests, native-chat ownership,
+and transfer generation. Complete private context, specification, and marker
+documents live under `$HOME/.orchestra/tasks/<short-id>/`. The v3 migration
+leaves preexisting tasks without human IDs and retains the old run, turn, and
+interaction tables as read-only legacy history. New public code exposes no App
+Server operation. Native-chat adoption requires the host-provided
+`CODEX_THREAD_ID`; the chat then invokes normal Orchestra. Coordinator receives
+the same UUID only after checkout creation. Hub joins both stores by UUID and
+remains GET-only.
 
 ### Orchestrator
 
@@ -286,9 +284,9 @@ helper directly to observe GitHub state.
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
-- one private durable-intake and root-continuity store at
+- one private prepared-task Kanban store at
   `$HOME/.orchestra/control.sqlite3`, consumed by `task_control.py`, its stdio
-  MCP adapter, the menu bar, and `$orchestra-task`;
+  MCP adapter, the read-only Hub, and `$orchestra-task`;
 - one non-authoritative local task snapshot store at
   `$HOME/.orchestra/state.sqlite3`;
 - revision-identified Markdown artifacts in each task worktree's ignored
@@ -378,13 +376,22 @@ material plan review it observes convergence; before a third correction, or
 immediately for marginal, contradictory, or out-of-scope findings, it
 adjudicates the exact bundle and reviews. No review counter or limit persists.
 
-The bounded durable inbox is not a Kanban or workflow authority. Do not
+The bounded prepared-task Kanban is not a workflow authority. Do not
 introduce a global workflow event ledger, authority-bundle chain, duplicate Git
-index, commit recovery journal, Kanban board, benchmark control plane, or
+index, commit recovery journal, event-sourced board, benchmark control plane, or
 general-purpose workflow state engine unless real usage demonstrates a
 requirement these narrow stores cannot meet. The root uses the one-shot
 `adopt_worktree.py` helper only because Git does not carry selected dirty paths
 into an Orchestra task worktree; that helper keeps no state.
+
+Schema v4 adds descriptive `task_initiatives`, immutable directed
+`task_dependencies`, Git common-dir identity, and exact completion and delivery
+revisions. Initiative membership groups cards but has no state or executable
+human ID. Parallelism is a read-time graph derivation. The Control service owns
+transactional decomposition, DAG validation, dependency satisfaction, and
+native-chat delivery registration; the CLI supplies current Git identity and
+ancestry evidence. The Hub accepts control schemas v3 and v4 during migration,
+projects initiative/dependency fields through an allowlist, and stays GET-only.
 
 ## Model and reasoning configuration
 
@@ -558,14 +565,15 @@ implement three competing rule sets.
 
 Tests protect the few important invariants:
 
-- only explicit `$orchestra`, explicit `$orchestra-task`, or an unequivocal
-  use/start Orchestra imperative activates the workflow;
-- ordinary capture remains inert, while explicit `$orchestra-task` starts one
-  durable discovery thread that stops at candidate specification;
-- App Server ambiguity never causes blind turn replay, and reconciliation adopts
-  only the exact persisted completed turn;
-- cancellation preserves the thread and checkpoint, while interaction
-  responses are exact and one-use;
+- only explicit `$orchestra`, native-chat adoption of a ready
+  `$orchestra-task`, or an unequivocal use/start Orchestra imperative activates
+  the workflow;
+- ordinary capture and preparation remain inert and never create a Codex chat,
+  branch, worktree, tier, permission override, or implementation run;
+- immutable case-insensitive human IDs are never reused, while Coordinator and
+  Control use the same UUID after checkout creation;
+- adoption is exclusive to one native chat, changed Git requests only a focused
+  context delta, and stable-checkpoint transfer preserves worktree and plan;
 - the visible primary skill name is `Orchestra`;
 - planning-only host mode reuses context without mutation and continues when
   execution-capable without a second invocation;

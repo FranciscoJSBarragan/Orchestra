@@ -6,7 +6,6 @@ description: Use only for an explicit `$orchestra` invocation or an unequivocal 
 # Orchestra
 
 Keep the root orchestrator responsible for specification alignment, tier recommendation, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. The user chooses the active tier and remains the final authority after receiving a concise recommendation and any applicable warning. Use the root's current session configuration selected outside Orchestra; the root has no assignment in `roles.toml` and is never respawned.
-
 ## Activate explicitly and align the specification
 
 Orchestra activates only through an explicit `$orchestra` invocation or an
@@ -24,30 +23,28 @@ the host becomes execution-capable, continue from the adopted context without
 requiring another `$orchestra` invocation or recreating the analysis or plan.
 Orchestra observes the host mode and never changes the host into a
 planning-only mode.
-
-In an execution-capable mode, reuse the preceding conversation, inspect Git
-state, classify the internal checkpoint (exploration, candidate specification,
-candidate plan, adopted implementation, or resumable Orchestra task), and state
-concisely what Orchestra is adopting. Ask only genuine gaps while obtaining a
-minimum brief with objective,
-visible result, approximate repository area, known critical risks, and bounded
+In an execution-capable mode, reuse the preceding conversation, including
+confirmed revision-bound `$orchestra-task` context. Inspect Git state, classify
+the internal checkpoint (exploration, candidate specification, candidate plan,
+adopted implementation, or resumable Orchestra task), and state concisely what
+Orchestra is adopting. Ask only genuine gaps while obtaining a minimum brief
+with objective, visible result, approximate repository area, known critical risks, and bounded
 factual open questions. If `$orchestra` is invoked without an objective, ask for
 it before creating resources. If the user explicitly limits the request to
 brainstorming, remain read-only until the user authorizes formal task setup. Do
 not persist the brief. A plan created before activation remains a candidate plan
 until Orchestra validates it against repository evidence.
-
 An explicit instruction given after the corresponding scope, warning, plan, or
 pending action was presented satisfies that checkpoint while material facts
 remain unchanged. Do not ask for the same confirmation twice.
-
-Preserve the approved objective, constraints, acceptance, and authority unless
-the user explicitly changes them. Treat a proposed mechanism or causal
-explanation as a hypothesis, challenge it against current source and evidence,
-and choose the smallest supported approach that preserves the approved result.
-
+An adopted Kanban specification already satisfies final confirmation. After tier
+selection and checkout creation, reuse its exact prepared-revision context and
+plan. If Git changed, inspect only the delta and reconfirm only when it materially
+changes the specification. Preserve the approved objective, constraints,
+acceptance, and authority unless the user explicitly changes them. Treat a
+proposed mechanism or causal explanation as a hypothesis; challenge it against
+current evidence and choose the smallest supported approach that preserves the approved result.
 ## Resolve the installed model configuration
-
 Before recommending a tier or creating resources, read
 `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`.
 
@@ -67,7 +64,6 @@ record it in Decisions when `plan.md` becomes active. A resumed dual task uses
 the recorded mode only after the current session helper returns the same mode.
 Changing `native` and `external` requires a new task; a tier transition never
 changes the selected model configuration.
-
 ## Recommend and transition tiers
 
 Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
@@ -104,7 +100,6 @@ explicit user direction.
 Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
 demonstrably fail to converge. Never change tier unilaterally.
-
 ## Select the task checkout and create its branch
 
 After the user chooses the initial tier and before resource creation or any
@@ -156,7 +151,9 @@ before dispatch when the reserved path is tracked, ambiguous, or unsafe. An
 existing legacy result remains on its legacy paths for that task without
 copying or dual-writing it. Then attempt an idempotent task registration with
 `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task
-create`. Treat `invalid` or `unavailable` as lost observability: report it
+create`. When adopting a prepared Kanban task, pass its exact technical UUID
+as `--task-id`; otherwise let the helper allocate one. Treat `invalid` or
+`unavailable` as lost observability: report it
 only after a correctly authorized attempt. When the coordination database is
 outside the active workspace, make that first attempt with one exact, narrow
 Guardian escalation; do not first run the known-protected operation
@@ -177,7 +174,6 @@ managed worktree or restoring a hybrid checkout. A draft may exist only as a cle
 artifact; no approved `plan.md` is persisted before approval. If adopted
 committed work later passes unchanged, allow completion without an artificial
 commit.
-
 ## Resolve assignments and references
 
 Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
@@ -229,7 +225,6 @@ These seven files are the complete playbook inventory: `repository_context`, `we
 Every defined tier uses all ten capabilities. Do not dispatch a capability
 absent from the selected tier and never create root, commit, polling,
 PR-triage, or delivery assignments.
-
 ## Keep compact context
 
 Keep one compact in-memory packet with: task identifier when coordination is
@@ -351,7 +346,6 @@ repository-context revalidation for the changed paths and dirty revision,
 rerun affected verification, and send only new or replaced evidence to the
 same reviewer. This post-edit proof bypasses the earlier relevance pruning.
 An unresolved named material context basis blocks phase commit.
-
 ## Maintain the local task plan
 
 Before approval, keep the formal candidate as one complete `plan-overview`
@@ -409,6 +403,12 @@ authority, or validates plan transitions.
 
 Setting `completed` freezes the approved objective, acceptance, and artifact selection. An accepted PR fix may advance the affected phase's terminal commit only when it remains within that intent and completes the same verification, review, and phase-commit path; update the manifest before push. New scope or user-visible behavior after `completed` or `hold` requires a new task and plan. Before PR or local delivery, read the terminal manifest commit and require the effective task head to match it exactly; an unexplained mismatch blocks use of the completed plan.
 
+For an adopted `$orchestra-task`, also record the exact terminal SHA with
+`task finish` from the owning native chat. A reviewed PR correction may update
+it before delivery. Register delivery with `task record-delivery` only when the
+authorized local-integration or PR-merge helper returns
+`delivery_verified: true` and an exact `delivery_revision`; opening a PR,
+holding, or an unverified post-state never satisfies a Kanban dependency.
 ## Route tiered work
 
 Every dispatch starts from a clean context: under multi-agent V2 pass
@@ -469,7 +469,6 @@ when needed with a compact continuation packet. The replacement worker owns the
 remaining phase. Preserve evidence for the unchanged revision and conditions;
 request only targeted context and reverification for a new risk. Mirror the new
 tier best-effort; coordination failure never delays or reverses the transition.
-
 ## Root-owned mechanical operations
 
 Phase commit and phase teardown are not profiles or capabilities. Agents clean their owned resources before each handoff; after review and verification pass, the root performs only the fallback cleanup described above, then retires the cohort with V1 `close_agent` or V2 completed-state evidence. It uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.

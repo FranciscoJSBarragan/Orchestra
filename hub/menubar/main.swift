@@ -53,7 +53,7 @@ func activeRepos(from summary: [String: Any]) -> [ActiveRepo] {
     }
     var grouped: [String: [[String: Any]]] = [:]
     var order: [String] = []
-    for task in tasks where (task["status"] as? String) != "completed" {
+    for task in tasks where !["completed", "archived"].contains(task["status"] as? String ?? "") {
         let path = task["repository"] as? String ?? ""
         if grouped[path] == nil { order.append(path) }
         grouped[path, default: []].append(task)
@@ -95,9 +95,6 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
     private var etag: String?
     private var lastSuccess: Date?
     private var knownBlockers: Set<String>?
-    private let inboxClient = InboxClient()
-    private var inboxTasks: [InboxTask] = []
-    private var knownInboxNeedsUser: Set<String>?
     private var currentState: HubState = .unreachable("starting")
     private let port = readPort()
     private var panelURL: URL {
@@ -142,14 +139,6 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
     }
 
     private func poll() {
-        inboxClient.list { [weak self] result in
-            guard let self else { return }
-            if case .success(let tasks) = result {
-                self.notifyInboxChanges(tasks)
-                self.inboxTasks = tasks
-                self.render(self.currentState)
-            }
-        }
         var request = URLRequest(url: summaryURL, timeoutInterval: 5)
         if let etag { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
@@ -261,16 +250,21 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
                 menu.addItem(styled(repo.name, color: .labelColor, bold: true))
                 for task in repo.tasks {
                     let label = task["label"] as? String ?? ""
+                    let shortID = task["short_id"] as? String ?? ""
+                    let display = shortID.isEmpty ? label : "\(shortID) · \(label)"
                     let stage = task["stage"] as? String ?? ""
                     let blocker = task["blocker"] as? String ?? ""
+                    let parallel = (task["parallel_with"] as? [[String: Any]] ?? [])
+                        .compactMap { $0["short_id"] as? String }
+                    let relation = parallel.isEmpty ? "" : " · parallel with " + parallel.joined(separator: ", ")
                     if blocker.isEmpty {
                         menu.addItem(styled(
-                            "  ● \(label) — \(stage)",
+                            "  ● \(display) — \(stage)\(relation)",
                             color: .labelColor
                         ))
                     } else {
                         menu.addItem(styled(
-                            "  ⛔ \(label) — needs you",
+                            "  ⛔ \(display) — needs you",
                             color: .systemRed
                         ))
                         menu.addItem(styled(
@@ -281,95 +275,12 @@ final class HubMonitor: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        renderInbox(into: menu)
         menu.addItem(.separator())
         menu.addItem(styled(updatedText(), color: .tertiaryLabelColor))
         menu.addItem(action("Open panel", #selector(openPanel)))
         menu.addItem(action("Refresh now", #selector(refreshNow)))
         menu.addItem(action("Quit", #selector(quit)))
         statusItem.menu = menu
-    }
-
-    private func renderInbox(into menu: NSMenu) {
-        menu.addItem(.separator())
-        menu.addItem(styled("Local inbox", color: .labelColor, bold: true))
-        if inboxTasks.isEmpty {
-            menu.addItem(styled("  No captured tasks", color: .secondaryLabelColor))
-            return
-        }
-        for task in inboxTasks {
-            let status = task.runStatus ?? "captured"
-            let prefix = task.disposition == "archived" ? "◌" : (status == "cancelled" ? "■" : "●")
-            menu.addItem(styled("  \(prefix) \(String(task.title.prefix(titleCap))) — \(status)", color: .labelColor))
-            if task.pendingInteractions > 0 {
-                menu.addItem(styled("      needs \(task.pendingInteractions) response(s)", color: .systemOrange))
-            }
-            if task.disposition == "archived" {
-                menu.addItem(taskAction("      Restore", task: task.id, selector: #selector(restoreTask(_:))))
-            } else if status == "cancelled" {
-                menu.addItem(taskAction("      Reopen", task: task.id, selector: #selector(reopenTask(_:))))
-                menu.addItem(taskAction("      Archive", task: task.id, selector: #selector(archiveTask(_:))))
-            } else {
-                menu.addItem(taskAction("      Cancel…", task: task.id, selector: #selector(cancelTask(_:))))
-                if status != "running" && status != "cancelling" {
-                    menu.addItem(taskAction("      Archive", task: task.id, selector: #selector(archiveTask(_:))))
-                }
-            }
-        }
-    }
-
-    private func taskAction(_ title: String, task: String, selector: Selector) -> NSMenuItem {
-        let item = action(title, selector)
-        item.representedObject = task
-        return item
-    }
-
-    @objc private func cancelTask(_ sender: NSMenuItem) {
-        guard let task = sender.representedObject as? String else { return }
-        let alert = NSAlert()
-        alert.messageText = "Cancel this task?"
-        alert.informativeText = "The interruption is reversible and preserves its thread and work."
-        alert.addButton(withTitle: "Cancel task")
-        alert.addButton(withTitle: "Keep running")
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        mutateInbox("cancel", task: task)
-    }
-
-    @objc private func reopenTask(_ sender: NSMenuItem) {
-        guard let task = sender.representedObject as? String else { return }
-        mutateInbox("reopen", task: task)
-    }
-
-    @objc private func archiveTask(_ sender: NSMenuItem) {
-        guard let task = sender.representedObject as? String else { return }
-        mutateInbox("archive", task: task)
-    }
-
-    @objc private func restoreTask(_ sender: NSMenuItem) {
-        guard let task = sender.representedObject as? String else { return }
-        mutateInbox("restore", task: task)
-    }
-
-    private func mutateInbox(_ command: String, task: String) {
-        inboxClient.mutate(command, task: task) { [weak self] result in
-            if case .failure = result {
-                self?.notify("Orchestra inbox", "The \(command) action failed")
-            }
-            self?.poll()
-        }
-    }
-
-    private func notifyInboxChanges(_ tasks: [InboxTask]) {
-        let waiting = Set(tasks.filter {
-            $0.disposition == "open" && ($0.pendingInteractions > 0 || ["waiting_user", "blocked", "needs_reconciliation"].contains($0.runStatus ?? ""))
-        }.map(\.id))
-        defer { knownInboxNeedsUser = waiting }
-        guard let known = knownInboxNeedsUser else { return }
-        let added = waiting.subtracting(known)
-        if !added.isEmpty {
-            notify("Orchestra inbox needs you", added.count == 1 ? "One local task is waiting" : "\(added.count) local tasks are waiting")
-        }
     }
 
     private func updatedText() -> String {

@@ -1,16 +1,15 @@
-"""Tests for durable task intake and exact App Server continuity."""
+"""Tests for the durable prepared-task Kanban."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 from pathlib import Path
+import sqlite3
 import stat
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 
 
@@ -18,371 +17,119 @@ ROOT = Path(__file__).resolve().parents[2]
 CONTROL_ROOT = ROOT / "codex/control"
 sys.path.insert(0, str(CONTROL_ROOT))
 
-from orchestra_control.service import ControlError, ControlService  # noqa: E402
+from orchestra_control.db import SCHEMA_VERSION  # noqa: E402
+from orchestra_control.service import (  # noqa: E402
+    ControlError,
+    ControlService,
+    sequence_to_short_id,
+)
+from orchestra_control.mcp import TOOLS, cli_arguments  # noqa: E402
 
 
 HELPER = ROOT / "codex/scripts/task_control.py"
 MCP_HELPER = ROOT / "codex/scripts/task_mcp.py"
-THREAD_UUID = "11111111-1111-4111-8111-111111111111"
-TURN_UUID = "22222222-2222-4222-8222-222222222222"
-
-
-FAKE_CODEX = r'''#!/usr/bin/env python3
-import json
-import sys
-
-thread_id = "11111111-1111-4111-8111-111111111111"
-turn_id = "22222222-2222-4222-8222-222222222222"
-result = {
-    "kind": "tier_selection",
-    "checkpoint_id": "tier-1",
-    "message": "Choose standard or critical.",
-    "recommended_tier": "standard",
-    "artifacts": [],
-    "retained_resources": [],
-}
-item = {"type": "agentMessage", "phase": "final_answer", "text": json.dumps(result)}
-for line in sys.stdin:
-    message = json.loads(line)
-    method = message.get("method")
-    request_id = message.get("id")
-    params = message.get("params") or {}
-    if method == "initialize":
-        print(json.dumps({"id": request_id, "result": {}}), flush=True)
-    elif method == "initialized":
-        continue
-    elif method in ("thread/start", "thread/resume"):
-        if method == "thread/resume":
-            assert params["threadId"] == thread_id
-        print(json.dumps({"id": request_id, "result": {"thread": {"id": thread_id, "turns": []}, "cwd": params["cwd"]}}), flush=True)
-    elif method == "thread/read":
-        completed = {"id": turn_id, "status": "completed", "items": [item]}
-        print(json.dumps({"id": request_id, "result": {"thread": {"id": thread_id, "turns": [completed]}}}), flush=True)
-    elif method == "turn/start":
-        assert params["threadId"] == thread_id
-        assert params["clientUserMessageId"]
-        assert params["outputSchema"]["additionalProperties"] is False
-        print(json.dumps({"id": request_id, "result": {"turn": {"id": turn_id, "status": "inProgress", "items": []}}}), flush=True)
-        print(json.dumps({"method": "item/completed", "params": {"threadId": thread_id, "turnId": turn_id, "item": item}}), flush=True)
-        print(json.dumps({"method": "turn/completed", "params": {"threadId": thread_id, "turn": {"id": turn_id, "status": "completed", "items": []}}}), flush=True)
-    elif method in ("thread/archive", "thread/unarchive"):
-        assert params["threadId"] == thread_id
-        print(json.dumps({"id": request_id, "result": {}}), flush=True)
-'''
-
-INTERRUPTIBLE_CODEX = r'''#!/usr/bin/env python3
-import json
-import sys
-thread_id = "11111111-1111-4111-8111-111111111111"
-turn_id = "22222222-2222-4222-8222-222222222222"
-for line in sys.stdin:
-    message = json.loads(line)
-    method = message.get("method")
-    request_id = message.get("id")
-    if method == "initialize":
-        print(json.dumps({"id": request_id, "result": {}}), flush=True)
-    elif method == "initialized":
-        continue
-    elif method == "thread/start":
-        print(json.dumps({"id": request_id, "result": {"thread": {"id": thread_id}}}), flush=True)
-    elif method == "turn/start":
-        print(json.dumps({"id": request_id, "result": {"turn": {"id": turn_id, "status": "inProgress"}}}), flush=True)
-    elif method == "turn/interrupt":
-        print(json.dumps({"id": request_id, "result": {}}), flush=True)
-        print(json.dumps({"method": "turn/completed", "params": {"threadId": thread_id, "turn": {"id": turn_id, "status": "interrupted", "items": []}}}), flush=True)
-'''
-
-INTERACTIVE_CODEX = INTERRUPTIBLE_CODEX.replace(
-    'print(json.dumps({"id": request_id, "result": {"turn": {"id": turn_id, "status": "inProgress"}}}), flush=True)',
-    'print(json.dumps({"id": request_id, "result": {"turn": {"id": turn_id, "status": "inProgress"}}}), flush=True)\n'
-    '        print(json.dumps({"id": 90, "method": "item/commandExecution/requestApproval", "params": {"threadId": thread_id, "turnId": turn_id, "itemId": "command-1", "command": "make test"}}), flush=True)'
-)
+THREAD_ONE = "11111111-1111-4111-8111-111111111111"
+THREAD_TWO = "22222222-2222-4222-8222-222222222222"
 
 
 class TaskControlTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.state_root = self.root / "state"
+        self.repository = self.root / "repository"
+        self.repository.mkdir()
+        self.git("init", "-q", "-b", "main")
+        self.git("config", "user.name", "Orchestra Test")
+        self.git("config", "user.email", "orchestra@example.invalid")
+        (self.repository / "seed.txt").write_text("seed\n", encoding="utf-8")
+        self.git("add", "seed.txt")
+        self.git("commit", "-q", "-m", "seed")
+        self.revision = self.git("rev-parse", "HEAD").stdout.strip()
+        self.common_dir = self.git(
+            "rev-parse", "--path-format=absolute", "--git-common-dir"
+        ).stdout.strip()
         self.service = ControlService(self.state_root)
 
-    def tearDown(self) -> None:
-        self.temporary.cleanup()
+    def git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        result = subprocess.run(
+            ["git", *args], cwd=self.repository, capture_output=True, text=True, check=False
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
 
     def create_task(self, key: str = "capture-1") -> dict[str, object]:
         return self.service.create_task(
             title="Durable task",
             brief="Inspect the repository and prepare a candidate specification.",
             source_harness="test",
+            repository=str(self.repository),
             idempotency_key=key,
         )
 
-    def test_capture_is_idempotent_and_database_is_private(self) -> None:
+    def prepare(self, task: str) -> dict[str, object]:
+        return self.service.prepare_task(
+            task_ref=task,
+            repository=str(self.repository),
+            prepared_revision=self.revision,
+            repository_common_dir=self.common_dir,
+            repository_context="# Repository context\n\nObserved source.\n",
+            specification="# Specification\n\nConfirmed result.\n",
+            confirmed=True,
+        )
+
+    def cli(self, *args: str, thread: str | None = None) -> tuple[subprocess.CompletedProcess[str], dict]:
+        environment = os.environ.copy()
+        if thread is None:
+            environment.pop("CODEX_THREAD_ID", None)
+        else:
+            environment["CODEX_THREAD_ID"] = thread
+        result = subprocess.run(
+            [sys.executable, str(HELPER), "--state-root", str(self.state_root), *args],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        try:
+            payload = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            self.fail(result.stdout + result.stderr)
+        return result, payload
+
+    def test_short_id_sequence_matches_approved_format(self) -> None:
+        expected = {
+            1: "A1",
+            99: "A99",
+            100: "B1",
+            2574: "Z99",
+            2575: "AA1",
+            2674: "AB1",
+        }
+        for sequence, short_id in expected.items():
+            self.assertEqual(sequence_to_short_id(sequence), short_id)
+
+    def test_capture_is_idempotent_allocates_human_id_and_is_private(self) -> None:
         first = self.create_task()
         second = self.create_task()
         self.assertEqual(first["id"], second["id"])
-        database = self.state_root / "control.sqlite3"
-        self.assertEqual(stat.S_IMODE(database.stat().st_mode), 0o600)
-        self.assertEqual(len(self.service.list_tasks()), 1)
-
-    def test_capture_preserves_structured_brief_and_note_text(self) -> None:
-        task = self.service.create_task(
-            title="Structured task",
-            brief="Objective\n\n- acceptance one\n- acceptance two",
-            source_harness="test",
-            idempotency_key="structured-task",
+        self.assertEqual(first["short_id"], "A1")
+        self.assertEqual(first["preparation_status"], "draft")
+        self.assertEqual(self.create_task("capture-2")["short_id"], "A2")
+        self.assertEqual(stat.S_IMODE(self.state_root.stat().st_mode), 0o700)
+        self.assertEqual(
+            stat.S_IMODE((self.state_root / "control.sqlite3").stat().st_mode), 0o600
         )
-        note = self.service.add_note(
-            task_id=str(task["id"]),
-            body="Context\n\n```text\nexact value\n```",
-            source_harness="test",
-            source_reference="message-structured",
-            idempotency_key="structured-note",
-        )
-        self.assertEqual(task["brief"], "Objective\n\n- acceptance one\n- acceptance two")
-        self.assertEqual(note["body"], "Context\n\n```text\nexact value\n```")
 
-    def test_conflicting_idempotency_keys_are_rejected(self) -> None:
+    def test_lookup_is_case_insensitive_and_uuid_remains_identity(self) -> None:
         task = self.create_task()
-        with self.assertRaises(ControlError) as task_error:
-            self.service.create_task(
-                title="Different task",
-                brief="Different brief",
-                source_harness="test",
-                idempotency_key="capture-1",
-            )
-        self.assertEqual(task_error.exception.status, "invalid")
-        self.service.add_note(
-            task_id=str(task["id"]),
-            body="Original note",
-            source_harness="test",
-            source_reference="message-1",
-            idempotency_key="note-conflict",
-        )
-        with self.assertRaises(ControlError) as note_error:
-            self.service.add_note(
-                task_id=str(task["id"]),
-                body="Different note",
-                source_harness="test",
-                source_reference="message-2",
-                idempotency_key="note-conflict",
-            )
-        self.assertEqual(note_error.exception.status, "invalid")
+        self.assertEqual(self.service.get_task("a1")["id"], task["id"])
+        self.assertEqual(self.service.get_task(str(task["id"]))["short_id"], "A1")
 
-    def test_notes_and_archive_are_recoverable(self) -> None:
-        task = self.create_task()
-        first = self.service.add_note(
-            task_id=str(task["id"]),
-            body="A later thought",
-            source_harness="test",
-            source_reference="message-2",
-            idempotency_key="note-1",
-        )
-        second = self.service.add_note(
-            task_id=str(task["id"]),
-            body="A later thought",
-            source_harness="test",
-            source_reference="message-2",
-            idempotency_key="note-1",
-        )
-        self.assertEqual(first["id"], second["id"])
-        self.service.set_archived(str(task["id"]), True)
-        self.assertEqual(self.service.list_tasks(), [])
-        self.service.set_archived(str(task["id"]), False)
-        self.assertEqual(len(self.service.get_task(str(task["id"]))["notes"]), 1)
-
-    def test_archive_rejects_an_unresolved_turn(self) -> None:
-        task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="choose standard", idempotency_key="turn-1"
-        )
-        self.service.update_transport(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]), active_turn_id=TURN_UUID
-        )
-        with self.assertRaises(ControlError) as raised:
-            self.service.set_archived(str(task["id"]), True)
-        self.assertEqual(raised.exception.status, "busy")
-
-    def test_cancel_and_reopen_preserve_thread_and_checkpoint(self) -> None:
-        task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="checkpoint", idempotency_key="turn-cancel"
-        )
-        checkpoint = {
-            "kind": "tier_selection",
-            "checkpoint_id": "tier-1",
-            "message": "Choose a tier",
-            "recommended_tier": "standard",
-            "artifacts": [],
-            "retained_resources": [],
-        }
-        self.service.update_transport(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]), thread_uuid=THREAD_UUID,
-            active_turn_id=TURN_UUID, completed_result=checkpoint,
-        )
-        cancelled = self.service.request_cancel(str(task["id"]))
-        self.assertEqual(cancelled["status"], "cancelled")
-        self.assertEqual(cancelled["thread_uuid"], THREAD_UUID)
-        self.assertEqual(cancelled["last_result_kind"], "tier_selection")
-        reopened = self.service.reopen(str(task["id"]))
-        self.assertEqual(reopened["status"], "ready")
-        self.assertEqual(reopened["thread_uuid"], THREAD_UUID)
-        self.assertEqual(reopened["last_result_kind"], "tier_selection")
-
-    def test_interaction_response_is_exact_and_consumed_once(self) -> None:
-        task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="approve", idempotency_key="turn-interaction"
-        )
-        values = dict(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]),
-            thread_uuid=THREAD_UUID, turn_uuid=TURN_UUID, item_id="item-1",
-            method="item/commandExecution/requestApproval",
-            params={"threadId": THREAD_UUID, "turnId": TURN_UUID, "itemId": "item-1"},
-            fingerprint="exact-fingerprint",
-        )
-        pending, response = self.service.record_interaction(**values)
-        self.assertEqual(pending["status"], "pending")
-        self.assertIsNone(response)
-        self.service.resolve_interaction(str(pending["id"]), {"decision": "accept"})
-        consumed, response = self.service.record_interaction(**values)
-        self.assertEqual(consumed["status"], "consumed")
-        self.assertEqual(response, {"decision": "accept"})
-        next_pending, response = self.service.record_interaction(**values)
-        self.assertEqual(next_pending["status"], "pending")
-        self.assertIsNone(response)
-
-    def test_list_includes_latest_run_and_pending_interaction_summary(self) -> None:
-        task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="approve", idempotency_key="turn-summary"
-        )
-        self.service.record_interaction(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]),
-            thread_uuid=THREAD_UUID, turn_uuid=TURN_UUID, item_id=None,
-            method="example/request", params={}, fingerprint="summary-fingerprint",
-        )
-        listed = self.service.list_tasks()[0]
-        self.assertEqual(listed["latest_run"]["id"], run["id"])
-        self.assertEqual(listed["pending_interactions"], 1)
-
-    def test_mcp_lists_tools_and_creates_a_task_through_the_canonical_cli(self) -> None:
-        requests = [
-            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}},
-            {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-            {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "task_create", "arguments": {"title": "From MCP", "brief": "Durable brief", "idempotency_key": "mcp-create"}}},
-        ]
-        environment = dict(os.environ)
-        environment["HOME"] = str(self.root / "mcp-home")
-        completed = subprocess.run(
-            [sys.executable, str(MCP_HELPER)],
-            input="".join(json.dumps(item) + "\n" for item in requests),
-            capture_output=True, text=True, env=environment, check=True,
-        )
-        responses = [json.loads(line) for line in completed.stdout.splitlines()]
-        self.assertEqual(responses[0]["result"]["protocolVersion"], "2024-11-05")
-        tool_names = {item["name"] for item in responses[1]["result"]["tools"]}
-        self.assertIn("task_cancel", tool_names)
-        self.assertIn("run_resolve", tool_names)
-        self.assertEqual(responses[2]["result"]["structuredContent"]["status"], "ok")
-
-    def test_active_driver_observes_external_cancel_and_interrupts_exact_turn(self) -> None:
-        repository = self.root / "interrupt-repository"
-        repository.mkdir()
-        subprocess.run(["git", "init", "-q", str(repository)], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.email", "test@example.invalid"], check=True)
-        (repository / "README.md").write_text("canary\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(repository), "add", "README.md"], check=True)
-        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "canary"], check=True)
-        task = self.service.create_task(
-            title="Interrupt", brief="Wait for cancellation", source_harness="test",
-            repository=str(repository), idempotency_key="interrupt-task",
-        )
-        fake = self.root / "interruptible-codex"
-        fake.write_text(INTERRUPTIBLE_CODEX, encoding="utf-8")
-        fake.chmod(0o755)
-        process = subprocess.Popen(
-            [sys.executable, str(HELPER), "--state-root", str(self.state_root),
-             "run", "start", "--task", str(task["id"]), "--codex-bin", str(fake)],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        try:
-            for _ in range(100):
-                try:
-                    run = self.service.latest_run(str(task["id"]))
-                except ControlError:
-                    time.sleep(0.02)
-                    continue
-                if run.get("active_turn_id") == TURN_UUID:
-                    break
-                time.sleep(0.02)
-            else:
-                self.fail("driver did not persist the active turn")
-            cancelled = subprocess.run(
-                [sys.executable, str(HELPER), "--state-root", str(self.state_root),
-                 "task", "cancel", "--task", str(task["id"])],
-                capture_output=True, text=True, check=True,
-            )
-            self.assertEqual(json.loads(cancelled.stdout)["run"]["status"], "cancelling")
-            stdout, stderr = process.communicate(timeout=5)
-            self.assertEqual(process.returncode, 0, stderr)
-            result = json.loads(stdout)["run"]
-            self.assertEqual(result["status"], "cancelled")
-            self.assertEqual(result["thread_uuid"], THREAD_UUID)
-            self.assertIsNone(result["active_turn_id"])
-        finally:
-            if process.poll() is None:
-                process.kill()
-                process.wait()
-
-    def test_interactive_app_server_request_is_persisted_and_stops_needs_user(self) -> None:
-        repository = self.root / "interaction-repository"
-        repository.mkdir()
-        subprocess.run(["git", "init", "-q", str(repository)], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.email", "test@example.invalid"], check=True)
-        (repository / "README.md").write_text("canary\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(repository), "add", "README.md"], check=True)
-        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "canary"], check=True)
-        task = self.service.create_task(
-            title="Interaction", brief="Request approval", source_harness="test",
-            repository=str(repository), idempotency_key="interaction-task",
-        )
-        fake = self.root / "interactive-codex"
-        fake.write_text(INTERACTIVE_CODEX, encoding="utf-8")
-        fake.chmod(0o755)
-        started = subprocess.run(
-            [sys.executable, str(HELPER), "--state-root", str(self.state_root),
-             "run", "start", "--task", str(task["id"]), "--codex-bin", str(fake)],
-            capture_output=True, text=True, check=True, timeout=5,
-        )
-        run = json.loads(started.stdout)["run"]
-        self.assertEqual(run["status"], "waiting_user")
-        self.assertIsNone(run["active_turn_id"])
-        interactions = self.service.list_interactions(str(task["id"]))
-        self.assertEqual(len(interactions), 1)
-        self.assertEqual(interactions[0]["status"], "pending")
-        self.assertEqual(interactions[0]["item_id"], "command-1")
-
-    def test_cli_starts_one_persistent_thread_with_structured_checkpoint(self) -> None:
-        repository = self.root / "repository"
-        repository.mkdir()
-        subprocess.run(["git", "init", "-q", str(repository)], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
-        subprocess.run(["git", "-C", str(repository), "config", "user.email", "test@example.invalid"], check=True)
-        (repository / "README.md").write_text("canary\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(repository), "add", "README.md"], check=True)
-        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "canary"], check=True)
-        fake = self.root / "fake-codex"
-        fake.write_text(FAKE_CODEX, encoding="utf-8")
-        fake.chmod(0o755)
-
-        create = subprocess.run(
+    def test_concurrent_capture_allocates_unique_monotonic_ids(self) -> None:
+        commands = [
             [
                 sys.executable,
                 str(HELPER),
@@ -391,116 +138,552 @@ class TaskControlTests(unittest.TestCase):
                 "task",
                 "create",
                 "--title",
-                "Canary",
+                f"Task {index}",
                 "--brief",
-                "Prepare discovery",
-                "--repository",
-                str(repository),
+                "Prepared task",
+                "--source-harness",
+                "test",
                 "--idempotency-key",
-                "create-canary",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+                f"concurrent-{index}",
+            ]
+            for index in range(12)
+        ]
+        processes = [
+            subprocess.Popen(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            for command in commands
+        ]
+        rows = []
+        for process in processes:
+            stdout, stderr = process.communicate(timeout=15)
+            self.assertEqual(process.returncode, 0, stdout + stderr)
+            rows.append(json.loads(stdout)["task"])
+        self.assertEqual(len({row["short_id"] for row in rows}), 12)
+        self.assertEqual(
+            {row["short_id"] for row in rows},
+            {f"A{index}" for index in range(1, 13)},
         )
-        task_id = json.loads(create.stdout)["task"]["id"]
-        started = subprocess.run(
-            [
-                sys.executable,
-                str(HELPER),
-                "--state-root",
-                str(self.state_root),
-                "run",
-                "start",
-                "--task",
-                task_id,
-                "--codex-bin",
-                str(fake),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        payload = json.loads(started.stdout)
-        self.assertEqual(payload["run"]["thread_uuid"], THREAD_UUID)
-        self.assertEqual(payload["run"]["last_result_kind"], "tier_selection")
-        self.assertEqual(payload["run"]["status"], "waiting_user")
 
-    def test_reconcile_adopts_only_the_exact_persisted_completed_turn(self) -> None:
+    def test_prepare_requires_confirmation_and_writes_private_documents(self) -> None:
         task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="choose standard", idempotency_key="turn-reconcile"
-        )
-        self.service.update_transport(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]), thread_uuid=THREAD_UUID
-        )
-        self.service.update_transport(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]), active_turn_id=TURN_UUID
-        )
-        self.service.update_transport(
-            run_id=str(run["id"]),
-            turn_record_id=str(turn["id"]),
-            ambiguous="launcher stopped after turn/start",
-        )
-        fake = self.root / "fake-codex"
-        fake.write_text(FAKE_CODEX, encoding="utf-8")
-        fake.chmod(0o755)
-
-        reconciled = subprocess.run(
-            [
-                sys.executable,
-                str(HELPER),
-                "--state-root",
-                str(self.state_root),
-                "run",
-                "reconcile",
-                "--task",
-                str(task["id"]),
-                "--codex-bin",
-                str(fake),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        payload = json.loads(reconciled.stdout)
-        self.assertEqual(payload["run"]["status"], "waiting_user")
-        self.assertEqual(payload["run"]["last_result_kind"], "tier_selection")
-        self.assertIsNone(payload["run"]["active_turn_id"])
-
-    def test_cli_archive_and_restore_mirror_the_persistent_thread(self) -> None:
-        task = self.create_task()
-        run = self.service.prepare_run(str(task["id"]), "/tmp/repository", "a" * 40)
-        turn = self.service.prepare_turn(
-            run_id=str(run["id"]), text="prepare discovery", idempotency_key="turn-archive"
-        )
-        self.service.update_transport(
-            run_id=str(run["id"]), turn_record_id=str(turn["id"]), thread_uuid=THREAD_UUID
-        )
-        fake = self.root / "fake-codex"
-        fake.write_text(FAKE_CODEX, encoding="utf-8")
-        fake.chmod(0o755)
-
-        for command, disposition in (("archive", "archived"), ("restore", "open")):
-            changed = subprocess.run(
-                [
-                    sys.executable,
-                    str(HELPER),
-                    "--state-root",
-                    str(self.state_root),
-                    "task",
-                    command,
-                    "--task",
-                    str(task["id"]),
-                    "--codex-bin",
-                    str(fake),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
+        with self.assertRaises(ControlError):
+            self.service.prepare_task(
+                task_ref="A1",
+                repository=str(self.repository),
+                prepared_revision=self.revision,
+                repository_context="context",
+                specification="specification",
+                confirmed=False,
             )
-            self.assertEqual(json.loads(changed.stdout)["task"]["disposition"], disposition)
+        ready = self.prepare("A1")
+        self.assertEqual(ready["preparation_status"], "ready")
+        for name in ("repository_context", "specification", "marker"):
+            path = Path(ready["documents"][name])
+            self.assertTrue(path.is_file())
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        marker = json.loads(Path(ready["documents"]["marker"]).read_text())
+        self.assertEqual(marker["id"], task["id"])
+        self.assertEqual(marker["short_id"], "A1")
+
+    def test_adoption_requires_native_thread_and_reports_context_delta(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        with self.assertRaises(ControlError) as missing:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=None,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        self.assertEqual(missing.exception.status, "blocked")
+        adopted = self.service.adopt_task(
+            task_ref="a1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.assertEqual(adopted["preparation_status"], "adopted")
+        self.assertEqual(adopted["context_action"], "use_prepared")
+        self.git("commit", "--allow-empty", "-q", "-m", "new revision")
+        new_revision = self.git("rev-parse", "HEAD").stdout.strip()
+        resumed = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=new_revision,
+        )
+        self.assertEqual(resumed["context_action"], "repository_context_delta")
+
+    def test_adoption_rejects_tampered_prepared_documents(self) -> None:
+        self.create_task()
+        ready = self.prepare("A1")
+        Path(ready["documents"]["specification"]).write_text("tampered\n", encoding="utf-8")
+        with self.assertRaises(ControlError) as error:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        self.assertEqual(error.exception.status, "blocked")
+        self.assertIn("digest", error.exception.reason)
+
+    def test_adoption_rejects_repository_alias_and_symlinked_document(self) -> None:
+        self.create_task()
+        ready = self.prepare("A1")
+        alias = self.root / "repository-alias"
+        alias.symlink_to(self.repository, target_is_directory=True)
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(alias),
+            current_revision=self.revision,
+        )
+        self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+        self.service.transfer_task(
+            task_ref="A1", thread_id=THREAD_ONE, stable_checkpoint=True
+        )
+        specification = Path(ready["documents"]["specification"])
+        original = specification.read_text(encoding="utf-8")
+        specification.unlink()
+        target = self.root / "specification-target.md"
+        target.write_text(original, encoding="utf-8")
+        specification.symlink_to(target)
+        with self.assertRaises(ControlError) as error:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        self.assertEqual(error.exception.status, "blocked")
+        self.assertIn("unsafe", error.exception.reason)
+
+    def test_only_one_chat_adopts_and_transfer_requires_stable_checkpoint(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        with self.assertRaises(ControlError) as busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        self.assertEqual(busy.exception.status, "busy")
+        with self.assertRaises(ControlError):
+            self.service.transfer_task(
+                task_ref="A1", thread_id=THREAD_ONE, stable_checkpoint=False
+            )
+        transferred = self.service.transfer_task(
+            task_ref="A1", thread_id=THREAD_ONE, stable_checkpoint=True
+        )
+        self.assertEqual(transferred["preparation_status"], "ready")
+        self.assertEqual(transferred["transfer_generation"], 1)
+        with self.assertRaises(ControlError):
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        resumed = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.assertTrue(resumed["resume_existing_checkout"])
+
+    def test_finish_and_archive_are_owner_safe(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        with self.assertRaises(ControlError):
+            self.service.set_archived("A1", True)
+        with self.assertRaises(ControlError):
+            self.service.finish_task(task_ref="A1", thread_id=THREAD_TWO)
+        completed = self.service.finish_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            terminal_revision=self.revision,
+            repository_common_dir=self.common_dir,
+        )
+        self.assertEqual(completed["preparation_status"], "completed")
+        self.assertEqual(self.service.set_archived("a1", True)["disposition"], "archived")
+
+    def manifest(self, condition: str | None = None) -> dict:
+        dependencies = []
+        if condition:
+            dependencies.append(
+                {
+                    "task": "frontend",
+                    "blocked_by": "backend",
+                    "condition": condition,
+                    "reason": "Requires the integrated API contract",
+                }
+            )
+        return {
+            "initiative": {
+                "title": "Checkout improvements",
+                "brief": "Deliver backend and frontend changes with independent acceptance.",
+            },
+            "cards": [
+                {
+                    "key": "backend",
+                    "title": "Backend contract",
+                    "brief": "Implement and verify the API contract.",
+                    "repository": str(self.repository),
+                },
+                {
+                    "key": "frontend",
+                    "title": "Frontend flow",
+                    "brief": "Consume and verify the API contract.",
+                    "repository": str(self.repository),
+                },
+            ],
+            "dependencies": dependencies,
+        }
+
+    def decompose(self, condition: str | None = None) -> dict:
+        return self.service.decompose_task(
+            task_ref="A1",
+            manifest=self.manifest(condition),
+            confirmed=True,
+            idempotency_key=f"decompose-{condition or 'parallel'}",
+        )
+
+    def test_decomposition_requires_confirmation_and_is_atomic_and_idempotent(self) -> None:
+        source = self.create_task()
+        with self.assertRaises(ControlError):
+            self.service.decompose_task(
+                task_ref="A1",
+                manifest=self.manifest(),
+                confirmed=False,
+                idempotency_key="not-confirmed",
+            )
+        self.assertEqual([task["short_id"] for task in self.service.list_tasks()], ["A1"])
+        invalid = self.manifest()
+        invalid["dependencies"] = [
+            {
+                "task": "backend",
+                "blocked_by": "frontend",
+                "condition": "completed",
+                "reason": "one",
+            },
+            {
+                "task": "frontend",
+                "blocked_by": "backend",
+                "condition": "completed",
+                "reason": "two",
+            },
+        ]
+        with self.assertRaises(ControlError) as cycle:
+            self.service.decompose_task(
+                task_ref="A1", manifest=invalid, confirmed=True, idempotency_key="cycle"
+            )
+        self.assertIn("cycle", cycle.exception.reason)
+        created = self.decompose()
+        repeated = self.decompose()
+        self.assertEqual(created["key_map"], {"backend": "A1", "frontend": "A2"})
+        self.assertEqual(repeated["key_map"], created["key_map"])
+        self.assertEqual(created["cards"][0]["id"], source["id"])
+        self.assertEqual(created["cards"][0]["brief_revision"], 2)
+        self.assertEqual(
+            [item["short_id"] for item in created["cards"][0]["parallel_with"]], ["A2"]
+        )
+        self.assertEqual(self.create_task("after-decompose")["short_id"], "A3")
+
+    def test_more_than_three_cards_requires_individual_reasons(self) -> None:
+        self.create_task()
+        manifest = self.manifest()
+        manifest["cards"].extend(
+            [
+                {
+                    "key": "docs",
+                    "title": "Documentation",
+                    "brief": "Document the contract.",
+                    "repository": str(self.repository),
+                },
+                {
+                    "key": "ops",
+                    "title": "Operations",
+                    "brief": "Verify operational acceptance.",
+                    "repository": str(self.repository),
+                },
+            ]
+        )
+        with self.assertRaises(ControlError) as error:
+            self.service.decompose_task(
+                task_ref="A1", manifest=manifest, confirmed=True, idempotency_key="too-many"
+            )
+        self.assertIn("decomposition_reason", error.exception.reason)
+
+    def test_completed_dependency_blocks_adoption_until_finish(self) -> None:
+        self.create_task()
+        self.decompose("completed")
+        self.prepare("A1")
+        self.prepare("A2")
+        with self.assertRaises(ControlError) as blocked:
+            self.service.adopt_task(
+                task_ref="A2",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                repository_common_dir=self.common_dir,
+                ancestor_contains=lambda _revision: True,
+            )
+        self.assertEqual(blocked.exception.status, "blocked")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.service.finish_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            terminal_revision=self.revision,
+            repository_common_dir=self.common_dir,
+        )
+        adopted = self.service.adopt_task(
+            task_ref="A2",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            repository_common_dir=self.common_dir,
+            ancestor_contains=lambda _revision: True,
+        )
+        self.assertEqual(adopted["preparation_status"], "adopted")
+
+    def test_delivered_dependency_requires_evidence_and_checkout_containment(self) -> None:
+        self.create_task()
+        self.decompose("delivered")
+        self.prepare("A1")
+        self.prepare("A2")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.service.finish_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            terminal_revision=self.revision,
+            repository_common_dir=self.common_dir,
+        )
+        with self.assertRaises(ControlError):
+            self.service.adopt_task(
+                task_ref="A2",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                repository_common_dir=self.common_dir,
+                ancestor_contains=lambda _revision: True,
+            )
+        delivered = self.service.record_delivery(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            task_revision=self.revision,
+            delivery_revision=self.revision,
+            kind="local-integration",
+            repository_common_dir=self.common_dir,
+        )
+        self.assertEqual(delivered["delivery_revision"], self.revision)
+        with self.assertRaises(ControlError) as stale:
+            self.service.adopt_task(
+                task_ref="A2",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                repository_common_dir=self.common_dir,
+                ancestor_contains=lambda _revision: False,
+            )
+        self.assertIn("checkout-update-required", stale.exception.reason)
+        adopted = self.service.adopt_task(
+            task_ref="A2",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            repository_common_dir=self.common_dir,
+            ancestor_contains=lambda revision: revision == self.revision,
+        )
+        self.assertEqual(adopted["preparation_status"], "adopted")
+
+    def test_cli_adopt_uses_codex_thread_id_and_never_creates_checkout(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        before = self.git("worktree", "list", "--porcelain").stdout
+        result, missing = self.cli("task", "adopt", "--task", "A1", "--repository", str(self.repository))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(missing["status"], "blocked")
+        result, adopted = self.cli(
+            "task", "adopt", "--task", "a1", "--repository", str(self.repository), thread=THREAD_ONE
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(adopted["task"]["adopted_thread_id"], THREAD_ONE)
+        self.assertEqual(before, self.git("worktree", "list", "--porcelain").stdout)
+
+    def test_mcp_exposes_preparation_but_not_execution_or_ownership(self) -> None:
+        process = subprocess.run(
+            [sys.executable, str(MCP_HELPER)],
+            cwd=ROOT,
+            input="\n".join(
+                (
+                    json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}}),
+                    json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+                )
+            ) + "\n",
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        messages = [json.loads(line) for line in process.stdout.splitlines()]
+        names = {tool["name"] for tool in messages[1]["result"]["tools"]}
+        self.assertIn("task_prepare", names)
+        self.assertIn("task_decompose", names)
+        for forbidden in (
+            "task_adopt",
+            "task_transfer",
+            "task_finish",
+            "task_record_delivery",
+            "run_start",
+            "run_respond",
+            "run_reopen",
+            "run_reconcile",
+            "run_interactions",
+            "run_resolve",
+        ):
+            self.assertNotIn(forbidden, names)
+
+    def test_mcp_decomposition_uses_structured_arrays(self) -> None:
+        definition = TOOLS["task_decompose"]["inputSchema"]
+        self.assertEqual(definition["properties"]["cards"]["type"], "array")
+        self.assertEqual(definition["properties"]["dependencies"]["type"], "array")
+        arguments = {
+            "task": "A1",
+            "initiative": self.manifest()["initiative"],
+            "cards": self.manifest()["cards"],
+            "dependencies": [],
+            "confirmed": True,
+            "idempotency_key": "mcp-decompose",
+        }
+        command = cli_arguments("task_decompose", arguments)
+        self.assertEqual(command[:2], ["task", "decompose"])
+        encoded = command[command.index("--manifest-json") + 1]
+        self.assertEqual(json.loads(encoded)["cards"], arguments["cards"])
+
+    def test_schema_v2_migration_preserves_legacy_rows_without_short_ids(self) -> None:
+        self.state_root.mkdir(mode=0o700)
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.executescript(
+                """
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY, title TEXT NOT NULL, brief TEXT NOT NULL,
+                    brief_revision INTEGER NOT NULL DEFAULT 1,
+                    source_harness TEXT NOT NULL, source_conversation TEXT NOT NULL,
+                    source_message TEXT NOT NULL, repository TEXT, rank INTEGER NOT NULL,
+                    disposition TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+                CREATE TABLE task_notes (
+                    id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id),
+                    body TEXT NOT NULL, source_harness TEXT NOT NULL,
+                    source_reference TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE runs (
+                    id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id),
+                    repository TEXT NOT NULL, base_revision TEXT NOT NULL,
+                    delivery TEXT NOT NULL, status TEXT NOT NULL, thread_uuid TEXT,
+                    active_turn_id TEXT, last_turn_id TEXT, last_result_kind TEXT,
+                    last_result_json TEXT, retained_resources_json TEXT NOT NULL DEFAULT '[]',
+                    cancel_requested_at TEXT, cancelled_at TEXT,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+                CREATE TABLE turns (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
+                    idempotency_key TEXT NOT NULL UNIQUE, input_digest TEXT NOT NULL,
+                    input_text TEXT NOT NULL, response_to TEXT, status TEXT NOT NULL,
+                    turn_uuid TEXT, result_json TEXT, created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE interactions (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
+                    turn_record_id TEXT NOT NULL REFERENCES turns(id), thread_uuid TEXT NOT NULL,
+                    turn_uuid TEXT NOT NULL, item_id TEXT, method TEXT NOT NULL,
+                    params_json TEXT NOT NULL, fingerprint TEXT NOT NULL, status TEXT NOT NULL,
+                    response_json TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+                PRAGMA user_version = 2;
+                """
+            )
+            connection.execute(
+                "INSERT INTO tasks VALUES (?, ?, ?, 1, ?, '', '', NULL, 1, 'open', ?, ?, ?)",
+                ("legacy-uuid", "Legacy", "Old task", "test", "legacy-key", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        os.chmod(database, 0o600)
+        legacy = self.service.get_task("legacy-uuid")
+        self.assertIsNone(legacy["short_id"])
+        self.assertEqual(legacy["preparation_status"], "legacy")
+        self.assertEqual(self.create_task()["short_id"], "A1")
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
+        finally:
+            connection.close()
+
+    def test_schema_v3_migration_preserves_prepared_cards(self) -> None:
+        created = self.create_task()
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute("PRAGMA foreign_keys = OFF")
+            connection.execute("DROP TABLE task_dependencies")
+            connection.execute("DROP INDEX tasks_initiative")
+            for column in (
+                "delivered_at",
+                "delivery_kind",
+                "delivery_revision",
+                "delivered_task_revision",
+                "completed_revision",
+                "repository_common_dir",
+                "decomposition_reason",
+                "initiative_id",
+            ):
+                connection.execute(f"ALTER TABLE tasks DROP COLUMN {column}")
+            connection.execute("DROP TABLE task_initiatives")
+            connection.execute("PRAGMA user_version = 3")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["id"], created["id"])
+        self.assertIsNone(migrated["initiative_id"])
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
+        finally:
+            connection.close()
 
 
 if __name__ == "__main__":

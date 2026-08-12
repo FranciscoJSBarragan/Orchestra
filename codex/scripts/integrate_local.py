@@ -140,6 +140,8 @@ def integrate_local(
             "status": "partial",
             "reason": "integration completed but a worktree is dirty; cleanup skipped",
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
         }
     branch_ref = _git(task, "rev-parse", "--verify", f"refs/heads/{task_branch}")
     if branch_ref.returncode or branch_ref.stdout.strip() != task_sha:
@@ -147,6 +149,8 @@ def integrate_local(
             "status": "partial",
             "reason": "integration completed but task branch moved; cleanup skipped",
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
         }
 
     if checkout_mode == "hybrid":
@@ -156,6 +160,8 @@ def integrate_local(
                 "status": "partial",
                 "reason": _command_reason("git branch -d", delete),
                 "task_sha": task_sha,
+                "delivery_verified": True,
+                "delivery_revision": task_sha,
             }
         cleanup_error = cleanup_private_task_state(base)
         if cleanup_error:
@@ -163,6 +169,8 @@ def integrate_local(
                 "status": "partial",
                 "reason": cleanup_error,
                 "task_sha": task_sha,
+                "delivery_verified": True,
+                "delivery_revision": task_sha,
                 "cleanup": ["branch"],
                 "preserved": ["worktree"],
             }
@@ -170,6 +178,8 @@ def integrate_local(
             "status": "ok",
             "action": "integrated",
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
             "base_branch": base_branch,
             "checks": check_result["checks"],
             "cleanup": ["branch", "private_state"],
@@ -183,6 +193,8 @@ def integrate_local(
             "status": "partial",
             "reason": "task branch is not fully merged; cleanup skipped",
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
             "cleanup": [],
             "preserved": ["worktree", "branch", "private_state"],
         }
@@ -192,6 +204,8 @@ def integrate_local(
             "status": "partial",
             "reason": cleanup_error,
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
             "cleanup": [],
             "preserved": ["worktree", "branch", "private_state"],
         }
@@ -201,6 +215,8 @@ def integrate_local(
             "status": "partial",
             "reason": _command_reason("git worktree remove", remove),
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
             "cleanup": ["private_state"],
             "preserved": ["worktree", "branch"],
         }
@@ -210,11 +226,15 @@ def integrate_local(
             "status": "partial",
             "reason": _command_reason("git branch -d", delete),
             "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
         }
     return {
         "status": "ok",
         "action": "integrated",
         "task_sha": task_sha,
+        "delivery_verified": True,
+        "delivery_revision": task_sha,
         "base_branch": base_branch,
         "checks": check_result["checks"],
         "cleanup": ["private_state", "worktree", "branch"],

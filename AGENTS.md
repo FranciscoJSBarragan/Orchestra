@@ -71,6 +71,14 @@ bounded open questions). Recommend the initial tier in the same interaction.
 A brainstorming-only request stays read-only until the user authorizes task
 setup.
 
+When the conversation adopted a ready `$orchestra-task`, its revision-bound
+confirmed specification already satisfies the final-specification checkpoint.
+After tier selection and checkout creation, reuse exact prepared repository
+context at the same revision and proceed to formal planning without duplicate
+confirmation. Changed Git receives only a focused context delta, and only a
+material specification change reopens confirmation. Register Coordinator after
+checkout creation with the prepared card's UUID via `--task-id`.
+
 Before tier selection, resolve the installed model configuration
 (`roles.toml` + `session_model.py` for dual matrices) as specified in
 `docs/WORKFLOW.md`; the selected mode is immutable for the task and Orchestra

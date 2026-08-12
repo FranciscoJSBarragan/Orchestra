@@ -23,7 +23,9 @@ from orchestra_hub.fingerprint import MATERIAL_FINGERPRINT_VERSION  # noqa: E402
 NOW = datetime(2026, 8, 2, 19, 0, tzinfo=timezone.utc)
 PINNED_PATH = "/pinned/repo"
 OBS_PATH = "/obs/alpha"
-TASK_PAYLOAD_KEYS = set(TASK_FIELDS) | {"material_fingerprint", "stale"}
+TASK_PAYLOAD_KEYS = set(TASK_FIELDS) | {
+    "current_activity", "material_fingerprint", "stale"
+}
 ACTIVITY_PAYLOAD_KEYS = set(ACTIVITY_FIELDS)
 ARTIFACT_PAYLOAD_KEYS = set(ARTIFACT_FIELDS)
 
@@ -114,6 +116,7 @@ class ApiTests(unittest.TestCase):
             set(attention[blocked["id"]]),
             {
                 "task_id",
+                "short_id",
                 "label",
                 "repository",
                 "reasons",
@@ -263,6 +266,10 @@ class ApiTests(unittest.TestCase):
             [activity["agent_id"] for activity in payload["activities"]],
             ["agent-a", "agent-z"],
         )
+        self.assertEqual(
+            [activity["agent_id"] for activity in payload["task"]["current_activity"]],
+            ["agent-a", "agent-z"],
+        )
         for activity in payload["activities"]:
             self.assertEqual(set(activity), ACTIVITY_PAYLOAD_KEYS)
 
@@ -282,6 +289,180 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(by_id["03-plan-phase-p2.md"]["phase"], 2)
         self.assertEqual(by_id["02-plan-overview.md"]["kind"], "plan-overview")
         self.assertEqual(by_id["02-plan-overview.md"]["phase"], 0)
+
+    def test_prepared_and_coordination_rows_join_by_shared_uuid(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        prepared = support.insert_prepared_task(
+            control_database,
+            id="11111111-1111-4111-8111-111111111111",
+            short_id="A1",
+            title="Prepared A1",
+        )
+        support.insert_task(
+            self.database,
+            id=prepared["id"],
+            label="Active A1",
+            repository=OBS_PATH,
+            status="active",
+            stage="implementation",
+        )
+        ready_only = support.insert_prepared_task(
+            control_database,
+            id="22222222-2222-4222-8222-222222222222",
+            short_id="A2",
+            title="Prepared A2",
+            rank=2,
+            idempotency_key="prepared-a2",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination,
+                self.config,
+                NOW,
+                control_connection=control,
+            )
+        finally:
+            coordination.close()
+            control.close()
+        by_id = {task["id"]: task for task in payload["tasks"]}
+        self.assertEqual(len(by_id), 2)
+        self.assertEqual(by_id[prepared["id"]]["short_id"], "A1")
+        self.assertEqual(by_id[prepared["id"]]["stage"], "implementation")
+        self.assertEqual(by_id[ready_only["id"]]["short_id"], "A2")
+        self.assertEqual(by_id[ready_only["id"]]["status"], "ready")
+        self.assertEqual(by_id[ready_only["id"]]["worktree"], "")
+
+    def test_prepared_task_detail_accepts_short_id(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        support.insert_prepared_task(control_database, short_id="A1")
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = task_detail_payload(
+                coordination,
+                self.config,
+                NOW,
+                "a1",
+                control_connection=control,
+            )
+        finally:
+            coordination.close()
+            control.close()
+        assert payload is not None
+        self.assertEqual(payload["task"]["short_id"], "A1")
+        self.assertEqual(payload["activities"], [])
+        self.assertEqual(payload["artifacts"], [])
+
+    def test_control_v3_projects_empty_relation_fields(self) -> None:
+        control_database = support.create_control_v3_db(self.state_root)
+        support.insert_prepared_task(control_database, short_id="A1")
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination, self.config, NOW, control_connection=control
+            )
+        finally:
+            coordination.close()
+            control.close()
+        task = payload["tasks"][0]
+        self.assertIsNone(task["initiative"])
+        self.assertEqual(task["blocked_by"], [])
+        self.assertEqual(task["parallel_with"], [])
+
+    def test_v4_initiative_dependencies_and_parallelism_are_projected(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        connection = __import__("sqlite3").connect(control_database)
+        try:
+            initiative_id = "initiative-1"
+            connection.execute(
+                "INSERT INTO task_initiatives VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    initiative_id, "Checkout initiative", "Two delivery lanes",
+                    "source-task", "initiative-key", "d" * 64,
+                    "2026-08-02T18:00:00Z",
+                ),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+        backend = support.insert_prepared_task(
+            control_database,
+            id="source-task",
+            short_id="A1",
+            title="Backend",
+            initiative_id=initiative_id,
+        )
+        frontend = support.insert_prepared_task(
+            control_database,
+            id="frontend-task",
+            short_id="A2",
+            title="Frontend",
+            rank=2,
+            idempotency_key="frontend-key",
+            initiative_id=initiative_id,
+        )
+        docs = support.insert_prepared_task(
+            control_database,
+            id="docs-task",
+            short_id="A3",
+            title="Docs",
+            rank=3,
+            idempotency_key="docs-key",
+            initiative_id=initiative_id,
+        )
+        connection = __import__("sqlite3").connect(control_database)
+        try:
+            connection.execute(
+                "INSERT INTO task_dependencies VALUES (?, ?, 'completed', ?, ?)",
+                (frontend["id"], backend["id"], "Requires API completion", "2026-08-02T18:00:00Z"),
+            )
+            connection.commit()
+            connection.row_factory = __import__("sqlite3").Row
+            coordination = self._connect()
+            try:
+                payload = summary_payload(
+                    coordination, self.config, NOW, control_connection=connection
+                )
+            finally:
+                coordination.close()
+        finally:
+            connection.close()
+        by_id = {task["id"]: task for task in payload["tasks"]}
+        self.assertEqual(by_id[frontend["id"]]["initiative"]["title"], "Checkout initiative")
+        self.assertEqual(by_id[frontend["id"]]["blocked_by"][0]["short_id"], "A1")
+        self.assertIn("Blocked by A1", by_id[frontend["id"]]["blocker"])
+        self.assertEqual(
+            [item["short_id"] for item in by_id[docs["id"]]["parallel_with"]],
+            ["A1", "A2"],
+        )
+
+    def test_archived_prepared_task_is_not_active_or_stale(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        prepared = support.insert_prepared_task(
+            control_database,
+            disposition="archived",
+            updated_at="2026-08-02T10:00:00Z",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination, self.config, NOW, control_connection=control
+            )
+        finally:
+            coordination.close()
+            control.close()
+        task = next(item for item in payload["tasks"] if item["id"] == prepared["id"])
+        self.assertEqual(task["status"], "archived")
+        self.assertFalse(task["stale"])
+        self.assertNotIn(prepared["id"], {item["task_id"] for item in payload["attention"]})
 
     def test_task_detail_without_artifacts_directory(self) -> None:
         task = support.insert_task(

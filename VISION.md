@@ -79,32 +79,42 @@ payments, destructive actions, and delivery remain in force.
 
 Workflow selection belongs to the user. A planning-only host mode never mutates
 through Orchestra, and ordinary change, plan, or implementation requests remain
-direct work. Only an explicit `$orchestra` or `$orchestra-task` invocation, or
-an unequivocal imperative to use or start Orchestra, activates the workflow.
+direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
+`$orchestra` invocation, adoption of a prepared task from a native Codex chat,
+or an unequivocal imperative to use or start Orchestra activates the workflow.
 Orchestra then recommends standard execution by default and critical scrutiny
 for actual high-impact risk. External Luna is considered only when the user
 explicitly prioritizes cost for ordinary, bounded work; the user makes the
 final tier choice.
 
-### Durable intake and discovery continuity
+### Prepared-task Kanban and native-chat continuity
 
-Any chat or harness may capture a concise software task in a private local
-inbox for later use. Capturing a task does not activate Orchestra and does not
-authorize implementation. It does not start a Codex thread or choose a tier; it
-records the user's brief and origin so another supported harness can find the
-same item without replaying the conversation.
+Any chat or harness may capture and prepare a concise software task in a private
+local Kanban. Each new card receives an immutable human ID (`A1` through `A99`,
+then `B1`, continuing after `Z99` with `AA1`) plus a technical UUID. Preparation
+includes focused repository context and an explicitly confirmed specification,
+but never starts Codex, chooses a tier, creates a branch or worktree, or grants
+implementation authority.
 
-An explicit `$orchestra-task` invocation starts or continues one dedicated,
-persistent Codex root for that item. The root uses the normal Orchestra route:
-it recommends the initial tier, waits for the user's choice, gathers focused
-repository context, and stops at a candidate specification. Brainstorming may
-continue on the same thread UUID until the user confirms the specification;
-formal planning and implementation retain their existing approval gates.
-Archiving is reversible and never implies deletion of Git or Orchestra work.
-Cancellation is also reversible: it interrupts only the exact active turn,
-preserves the dedicated thread and durable work, and requires an explicit
-reopen. The JSON CLI and local stdio MCP adapter retain the same authority
-gates.
+The user starts a ready card from a native Codex chat by asking that chat to
+adopt its human ID with Orchestra. The chat becomes the visible conversational
+owner, inherits its current permissions, and follows the normal Orchestra
+checkout and approval flow. Revision-bound prepared context is reused when
+current and receives only a focused delta when Git changed. Coordinator uses
+the same UUID after checkout creation, so the Hub can join prepared and active
+state without inventing another identity. Transfer to another native chat is
+explicit and allowed only at a stable checkpoint; archiving never deletes Git,
+documents, plans, worktrees, or chat history.
+
+One card remains the normal unit and Orchestra's phases absorb ordinary
+complexity. A confirmed minimal initiative exists only for real independent
+execution, acceptance, repository, or delivery boundaries. Its cards keep
+self-contained specifications and immutable `blocked_by` ordering; absence of
+a dependency path exposes safe parallelism. `completed` dependencies wait for
+reviewed terminal completion, while `delivered` dependencies wait for verified
+integration or merge evidence and, in the same Git repository, a checkout that
+contains the delivered base revision. The Kanban never schedules, starts,
+pulls, or assigns worktrees.
 
 ### Quality per token
 
@@ -321,8 +331,8 @@ external or integration mutation.
 
 Orchestra succeeds when:
 
-- a task can be captured durably without starting Orchestra, then explicitly
-  resumed into one discovery thread without losing its origin or UUID;
+- a task can be prepared durably without starting Orchestra, then adopted in a
+  visible native Codex chat without losing its origin, human ID, or UUID;
 - ordinary tasks finish without workflow repair or manual state cleanup;
 - accepted phases leave no active write-capable agent or owned test process;
 - phase commits are routine and traceable;

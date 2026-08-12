@@ -1,4 +1,4 @@
-"""Durable, local task intake and Codex-Orchestra thread control."""
+"""Durable prepared-task Kanban for native Codex Orchestra adoption."""
 
 from .service import ControlError, ControlService
 

@@ -119,6 +119,8 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["task_sha"], self.task_sha)
+        self.assertTrue(payload["delivery_verified"])
+        self.assertEqual(payload["delivery_revision"], self.task_sha)
         self.assertEqual(
             self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha
         )
@@ -156,6 +158,8 @@ class LocalIntegrationTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "partial")
+        self.assertTrue(payload["delivery_verified"])
+        self.assertEqual(payload["delivery_revision"], self.task_sha)
         self.assertIn("unknown entries", payload["reason"])
         self.assertEqual(payload["cleanup"], [])
         self.assertEqual(

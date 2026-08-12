@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterator
 
 SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
+SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4})
 
 
 class HubUnavailable(Exception):
@@ -20,6 +21,31 @@ class HubUnavailable(Exception):
 
 @contextmanager
 def read_snapshot(database: Path) -> Iterator[sqlite3.Connection]:
+    with _read_snapshot(
+        database,
+        supported_versions=SUPPORTED_SCHEMA_VERSIONS,
+        label="coordination",
+    ) as connection:
+        yield connection
+
+
+@contextmanager
+def read_control_snapshot(database: Path) -> Iterator[sqlite3.Connection]:
+    with _read_snapshot(
+        database,
+        supported_versions=SUPPORTED_CONTROL_SCHEMA_VERSIONS,
+        label="control",
+    ) as connection:
+        yield connection
+
+
+@contextmanager
+def _read_snapshot(
+    database: Path,
+    *,
+    supported_versions: frozenset[int],
+    label: str,
+) -> Iterator[sqlite3.Connection]:
     if not database.is_file():
         raise HubUnavailable("missing", f"database not found: {database}")
     connection: sqlite3.Connection | None = None
@@ -33,10 +59,10 @@ def read_snapshot(database: Path) -> Iterator[sqlite3.Connection]:
         connection.execute("PRAGMA busy_timeout = 2000")
         connection.execute("BEGIN DEFERRED")
         version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version not in SUPPORTED_SCHEMA_VERSIONS:
+        if version not in supported_versions:
             raise HubUnavailable(
                 "unsupported-schema",
-                f"unsupported coordination schema version: {version}",
+                f"unsupported {label} schema version: {version}",
             )
         yield connection
     except HubUnavailable:

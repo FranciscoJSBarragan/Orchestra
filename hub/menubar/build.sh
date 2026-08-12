@@ -3,7 +3,7 @@
 set -eu
 cd "$(dirname "$0")"
 mkdir -p build
-swiftc -O main.swift InboxClient.swift -o build/OrchestraHubMenu
+swiftc -O main.swift -o build/OrchestraHubMenu
 APP="build/OrchestraHubMenu.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"

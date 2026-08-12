@@ -27,6 +27,10 @@ class HubConfig:
     def database(self) -> Path:
         return self.state_root / "state.sqlite3"
 
+    @property
+    def control_database(self) -> Path:
+        return self.state_root / "control.sqlite3"
+
 
 def default_state_root() -> Path:
     home = os.environ.get("HOME")

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import sys
@@ -17,7 +18,7 @@ from orchestra_hub.api import (
     tasks_payload,
 )
 from orchestra_hub.config import HubConfig, load_config
-from orchestra_hub.db import HubUnavailable, read_snapshot
+from orchestra_hub.db import HubUnavailable, read_control_snapshot, read_snapshot
 from orchestra_hub.panel import render_degraded, render_panel
 
 BIND_HOST = "127.0.0.1"
@@ -85,6 +86,20 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     do_POST = do_PUT = do_PATCH = do_DELETE = _method_not_allowed
 
+    def _snapshots(self, stack: ExitStack) -> tuple[object | None, object | None]:
+        coordination = None
+        control = None
+        if self.config.database.is_file():
+            coordination = stack.enter_context(read_snapshot(self.config.database))
+        if self.config.control_database.is_file():
+            control = stack.enter_context(read_control_snapshot(self.config.control_database))
+        if coordination is None and control is None:
+            raise HubUnavailable(
+                "missing",
+                f"databases not found: {self.config.database}, {self.config.control_database}",
+            )
+        return coordination, control
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
@@ -121,13 +136,19 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_health(self, now: datetime) -> None:
         try:
-            with read_snapshot(self.config.database) as connection:
-                version = connection.execute("PRAGMA user_version").fetchone()[0]
+            with ExitStack() as stack:
+                coordination, control = self._snapshots(stack)
+                versions = {
+                    "coordination": coordination.execute("PRAGMA user_version").fetchone()[0]
+                    if coordination is not None else None,
+                    "control": control.execute("PRAGMA user_version").fetchone()[0]
+                    if control is not None else None,
+                }
             self._send_json(
                 {
                     "status": "ok",
                     "database": "available",
-                    "schema_version": version,
+                    "schema_versions": versions,
                     "generated_at": _iso_z(now),
                 }
             )
@@ -143,8 +164,11 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_panel(self, now: datetime) -> None:
         try:
-            with read_snapshot(self.config.database) as connection:
-                summary = summary_payload(connection, self.config, now)
+            with ExitStack() as stack:
+                coordination, control = self._snapshots(stack)
+                summary = summary_payload(
+                    coordination, self.config, now, control_connection=control
+                )
             html = render_panel(summary, now)
         except HubUnavailable as error:
             html = render_degraded(error.condition, error.detail)
@@ -153,8 +177,11 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_summary(self, now: datetime) -> None:
         try:
-            with read_snapshot(self.config.database) as connection:
-                payload = summary_payload(connection, self.config, now)
+            with ExitStack() as stack:
+                coordination, control = self._snapshots(stack)
+                payload = summary_payload(
+                    coordination, self.config, now, control_connection=control
+                )
             self._send_json(payload, cacheable=True)
         except HubUnavailable as error:
             self._send_json(
@@ -168,9 +195,14 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_tasks(self, now: datetime, *, status: str | None) -> None:
         try:
-            with read_snapshot(self.config.database) as connection:
+            with ExitStack() as stack:
+                coordination, control = self._snapshots(stack)
                 payload = tasks_payload(
-                    connection, self.config, now, status=status
+                    coordination,
+                    self.config,
+                    now,
+                    status=status,
+                    control_connection=control,
                 )
             self._send_json(payload, cacheable=True)
         except HubUnavailable as error:
@@ -185,9 +217,14 @@ class HubRequestHandler(BaseHTTPRequestHandler):
 
     def _handle_detail(self, now: datetime, task_id: str) -> None:
         try:
-            with read_snapshot(self.config.database) as connection:
+            with ExitStack() as stack:
+                coordination, control = self._snapshots(stack)
                 payload = task_detail_payload(
-                    connection, self.config, now, task_id
+                    coordination,
+                    self.config,
+                    now,
+                    task_id,
+                    control_connection=control,
                 )
             if payload is None:
                 self._send_json(

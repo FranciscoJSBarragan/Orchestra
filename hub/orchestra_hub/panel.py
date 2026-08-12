@@ -30,6 +30,8 @@ _MAIN_TEMPLATE = """\
                   background: #161b22; border: 1px solid #21262d;
                   border-left: 3px solid #f85149; }}
     .attention strong {{ color: #f85149; }}
+    .initiative td {{ background: #161b22; color: #8b949e; font-weight: 600; }}
+    .badge {{ display: inline-block; margin-right: 0.35rem; color: #d29922; }}
   </style>
 </head>
 <body>
@@ -143,24 +145,62 @@ def render_panel(summary: dict, now: datetime) -> str:
         parts.append('<p class="empty">No tasks.</p>')
     else:
         rows = []
-        for task in tasks:
+        grouped = sorted(
+            tasks,
+            key=lambda task: (
+                str((task.get("initiative") or {}).get("title") or "~ Independent tasks"),
+                str(task.get("short_id") or ""),
+            ),
+        )
+        current_group = object()
+        for task in grouped:
+            initiative = task.get("initiative") or {}
+            group = initiative.get("title") or "Independent tasks"
+            if group != current_group:
+                rows.append(
+                    '<tr class="initiative"><td colspan="8">'
+                    f"{_escape(group)}</td></tr>"
+                )
+                current_group = group
             age = _age(task.get("updated_at", ""), now)
             if task.get("stale"):
                 age = f"{age} · stale"
+            activities = task.get("current_activity") or []
+            activity = ", ".join(
+                f"{entry.get('capability', '')}: {entry.get('summary') or entry.get('state', '')}"
+                for entry in activities
+            )
+            human_id = task.get("short_id") or ""
+            label = task.get("label", "")
+            display_label = f"{human_id} · {label}" if human_id else label
+            badges = []
+            for dependency in task.get("blocked_by") or []:
+                if not dependency.get("satisfied"):
+                    badges.append(f"blocked by {dependency.get('short_id', '')}")
+            parallel = [
+                str(item.get("short_id", "")) for item in task.get("parallel_with") or []
+            ]
+            if parallel:
+                badges.append("parallel with " + ", ".join(parallel))
+            badge_markup = "".join(
+                f'<span class="badge">{_escape(badge)}</span>' for badge in badges
+            )
             rows.append(
                 "<tr>"
-                f"<td>{_escape(task.get('label', ''))}</td>"
+                f"<td>{_escape(display_label)}</td>"
                 f"<td>{_escape(task.get('repository', ''))}</td>"
                 f"<td>{_escape(task.get('stage', ''))}</td>"
                 f"<td>{_escape(task.get('status', ''))}</td>"
+                f"<td>{badge_markup}</td>"
+                f"<td>{_escape(activity)}</td>"
                 f"<td>{_escape(task.get('summary', ''))}</td>"
                 f"<td>last snapshot {_escape(age)}</td>"
                 "</tr>"
             )
         parts.append(
             "<table><thead><tr>"
-            "<th>Label</th><th>Repository</th><th>Stage</th><th>Status</th>"
-            "<th>Summary</th><th>Age</th></tr></thead><tbody>"
+            "<th>Task</th><th>Repository</th><th>Stage</th><th>Status</th><th>Relations</th>"
+            "<th>Current activity</th><th>Last result</th><th>Age</th></tr></thead><tbody>"
             + "".join(rows)
             + "</tbody></table>"
         )

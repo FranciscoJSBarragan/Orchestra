@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 
 TASK_ROW_FIELDS = (
     "label", "tier", "stage", "status", "branch", "worktree",
-    "summary", "blocker", "next_action", "created_at", "updated_at",
+    "summary", "blocker", "next_action", "initiative", "blocked_by", "parallel_with",
+    "created_at", "updated_at",
     "stale",
 )
 
@@ -41,14 +42,22 @@ def build_tree(summary: dict) -> list[RepoNode]:
 
 
 def _node(*, name: str, path: str, tasks: list[dict]) -> RepoNode:
-    active = [task for task in tasks if task.get("status") != "completed"]
-    completed = [task for task in tasks if task.get("status") == "completed"]
+    active = [task for task in tasks if task.get("status") not in {"completed", "archived"}]
+    completed = [task for task in tasks if task.get("status") in {"completed", "archived"}]
     return RepoNode(
         name=name,
         path=path,
         active=len(active),
         completed=len(completed),
-        tasks=tuple(active + completed),
+        tasks=tuple(
+            sorted(
+                active + completed,
+                key=lambda task: (
+                    str((task.get("initiative") or {}).get("title") or "~ Independent tasks"),
+                    str(task.get("short_id") or ""),
+                ),
+            )
+        ),
     )
 
 
@@ -58,13 +67,21 @@ def task_rows(task: dict) -> list[tuple[str, str]]:
         value = task.get(field, "")
         if isinstance(value, bool):
             value = "true" if value else "false"
+        elif field == "initiative" and isinstance(value, dict):
+            value = value.get("title", "")
+        elif field in {"blocked_by", "parallel_with"} and isinstance(value, list):
+            value = ", ".join(
+                str(item.get("short_id", ""))
+                for item in value
+                if field == "parallel_with" or not item.get("satisfied")
+            )
         rows.append((field, str(value)))
     return rows
 
 
 def attention_flags(task: dict) -> frozenset[str]:
     flags = set()
-    completed = task.get("status") == "completed"
+    completed = task.get("status") in {"completed", "archived"}
     if not completed and str(task.get("blocker", "")):
         flags.add("blocker")
     if task.get("stale") is True:

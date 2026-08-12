@@ -5,15 +5,15 @@ import hashlib
 import json
 from typing import Mapping
 
-MATERIAL_FINGERPRINT_VERSION = 1
+MATERIAL_FINGERPRINT_VERSION = 2
 MATERIAL_FIELDS = (
     "blocker", "head_revision", "id", "label", "next_action",
-    "stage", "status", "summary", "tier",
+    "stage", "status", "summary", "tier", "initiative", "blocked_by", "parallel_with",
 )
 
 
 def material_fingerprint(task: Mapping[str, object]) -> str:
-    payload = {field: str(task[field]) for field in MATERIAL_FIELDS}
+    payload = {field: str(task.get(field)) for field in MATERIAL_FIELDS}
     canonical = json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )

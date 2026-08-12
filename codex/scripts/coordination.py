@@ -271,6 +271,7 @@ def _task_payload(row: sqlite3.Row) -> dict[str, Any]:
 def create_task(
     connection: sqlite3.Connection,
     *,
+    task_id: str | None,
     repository: Path,
     worktree: Path,
     base_revision: str,
@@ -297,7 +298,12 @@ def create_task(
     if not _compact(label) or not _compact(stage) or not _compact(status):
         raise CoordinationInvalid("label, stage, and status must be nonempty")
     timestamp = _now()
-    task_id = str(uuid.uuid4())
+    explicit_task_id = task_id is not None
+    task_id = task_id.strip() if task_id else str(uuid.uuid4())
+    try:
+        task_id = str(uuid.UUID(task_id))
+    except ValueError as error:
+        raise CoordinationInvalid("task id must be a UUID") from error
     payload = {
         "id": task_id,
         "label": _compact(label),
@@ -317,6 +323,25 @@ def create_task(
     }
     connection.execute("BEGIN IMMEDIATE")
     try:
+        by_id = connection.execute(
+            "SELECT * FROM tasks WHERE id = ?", (task_id,)
+        ).fetchone()
+        if by_id is not None:
+            if (
+                by_id["repository"] != str(repository_root)
+                or by_id["worktree"] != str(worktree_root)
+                or by_id["branch"] != branch
+                or by_id["base_revision"] != base_revision
+            ):
+                raise CoordinationInvalid(
+                    "task id already belongs to a different coordination snapshot"
+                )
+            connection.commit()
+            return {
+                "status": "ok",
+                "created": False,
+                "task": _task_payload(by_id),
+            }
         existing = connection.execute(
             """
             SELECT * FROM tasks
@@ -327,6 +352,10 @@ def create_task(
             (str(worktree_root),),
         ).fetchone()
         if existing is not None:
+            if explicit_task_id and existing["id"] != task_id:
+                raise CoordinationInvalid(
+                    "worktree already belongs to a different task id"
+                )
             if (
                 existing["repository"] != str(repository_root)
                 or existing["branch"] != branch
@@ -455,6 +484,10 @@ def set_activity(
             """,
             payload,
         )
+        connection.execute(
+            "UPDATE tasks SET updated_at = ? WHERE id = ?",
+            (payload["updated_at"], task_id),
+        )
     return {"status": "ok", "activity": payload}
 
 
@@ -485,6 +518,7 @@ def _parser() -> argparse.ArgumentParser:
     task = resources.add_parser("task")
     task_commands = task.add_subparsers(dest="action", required=True)
     task_create = task_commands.add_parser("create")
+    task_create.add_argument("--task-id")
     task_create.add_argument("--repository", type=Path, required=True)
     task_create.add_argument("--worktree", type=Path, required=True)
     task_create.add_argument("--base-revision", required=True)
@@ -526,6 +560,7 @@ def _dispatch(connection: sqlite3.Connection, args: argparse.Namespace) -> dict[
         if args.action == "create":
             return create_task(
                 connection,
+                task_id=args.task_id,
                 repository=args.repository,
                 worktree=args.worktree,
                 base_revision=args.base_revision,

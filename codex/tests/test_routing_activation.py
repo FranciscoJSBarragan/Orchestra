@@ -112,19 +112,28 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("descriptive mentions", self.skill)
         self.assertIn("Ordinary plan requests", self._flat(self.workflow))
 
-    def test_durable_intake_requires_explicit_task_skill_and_stops_at_discovery(self) -> None:
+    def test_prepared_task_requires_explicit_skill_and_native_chat_adoption(self) -> None:
         frontmatter = self.task_skill.split("---", 2)[1]
         normalized_skill = self._flat(self.task_skill)
         self.assertIn("explicit `$orchestra-task` invocation", frontmatter)
         self.assertIn("Do not use for ordinary mentions", frontmatter)
         self.assertIn("allow_implicit_invocation: false", self.task_metadata)
-        self.assertIn("candidate specification", normalized_skill)
-        self.assertIn("mandatory Orchestra repository context", normalized_skill)
-        self.assertIn("Never interpret task status as implementation authority", normalized_skill)
+        self.assertIn("confirmed specification", normalized_skill)
+        self.assertIn("equivalent to Orchestra `repository_context`", normalized_skill)
+        self.assertIn("grants no implementation authority", normalized_skill)
+        self.assertIn("CODEX_THREAD_ID", normalized_skill)
+        self.assertIn("never supply, invent, copy, or override it", normalized_skill)
+        self.assertIn("never creates or owns a Codex chat", normalized_skill)
         for path in (ROOT / "VISION.md", ROOT / "docs/WORKFLOW.md"):
             normalized = self._flat(path.read_text())
-            self.assertIn("Capturing a task does not activate Orchestra", normalized)
-            self.assertIn("does not authorize implementation", normalized)
+            self.assertTrue(
+                "does not activate Orchestra" in normalized
+                or "remains inert" in normalized
+            )
+            self.assertTrue(
+                "authorize implementation" in normalized
+                or "implementation authority" in normalized
+            )
 
     def test_explicit_specification_gate_fields_remain(self) -> None:
         flat_skill = self._flat(self.skill)

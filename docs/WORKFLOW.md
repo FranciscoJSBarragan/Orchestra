@@ -6,10 +6,11 @@
 flowchart TD
     U["Normal chat"] --> Q{"User intent"}
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
-    Q -->|"Capture for later"| IN["Durable inbox item; no activation"]
-    Q -->|"Explicit $orchestra-task"| DT["Create or resume durable item and dedicated root UUID"]
+    Q -->|"Capture for later"| IN["Draft Kanban card; no activation"]
+    Q -->|"Prepare $orchestra-task"| DT["Create or refine durable Kanban card"]
+    DT -->|"Adopt ID from native Codex chat"| O
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
-    DT --> B
+    O --> B
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     B --> MC["Resolve installed native V2 or external V1 model configuration"]
     MC --> TR["Root recommends the available tier with risk and cost-benefit"]
@@ -45,7 +46,7 @@ flowchart TD
 ## Orchestrator behavior
 
 Orchestra is an explicit planned-work route. It activates only through
-`$orchestra`, `$orchestra-task`, or an unequivocal imperative to use or start
+`$orchestra`, native-chat adoption of a ready `$orchestra-task`, or an unequivocal imperative to use or start
 Orchestra. Ordinary plan requests, descriptive mentions, task capture, and
 direct change, fix, or implementation work remain outside Orchestra.
 
@@ -110,45 +111,63 @@ sequential single questions.
 ## Durable task intake
 
 The installed `task_control.py` helper is a harness-neutral JSON boundary for a
-small local inbox. `task create` and `task note` accept caller-stable
-idempotency keys and bounded source references. Capturing a task does not
-activate Orchestra, launch Codex, or authorize implementation. Any harness may
-capture; only an explicit `$orchestra-task` invocation starts or continues its
-run.
+small local prepared-task Kanban. `task create` assigns an immutable human ID
+and UUID; `task note` accepts caller-stable idempotency keys and bounded source
+references. Capturing or preparing a card does not activate Orchestra, launch
+Codex, choose permissions or tier, create a checkout, or authorize
+implementation.
 
-The helper stores task, note, run, and turn continuity in
-`$HOME/.orchestra/control.sqlite3`. It has no daemon: each run command opens
-Codex App Server over stdio, starts or resumes the exact persisted thread UUID,
-executes one structured turn, records its checkpoint, and exits. The initial
-turn recommends a tier and waits. After the user chooses, the same root follows
-the normal checkout and mandatory `repository_context` route, synthesizes a
-candidate specification, and stops. That discovery result does not authorize
-implementation; the existing specification, planning, and implementation gates
-remain unchanged.
+A card becomes `ready` only after focused repository research equivalent to
+`repository_context` and explicit specification confirmation. The helper binds
+private `repository-context.md`, `specification.md`, and a marker under
+`$HOME/.orchestra/tasks/<short-id>/` to the inspected full Git revision and
+digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
+legacy `runs`, `turns`, and `interactions` remain readable after migration but
+new code never writes or exposes App Server operations.
 
-Turn creation and replies are idempotent. The thread UUID is persisted before
-the first turn starts, and the exact turn UUID is persisted before waiting for
-completion. A transport failure after either boundary becomes
-`needs_reconciliation`; it is never retried blindly. Reconciliation may adopt
-only the structured result of that exact persisted turn when `thread/read`
-shows it completed. Otherwise user intervention remains required.
+Adoption occurs only inside the user's current native Codex chat. `task adopt`
+requires its host-provided `CODEX_THREAD_ID`; no caller may invent or override
+that identity. The chat then explicitly activates Orchestra, inherits its
+current permissions, and applies the installed checkout policy. Matching Git
+reuses prepared context; changed Git requires a focused `repository_context`
+delta and specification reconfirmation only when the result materially changes.
+After checkout and task-state initialization, Coordinator registers with the
+Kanban UUID. An explicit stable-checkpoint transfer releases ownership so
+another native chat can resume the same worktree and plan.
 
-`task cancel` records a durable request and an active driver issues
-`turn/interrupt` for the exact persisted turn. It preserves the thread UUID,
-prior checkpoint, notes, worktree, and artifacts. `run reopen` starts a new
-continuation turn on that thread and never replays an earlier turn. App Server
-approval, permission, and user-input requests are persisted as fingerprinted
-interactions. A `run resolve` response is consumed once only by an exact
-matching request; a mismatch creates a new pending interaction.
+One card is the default. The agent proposes a minimal two- or three-card
+initiative only for independent execution, acceptance, repository, or delivery
+boundaries and obtains explicit confirmation unless the user already directed
+the split. The confirmed decomposition is one transaction: it reuses the
+source draft as the first card, creates the remaining cards, allocates global
+human IDs, and persists only an immutable `blocked_by` DAG. More than three
+cards requires a specific reason for every card. Failed validation consumes no
+IDs and creates no partial rows. Cards without a dependency path are parallel;
+no `related` relation is stored. Each card remains self-contained and receives
+its own preparation, adoption, checkout, plan, review, verification, terminal
+commit, and delivery evidence.
 
-`task archive` and `task restore` mirror Codex thread archive state when a
-thread exists. Archiving is reversible, is blocked by an unresolved turn, and
-never deletes branches, worktrees, artifacts, plans, or thread history. The
-control database is intake and continuity state only; Git, the approved
-`plan.md`, and explicit user authority remain authoritative for formal work.
-The installed stdio MCP server adapts this same JSON controller. Its write
-tools require harness approval and cannot authorize a tier, plan, commit, or
+Blocked cards may be prepared but not adopted. `completed` requires the
+blocking card to finish implementation, independent gates, and its terminal
+commit. `delivered` additionally requires an exact verified local integration
+or PR merge registered by the predecessor's owning native chat. For cards in
+the same Git common-dir, adoption also proves the delivered base revision is an
+ancestor of the checkout HEAD and otherwise asks the user to update it; no
+helper pulls automatically. Opening a PR or choosing hold never satisfies
 delivery.
+
+The prepared specification is an already satisfied final-specification
+checkpoint. A checkout at the prepared revision proceeds to formal planning
+after the ordinary tier choice. A changed revision requests only a focused
+context delta; only a material specification change requires confirmation
+again.
+
+The public stdio MCP exposes capture, query, notes, preparation, confirmed
+decomposition, archive, and restore only. It cannot adopt, transfer, finish,
+record delivery, start Codex, or mutate a
+checkout. Hub and menu-bar surfaces remain GET-only. Git, the approved
+`plan.md`, the native conversation, and explicit user authority remain
+authoritative for formal work.
 
 ## Tier flows and models
 
@@ -326,7 +345,9 @@ After explicit activation in an execution-capable mode:
    ignored `.orchestra/` directory, leaves Git status unchanged, and blocks on
    a tracked, ambiguous, or unsafe collision. A detected legacy task continues
    on its legacy paths without copy or dual write. The root then attempts one
-   idempotent `coordination.py task create`. When the state database is outside
+   idempotent `coordination.py task create`. For an adopted Kanban card it passes
+   the exact Control UUID with `--task-id`, so both stores expose one technical
+   identity. When the state database is outside
    the active workspace, this first attempt uses one exact, narrow Guardian
    escalation instead of first running the known-protected operation
    unprivileged. An `invalid` or `unavailable` result after that correctly
@@ -904,12 +925,10 @@ Older or unreadable clients block before any destination changes. Historical
 manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
 remains version-independent and restores the exact prior configuration.
 
-Direct App Server launchers should omit permission overrides to inherit these
-synchronized defaults. Explicit launcher overrides remain authoritative;
-Orchestra does not reject or rewrite them. To select Guardian explicitly, pass
-the equivalent `permissions = ":workspace"`,
-`approvalPolicy = "on-request"`, and
-`approvalsReviewer = "auto_review"`. When Guardian is active, protected shared
+Native Codex chats inherit their configured permission choice; Task Control
+never launches Codex or supplies a permission override. Explicit host choices
+remain authoritative and Orchestra does not reject or rewrite them. When
+Guardian is active, protected shared
 Git metadata remains outside the workspace boundary, so the root issues the
 exact direct Git operation once with a narrow escalation for automatic review.
 A denial is not bypassed or converted to Full Access.

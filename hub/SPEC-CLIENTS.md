@@ -23,7 +23,8 @@ SwiftBar:
 
 ## 2. Frozen product decisions
 
-- The Hub server API, database access, and security model are **unchanged**.
+- The Hub server API and security model remain GET-only. Its database access now
+  combines prepared and coordinated cards by UUID.
   Both clients consume the existing endpoints only: `GET /v1/summary`,
   `GET /v1/tasks/{id}`, `GET /v1/health`.
 - Both clients are strictly read-only observers. No actions, no writes, no
@@ -109,6 +110,11 @@ a minimal `OrchestraHubMenu.app` bundle (`Info.plist` with
   - Hub unreachable/degraded → `!` with the icon tinted red.
   - A repository is "active" when it has at least one task with
     `status != "completed"`.
+  - A prepared card displays its human ID before the label (for example
+    `A1 · Add receipts — preparation`).
+  - Cards are grouped by initiative where space permits and display factual
+    `blocked by A1` and `parallel with A2` badges from the API. Clients never
+    infer or mutate graph relations.
 - **Menu contents** (attributed text, informational items disabled):
   - One section per active repository (bold header = repo name), listing
     its active tasks as `● label — stage`; a task with a non-empty

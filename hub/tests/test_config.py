@@ -30,6 +30,9 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(str(config.state_root).endswith(".orchestra"))
         self.assertEqual(config.database.name, "state.sqlite3")
         self.assertEqual(config.database, config.state_root / "state.sqlite3")
+        self.assertEqual(
+            config.control_database, config.state_root / "control.sqlite3"
+        )
 
     def test_full_file_overrides_and_repository_name_fallback(self) -> None:
         root = Path(tempfile.mkdtemp())

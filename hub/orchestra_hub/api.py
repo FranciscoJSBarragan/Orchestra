@@ -1,6 +1,8 @@
-"""Allowlisted Hub API payloads and attention model (SPEC §7-8)."""
+"""Allowlisted Hub API payloads for prepared and adopted Orchestra tasks."""
 from __future__ import annotations
 
+import hashlib
+import json
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,11 +16,13 @@ from orchestra_hub.fingerprint import (
 )
 
 TASK_FIELDS = (
-    "id", "label", "repository", "worktree", "branch", "base_revision",
-    "head_revision", "tier", "stage", "status", "summary", "blocker",
-    "next_action", "created_at", "updated_at",
+    "id", "short_id", "label", "repository", "worktree", "branch",
+    "base_revision", "head_revision", "tier", "stage", "status", "summary",
+    "blocker", "next_action", "initiative", "blocked_by", "parallel_with",
+    "created_at", "updated_at",
 )
 ACTIVITY_FIELDS = ("agent_id", "capability", "state", "summary", "updated_at")
+INACTIVE_STATUSES = frozenset({"archived", "completed"})
 
 __all__ = [
     "ACTIVITY_FIELDS",
@@ -37,26 +41,39 @@ def parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _prepared_fingerprint(task: Mapping[str, object]) -> str:
+    payload = {field: str(task[field]) for field in TASK_FIELDS}
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def task_summary(
     row: Mapping[str, object],
     *,
     now: datetime,
     stale_after: timedelta,
 ) -> dict:
-    task = {field: row[field] for field in TASK_FIELDS}
-    task["material_fingerprint"] = material_fingerprint(task)
-    updated_at = parse_timestamp(str(task["updated_at"]))
-    task["stale"] = (
-        task["status"] != "completed"
-        and now - updated_at > stale_after
+    task = {
+        field: row[field] if field in row.keys() else None
+        for field in TASK_FIELDS
+    }
+    task["material_fingerprint"] = (
+        material_fingerprint(task)
+        if task["worktree"]
+        else _prepared_fingerprint(task)
     )
+    task["current_activity"] = list(
+        row["current_activity"] if "current_activity" in row.keys() else []
+    )
+    updated_at = parse_timestamp(str(task["updated_at"]))
+    task["stale"] = task["status"] not in INACTIVE_STATUSES and now - updated_at > stale_after
     return task
 
 
 def attention_entries(tasks: list[dict]) -> list[dict]:
     entries: list[dict] = []
     for task in tasks:
-        if task["status"] == "completed":
+        if task["status"] in INACTIVE_STATUSES:
             continue
         reasons: list[str] = []
         if task["blocker"]:
@@ -68,6 +85,7 @@ def attention_entries(tasks: list[dict]) -> list[dict]:
         entries.append(
             {
                 "task_id": task["id"],
+                "short_id": task["short_id"],
                 "label": task["label"],
                 "repository": task["repository"],
                 "reasons": reasons,
@@ -94,7 +112,9 @@ def repository_entries(
             "completed_tasks": 0,
         }
     for task in tasks:
-        path = str(task["repository"])
+        path = str(task["repository"] or "")
+        if not path:
+            continue
         current = repos.get(path)
         if current is None:
             current = {
@@ -107,7 +127,7 @@ def repository_entries(
             }
             repos[path] = current
         current["observed"] = True
-        if task["status"] == "completed":
+        if task["status"] in INACTIVE_STATUSES:
             current["completed_tasks"] += 1
         else:
             current["active_tasks"] += 1
@@ -118,55 +138,253 @@ def _stale_after(config: HubConfig) -> timedelta:
     return timedelta(minutes=config.stale_after_minutes)
 
 
+def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
+    if connection is None:
+        return []
+    version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    if version >= 4:
+        rows = connection.execute(
+            """
+            SELECT t.id, t.short_id, t.title, t.repository, t.preparation_status,
+                   t.disposition, t.prepared_revision, t.adopted_revision,
+                   t.initiative_id, i.title AS initiative_title, i.brief AS initiative_brief,
+                   t.created_at, t.updated_at
+            FROM tasks AS t
+            LEFT JOIN task_initiatives AS i ON i.id = t.initiative_id
+            WHERE t.short_id IS NOT NULL
+            ORDER BY t.updated_at DESC, t.id
+            """
+        ).fetchall()
+    else:
+        rows = connection.execute(
+            """
+            SELECT id, short_id, title, repository, preparation_status, disposition,
+                   prepared_revision, adopted_revision, created_at, updated_at
+            FROM tasks
+            WHERE short_id IS NOT NULL
+            ORDER BY updated_at DESC, id
+            """
+        ).fetchall()
+    dependency_views: dict[str, list[dict]] = {}
+    parallel_views: dict[str, list[dict]] = {}
+    if version >= 4:
+        task_rows = {
+            str(item["id"]): dict(item)
+            for item in connection.execute(
+                """
+                SELECT id, short_id, title, initiative_id, preparation_status,
+                       delivered_at, delivery_revision, rank, created_at
+                FROM tasks WHERE short_id IS NOT NULL
+                """
+            ).fetchall()
+        }
+        edges: dict[str, set[str]] = {task_id: set() for task_id in task_rows}
+        for dependency in connection.execute(
+            """
+            SELECT task_id, blocked_by_task_id, condition, reason
+            FROM task_dependencies
+            ORDER BY created_at, task_id, blocked_by_task_id
+            """
+        ).fetchall():
+            dependent_id = str(dependency["task_id"])
+            predecessor_id = str(dependency["blocked_by_task_id"])
+            predecessor = task_rows[predecessor_id]
+            condition = str(dependency["condition"])
+            satisfied = predecessor["preparation_status"] == "completed"
+            if condition == "delivered":
+                satisfied = bool(
+                    satisfied and predecessor["delivered_at"] and predecessor["delivery_revision"]
+                )
+            dependency_views.setdefault(dependent_id, []).append(
+                {
+                    "task_id": predecessor_id,
+                    "short_id": predecessor["short_id"],
+                    "title": predecessor["title"],
+                    "condition": condition,
+                    "reason": dependency["reason"],
+                    "satisfied": satisfied,
+                    "state": "satisfied" if satisfied else f"waiting-for-{condition}",
+                }
+            )
+            edges.setdefault(predecessor_id, set()).add(dependent_id)
+
+        def reaches(start: str, target: str) -> bool:
+            pending = list(edges.get(start, ()))
+            seen: set[str] = set()
+            while pending:
+                candidate = pending.pop()
+                if candidate == target:
+                    return True
+                if candidate not in seen:
+                    seen.add(candidate)
+                    pending.extend(edges.get(candidate, ()))
+            return False
+
+        by_initiative: dict[str, list[dict]] = {}
+        for item in task_rows.values():
+            if item["initiative_id"]:
+                by_initiative.setdefault(str(item["initiative_id"]), []).append(item)
+        for initiative_tasks in by_initiative.values():
+            initiative_tasks.sort(key=lambda item: (item["rank"], item["created_at"], item["id"]))
+            for item in initiative_tasks:
+                task_id = str(item["id"])
+                parallel_views[task_id] = [
+                    {
+                        "task_id": other["id"],
+                        "short_id": other["short_id"],
+                        "title": other["title"],
+                        "preparation_status": other["preparation_status"],
+                    }
+                    for other in initiative_tasks
+                    if other["id"] != task_id
+                    and not reaches(task_id, str(other["id"]))
+                    and not reaches(str(other["id"]), task_id)
+                ]
+    result = []
+    for row in rows:
+        status = str(row["preparation_status"])
+        visible_status = "archived" if row["disposition"] == "archived" else status
+        next_action = {
+            "draft": "Complete repository context and confirm the specification",
+            "ready": f"Open a native Codex chat and ask it to start {row['short_id']} with Orchestra",
+            "adopted": "Continue in the adopting native Codex chat",
+            "completed": "",
+        }.get(status, "")
+        blocked_by = dependency_views.get(str(row["id"]), [])
+        unsatisfied = [item for item in blocked_by if not item["satisfied"]]
+        blocker = ""
+        if unsatisfied:
+            blocker = "Blocked by " + ", ".join(
+                f"{item['short_id']} ({item['condition']})" for item in unsatisfied
+            )
+            next_action = "Satisfy the listed task dependencies before adoption"
+        initiative = None
+        if version >= 4 and row["initiative_id"]:
+            initiative = {
+                "id": row["initiative_id"],
+                "title": row["initiative_title"],
+                "brief": row["initiative_brief"],
+            }
+        result.append(
+            {
+                "id": row["id"],
+                "short_id": row["short_id"],
+                "label": row["title"],
+                "repository": row["repository"] or "",
+                "worktree": "",
+                "branch": "",
+                "base_revision": row["prepared_revision"] or "",
+                "head_revision": row["adopted_revision"] or row["prepared_revision"] or "",
+                "tier": "",
+                "stage": "preparation" if status in ("draft", "ready") else status,
+                "status": visible_status,
+                "summary": "Prepared specification confirmed" if status == "ready" else "",
+                "blocker": blocker,
+                "next_action": next_action,
+                "initiative": initiative,
+                "blocked_by": blocked_by,
+                "parallel_with": parallel_views.get(str(row["id"]), []),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+                "current_activity": [],
+            }
+        )
+    return result
+
+
+def _coordination_rows(connection: sqlite3.Connection | None) -> dict[str, dict]:
+    if connection is None:
+        return {}
+    tasks = {row["id"]: dict(row) for row in connection.execute("SELECT * FROM tasks").fetchall()}
+    for task in tasks.values():
+        task["current_activity"] = []
+    for activity in connection.execute(
+        """
+        SELECT * FROM activities
+        ORDER BY updated_at DESC, agent_id, capability
+        """
+    ).fetchall():
+        task = tasks.get(activity["task_id"])
+        if task is not None:
+            task["current_activity"].append(
+                {field: activity[field] for field in ACTIVITY_FIELDS}
+            )
+    return tasks
+
+
+def _merged_rows(
+    coordination: sqlite3.Connection | None,
+    control: sqlite3.Connection | None,
+) -> list[dict]:
+    coordinator = _coordination_rows(coordination)
+    rows: dict[str, dict] = {}
+    for prepared in _control_rows(control):
+        active = coordinator.pop(str(prepared["id"]), None)
+        if active is None:
+            rows[str(prepared["id"])] = prepared
+            continue
+        active["short_id"] = prepared["short_id"]
+        active["initiative"] = prepared["initiative"]
+        active["blocked_by"] = prepared["blocked_by"]
+        active["parallel_with"] = prepared["parallel_with"]
+        if prepared["blocker"]:
+            active["blocker"] = prepared["blocker"]
+            active["next_action"] = prepared["next_action"]
+        rows[str(active["id"])] = active
+    for task_id, active in coordinator.items():
+        active["short_id"] = None
+        active["initiative"] = None
+        active["blocked_by"] = []
+        active["parallel_with"] = []
+        rows[task_id] = active
+    return sorted(rows.values(), key=lambda row: (str(row["updated_at"]), str(row["id"])), reverse=True)
+
+
 def _tasks(
-    connection: sqlite3.Connection,
+    coordination: sqlite3.Connection | None,
+    control: sqlite3.Connection | None,
     *,
     now: datetime,
     stale_after: timedelta,
     status: str | None = None,
 ) -> list[dict]:
-    if status is None:
-        rows = connection.execute(
-            "SELECT * FROM tasks ORDER BY updated_at DESC, id"
-        ).fetchall()
-    else:
-        rows = connection.execute(
-            "SELECT * FROM tasks WHERE status = ? ORDER BY updated_at DESC, id",
-            (status,),
-        ).fetchall()
-    return [
-        task_summary(row, now=now, stale_after=stale_after) for row in rows
-    ]
+    rows = _merged_rows(coordination, control)
+    if status is not None:
+        rows = [row for row in rows if row["status"] == status]
+    return [task_summary(row, now=now, stale_after=stale_after) for row in rows]
 
 
 def summary_payload(
-    connection: sqlite3.Connection,
+    connection: sqlite3.Connection | None,
     config: HubConfig,
     now: datetime,
+    control_connection: sqlite3.Connection | None = None,
 ) -> dict:
     stale_after = _stale_after(config)
-    tasks = _tasks(connection, now=now, stale_after=stale_after)
+    tasks = _tasks(connection, control_connection, now=now, stale_after=stale_after)
     return {
         "status": "ok",
         "material_fingerprint_version": MATERIAL_FINGERPRINT_VERSION,
-        "repositories": repository_entries(
-            tasks, config.pinned_repositories
-        ),
+        "repositories": repository_entries(tasks, config.pinned_repositories),
         "tasks": tasks,
         "attention": attention_entries(tasks),
     }
 
 
 def tasks_payload(
-    connection: sqlite3.Connection,
+    connection: sqlite3.Connection | None,
     config: HubConfig,
     now: datetime,
     *,
     status: str | None = None,
+    control_connection: sqlite3.Connection | None = None,
 ) -> dict:
-    stale_after = _stale_after(config)
     tasks = _tasks(
-        connection, now=now, stale_after=stale_after, status=status
+        connection,
+        control_connection,
+        now=now,
+        stale_after=_stale_after(config),
+        status=status,
     )
     return {
         "status": "ok",
@@ -176,34 +394,36 @@ def tasks_payload(
 
 
 def task_detail_payload(
-    connection: sqlite3.Connection,
+    connection: sqlite3.Connection | None,
     config: HubConfig,
     now: datetime,
     task_id: str,
+    control_connection: sqlite3.Connection | None = None,
 ) -> dict | None:
-    stale_after = _stale_after(config)
-    row = connection.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (task_id,),
-    ).fetchone()
-    if row is None:
-        return None
-    task = task_summary(row, now=now, stale_after=stale_after)
-    activities = [
-        {field: activity[field] for field in ACTIVITY_FIELDS}
-        for activity in connection.execute(
-            """
-            SELECT * FROM activities
-            WHERE task_id = ?
-            ORDER BY updated_at DESC, agent_id, capability
-            """,
-            (task_id,),
-        ).fetchall()
+    candidates = _merged_rows(connection, control_connection)
+    matches = [
+        row for row in candidates
+        if row["id"] == task_id or str(row.get("short_id") or "").lower() == task_id.lower()
     ]
+    if not matches:
+        return None
+    task = task_summary(matches[0], now=now, stale_after=_stale_after(config))
+    activities = []
+    if connection is not None and task["worktree"]:
+        activities = [
+            {field: activity[field] for field in ACTIVITY_FIELDS}
+            for activity in connection.execute(
+                """
+                SELECT * FROM activities WHERE task_id = ?
+                ORDER BY updated_at DESC, agent_id, capability
+                """,
+                (task["id"],),
+            ).fetchall()
+        ]
     return {
         "status": "ok",
         "material_fingerprint_version": MATERIAL_FINGERPRINT_VERSION,
         "task": task,
         "activities": activities,
-        "artifacts": artifact_entries(str(task["worktree"])),
+        "artifacts": artifact_entries(str(task["worktree"])) if task["worktree"] else [],
     }

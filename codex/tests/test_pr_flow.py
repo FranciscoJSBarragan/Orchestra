@@ -143,6 +143,7 @@ else:
                     "headRefName": "feature",
                     "baseRefName": "main",
                     "mergedAt": "2026-07-14T12:00:00Z",
+                    "mergeCommit": {"oid": self.head},
                 }
             ),
         }
@@ -335,6 +336,7 @@ else:
                 "headRefName": "feature",
                 "baseRefName": "main",
                 "mergedAt": "2026-07-14T12:00:00Z",
+                "mergeCommit": {"oid": self.head},
             }
         )
 
@@ -678,6 +680,8 @@ else:
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["method"], "rebase")
         self.assertEqual(payload["merged_at"], "2026-07-14T12:00:00Z")
+        self.assertTrue(payload["delivery_verified"])
+        self.assertEqual(payload["delivery_revision"], self.head)
         self.assertEqual(
             payload["cleanup"],
             ["remote_branch", "private_state", "worktree", "local_branch"],

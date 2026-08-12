@@ -7,7 +7,8 @@ approval first.
 ## 1. Purpose
 
 Orchestra Hub is a **read-only observational viewer** for the Orchestra
-coordination snapshot (`~/.orchestra/state.sqlite3`). It gives one person
+prepared-task and coordination snapshots (`~/.orchestra/control.sqlite3` and
+`~/.orchestra/state.sqlite3`). It gives one person
 visibility over multi-task orchestration from the main machine, a laptop over
 Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 
@@ -15,8 +16,10 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 
 - Single Python process: JSON API plus a minimal HTML panel.
 - Lives in this repository under `hub/`. Optional component.
-- Reads the coordination SQLite database directly, strictly read-only.
-- Zero changes to `coordination.py`, its schema, or anything under `codex/`.
+- Reads both local SQLite databases directly, strictly read-only, and joins
+  cards by the shared technical UUID.
+- The Hub may require additive producer changes only for the shared UUID and
+  snapshot freshness; it never governs producer workflow.
 - Remote access exclusively through Tailscale (Hub listens on loopback only).
 - Availability guarantee: available while the user session is logged in
   (LaunchAgent). Recovery after reboot = log in. LaunchDaemon out of scope.
@@ -26,8 +29,8 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 
 - **Event table / ledger** — only if snapshot polling demonstrably misses
   needed transitions in real use.
-- **Schema migrations or new columns/tables** — never for the Hub; the Hub is
-  a pure consumer.
+- **Hub-owned schema migrations or workflow tables** — never; the Hub remains
+  a pure consumer of Control schemas v3/v4 and Coordinator schema v1.
 - **Controlled `status`/`stage` vocabulary** — only after real use shows the
   conservative attention feed is insufficient; it would be a workflow-docs
   contract, not SQL.
@@ -42,16 +45,17 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 ## 3. Architecture and boundary invariants
 
 ```
-coordination.py ──local writes──▶ state.sqlite3 ◀──read-only── orchestra-hub
-                                                                    │
-panel (HTML) / SwiftBar / Hermes / laptop ──GET over loopback or Tailscale──┘
+task_control.py ──local writes──▶ control.sqlite3 ─┐
+                                                   ├──read-only── orchestra-hub
+coordination.py ──local writes──▶ state.sqlite3 ───┘                 │
+panel / menu bar / Hermes / laptop ──GET over loopback or Tailscale─┘
 ```
 
 - **The Orchestra runtime does not depend on and does not know the Hub.**
   Nothing in runtime code paths under `codex/` references the Hub.
   Tests and monorepo configuration MAY reference both sides; the schema
   cross-check test requires it.
-- Operational dependency direction: `Hub → coordination contract`,
+- Operational dependency direction: `Hub → Control + coordination contracts`,
   `Orchestra ↛ Hub`.
 - If the Hub is down, broken, or incompatible, Orchestra is unaffected.
 
@@ -61,6 +65,7 @@ panel (HTML) / SwiftBar / Hermes / laptop ──GET over loopback or Tailscale�
 
   ```python
   SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
+  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4})
   ```
 
 - At runtime the Hub compares `PRAGMA user_version` against that set. It must
@@ -102,20 +107,23 @@ Guarantees (worded precisely):
   delayed.
 
 Database location: `<state_root>/state.sqlite3`, `state_root` defaulting to
-`~/.orchestra` (configurable for tests, see section 10).
+`~/.orchestra` (configurable for tests, see section 10). Prepared cards are
+read from `<state_root>/control.sqlite3`. Either database may be absent; the
+Hub serves the available source and degrades only when neither is available.
 
 ## 6. Material fingerprint contract
 
 - Computed **only by the Hub**. Clients store and compare opaque strings.
-- `material_fingerprint_version` is `1` and is returned alongside every
+- `material_fingerprint_version` is `2` and is returned alongside every
   payload containing fingerprints. If the field set or canonicalization ever
   changes, the version bumps and clients re-baseline silently instead of
   emitting a false "everything changed" storm.
 - Input: canonical JSON (sorted keys, `,`/`:` separators, UTF-8, non-ASCII
-  preserved) of exactly these nine task fields, all as stored strings:
+preserved) of these twelve task fields, stringified deterministically:
 
   ```
-  blocker, head_revision, id, label, next_action, stage, status, summary, tier
+  blocker, head_revision, id, label, next_action, stage, status, summary, tier,
+  initiative, blocked_by, parallel_with
   ```
 
 - `updated_at`, `created_at`, `base_revision`, `repository`, `worktree`, and
@@ -132,9 +140,11 @@ never from `SELECT *` passthrough.
 
 ### Allowlists
 
-- Task: `id, label, repository, worktree, branch, base_revision,
+- Task: `id, short_id, label, repository, worktree, branch, base_revision,
   head_revision, tier, stage, status, summary, blocker, next_action,
-  created_at, updated_at` plus computed `material_fingerprint` and `stale`.
+  initiative, blocked_by, parallel_with, created_at, updated_at` plus computed
+  `material_fingerprint` and `stale`. Control v3 yields null/empty relation
+  fields; v4 projects dependency condition, reason, satisfaction, and state.
 - Activity: `agent_id, capability, state, summary, updated_at`.
 - Artifact: `id, kind, phase, created_at`, all derived from the artifact file
   name (`<NN>-<kind>[-p<phase>].md`) and its mtime. Artifacts have no database
@@ -168,7 +178,7 @@ Degraded variant (still `200`; health reports, it does not fail):
 ```json
 {
   "status": "ok",
-  "material_fingerprint_version": 1,
+  "material_fingerprint_version": 2,
   "repositories": [
     {"path": "/abs/path", "name": "Repo", "pinned": false, "observed": true,
      "active_tasks": 2, "completed_tasks": 5}
@@ -193,10 +203,11 @@ Degraded variant (still `200`; health reports, it does not fail):
 `TaskSummary` is the task allowlist verbatim, e.g.:
 
 ```json
-{"id": "…", "label": "…", "repository": "/abs", "worktree": "/abs",
+{"id": "…", "short_id": "A1", "label": "…", "repository": "/abs", "worktree": "/abs",
  "branch": "orchestra/x", "base_revision": "<hex>", "head_revision": "<hex>",
  "tier": "standard", "stage": "implementation", "status": "active",
  "summary": "…", "blocker": "", "next_action": "…",
+ "initiative": null, "blocked_by": [], "parallel_with": [],
  "created_at": "…Z", "updated_at": "…Z",
  "material_fingerprint": "sha256:…", "stale": false}
 ```
@@ -204,7 +215,7 @@ Degraded variant (still `200`; health reports, it does not fail):
 ### `GET /v1/tasks[?status=<exact>]`
 
 ```json
-{"status": "ok", "material_fingerprint_version": 1, "tasks": [TaskSummary, …]}
+{"status": "ok", "material_fingerprint_version": 2, "tasks": [TaskSummary, …]}
 ```
 
 Optional exact-match `status` filter, mirroring `coordination.py task list`.
@@ -212,7 +223,7 @@ Optional exact-match `status` filter, mirroring `coordination.py task list`.
 ### `GET /v1/tasks/{id}`
 
 ```json
-{"status": "ok", "material_fingerprint_version": 1,
+{"status": "ok", "material_fingerprint_version": 2,
  "task": TaskSummary,
  "activities": [{"agent_id": "…", "capability": "…", "state": "…",
                  "summary": "…", "updated_at": "…"}],

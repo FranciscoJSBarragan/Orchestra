@@ -124,7 +124,8 @@ class TaskRowsTest(unittest.TestCase):
         keys = [key for key, _ in rows]
         self.assertEqual(keys, [
             "label", "tier", "stage", "status", "branch", "worktree",
-            "summary", "blocker", "next_action", "created_at",
+            "summary", "blocker", "next_action", "initiative", "blocked_by",
+            "parallel_with", "created_at",
             "updated_at", "stale",
         ])
         self.assertEqual(dict(rows)["stale"], "true")

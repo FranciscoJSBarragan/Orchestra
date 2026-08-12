@@ -14,6 +14,8 @@ Keep the root responsible for reading the user's delivery direction and making t
    recorded resource ownership. Require the effective task HEAD to match that
    terminal commit before PR or local delivery; an unexplained mismatch blocks
    use of the completed plan.
+   For an adopted Kanban task, require `task finish` to record that same exact
+   terminal revision before choosing a delivery lane.
 2. Have the root directly run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/policy.py" --repo <root> show` and read its structured result.
 3. If the policy is missing, ask the user once and recommend `hybrid`. Return `blocked`; do not create the file or choose for the user.
 4. If the user chooses hold, make no delivery mutation and return `ok` with the committed branch or worktree.

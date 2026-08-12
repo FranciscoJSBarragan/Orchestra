@@ -142,7 +142,7 @@ class HubTuiApp(App):
         body.set_class(not healthy, "degraded")
         active = blockers = 0
         for task in (self.summary or {}).get("tasks", ()):
-            if task.get("status") != "completed":
+            if task.get("status") not in {"completed", "archived"}:
                 active += 1
                 if str(task.get("blocker", "")):
                     blockers += 1
@@ -183,20 +183,43 @@ class HubTuiApp(App):
             suffix = " · ".join(counters) or "quiet"
             label = f"[bold]{escape(node.name)}[/bold] [dim]{suffix}[/dim]"
             branch = tree.root.add(label, expand=node.active > 0)
+            initiatives: dict[str, list[dict]] = {}
             for task in node.tasks:
-                branch.add_leaf(self._task_label(task), data=str(task.get("id")))
+                title = str((task.get("initiative") or {}).get("title") or "Independent tasks")
+                initiatives.setdefault(title, []).append(task)
+            for title, tasks in initiatives.items():
+                group = branch.add(
+                    f"[dim]{escape(title)}[/dim]",
+                    expand=any(task.get("status") not in {"completed", "archived"} for task in tasks),
+                )
+                for task in tasks:
+                    group.add_leaf(self._task_label(task), data=str(task.get("id")))
         tree.root.expand()
 
     def _task_label(self, task: dict) -> str:
         label = escape(str(task.get("label", "")))
         stage = escape(str(task.get("stage", "")))
-        if task.get("status") == "completed":
-            return f"[dim]✓ {label}[/dim]"
+        relations = []
+        blocked_by = [
+            str(item.get("short_id", ""))
+            for item in task.get("blocked_by") or []
+            if not item.get("satisfied")
+        ]
+        if blocked_by:
+            relations.append("blocked by " + ", ".join(blocked_by))
+        parallel = [
+            str(item.get("short_id", "")) for item in task.get("parallel_with") or []
+        ]
+        if parallel:
+            relations.append("parallel with " + ", ".join(parallel))
+        relation_note = f" [dim]· {' · '.join(relations)}[/dim]" if relations else ""
+        if task.get("status") in {"completed", "archived"}:
+            return f"[dim]✓ {label}[/dim]{relation_note}"
         flags = attention_flags(task)
         if "blocker" in flags:
-            return f"[bold red]! {label}[/bold red] [dim]· {stage}[/dim]"
+            return f"[bold red]! {label}[/bold red] [dim]· {stage}[/dim]{relation_note}"
         icon = "[yellow]~[/yellow]" if "stale" in flags else "[green]●[/green]"
-        return f"{icon} {label} [dim]· {stage}[/dim]"
+        return f"{icon} {label} [dim]· {stage}[/dim]{relation_note}"
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         task_id = event.node.data
@@ -219,6 +242,9 @@ class HubTuiApp(App):
     _DETAIL_FIELDS = (
         ("summary", "summary"),
         ("next_action", "next step"),
+        ("initiative", "initiative"),
+        ("blocked_by", "blocked by"),
+        ("parallel_with", "parallel"),
         ("branch", "branch"),
         ("worktree", "worktree"),
         ("created_at", "started"),

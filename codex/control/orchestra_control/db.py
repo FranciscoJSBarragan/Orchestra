@@ -1,4 +1,4 @@
-"""Secure SQLite storage for the local Orchestra task control plane."""
+"""Secure SQLite storage for the local Orchestra prepared-task Kanban."""
 
 from __future__ import annotations
 
@@ -8,11 +8,24 @@ import sqlite3
 import stat
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 4
+PREPARATION_STATES = ("legacy", "draft", "ready", "adopted", "completed")
 SCHEMA = (
+    """
+    CREATE TABLE task_initiatives (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        brief TEXT NOT NULL,
+        source_task_id TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        manifest_digest TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+    """,
     """
     CREATE TABLE tasks (
         id TEXT PRIMARY KEY,
+        short_id TEXT COLLATE NOCASE UNIQUE,
         title TEXT NOT NULL,
         brief TEXT NOT NULL,
         brief_revision INTEGER NOT NULL DEFAULT 1,
@@ -23,8 +36,42 @@ SCHEMA = (
         rank INTEGER NOT NULL,
         disposition TEXT NOT NULL CHECK (disposition IN ('open', 'archived')),
         idempotency_key TEXT NOT NULL UNIQUE,
+        preparation_status TEXT NOT NULL DEFAULT 'draft'
+            CHECK (preparation_status IN ('legacy', 'draft', 'ready', 'adopted', 'completed')),
+        prepared_revision TEXT,
+        repository_context_digest TEXT,
+        specification_digest TEXT,
+        specification_confirmed_at TEXT,
+        adopted_thread_id TEXT,
+        adopted_revision TEXT,
+        adopted_at TEXT,
+        previous_thread_id TEXT,
+        transfer_generation INTEGER NOT NULL DEFAULT 0,
+        transfer_requested_at TEXT,
+        completed_at TEXT,
+        initiative_id TEXT REFERENCES task_initiatives(id),
+        decomposition_reason TEXT,
+        repository_common_dir TEXT,
+        completed_revision TEXT,
+        delivered_task_revision TEXT,
+        delivery_revision TEXT,
+        delivery_kind TEXT CHECK (
+            delivery_kind IS NULL OR delivery_kind IN ('local-integration', 'pr-merge')
+        ),
+        delivered_at TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE task_dependencies (
+        task_id TEXT NOT NULL REFERENCES tasks(id),
+        blocked_by_task_id TEXT NOT NULL REFERENCES tasks(id),
+        condition TEXT NOT NULL CHECK (condition IN ('completed', 'delivered')),
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (task_id, blocked_by_task_id),
+        CHECK (task_id != blocked_by_task_id)
     )
     """,
     """
@@ -38,6 +85,8 @@ SCHEMA = (
         created_at TEXT NOT NULL
     )
     """,
+    # These three tables are retained for read-only compatibility with tasks
+    # created by the retired App Server launcher. New code never writes them.
     """
     CREATE TABLE runs (
         id TEXT PRIMARY KEY,
@@ -90,7 +139,16 @@ SCHEMA = (
         updated_at TEXT NOT NULL
     )
     """,
+    """
+    CREATE TABLE control_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )
+    """,
+    "INSERT INTO control_metadata VALUES ('next_short_sequence', '1')",
     "CREATE INDEX tasks_disposition_rank ON tasks(disposition, rank, created_at)",
+    "CREATE INDEX tasks_initiative ON tasks(initiative_id, rank, created_at)",
+    "CREATE INDEX dependencies_blocked_by ON task_dependencies(blocked_by_task_id, task_id)",
     "CREATE INDEX notes_task_id ON task_notes(task_id, created_at)",
     "CREATE INDEX runs_task_id ON runs(task_id, created_at)",
     "CREATE INDEX turns_run_id ON turns(run_id, created_at)",
@@ -116,6 +174,11 @@ def state_root(explicit: Path | None = None) -> Path:
         raise StorageError(f"cannot create state root: {error}") from error
     if root.is_symlink() or not root.is_dir():
         raise StorageError(f"state root is unsafe: {root}")
+    try:
+        if stat.S_IMODE(os.lstat(root).st_mode) != 0o700:
+            os.chmod(root, 0o700)
+    except OSError as error:
+        raise StorageError(f"cannot restrict state root: {error}") from error
     return root
 
 
@@ -134,6 +197,50 @@ def _restrict(path: Path) -> None:
                 os.chmod(candidate, 0o600)
             except OSError as error:
                 raise StorageError(f"cannot restrict state file: {error}") from error
+
+
+def _migrate_v2(connection: sqlite3.Connection) -> None:
+    """Add prepared-task fields without assigning IDs to legacy rows."""
+    statements = (
+        "ALTER TABLE tasks ADD COLUMN short_id TEXT",
+        "ALTER TABLE tasks ADD COLUMN preparation_status TEXT NOT NULL DEFAULT 'legacy' CHECK (preparation_status IN ('legacy', 'draft', 'ready', 'adopted', 'completed'))",
+        "ALTER TABLE tasks ADD COLUMN prepared_revision TEXT",
+        "ALTER TABLE tasks ADD COLUMN repository_context_digest TEXT",
+        "ALTER TABLE tasks ADD COLUMN specification_digest TEXT",
+        "ALTER TABLE tasks ADD COLUMN specification_confirmed_at TEXT",
+        "ALTER TABLE tasks ADD COLUMN adopted_thread_id TEXT",
+        "ALTER TABLE tasks ADD COLUMN adopted_revision TEXT",
+        "ALTER TABLE tasks ADD COLUMN adopted_at TEXT",
+        "ALTER TABLE tasks ADD COLUMN previous_thread_id TEXT",
+        "ALTER TABLE tasks ADD COLUMN transfer_generation INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE tasks ADD COLUMN transfer_requested_at TEXT",
+        "ALTER TABLE tasks ADD COLUMN completed_at TEXT",
+        "CREATE UNIQUE INDEX tasks_short_id ON tasks(short_id COLLATE NOCASE) WHERE short_id IS NOT NULL",
+        "CREATE TABLE control_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        "INSERT INTO control_metadata VALUES ('next_short_sequence', '1')",
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
+def _migrate_v3(connection: sqlite3.Connection) -> None:
+    """Add immutable initiative relationships and delivery evidence."""
+    statements = (
+        "CREATE TABLE task_initiatives (id TEXT PRIMARY KEY, title TEXT NOT NULL, brief TEXT NOT NULL, source_task_id TEXT NOT NULL UNIQUE, idempotency_key TEXT NOT NULL UNIQUE, manifest_digest TEXT NOT NULL, created_at TEXT NOT NULL)",
+        "ALTER TABLE tasks ADD COLUMN initiative_id TEXT REFERENCES task_initiatives(id)",
+        "ALTER TABLE tasks ADD COLUMN decomposition_reason TEXT",
+        "ALTER TABLE tasks ADD COLUMN repository_common_dir TEXT",
+        "ALTER TABLE tasks ADD COLUMN completed_revision TEXT",
+        "ALTER TABLE tasks ADD COLUMN delivered_task_revision TEXT",
+        "ALTER TABLE tasks ADD COLUMN delivery_revision TEXT",
+        "ALTER TABLE tasks ADD COLUMN delivery_kind TEXT CHECK (delivery_kind IS NULL OR delivery_kind IN ('local-integration', 'pr-merge'))",
+        "ALTER TABLE tasks ADD COLUMN delivered_at TEXT",
+        "CREATE TABLE task_dependencies (task_id TEXT NOT NULL REFERENCES tasks(id), blocked_by_task_id TEXT NOT NULL REFERENCES tasks(id), condition TEXT NOT NULL CHECK (condition IN ('completed', 'delivered')), reason TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (task_id, blocked_by_task_id), CHECK (task_id != blocked_by_task_id))",
+        "CREATE INDEX tasks_initiative ON tasks(initiative_id, rank, created_at)",
+        "CREATE INDEX dependencies_blocked_by ON task_dependencies(blocked_by_task_id, task_id)",
+    )
+    for statement in statements:
+        connection.execute(statement)
 
 
 def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
@@ -165,6 +272,13 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
         if version == 0 and not objects:
             for statement in SCHEMA:
                 connection.execute(statement)
+            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        elif version == 2:
+            _migrate_v2(connection)
+            _migrate_v3(connection)
+            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        elif version == 3:
+            _migrate_v3(connection)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         elif version != SCHEMA_VERSION:
             connection.rollback()

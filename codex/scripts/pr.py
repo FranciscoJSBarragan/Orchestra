@@ -556,7 +556,7 @@ def merge_pr(
         "--repo",
         repository,
         "--json",
-        "state,headRefOid,headRefName,baseRefName,mergedAt",
+        "state,headRefOid,headRefName,baseRefName,mergedAt,mergeCommit",
     )
     if post_result.returncode:
         detail = post_result.stderr.strip() or post_result.stdout.strip() or "no output"
@@ -581,6 +581,9 @@ def merge_pr(
         or post.get("baseRefName") != base_branch
         or not isinstance(post.get("mergedAt"), str)
         or not post["mergedAt"].strip()
+        or not isinstance(post.get("mergeCommit"), dict)
+        or not isinstance(post["mergeCommit"].get("oid"), str)
+        or not post["mergeCommit"]["oid"].strip()
     ):
         partial = (
             _hybrid_post_merge_partial
@@ -599,6 +602,8 @@ def merge_pr(
         "method": method,
         "checks": check_result["checks"],
         "merged_at": post["mergedAt"],
+        "delivery_verified": True,
+        "delivery_revision": post["mergeCommit"]["oid"],
     }
     if checkout_mode == "hybrid":
         cleanup = _cleanup_merged_hybrid_task(

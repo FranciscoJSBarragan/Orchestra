@@ -66,7 +66,6 @@ REQUIRED_PATHS = (
     "codex/control/orchestra_control/__init__.py",
     "codex/control/orchestra_control/db.py",
     "codex/control/orchestra_control/service.py",
-    "codex/control/orchestra_control/app_server.py",
     "codex/control/orchestra_control/cli.py",
     "codex/control/orchestra_control/mcp.py",
     "codex/skills/orchestra-project-start/SKILL.md",

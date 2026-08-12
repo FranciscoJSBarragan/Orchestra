@@ -167,10 +167,8 @@ User-owned `sandbox_mode`, `default_permissions`, conflicting permission
 profiles, or incompatible legacy sandbox tables block synchronization without
 changing the file. Sync takes reversible ownership of `approval_policy`,
 `approvals_reviewer`, and `default_permissions`; unrelated options such as
-`web_search` are preserved byte-for-byte. Direct App Server launchers should
-omit permission overrides to inherit Guardian. Explicit launcher overrides
-remain authoritative; to select Guardian explicitly, pass the equivalent
-`:workspace`, `on-request`, and `auto_review` values.
+`web_search` are preserved byte-for-byte. Task Control never launches Codex or
+changes permissions; adoption uses the current native chat's configured choice.
 
 Restart the Codex host after a permission change so new agent sessions receive
 the selected backend. Status and apply results report `codex_version`,
@@ -231,31 +229,48 @@ artifact locators unavailable. Sync and uninstall manage the helper but never
 own or remove the database. There is no daemon, HTTP server, MCP server, global
 executable, event ledger, heartbeat system, or dashboard in this version.
 
-## Durable task intake
+## Prepared-task Kanban
 
 Direct sync also installs `$orchestra-task` and its local JSON helper. Any
-harness can capture an item without activating Orchestra; only an explicit
-`$orchestra-task` invocation starts a dedicated Codex-Orchestra discovery
-thread:
+harness can capture or prepare a card without activating Orchestra. New cards
+receive immutable IDs such as `A1`; a native Codex chat later adopts that ID
+and starts the normal visible Orchestra flow:
 
 ```sh
 python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task list
 python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task create \
   --title "<title>" --brief "<objective>" --idempotency-key "<stable-key>"
+python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task prepare \
+  --task A1 --repository "<repo>" \
+  --repository-context-file "<context>" \
+  --specification-file "<specification>" --confirmed
 ```
 
-The helper stores private state in `$HOME/.orchestra/control.sqlite3`. Direct
-sync also registers the local stdio `orchestra_tasks` MCP server, exposing the
-same task, run, cancellation, archive, reconciliation, and interaction
-operations. Write tools remain subject to harness approval. The store is
-separate from fail-soft coordination snapshots and never substitutes for
-Orchestra's approved `plan.md`, Git, or user authority. A started item first
-asks for the tier, then runs normal repository context and stops at a candidate
-specification on the same persistent root UUID. It never starts implementation
-automatically. Cancellation preserves its thread and checkpoint; reopening
-continues that thread without blind replay. The menu bar manages local inbox
-items while Hub data remains GET-only. There is no daemon, remote MCP
-transport, mutable web console, or migration from another task system.
+One card is the default: Orchestra keeps sequential complexity in plan phases.
+When an explicitly confirmed brief has genuinely independent execution,
+acceptance, repository, or delivery boundaries, `task decompose --confirmed`
+atomically reuses the source card, creates the minimum additional cards, and
+records an immutable initiative DAG. `blocked_by` supports `completed` and
+`delivered`; unrelated cards in the same initiative are shown as parallel.
+Preparation is allowed while blocked, but adoption waits for the dependency.
+
+`task finish` records the reviewed terminal Git revision. After an authorized
+local integration or PR merge returns exact verified evidence, the owning
+native chat records it with `task record-delivery`. A `delivered` dependency in
+the same Git repository also requires the adopting checkout to contain the
+recorded integration revision. The helper never pulls or transports context.
+
+The helper stores private state in `$HOME/.orchestra/control.sqlite3` and
+revision-bound documents below `$HOME/.orchestra/tasks/<id>/`. Direct sync also
+registers the local stdio `orchestra_tasks` MCP server, exposing capture,
+query, notes, preparation, confirmed decomposition, archive, and restore only. It cannot adopt a task,
+start Codex, create a worktree, or change permissions. From a native Codex chat,
+say `Arranca A1 con Orchestra`; that chat adopts the UUID, activates normal
+Orchestra, and Coordinator registers the same UUID after checkout creation.
+The store never substitutes for the native conversation, approved `plan.md`,
+Git, or user authority.
+The Hub and menu bar observe prepared and active cards through GET-only
+surfaces. There is no daemon, remote MCP transport, or mutable web console.
 
 Artifacts are the semantic handoff channel across context, planning,
 implementation, verification, debugging, and review. Formal planning publishes
