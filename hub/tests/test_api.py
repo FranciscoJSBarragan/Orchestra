@@ -330,6 +330,7 @@ class ApiTests(unittest.TestCase):
         by_id = {task["id"]: task for task in payload["tasks"]}
         self.assertEqual(len(by_id), 2)
         self.assertEqual(by_id[prepared["id"]]["short_id"], "A1")
+        self.assertEqual(by_id[prepared["id"]]["label"], "Prepared A1")
         self.assertEqual(by_id[prepared["id"]]["stage"], "implementation")
         self.assertEqual(by_id[ready_only["id"]]["short_id"], "A2")
         self.assertEqual(by_id[ready_only["id"]]["status"], "ready")

@@ -112,6 +112,14 @@ teardown.
 Best-effort activity snapshots expose material progress but do not prove that an
 agent or process is live and never participate in commit safety.
 
+The root also projects material progress into the task's localized `summary`
+for read-only external clients. It uses approved phase-manifest counts,
+reviewer handoffs, root-accepted finding IDs, Git commits, and verified delivery
+results directly rather than asking a monitor to infer workflow semantics.
+This projection adds no workflow database or event log. Task Control remains
+the source of an adopted card's short ID and confirmed human title; Coordinator
+remains the source of current execution fields.
+
 The active implementation owner defines a stable observation boundary. Until
 that owner returns an outcome or blocker, the root coordinates without reading
 the evolving implementation diff, exercising it with speculative canaries, or

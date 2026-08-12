@@ -1912,5 +1912,24 @@ class PlannedFlowContractTests(unittest.TestCase):
             )
 
 
+    def test_external_progress_uses_localized_milestones_without_new_state(self) -> None:
+        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
+        runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        combined = "\n".join((workflow, skill, runtime))
+
+        for phrase in (
+            "Phase X/Y",
+            "root-accepted finding",
+            "reviews approved",
+            "verified local integration",
+            "routine review-to-implementer",
+        ):
+            self.assertIn(phrase.lower(), combined.lower())
+        self.assertIn("Task Control's short ID and confirmed human title", runtime)
+        self.assertIn("creates no event ledger", workflow)
+        self.assertIn("no progress\nledger", skill)
+
+
 if __name__ == "__main__":
     unittest.main()

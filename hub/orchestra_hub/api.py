@@ -312,6 +312,9 @@ def _merged_rows(
             rows[str(prepared["id"])] = prepared
             continue
         active["short_id"] = prepared["short_id"]
+        # Task Control owns the confirmed user-facing title for adopted cards.
+        # The coordinator label may be a branch-oriented implementation slug.
+        active["label"] = prepared["label"]
         active["initiative"] = prepared["initiative"]
         active["blocked_by"] = prepared["blocked_by"]
         active["parallel_with"] = prepared["parallel_with"]

@@ -261,6 +261,13 @@ literal errors, commands, paths, and identifiers verbatim inside localized
 prose. Keep `plan.md`, semantic artifacts, code, and technical logs in English;
 do not add or infer a persisted locale.
 
+Write each visible `summary` as one concise localized milestone. After approval, use the manifest for `Phase X/Y`: implementation active; each numbered reviewer
+evaluation; root-accepted finding count while corrections run; reviews approved;
+and phase complete only after commit. Restart review numbering per phase, omit
+rejected findings and routine review-to-owner returns, and distinguish
+implementation complete, hold, PR open/clean/merged, and verified local
+integration. Hide checkout mode unless it explains a blocker. Add no progress
+ledger, locale field, or inferred state machine.
 Use `coordination.py activity set` only for material start, final, or blocker
 updates; there are no heartbeats. Request outcome-first, lossless structured returns
 and never impose a token, line, file, finding, test, or explanation cap.
@@ -427,6 +434,8 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 13. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update that phase's status and commit in the manifest. Git is the commit authority; do not create a commit artifact.
 14. When the same causal failure repeats, correction cycles fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess, recommend a tier change, dispatch `difficult_debugging`, or ask the user at an authority boundary. The debugger publishes `debugging-report`; return its exact identifier to the same owner without root-authored diagnosis replay. Distinct legitimate findings alone are not an escalation trigger.
 15. After every phase is reviewed, verified, torn down, and committed, set `plan.md` to `completed` and best-effort mirror that descriptive state. Failure to update coordination never changes the commit or plan result.
+
+Apply that contract at steps 7, 10, 11, 13, 15, and delivery respectively.
 
 Wait for live agents with `wait_agent` in non-interruptive ten-minute windows
 using `timeout_ms: 600000`. The wait returns as soon as an agent reaches a final

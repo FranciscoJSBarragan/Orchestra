@@ -540,6 +540,21 @@ at start, final outcome, or blocker; there are no heartbeats. Stages and states
 are descriptive labels with no transition graph. Timestamps indicate freshness
 but never prove that an agent or process is live.
 
+For external progress surfaces, the root writes `summary` as one concise,
+localized milestone line. Once an approved plan exists, phase milestones use
+the manifest's exact current and total phase counts: `Phase X/Y ·
+Implementation active`, numbered implementation-review entries, accepted
+finding counts while corrections are in progress, reviews approved, and phase
+completion after the Git commit exists. Review numbering restarts for each
+phase and counts actual reviewer evaluations; only findings accepted by the
+root are reported. A review-to-implementer return is represented by the
+accepted-findings milestone and receives no extra transition. Delivery
+milestones distinguish implementation complete, hold, PR open/clean/merged,
+and verified local integration. Managed or hybrid checkout mode is not itself
+reported unless it explains a delivery blocker. The root never derives these
+milestones from free-text agent output and creates no event ledger, locale
+field, or second progress state machine.
+
 Coordination keeps machine-facing `tier`, `stage`, `status`, activity
 `capability`, and activity `state` labels in English. User-visible task
 `summary`, `blocker`, `next_action`, and activity `summary` use the user-facing
@@ -1136,6 +1151,9 @@ state the result location, how to run or demonstrate it, verification performed,
 safe test data, limitations, exact delivery state, and the next authority needed.
 The same material transitions are exposed through coordination snapshots for
 external querying, without requiring the user to open each agent conversation.
+An adopted card keeps its immutable short ID and confirmed human title. A
+client may render that identity as `[A1: Human title]`; a task without a card
+falls back to `[Repository: Human title]`, never a UUID or branch slug.
 
 For user explanations, the root distinguishes verified facts, supported
 inference, and uncertainty, and uses an available visualization capability only

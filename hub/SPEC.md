@@ -194,6 +194,10 @@ Degraded variant (still `200`; health reports, it does not fail):
 
 - `tasks`: all tasks, ordered `updated_at DESC, id` (same ordering as
   `coordination.py task list`).
+- When a Coordinator task is joined to a prepared Task Control card, Task
+  Control's confirmed human title remains the task `label`; Coordinator owns
+  the active execution fields. This prevents branch-oriented labels from
+  replacing the title shown next to the immutable `short_id`.
 - `repositories`: union of observed (derived from `tasks.repository`) and
   pinned (TOML) repositories. `name` = pinned name, else path basename.
   Sorted by `name`, then `path`.
