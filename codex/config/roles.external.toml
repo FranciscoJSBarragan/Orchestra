@@ -75,7 +75,7 @@ reasoning_effort = "high"
 
 [tiers.standard.general_implementation]
 profile = "orchestra_implementation_worker"
-model = "cursor/grok-4.5"
+model = "cursor/grok-4.6"
 reasoning_effort = "high"
 
 [tiers.standard.frontend_implementation]

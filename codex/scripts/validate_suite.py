@@ -244,7 +244,8 @@ VALID_MODELS = {
     "antigravity/gemini-3.6-flash-high",
     "cursor/composer-2.5",
     "cursor/composer-2.5-fast",
-    "cursor/grok-4.5",
+    "cursor/grok-4.6",
+    "xai/grok-4.6",
     "gpt-5.6-sol",
     "gpt-5.6-terra",
     "gpt-5.6-luna",
@@ -253,6 +254,7 @@ VALID_MODELS = {
     "orchestra-v1/gpt-5.6-luna",
     "opencode/glm-5.2",
     "opencode/deepseek-v4-flash",
+    "opencode/deepseek-v4-pro",
 }
 
 DUAL_MODEL_ALIASES = {

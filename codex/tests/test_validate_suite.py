@@ -404,7 +404,7 @@ class FullModeFixtureTest(unittest.TestCase):
         workflow = self.root / "docs/WORKFLOW.md"
         workflow.write_text(
             workflow.read_text(encoding="utf-8").replace(
-                "| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.5` | `high` |",
+                "| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.6` | `high` |",
                 "| Standard | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `max` |",
                 1,
             ),

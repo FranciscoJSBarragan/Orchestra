@@ -241,7 +241,7 @@ user-directed and cannot change the task's selected mode.
 | Standard | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
 | Standard | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.5` | `high` |
+| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.6` | `high` |
 | Standard | `frontend_implementation` | `orchestra_implementation_worker` | `opencode/glm-5.2` | `max` |
 | Standard | `independent_review` | `orchestra_reviewer` | `gpt-5.6-terra` | `high` |
 | Standard | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-terra` | `medium` |
