@@ -106,10 +106,16 @@ includes focused repository context and an explicitly confirmed specification,
 but never starts an execution host, chooses a tier, creates a branch or
 worktree, or grants implementation authority.
 
-The user starts a ready card from a native Codex or Cursor chat by asking that
-chat to adopt its human ID with Orchestra. The chat becomes the visible
-conversational owner, inherits its current permissions, and follows the normal
-Orchestra checkout and approval flow. Revision-bound prepared context is reused when
+Only Task Control allocates those human IDs. A chat, Coordinator, checkout,
+branch, or client never derives, increments, reserves, or defaults one. A task
+started directly without adopting a card has no `A#` identity and is displayed
+with repository plus human title. This keeps simultaneous direct tasks distinct
+without introducing another allocator.
+
+The user starts a ready card from a native Codex or Cursor chat by asking that chat to
+adopt its human ID with Orchestra. The chat becomes the visible conversational
+owner, inherits its current permissions, and follows the normal Orchestra
+checkout and approval flow. Revision-bound prepared context is reused when
 current and receives only a focused delta when Git changed. Coordinator uses
 the same UUID after checkout creation, so the Hub can join prepared and active
 state without inventing another identity. Transfer to another native chat is

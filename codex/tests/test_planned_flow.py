@@ -1937,6 +1937,18 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase.lower(), combined.lower())
         self.assertIn("Task Control's short ID and confirmed human title", runtime)
+        self.assertIn("Task Control is the sole allocator of `A#` short IDs", runtime)
+        self.assertIn("never a fabricated short ID", runtime)
+        self.assertNotIn("[A1: Human title]", workflow)
+        self.assertIn("[<short-id>: Human title]", workflow)
+        for identity_field in (
+            "origin: prepared-card",
+            "origin: direct",
+            "kanban_uuid",
+            "kanban_short_id",
+            "kanban_title",
+        ):
+            self.assertIn(identity_field, combined)
         self.assertIn("creates no event ledger", workflow)
         self.assertIn("no progress\nledger", skill)
 

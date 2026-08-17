@@ -165,7 +165,7 @@ existing legacy result remains on its legacy paths for that task without
 copying or dual-writing it. Then attempt an idempotent task registration with
 `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task
 create`. When adopting a prepared Kanban task, pass its exact technical UUID
-as `--task-id`; otherwise let the helper allocate one. Treat `invalid` or
+as `--task-id` and retain the canonical short ID and confirmed title returned by `task adopt`; otherwise let the helper allocate a UUID and never invent, reserve, increment, or display an `A#` short ID. Treat `invalid` or
 `unavailable` as lost observability: report it
 only after a correctly authorized attempt. When the coordination database is
 outside the active workspace, make that first attempt with one exact, narrow
@@ -370,8 +370,7 @@ Never use globs. These sections add no `plan.md` manifest or workflow-state fiel
 
 After approval, the root writes `active` directly to the exact `plan` path
 returned by `task_state.py init`, normally
-`<task-worktree>/.orchestra/plan.md`. It contains
-task and Git identity, active tier, user and root decisions, authorized
+`<task-worktree>/.orchestra/plan.md`. It contains task and Git identity, active tier, user and root decisions, authorized
 preexisting changes, the immutable dual model configuration when applicable,
 the approved overview verbatim, and an exact phase
 manifest with each artifact identifier, private path, revision, phase status,
@@ -380,6 +379,7 @@ documents. The private paths permit resume when SQLite is unavailable. When
 adoption applies, also record adopted source revision, imported paths, existing
 commit range, and remaining phases. Hybrid plans additionally record the
 starting branch/revision and checkout, branch, and private-artifact ownership.
+Task identity states `origin: prepared-card` with exact `kanban_uuid`, `kanban_short_id`, and `kanban_title` from `task adopt`, or `origin: direct` without those fields. Resume matches prepared identity; direct display uses repository plus title and never derives a short ID.
 
 Use only these statuses:
 

@@ -145,6 +145,12 @@ references. Capturing or preparing a card does not activate Orchestra, launch
 an execution host, choose permissions or tier, create a checkout, or authorize
 implementation.
 
+Task Control is the sole allocator of the `A1`, `A2`, ... namespace. Neither a
+native chat nor Coordinator may derive a short ID from task order, concurrent
+activity, a branch name, or an example in these documents. A direct Orchestra
+task has no short ID. Clients join a short ID to execution state only when the
+Coordinator task UUID exactly matches the Control UUID.
+
 A card becomes `ready` only after focused repository research equivalent to
 `repository_context` and explicit specification confirmation. The helper binds
 private `repository-context.md`, `specification.md`, and a marker under
@@ -556,6 +562,13 @@ status, accepted commit, blocker, and next action. It does not duplicate phase
 details. Private paths allow resolution when SQLite is unavailable. When
 adoption applies, it also records source revision, imported paths, existing
 commit range, and remaining phases.
+
+Task identity explicitly records `origin: prepared-card` or `origin: direct`.
+For `prepared-card`, it also records the exact `kanban_uuid`, canonical
+`kanban_short_id`, and confirmed `kanban_title` returned by `task adopt`; resume
+requires all three to match the adopted card. For `direct`, those Kanban fields
+are absent and the plan never creates a short ID. These are identity fields in
+the existing plan, not a new manifest or allocator.
 
 Its statuses are:
 
@@ -1265,8 +1278,10 @@ safe test data, limitations, exact delivery state, and the next authority needed
 The same material transitions are exposed through coordination snapshots for
 external querying, without requiring the user to open each agent conversation.
 An adopted card keeps its immutable short ID and confirmed human title. A
-client may render that identity as `[A1: Human title]`; a task without a card
-falls back to `[Repository: Human title]`, never a UUID or branch slug.
+client may render that identity as `[<short-id>: Human title]`, substituting
+only the canonical value returned by Task Control. A task without a card falls
+back to `[Repository: Human title]`, never a fabricated short ID, UUID, or
+branch slug.
 
 For user explanations, the root distinguishes verified facts, supported
 inference, and uncertainty, and uses an available visualization capability only

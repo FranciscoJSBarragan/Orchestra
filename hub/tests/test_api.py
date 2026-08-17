@@ -336,6 +336,49 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(by_id[ready_only["id"]]["status"], "ready")
         self.assertEqual(by_id[ready_only["id"]]["worktree"], "")
 
+    def test_direct_and_mismatched_tasks_never_receive_control_short_ids(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        prepared = support.insert_prepared_task(
+            control_database,
+            id="11111111-1111-4111-8111-111111111111",
+            short_id="A1",
+            title="Prepared card",
+        )
+        direct_one = support.insert_task(
+            self.database,
+            id="22222222-2222-4222-8222-222222222222",
+            label="Direct task one",
+            repository=OBS_PATH,
+            status="active",
+            stage="planning",
+        )
+        direct_two = support.insert_task(
+            self.database,
+            id="33333333-3333-4333-8333-333333333333",
+            label="Direct task two",
+            repository="/Users/example/second-repository",
+            status="active",
+            stage="implementation",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination,
+                self.config,
+                NOW,
+                control_connection=control,
+            )
+        finally:
+            coordination.close()
+            control.close()
+        by_id = {task["id"]: task for task in payload["tasks"]}
+        self.assertEqual(by_id[prepared["id"]]["short_id"], "A1")
+        for direct in (direct_one, direct_two):
+            self.assertIsNone(by_id[direct["id"]]["short_id"])
+            self.assertEqual(by_id[direct["id"]]["label"], direct["label"])
+
     def test_prepared_task_fingerprint_ignores_timestamp_only_changes(self) -> None:
         control_database = support.create_control_db(self.state_root)
         prepared = support.insert_prepared_task(

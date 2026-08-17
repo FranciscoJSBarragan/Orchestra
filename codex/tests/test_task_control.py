@@ -361,6 +361,9 @@ class TaskControlTests(unittest.TestCase):
             current_revision=self.revision,
         )
         self.assertTrue(resumed["resume_existing_checkout"])
+        self.assertEqual(resumed["id"], transferred["id"])
+        self.assertEqual(resumed["short_id"], "A1")
+        self.assertEqual(resumed["title"], transferred["title"])
 
     def test_reclaim_takes_over_another_host_chat(self) -> None:
         self.create_task()

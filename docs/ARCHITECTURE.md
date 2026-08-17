@@ -70,6 +70,12 @@ Cooperative transfer remains owning-chat plus stable checkpoint. When that
 chat cannot release the card, explicit reclaim from another native host chat
 swaps ownership without passing through `ready`.
 
+The short-ID namespace has one allocator: the transaction in Task Control.
+Coordinator stores no short ID, direct tasks have none, and clients may expose
+one only after an exact UUID join to Control. Consequently concurrent chats do
+not need leases or a second counter: prepared cards serialize in the existing
+SQLite transaction, while direct tasks use repository plus title.
+
 ### Orchestrator
 
 Owns user dialogue, tier recommendation, product clarification, capability routing,
@@ -125,8 +131,9 @@ for read-only external clients. It uses approved phase-manifest counts,
 reviewer handoffs, root-accepted finding IDs, Git commits, and verified delivery
 results directly rather than asking a monitor to infer workflow semantics.
 This projection adds no workflow database or event log. Task Control remains
-the source of an adopted card's short ID and confirmed human title; Coordinator
-remains the source of current execution fields.
+the sole source of an adopted card's short ID and confirmed human title;
+Coordinator remains the source of current execution fields and never assigns a
+short ID. The Hub attaches those Control fields only on an exact UUID match.
 
 The active implementation owner defines a stable observation boundary. Until
 that owner returns an outcome or blocker, the root coordinates without reading
@@ -328,6 +335,10 @@ verbatim, and an exact phase manifest with IDs, private paths, artifact
 revisions, progress, commits, blocker, and next action. Phase details are not
 duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
 state; the plan carries approved intent, exact bundle selection, and progress.
+Task identity records whether the task is `prepared-card` or `direct`; only the
+former carries the exact Control UUID, canonical short ID, and confirmed title
+returned by adoption. Resume reconciles those values rather than recomputing
+them.
 
 Every overview includes the semantic `Review context` section, and every phase
 includes semantic context dependencies plus `Context maintenance paths` set to
@@ -620,7 +631,8 @@ Tests protect the few important invariants:
 - ordinary capture and preparation remain inert and never create a host chat,
   branch, worktree, tier, permission override, or implementation run;
 - immutable case-insensitive human IDs are never reused, while Coordinator and
-  Control use the same UUID after checkout creation;
+  Control use the same UUID after checkout creation; direct tasks never invent
+  a human ID and clients attach one only through an exact Control UUID match;
 - adoption is exclusive to one native chat, changed Git requests only a focused
   context delta, and stable-checkpoint transfer preserves worktree and plan;
   when the owning chat cannot release the card, explicit reclaim from another
