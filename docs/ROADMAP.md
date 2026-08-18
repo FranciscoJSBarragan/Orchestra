@@ -11,7 +11,8 @@ executable routing and conformance second, then real-project evidence.
 
 ## Deferred distribution boundary
 
-Plugin distribution remains deferred until all of these conditions hold:
+Plugin and marketplace distribution remains deferred until all of these
+conditions hold:
 
 - install, update, status, and uninstall are dependable;
 - user configuration is preserved reliably;
@@ -19,6 +20,9 @@ Plugin distribution remains deferred until all of these conditions hold:
 - local and PR delivery are proven;
 - the user judges the product mature;
 - packaging reduces friction without creating a second runtime.
+
+Cursor local plugin install under `~/.cursor/plugins/local` is not marketplace
+distribution. Agent Plugins / Cursor Marketplace publication stays deferred.
 
 Meeting these conditions permits a product decision about distribution; it does
 not prescribe an implementation design.

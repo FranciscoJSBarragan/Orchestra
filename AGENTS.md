@@ -79,21 +79,25 @@ confirmation. Changed Git receives only a focused context delta, and only a
 material specification change reopens confirmation. Register Coordinator after
 checkout creation with the prepared card's UUID via `--task-id`.
 
-Before tier selection, resolve the installed model configuration
-(`roles.toml` + `session_model.py` for dual matrices) as specified in
-`docs/WORKFLOW.md`; the selected mode is immutable for the task and Orchestra
-never changes or respawns the root.
+Before tier selection, identify the execution host and resolve its installed
+model configuration as specified in `docs/WORKFLOW.md`. Codex uses `roles.toml`
+plus `session_model.py` for dual matrices; that mode is immutable for the task.
+Cursor reads the Cursor host matrix, has no native/external mode, and does not
+run `session_model.py`. Orchestra never changes or respawns the root.
 
 ## Tier selection
 
 Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
-the user's explicit choice. Native offers `standard` and `critical`; external
-additionally offers `luna` only as a cost-focused opt-in for ordinary bounded
-work when the user explicitly prioritizes cost. `standard` remains the default.
-`critical` covers security-sensitive work, credentials, payments, migrations,
-destructive actions, or production changes. Destructive means irreversible
-loss of unique data or work; proven-reversible operations do not force
-critical. A user-selected `luna` or `standard` tier never waives the hard
+the user's explicit choice. Codex native offers `standard` and `critical`;
+Codex external additionally offers `luna` only as a cost-focused opt-in for
+ordinary bounded work when the user explicitly prioritizes cost. Cursor offers
+`minimal`, `standard`, and `critical` with no mode split; this cut assigns
+`minimal` and `standard` and recommends `standard`, while unassigned Cursor
+`critical` blocks. `minimal` is the cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
+security-sensitive work, credentials, payments, migrations, destructive
+actions, or production changes. Destructive means irreversible loss of unique
+data or work; proven-reversible operations do not force critical. A
+user-selected `luna`, `minimal`, or `standard` tier never waives the hard
 gates. Tier changes follow the transition procedure in `docs/WORKFLOW.md`;
 never change tier unilaterally.
 
@@ -174,11 +178,13 @@ Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Permissions and browser routing
 
-Orchestra synchronizes Guardian as the default; the active permission choice
-for the task, host, or launcher stays authoritative and Orchestra never
-changes it (full rules in `docs/WORKFLOW.md`, "Test permissions and browser
-routing"). Browser packets carry `browser_route`; an explicit user route wins
-and is never vetoed or substituted.
+On Codex, Orchestra synchronizes Guardian as the default. Cursor observes the
+host permission choice and never writes permission configuration. The active
+permission choice for the task, host, or launcher stays authoritative and
+Orchestra never changes it (full rules in `docs/WORKFLOW.md`, "Test permissions
+and browser routing"). Browser packets carry `browser_route`; an explicit user
+route wins and is never vetoed or substituted. Cursor maps `auto` to Playwright
+and blocks `in_app`.
 
 ## User-facing progress
 
@@ -187,7 +193,7 @@ results, and authority requests; progress updates are informational, not
 implicit permission requests. Blocking questions use `request_user_input` per
 `docs/WORKFLOW.md`.
 
-A normal `wait_agent` timeout is not a material transition and produces no
+A normal host-wait timeout is not a material transition and produces no
 user-facing update unless the user asks.
 
 The root distinguishes verified facts, supported inference, and uncertainty,

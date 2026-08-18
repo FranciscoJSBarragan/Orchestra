@@ -37,7 +37,7 @@ agent context, not tool resources: follow shared resource hygiene at every stabl
 or blocked handoff and recreate any process, terminal session, or task tab that
 a later accepted fix needs.
 
-When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `implementation-report` for every stable handoff directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-implementation-report.md` file and return that exact file name. Coordination is descriptive and never grants edit authority.
+When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `implementation-report` for every stable handoff directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-implementation-report.md` file and return that exact file name. Coordination is descriptive and never grants edit authority.
 
 ## Input
 

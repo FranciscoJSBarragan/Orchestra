@@ -21,7 +21,9 @@ from orchestra_control.db import SCHEMA_VERSION  # noqa: E402
 from orchestra_control.service import (  # noqa: E402
     ControlError,
     ControlService,
+    host_thread_from_env,
     sequence_to_short_id,
+    validate_thread_id,
 )
 from orchestra_control.mcp import TOOLS, cli_arguments  # noqa: E402
 
@@ -79,12 +81,24 @@ class TaskControlTests(unittest.TestCase):
             confirmed=True,
         )
 
-    def cli(self, *args: str, thread: str | None = None) -> tuple[subprocess.CompletedProcess[str], dict]:
+    def cli(
+        self,
+        *args: str,
+        thread: str | None = None,
+        cursor_thread: str | None = None,
+    ) -> tuple[subprocess.CompletedProcess[str], dict]:
         environment = os.environ.copy()
-        if thread is None:
-            environment.pop("CODEX_THREAD_ID", None)
-        else:
+        for key in (
+            "CODEX_THREAD_ID",
+            "CURSOR_CONVERSATION_ID",
+            "CURSOR_THREAD_ID",
+            "ORCHESTRA_HOST_THREAD_ID",
+        ):
+            environment.pop(key, None)
+        if thread is not None:
             environment["CODEX_THREAD_ID"] = thread
+        if cursor_thread is not None:
+            environment["ORCHESTRA_HOST_THREAD_ID"] = cursor_thread
         result = subprocess.run(
             [sys.executable, str(HELPER), "--state-root", str(self.state_root), *args],
             cwd=ROOT,
@@ -213,6 +227,54 @@ class TaskControlTests(unittest.TestCase):
         )
         self.assertEqual(resumed["context_action"], "repository_context_delta")
 
+    def test_cursor_adoption_blocks_without_host_identity_and_accepts_host_id(
+        self,
+    ) -> None:
+        self.create_task()
+        self.prepare("A1")
+        with self.assertRaises(ControlError) as missing:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=None,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness="cursor",
+            )
+        self.assertEqual(missing.exception.status, "blocked")
+        self.assertIn("Cursor host conversation identity", missing.exception.reason)
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id="cursor-conversation-abc",
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="cursor",
+        )
+        self.assertEqual(adopted["preparation_status"], "adopted")
+        self.assertEqual(adopted["adopted_thread_id"], "cursor-conversation-abc")
+
+    def test_host_thread_from_env_reads_codex_or_cursor_identity(self) -> None:
+        self.assertEqual(host_thread_from_env({}), (None, None))
+        self.assertEqual(
+            host_thread_from_env({"CODEX_THREAD_ID": THREAD_ONE}),
+            ("codex", THREAD_ONE),
+        )
+        self.assertEqual(
+            host_thread_from_env({"ORCHESTRA_HOST_THREAD_ID": "cursor-thread-1"}),
+            ("cursor", "cursor-thread-1"),
+        )
+        self.assertEqual(
+            host_thread_from_env({"CURSOR_CONVERSATION_ID": "undocumented"}),
+            (None, None),
+        )
+        self.assertEqual(
+            host_thread_from_env({"CURSOR_THREAD_ID": "undocumented"}),
+            (None, None),
+        )
+        with self.assertRaises(ControlError) as missing:
+            validate_thread_id(None, None)
+        self.assertEqual(missing.exception.status, "blocked")
+        self.assertIn("host conversation identity is missing", missing.exception.reason)
+
     def test_adoption_rejects_tampered_prepared_documents(self) -> None:
         self.create_task()
         ready = self.prepare("A1")
@@ -239,6 +301,7 @@ class TaskControlTests(unittest.TestCase):
             current_revision=self.revision,
         )
         self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+        self.assertEqual(adopted["adopted_harness"], "codex")
         self.service.transfer_task(
             task_ref="A1", thread_id=THREAD_ONE, stable_checkpoint=True
         )
@@ -298,6 +361,157 @@ class TaskControlTests(unittest.TestCase):
             current_revision=self.revision,
         )
         self.assertTrue(resumed["resume_existing_checkout"])
+
+    def test_reclaim_takes_over_another_host_chat(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        with self.assertRaises(ControlError) as not_adopted:
+            self.service.reclaim_task(
+                task_ref="A1",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                authorized=True,
+            )
+        self.assertEqual(not_adopted.exception.status, "invalid")
+        self.assertIn("owned by another chat", not_adopted.exception.reason)
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+        with self.assertRaises(ControlError) as busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id="cursor-conversation-abc",
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness="cursor",
+            )
+        self.assertEqual(busy.exception.status, "busy")
+        with self.assertRaises(ControlError) as unauthorized:
+            self.service.reclaim_task(
+                task_ref="A1",
+                thread_id="cursor-conversation-abc",
+                repository=str(self.repository),
+                current_revision=self.revision,
+                authorized=False,
+                source_harness="cursor",
+            )
+        self.assertEqual(unauthorized.exception.status, "invalid")
+        self.assertIn("authorization", unauthorized.exception.reason)
+        with self.assertRaises(ControlError) as missing:
+            self.service.reclaim_task(
+                task_ref="A1",
+                thread_id=None,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                authorized=True,
+                source_harness="cursor",
+            )
+        self.assertEqual(missing.exception.status, "blocked")
+        self.assertIn("Cursor host conversation identity", missing.exception.reason)
+        with self.assertRaises(ControlError) as same_thread:
+            self.service.reclaim_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                authorized=True,
+            )
+        self.assertEqual(same_thread.exception.status, "invalid")
+        self.assertIn("continue instead of reclaim", same_thread.exception.reason)
+        with self.assertRaises(ControlError) as foreign_transfer:
+            self.service.transfer_task(
+                task_ref="A1",
+                thread_id="cursor-conversation-abc",
+                stable_checkpoint=True,
+                source_harness="cursor",
+            )
+        self.assertEqual(foreign_transfer.exception.status, "invalid")
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id="cursor-conversation-abc",
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="cursor",
+        )
+        self.assertEqual(reclaimed["preparation_status"], "adopted")
+        self.assertEqual(reclaimed["adopted_thread_id"], "cursor-conversation-abc")
+        self.assertEqual(reclaimed["adopted_harness"], "cursor")
+        self.assertEqual(reclaimed["previous_thread_id"], THREAD_ONE)
+        self.assertEqual(reclaimed["previous_harness"], "codex")
+        self.assertEqual(reclaimed["transfer_generation"], 1)
+        self.assertTrue(reclaimed["resume_existing_checkout"])
+        with self.assertRaises(ControlError) as still_busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_TWO,
+                repository=str(self.repository),
+                current_revision=self.revision,
+            )
+        self.assertEqual(still_busy.exception.status, "busy")
+        with self.assertRaises(ControlError) as same_new_owner:
+            self.service.reclaim_task(
+                task_ref="A1",
+                thread_id="cursor-conversation-abc",
+                repository=str(self.repository),
+                current_revision=self.revision,
+                authorized=True,
+                source_harness="cursor",
+            )
+        self.assertEqual(same_new_owner.exception.status, "invalid")
+        result, missing_cli = self.cli(
+            "task",
+            "reclaim",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            "--authorized",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(missing_cli["status"], "blocked")
+        result, cli_reclaim = self.cli(
+            "task",
+            "reclaim",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            "--authorized",
+            cursor_thread="cursor-conversation-abc",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(cli_reclaim["status"], "invalid")
+        result, without_flag = self.cli(
+            "task",
+            "reclaim",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            cursor_thread="cursor-other",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(without_flag["status"], "invalid")
+        result, cli_ok = self.cli(
+            "task",
+            "reclaim",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            "--authorized",
+            cursor_thread="cursor-other",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(cli_ok["task"]["adopted_thread_id"], "cursor-other")
+        self.assertEqual(cli_ok["task"]["previous_thread_id"], "cursor-conversation-abc")
+        self.assertTrue(cli_ok["task"]["resume_existing_checkout"])
 
     def test_finish_and_archive_are_owner_safe(self) -> None:
         self.create_task()
@@ -559,6 +773,7 @@ class TaskControlTests(unittest.TestCase):
         for forbidden in (
             "task_adopt",
             "task_transfer",
+            "task_reclaim",
             "task_finish",
             "task_record_delivery",
             "run_start",
@@ -661,6 +876,8 @@ class TaskControlTests(unittest.TestCase):
             connection.execute("DROP TABLE task_dependencies")
             connection.execute("DROP INDEX tasks_initiative")
             for column in (
+                "previous_harness",
+                "adopted_harness",
                 "delivered_at",
                 "delivery_kind",
                 "delivery_revision",
@@ -681,9 +898,74 @@ class TaskControlTests(unittest.TestCase):
         self.assertIsNone(migrated["initiative_id"])
         connection = sqlite3.connect(database)
         try:
-            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(
+                connection.execute("PRAGMA user_version").fetchone()[0],
+                SCHEMA_VERSION,
+            )
         finally:
             connection.close()
+
+    def test_schema_v4_migration_namespaces_historical_owners_as_codex(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.service.reclaim_task(
+            task_ref="A1",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+        )
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute("ALTER TABLE tasks DROP COLUMN previous_harness")
+            connection.execute("ALTER TABLE tasks DROP COLUMN adopted_harness")
+            connection.execute("PRAGMA user_version = 4")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["adopted_thread_id"], THREAD_TWO)
+        self.assertEqual(migrated["adopted_harness"], "codex")
+        self.assertEqual(migrated["previous_thread_id"], THREAD_ONE)
+        self.assertEqual(migrated["previous_harness"], "codex")
+
+    def test_equal_textual_ids_from_different_hosts_are_distinct_owners(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="cursor",
+        )
+        self.assertEqual(adopted["adopted_harness"], "cursor")
+        with self.assertRaises(ControlError) as busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness="codex",
+            )
+        self.assertEqual(busy.exception.status, "busy")
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="codex",
+        )
+        self.assertEqual(reclaimed["adopted_harness"], "codex")
+        self.assertEqual(reclaimed["previous_harness"], "cursor")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 docs/plans/
+.task-clones/
 hub/tui/.venv/
 hub/tui/screenshots/
 hub/menubar/build/

@@ -61,6 +61,7 @@ class SyncTests(unittest.TestCase):
         dry_run: bool = False,
         modelconfig: str | None = "external",
         checkout_mode: str | None = None,
+        host: str = "codex",
     ) -> dict[str, object]:
         return sync.synchronize(
             ROOT,
@@ -71,10 +72,17 @@ class SyncTests(unittest.TestCase):
             modelconfig=modelconfig,
             checkout_mode=checkout_mode,
             worktree_root=self.worktree_root,
+            host=host,
         )
 
     def manifest(self) -> dict[str, object]:
-        return json.loads((self.codex_home / "orchestra/install-manifest.json").read_text())
+        return json.loads(self.manifest_path().read_text())
+
+    def manifest_path(self) -> Path:
+        return self.orchestra_root / "install-manifest.json"
+
+    def legacy_manifest_path(self) -> Path:
+        return self.codex_home / "orchestra/install-manifest.json"
 
     def source_fixture(self) -> Path:
         fixture = Path(self.temporary.name) / "source"
@@ -99,11 +107,15 @@ class SyncTests(unittest.TestCase):
     def convert_current_install_to_legacy_profile_manifest(self) -> None:
         """Model an owned pre-namespace install without retired source files."""
         self.assertEqual(self.run_sync("apply")["status"], "ok")
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         payload = self.manifest()
         current_paths = {f"agents/{name}.toml" for name in sync.AGENTS}
         entries = [
-            entry
+            {
+                key: value
+                for key, value in entry.items()
+                if key not in {"scope", "backup_root"}
+            }
             for entry in payload["entries"]
             if entry["path"] not in current_paths
         ]
@@ -205,6 +217,13 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/adopt_worktree.py").is_file()
         )
+        self.assertTrue(
+            self.orchestra_root.joinpath("scripts/coordination.py").is_file()
+        )
+        self.assertEqual(
+            self.orchestra_root.joinpath("checkout-mode").read_text(),
+            "managed\n",
+        )
         synchronized_status = self.run_sync("status")
         self.assertEqual(synchronized_status["status"], "ok")
         self.assertFalse(synchronized_status["restart_required"])
@@ -277,7 +296,7 @@ class SyncTests(unittest.TestCase):
             0o644,
         )
         self.assertEqual(
-            self.codex_home.joinpath("orchestra/install-manifest.json").stat().st_mode
+            self.manifest_path().stat().st_mode
             & 0o777,
             0o600,
         )
@@ -289,7 +308,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(removed["status"], "ok")
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra").exists())
         self.assertFalse(self.codex_home.joinpath("install-manifest.json").exists())
-        self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
+        self.assertFalse(self.manifest_path().exists())
         for name in sync.AGENTS:
             self.assertFalse(self.codex_home.joinpath(f"agents/{name}.toml").exists())
         self.assertFalse(self.codex_home.joinpath("config.toml").exists())
@@ -305,7 +324,7 @@ class SyncTests(unittest.TestCase):
             "orchestra/scripts/create_worktree.py": b"retired helper\n",
             "rules/orchestra.rules": b"retired rule\n",
         }
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         payload = self.manifest()
         for relative, content in retired.items():
             destination = self.codex_home / relative
@@ -316,6 +335,7 @@ class SyncTests(unittest.TestCase):
                     "digest": hashlib.sha256(content).hexdigest(),
                     "path": relative,
                     "root": "codex_home",
+                    "scope": "codex",
                     "type": "file",
                 }
             )
@@ -371,7 +391,7 @@ class SyncTests(unittest.TestCase):
             original.encode()
             + legacy_block
         )
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         manifest = self.manifest()
         config_entry = next(
             entry for entry in manifest["entries"] if entry["path"] == "config.toml"
@@ -417,7 +437,7 @@ class SyncTests(unittest.TestCase):
             + b"\n"
         )
         config.write_bytes(current[: span[0]] + old_block + current[span[1] :])
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         manifest = self.manifest()
         config_entry = next(
             entry for entry in manifest["entries"] if entry["path"] == "config.toml"
@@ -461,7 +481,7 @@ class SyncTests(unittest.TestCase):
         config.write_bytes(
             current[: span[0]] + legacy_block + current[span[1] :]
         )
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         manifest = self.manifest()
         config_entry = next(
             entry for entry in manifest["entries"] if entry["path"] == "config.toml"
@@ -620,7 +640,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(result["status"], "ok")
         self.assertFalse(config.exists())
         self.assertFalse(
-            self.codex_home.joinpath("orchestra/install-manifest.json").exists()
+            self.manifest_path().exists()
         )
         self.codex_version.assert_called_once()
 
@@ -737,7 +757,7 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(result["changes"])
         self.assertIn("config changed after apply", result["detail"])
         self.assertTrue(
-            self.codex_home.joinpath("orchestra/install-manifest.json").is_file()
+            self.manifest_path().is_file()
         )
 
     def test_worktree_root_precedence_and_validation(self) -> None:
@@ -920,7 +940,7 @@ class SyncTests(unittest.TestCase):
             + b"\n"
         )
         config.write_bytes(old_block)
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         manifest = self.manifest()
         config_entry = next(
             entry for entry in manifest["entries"] if entry["path"] == "config.toml"
@@ -1182,7 +1202,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         manifest = self.manifest()
         manifest.pop("modelconfig")
-        manifest_path = self.codex_home / "orchestra/install-manifest.json"
+        manifest_path = self.manifest_path()
         manifest_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -1204,7 +1224,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         manifest = self.manifest()
         manifest.pop("modelconfig")
-        (self.codex_home / "orchestra/install-manifest.json").write_text(
+        (self.manifest_path()).write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
@@ -1212,7 +1232,7 @@ class SyncTests(unittest.TestCase):
         removed = sync.uninstall(self.home, self.codex_home)
         self.assertEqual(removed["status"], "ok")
         self.assertFalse(
-            self.codex_home.joinpath("orchestra/install-manifest.json").exists()
+            self.manifest_path().exists()
         )
 
     def test_invalid_modelconfig_and_manifest_selection_block(self) -> None:
@@ -1223,7 +1243,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         manifest = self.manifest()
         manifest["modelconfig"] = "unsupported"
-        (self.codex_home / "orchestra/install-manifest.json").write_text(
+        (self.manifest_path()).write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
@@ -1233,7 +1253,7 @@ class SyncTests(unittest.TestCase):
 
         manifest["modelconfig"] = "external"
         manifest["checkout_mode"] = "unsupported"
-        (self.codex_home / "orchestra/install-manifest.json").write_text(
+        (self.manifest_path()).write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
@@ -1248,7 +1268,7 @@ class SyncTests(unittest.TestCase):
         roles = self.codex_home / "orchestra/roles.toml"
         roles_before = roles.read_bytes()
         manifest_before = (
-            self.codex_home / "orchestra/install-manifest.json"
+            self.manifest_path()
         ).read_bytes()
 
         with mock.patch.object(
@@ -1258,7 +1278,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(switched["status"], "blocked")
         self.assertEqual(roles.read_bytes(), roles_before)
         self.assertEqual(
-            (self.codex_home / "orchestra/install-manifest.json").read_bytes(),
+            (self.manifest_path()).read_bytes(),
             manifest_before,
         )
         self.assertEqual(
@@ -1369,7 +1389,7 @@ class SyncTests(unittest.TestCase):
         )
 
     def test_invalid_manifest_paths_and_destination_symlinks_block(self) -> None:
-        manifest = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest_path()
         manifest.parent.mkdir(parents=True)
         manifest.write_text(json.dumps({"entries": [{
             "digest": "0" * 64,
@@ -1382,6 +1402,7 @@ class SyncTests(unittest.TestCase):
         manifest.unlink()
         external = Path(self.temporary.name) / "external"
         external.mkdir()
+        self.codex_home.mkdir(parents=True, exist_ok=True)
         (self.codex_home / "agents").symlink_to(external, target_is_directory=True)
         self.assertEqual(self.run_sync("apply")["status"], "blocked")
         self.assertEqual(list(external.iterdir()), [])
@@ -1517,7 +1538,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(data).hexdigest(), entry["digest"])
         self.assertEqual(self.run_sync("status")["status"], "partial")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
-        self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
+        self.assertFalse(self.manifest_path().exists())
 
     def test_upgrade_backs_up_current_content_and_removes_stale_owned_files(self) -> None:
         source = self.source_fixture()
@@ -1562,12 +1583,12 @@ class SyncTests(unittest.TestCase):
             )["status"],
             "ok",
         )
-        backup = self.codex_home / "orchestra/backups/home/.agents/skills/orchestra/SKILL.md"
+        backup = self.orchestra_root / "orchestra/backups/home/.agents/skills/orchestra/SKILL.md"
         self.assertEqual(backup.read_bytes(), previous)
         self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra/notes.txt").exists())
         self.assertFalse(
-            self.codex_home.joinpath(
+            self.orchestra_root.joinpath(
                 "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
             ).exists()
         )
@@ -1729,7 +1750,7 @@ class SyncTests(unittest.TestCase):
             result = self.run_sync("apply")
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(self.codex_home.joinpath("AGENTS.md").exists())
-        self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
+        self.assertFalse(self.manifest_path().exists())
         self.assertEqual(self.run_sync("status")["status"], "partial")
 
     def test_persistent_second_manifest_failure_keeps_exact_first_ownership(self) -> None:
@@ -1754,11 +1775,11 @@ class SyncTests(unittest.TestCase):
         )
         self.assertEqual(self.run_sync("status")["status"], "partial")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
-        self.assertFalse(self.codex_home.joinpath("orchestra/install-manifest.json").exists())
+        self.assertFalse(self.manifest_path().exists())
 
     def test_persistent_uninstall_manifest_failure_restores_destination(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
-        manifest = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest_path()
         manifest_before = manifest.read_bytes()
         agents = self.codex_home / "AGENTS.md"
         agents_before = agents.read_bytes()
@@ -1789,10 +1810,10 @@ class SyncTests(unittest.TestCase):
             "ok",
         )
         destination = self.home / ".agents/skills/orchestra/notes.txt"
-        manifest = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest_path()
         destination_before = destination.read_bytes()
         manifest_before = manifest.read_bytes()
-        backup = self.codex_home / "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
+        backup = self.orchestra_root / "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
         extra_source.unlink()
 
         original_cleanup = sync._cleanup_operation_backup
@@ -1844,8 +1865,8 @@ class SyncTests(unittest.TestCase):
             "ok",
         )
         destination = self.home / ".agents/skills/orchestra/notes.txt"
-        backup = self.codex_home / "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
-        manifest = self.codex_home / "orchestra/install-manifest.json"
+        backup = self.orchestra_root / "orchestra/backups/home/.agents/skills/orchestra/notes.txt"
+        manifest = self.manifest_path()
         destination_before = destination.read_bytes()
         backup_before = backup.read_bytes()
         manifest_before = manifest.read_bytes()
@@ -1872,7 +1893,7 @@ class SyncTests(unittest.TestCase):
         agents.write_bytes(b"Personal rules.\n")
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         backup = self.codex_home / "orchestra/backups/codex_home/AGENTS.md"
-        manifest = self.codex_home / "orchestra/install-manifest.json"
+        manifest = self.manifest_path()
         agents_before = agents.read_bytes()
         backup_before = backup.read_bytes()
         manifest_before = manifest.read_bytes()
@@ -1907,6 +1928,158 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "partial")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertEqual(agents.read_bytes(), original)
+
+    def test_cursor_host_installs_adapter_without_codex_config(self) -> None:
+        preview = self.run_sync(
+            "apply", dry_run=True, modelconfig=None, host="cursor"
+        )
+        self.assertEqual(preview["status"], "partial")
+        self.assertIsNone(preview.get("codex_version"))
+        self.assertFalse(self.codex_home.exists())
+        applied = self.run_sync("apply", modelconfig=None, host="cursor")
+        self.assertEqual(applied["status"], "ok", applied.get("detail"))
+        self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
+        self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertTrue(
+            self.orchestra_root.joinpath("hosts/cursor/roles.toml").is_file()
+        )
+        self.assertTrue(
+            self.orchestra_root.joinpath("hosts/cursor/spawn.md").is_file()
+        )
+        self.assertTrue(
+            self.home.joinpath(
+                ".cursor/plugins/local/orchestra/.cursor-plugin/plugin.json"
+            ).is_file()
+        )
+        mcp = json.loads(
+            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").read_text()
+        )
+        self.assertEqual(
+            mcp["mcpServers"]["orchestra_tasks"]["args"],
+            [str(self.orchestra_root / "scripts" / "task_mcp.py")],
+        )
+        self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+        self.assertFalse(self.codex_home.joinpath("orchestra/roles.toml").exists())
+        roles = self.orchestra_root.joinpath("hosts/cursor/roles.toml").read_text()
+        self.assertIn("[tiers.minimal.independent_review]", roles)
+        self.assertIn("[tiers.standard.independent_review]", roles)
+        self.assertNotIn("[tiers.critical.", roles)
+        self.assertFalse(self.legacy_manifest_path().exists())
+        self.assertTrue((self.orchestra_root / "install-manifest.json").is_file())
+        removed = sync.uninstall(self.home, self.codex_home, host="cursor")
+        self.assertEqual(removed["status"], "ok", removed.get("detail"))
+        self.assertFalse(
+            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").exists()
+        )
+
+    def test_manifest_v2_tracks_host_and_shared_ownership(self) -> None:
+        applied = self.run_sync("apply", host="all")
+        self.assertEqual(applied["status"], "ok", applied.get("detail"))
+        manifest = self.manifest()
+        self.assertEqual(manifest["schema_version"], sync.MANIFEST_SCHEMA_VERSION)
+        self.assertEqual(manifest["installed_hosts"], ["codex", "cursor"])
+        scopes = {entry["scope"] for entry in manifest["entries"]}
+        self.assertEqual(scopes, {"shared", "codex", "cursor"})
+        self.assertFalse(self.legacy_manifest_path().exists())
+        for selected in ("codex", "cursor", "all"):
+            with self.subTest(host=selected):
+                status = self.run_sync(
+                    "status",
+                    host=selected,
+                    modelconfig="external" if selected != "cursor" else None,
+                )
+                self.assertEqual(status["status"], "ok", status.get("detail"))
+
+    def test_host_transitions_and_partial_uninstall_preserve_other_host(self) -> None:
+        self.assertEqual(self.run_sync("apply", host="codex")["status"], "ok")
+        self.assertEqual(
+            self.run_sync("apply", host="cursor", modelconfig=None)["status"],
+            "ok",
+        )
+        self.assertEqual(self.manifest()["installed_hosts"], ["codex", "cursor"])
+
+        removed_cursor = sync.uninstall(self.home, self.codex_home, host="cursor")
+        self.assertEqual(removed_cursor["status"], "ok", removed_cursor.get("detail"))
+        self.assertEqual(self.manifest()["installed_hosts"], ["codex"])
+        self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
+        self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
+        self.assertFalse(
+            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").exists()
+        )
+
+        self.assertEqual(
+            self.run_sync("apply", host="cursor", modelconfig=None)["status"],
+            "ok",
+        )
+        removed_codex = sync.uninstall(self.home, self.codex_home, host="codex")
+        self.assertEqual(removed_codex["status"], "ok", removed_codex.get("detail"))
+        self.assertEqual(self.manifest()["installed_hosts"], ["cursor"])
+        self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+        self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
+        self.assertTrue(
+            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").is_file()
+        )
+
+    def test_legacy_all_manifest_migrates_without_moving_backups(self) -> None:
+        self.codex_home.mkdir(parents=True)
+        self.codex_home.joinpath("AGENTS.md").write_text("Personal rules.\n")
+        self.assertEqual(self.run_sync("apply", host="all")["status"], "ok")
+        modern = self.manifest()
+        legacy = {
+            key: value
+            for key, value in modern.items()
+            if key not in {"schema_version", "installed_hosts"}
+        }
+        legacy["entries"] = [
+            {
+                key: value
+                for key, value in entry.items()
+                if key not in {"scope", "backup_root"}
+            }
+            for entry in modern["entries"]
+        ]
+        self.legacy_manifest_path().parent.mkdir(parents=True, exist_ok=True)
+        self.legacy_manifest_path().write_text(
+            json.dumps(legacy, indent=2, sort_keys=True) + "\n"
+        )
+        self.manifest_path().unlink()
+        backup = self.codex_home / "orchestra/backups/codex_home/AGENTS.md"
+        self.assertTrue(backup.is_file())
+
+        status = self.run_sync("status", host="all")
+        self.assertEqual(status["status"], "partial")
+        self.assertIn("manifest migration pending", status["detail"])
+        migrated = self.run_sync("apply", host="all")
+        self.assertEqual(migrated["status"], "ok", migrated.get("detail"))
+        self.assertFalse(self.legacy_manifest_path().exists())
+        self.assertEqual(self.manifest()["installed_hosts"], ["codex", "cursor"])
+        owner = next(
+            entry for entry in self.manifest()["entries"] if entry["path"] == "AGENTS.md"
+        )
+        self.assertEqual(owner["backup_root"], "codex_home")
+        self.assertEqual(backup.read_text(), "Personal rules.\n")
+
+    def test_conflicting_canonical_and_legacy_manifests_block(self) -> None:
+        self.assertEqual(self.run_sync("apply", host="codex")["status"], "ok")
+        legacy = self.manifest()
+        legacy.pop("schema_version")
+        legacy.pop("installed_hosts")
+        legacy["entries"] = [
+            {
+                key: value
+                for key, value in entry.items()
+                if key not in {"scope", "backup_root"}
+            }
+            for entry in legacy["entries"]
+        ]
+        legacy["entries"][0]["digest"] = "0" * 64
+        self.legacy_manifest_path().parent.mkdir(parents=True, exist_ok=True)
+        self.legacy_manifest_path().write_text(
+            json.dumps(legacy, indent=2, sort_keys=True) + "\n"
+        )
+        blocked = self.run_sync("status", host="codex")
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertIn("conflicting install manifest destination", blocked["detail"])
 
 
 if __name__ == "__main__":

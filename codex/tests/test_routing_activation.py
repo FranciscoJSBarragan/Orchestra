@@ -123,7 +123,7 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("grants no implementation authority", normalized_skill)
         self.assertIn("CODEX_THREAD_ID", normalized_skill)
         self.assertIn("never supply, invent, copy, or override it", normalized_skill)
-        self.assertIn("never creates or owns a Codex chat", normalized_skill)
+        self.assertIn("never creates a host chat", normalized_skill)
         for path in (ROOT / "VISION.md", ROOT / "docs/WORKFLOW.md"):
             normalized = self._flat(path.read_text())
             self.assertTrue(
@@ -189,7 +189,7 @@ class RoutingActivationContractTests(unittest.TestCase):
             for assignments in mode["tiers"].values():
                 self.assertEqual(len(assignments), 10)
         flat_skill = self._flat(self.skill)
-        self.assertIn("External mode additionally offers `luna`", flat_skill)
+        self.assertIn("Codex external mode additionally offers `luna`", flat_skill)
         self.assertIn("`standard` remains the default", flat_skill)
         self.assertIn("explicitly prioritizes cost", flat_skill)
         self.assertNotIn("Tier: light", self.skill)

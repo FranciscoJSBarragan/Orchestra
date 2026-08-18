@@ -18,10 +18,12 @@ from .db import StorageError, connect, state_root as resolve_state_root
 
 
 SHORT_ID_PATTERN = re.compile(r"^([A-Z]+)([1-9][0-9]?)$", re.IGNORECASE)
-THREAD_ID_PATTERN = re.compile(
+CODEX_THREAD_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.IGNORECASE,
 )
+CURSOR_THREAD_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,200}$")
+CURSOR_THREAD_ENV = "ORCHESTRA_HOST_THREAD_ID"
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40,64}$", re.IGNORECASE)
 CARD_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 DEPENDENCY_CONDITIONS = {"completed", "delivered"}
@@ -72,10 +74,41 @@ def normalize_short_id(value: str) -> str:
     return normalized
 
 
-def validate_thread_id(value: str | None) -> str:
-    if not value or not THREAD_ID_PATTERN.fullmatch(value.strip()):
+def host_thread_from_env(environ: dict[str, str] | None = None) -> tuple[str | None, str | None]:
+    env = os.environ if environ is None else environ
+    codex = env.get("CODEX_THREAD_ID")
+    if codex:
+        return "codex", codex
+    cursor = env.get(CURSOR_THREAD_ENV)
+    if cursor:
+        return "cursor", cursor
+    return None, None
+
+
+def validate_thread_id(value: str | None, harness: str | None = "codex") -> str:
+    if harness == "cursor":
+        if not value or not CURSOR_THREAD_PATTERN.fullmatch(value.strip()):
+            raise ControlError(
+                "blocked",
+                "Cursor host conversation identity is missing or invalid",
+            )
+        return value.strip()
+    if harness != "codex":
+        raise ControlError("blocked", "host conversation identity is missing")
+    if not value or not CODEX_THREAD_PATTERN.fullmatch(value.strip()):
         raise ControlError("blocked", "CODEX_THREAD_ID is missing or invalid")
     return value.strip().lower()
+
+
+def owner_identity(task: dict[str, Any], prefix: str = "adopted") -> tuple[str, str] | None:
+    """Return one namespaced task owner, or no owner when the slot is empty."""
+    thread = task.get(f"{prefix}_thread_id")
+    harness = task.get(f"{prefix}_harness")
+    if not thread:
+        return None
+    if harness not in {"codex", "cursor"}:
+        raise ControlError("blocked", f"{prefix} task owner has no valid host namespace")
+    return str(harness), str(thread)
 
 
 def validate_revision(value: str) -> str:
@@ -928,8 +961,10 @@ class ControlService:
         current_revision: str,
         repository_common_dir: str | None = None,
         ancestor_contains: Callable[[str], bool] | None = None,
+        source_harness: str | None = "codex",
     ) -> dict[str, Any]:
-        thread = validate_thread_id(thread_id)
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
         revision = validate_revision(current_revision)
         canonical_repository = str(Path(repository).expanduser().resolve())
         canonical_common_dir = (
@@ -947,38 +982,31 @@ class ControlService:
                 raise ControlError("invalid", "task is not ready; confirm its prepared specification first")
             if task["preparation_status"] == "completed":
                 raise ControlError("invalid", "completed task cannot be adopted")
-            owner = task.get("adopted_thread_id")
-            previous_owner = task.get("previous_thread_id")
-            if not owner and previous_owner == thread:
+            owner = owner_identity(task)
+            previous_owner = owner_identity(task, "previous")
+            if not owner and previous_owner == identity:
                 raise ControlError(
                     "invalid",
-                    "transferred task must be adopted from a different native Codex chat",
+                    "transferred task must be adopted from a different native host chat",
                 )
-            if owner and owner != thread:
-                raise ControlError("busy", "task is adopted by another native Codex chat")
-            if task.get("repository") and task["repository"] != canonical_repository:
-                raise ControlError("invalid", "task was prepared for a different repository")
-            dependencies = self._dependency_views(
+            if owner and owner != identity:
+                raise ControlError("busy", "task is adopted by another native host chat")
+            self._require_adoptable_repository(
                 connection,
                 task,
-                current_common_dir=canonical_common_dir,
+                canonical_repository=canonical_repository,
+                canonical_common_dir=canonical_common_dir,
                 ancestor_contains=ancestor_contains,
             )
-            blockers = [item for item in dependencies if not item["satisfied"]]
-            if blockers:
-                labels = ", ".join(
-                    f"{item['short_id']} ({item['state']})" for item in blockers
-                )
-                raise ControlError("blocked", f"task dependencies are not satisfied: {labels}")
-            self._verify_prepared_documents(task)
             if not owner:
                 connection.execute(
                     """
                     UPDATE tasks SET preparation_status = 'adopted',
-                        adopted_thread_id = ?, adopted_revision = ?, adopted_at = ?,
+                        adopted_harness = ?, adopted_thread_id = ?,
+                        adopted_revision = ?, adopted_at = ?,
                         updated_at = ? WHERE id = ?
                     """,
-                    (thread, revision, timestamp, timestamp, task["id"]),
+                    (identity[0], thread, revision, timestamp, timestamp, task["id"]),
                 )
             adopted = row_dict(
                 connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
@@ -995,26 +1023,126 @@ class ControlService:
         adopted["resume_existing_checkout"] = bool(adopted.get("previous_thread_id"))
         return adopted
 
+    def _require_adoptable_repository(
+        self,
+        connection: sqlite3.Connection,
+        task: dict[str, Any],
+        *,
+        canonical_repository: str,
+        canonical_common_dir: str | None,
+        ancestor_contains: Callable[[str], bool] | None,
+    ) -> None:
+        if task.get("repository") and task["repository"] != canonical_repository:
+            raise ControlError("invalid", "task was prepared for a different repository")
+        dependencies = self._dependency_views(
+            connection,
+            task,
+            current_common_dir=canonical_common_dir,
+            ancestor_contains=ancestor_contains,
+        )
+        blockers = [item for item in dependencies if not item["satisfied"]]
+        if blockers:
+            labels = ", ".join(
+                f"{item['short_id']} ({item['state']})" for item in blockers
+            )
+            raise ControlError("blocked", f"task dependencies are not satisfied: {labels}")
+        self._verify_prepared_documents(task)
+
+    def reclaim_task(
+        self,
+        *,
+        task_ref: str,
+        thread_id: str | None,
+        repository: str,
+        current_revision: str,
+        authorized: bool,
+        repository_common_dir: str | None = None,
+        ancestor_contains: Callable[[str], bool] | None = None,
+        source_harness: str | None = "codex",
+    ) -> dict[str, Any]:
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
+        if not authorized:
+            raise ControlError("invalid", "reclaim requires explicit authorization")
+        revision = validate_revision(current_revision)
+        canonical_repository = str(Path(repository).expanduser().resolve())
+        canonical_common_dir = (
+            str(Path(repository_common_dir).expanduser().resolve())
+            if repository_common_dir
+            else None
+        )
+        timestamp = now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            owner = owner_identity(task)
+            if task["preparation_status"] != "adopted" or not owner:
+                raise ControlError(
+                    "invalid",
+                    "only an adopted task owned by another chat can be reclaimed",
+                )
+            if owner == identity:
+                raise ControlError(
+                    "invalid",
+                    "already owned by this chat; continue instead of reclaim",
+                )
+            self._require_adoptable_repository(
+                connection,
+                task,
+                canonical_repository=canonical_repository,
+                canonical_common_dir=canonical_common_dir,
+                ancestor_contains=ancestor_contains,
+            )
+            connection.execute(
+                """
+                UPDATE tasks SET previous_harness = adopted_harness,
+                    previous_thread_id = adopted_thread_id,
+                    adopted_harness = ?, adopted_thread_id = ?,
+                    adopted_revision = ?, adopted_at = ?,
+                    transfer_generation = transfer_generation + 1,
+                    transfer_requested_at = ?, updated_at = ? WHERE id = ?
+                """,
+                (identity[0], thread, revision, timestamp, timestamp, timestamp, task["id"]),
+            )
+            reclaimed = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            reclaimed = self._decorate_relations(
+                connection,
+                reclaimed,
+                current_common_dir=canonical_common_dir,
+                ancestor_contains=ancestor_contains,
+            )
+        reclaimed["context_action"] = (
+            "use_prepared" if revision == reclaimed["prepared_revision"] else "repository_context_delta"
+        )
+        reclaimed["resume_existing_checkout"] = True
+        return reclaimed
+
     def transfer_task(
         self,
         *,
         task_ref: str,
         thread_id: str | None,
         stable_checkpoint: bool,
+        source_harness: str | None = "codex",
     ) -> dict[str, Any]:
-        thread = validate_thread_id(thread_id)
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
         if not stable_checkpoint:
             raise ControlError("invalid", "transfer requires an explicit stable checkpoint")
         timestamp = now()
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             task = row_dict(self._task_row(connection, task_ref))
-            if task["preparation_status"] != "adopted" or task.get("adopted_thread_id") != thread:
+            if task["preparation_status"] != "adopted" or owner_identity(task) != identity:
                 raise ControlError("invalid", "only the adopting chat can transfer an active task")
             connection.execute(
                 """
                 UPDATE tasks SET preparation_status = 'ready',
-                    previous_thread_id = adopted_thread_id, adopted_thread_id = NULL,
+                    previous_harness = adopted_harness,
+                    previous_thread_id = adopted_thread_id,
+                    adopted_harness = NULL, adopted_thread_id = NULL,
                     transfer_generation = transfer_generation + 1,
                     transfer_requested_at = ?, updated_at = ? WHERE id = ?
                 """,
@@ -1033,8 +1161,10 @@ class ControlService:
         repository: str | None = None,
         terminal_revision: str | None = None,
         repository_common_dir: str | None = None,
+        source_harness: str | None = "codex",
     ) -> dict[str, Any]:
-        thread = validate_thread_id(thread_id)
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
         revision = validate_revision(terminal_revision) if terminal_revision else None
         canonical_repository = (
             str(Path(repository).expanduser().resolve()) if repository else None
@@ -1049,7 +1179,7 @@ class ControlService:
             connection.execute("BEGIN IMMEDIATE")
             task = row_dict(self._task_row(connection, task_ref))
             if task["preparation_status"] == "completed":
-                if task.get("adopted_thread_id") != thread:
+                if owner_identity(task) != identity:
                     raise ControlError("busy", "task was completed by another chat")
                 if not revision:
                     return self._decorate_relations(connection, task)
@@ -1079,7 +1209,7 @@ class ControlService:
                     connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
                 )
                 return self._decorate_relations(connection, updated)
-            if task["preparation_status"] != "adopted" or task.get("adopted_thread_id") != thread:
+            if task["preparation_status"] != "adopted" or owner_identity(task) != identity:
                 raise ControlError("invalid", "only the adopting chat can finish the task")
             if not revision or not canonical_repository or not canonical_common_dir:
                 raise ControlError(
@@ -1117,8 +1247,10 @@ class ControlService:
         delivery_revision: str,
         kind: str,
         repository_common_dir: str | None = None,
+        source_harness: str | None = "codex",
     ) -> dict[str, Any]:
-        thread = validate_thread_id(thread_id)
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
         terminal = validate_revision(task_revision)
         delivered = validate_revision(delivery_revision)
         delivery_kind = kind.strip()
@@ -1136,8 +1268,8 @@ class ControlService:
             task = row_dict(self._task_row(connection, task_ref))
             if task["preparation_status"] != "completed":
                 raise ControlError("invalid", "only a completed task can record delivery")
-            if task.get("adopted_thread_id") != thread:
-                raise ControlError("invalid", "only the owning native Codex chat can record delivery")
+            if owner_identity(task) != identity:
+                raise ControlError("invalid", "only the owning native host chat can record delivery")
             if task.get("completed_revision") != terminal:
                 raise ControlError("invalid", "task revision does not match the terminal revision")
             if (

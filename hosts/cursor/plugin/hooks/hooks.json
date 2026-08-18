@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "python3 ./scripts/session_identity.py"
+      }
+    ]
+  }
+}

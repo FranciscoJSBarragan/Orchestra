@@ -1,0 +1,126 @@
+# Cursor host assignment matrix.
+# Product tiers are minimal, standard, and critical. This cut assigns
+# minimal and standard. Selecting critical must block until those rows exist.
+# Fields: profile is the Orchestra behavior skill; subagent_type is the Cursor
+# Task worker; model and effort are the product contract. spawn.md maps those
+# names onto the closest live Task slug.
+
+[tiers.minimal.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "high"
+
+[tiers.minimal.web_research]
+profile = "orchestra_analyst"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "high"
+
+[tiers.minimal.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "high"
+
+[tiers.minimal.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "high"
+
+[tiers.minimal.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.minimal.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.minimal.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.minimal.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.minimal.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.minimal.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.standard.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.standard.web_research]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.standard.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.standard.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "medium"
+
+[tiers.standard.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "high"
+
+[tiers.standard.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "high"
+
+[tiers.standard.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "xhigh"
+
+[tiers.standard.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "xhigh"
+
+[tiers.standard.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "xhigh"
+
+[tiers.standard.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "grok-worker"
+model = "cursor-grok-4.6"
+effort = "xhigh"

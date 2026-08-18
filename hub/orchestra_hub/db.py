@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterator
 
 SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
-SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4})
+SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5})
 
 
 class HubUnavailable(Exception):

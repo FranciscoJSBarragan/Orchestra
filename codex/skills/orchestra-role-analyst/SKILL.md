@@ -15,7 +15,7 @@ Perform exactly one named analysis capability supplied by the root: `repository_
 
 Remain read-only with respect to repository source and external systems. You may inspect files and run safe diagnostic commands needed by the assigned capability, but never edit implementation files, stage, commit, push, merge, publish, deploy, or mutate production. Repository-context, web-research, architecture-analysis, and difficult-debugging analysts are one-shot agents. A technical-planning analyst remains available only through a dispatched plan-review and correction loop, then closes before implementation.
 
-When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write the reusable Markdown result directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-<kind>.md` file and return that exact file name. These workspace-local private writes do not modify repository source or grant authority.
+When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write the reusable Markdown result directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-<kind>.md` file and return that exact file name. These workspace-local private writes do not modify repository source or grant authority.
 
 ## Input
 

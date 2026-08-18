@@ -11,7 +11,7 @@ Commit execution is a root responsibility. Do not resolve an assignment, spawn a
 
 1. Inspect Git status and the relevant diff once. Stop if unrelated work is already staged or the phase exceeds authority.
 2. Write the message to a temporary file outside the repository, stage only the accepted paths, run `git commit -F <file>`, and read the resulting SHA and status once.
-3. Use `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/commit_phase.py` instead when exact-path staging benefits from a compact structured result. Pass `--repo`, `--message-file`, and each exact `--path`.
+3. Use `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/commit_phase.py` instead when exact-path staging benefits from a compact structured result. Pass `--repo`, `--message-file`, and each exact `--path`.
 4. Accept `committed` with its SHA or `nothing_to_commit`. For `blocked`, inspect current status and the latest commit once. If the intended commit exists and contains no paths outside scope, accept it and do not retry or amend.
 5. Keep an isolated mechanical failure root-local. Make one obvious safe correction when available; delegate only when repeated evidence points to a deeper implementation problem. Remove the temporary message file.
 

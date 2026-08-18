@@ -8,11 +8,11 @@ flowchart TD
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
     Q -->|"Capture for later"| IN["Draft Kanban card; no activation"]
     Q -->|"Prepare $orchestra-task"| DT["Create or refine durable Kanban card"]
-    DT -->|"Adopt ID from native Codex chat"| O
+    DT -->|"Adopt ID from native host chat"| O
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     O --> B
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
-    B --> MC["Resolve installed native V2 or external V1 model configuration"]
+    B --> MC["Resolve host matrix and assigned tiers"]
     MC --> TR["Root recommends the available tier with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
@@ -46,9 +46,10 @@ flowchart TD
 ## Orchestrator behavior
 
 Orchestra is an explicit planned-work route. It activates only through
-`$orchestra`, native-chat adoption of a ready `$orchestra-task`, or an unequivocal imperative to use or start
-Orchestra. Ordinary plan requests, descriptive mentions, task capture, and
-direct change, fix, or implementation work remain outside Orchestra.
+`$orchestra`, native-host-chat adoption of a ready `$orchestra-task`, or an
+unequivocal imperative to use or start Orchestra. Ordinary plan requests,
+descriptive mentions, task capture, and direct change, fix, or implementation
+work remain outside Orchestra.
 
 If Orchestra is invoked in a planning-only host mode, reuse the conversation,
 identify the latest candidate checkpoint, and pause before branch, worktree,
@@ -58,10 +59,37 @@ Orchestra observes the host mode; it never changes the host into a
 planning-only mode.
 
 Every Orchestra dispatch starts from a clean context: the packet and named
-artifacts carry the assignment. Under multi-agent V2, pass `fork_turns: none`
-explicitly on every spawn (the V2 default forks the full root history, which
-multiplies token cost and destroys reviewer independence). Under V1, never set
-`fork_context: true` for an Orchestra dispatch.
+artifacts carry the assignment. The root identifies the execution host from
+available tools and reads that host's spawn reference. Codex: `spawn_agent`
+and `wait_agent` exist; under multi-agent V2 pass `fork_turns: none` explicitly
+on every spawn (the V2 default forks the full root history, which multiplies
+token cost and destroys reviewer independence); under V1 never set
+`fork_context: true`. Cursor: `Task` exists; use a fresh isolated Task per
+dispatch, resume only the same phase-cohort agent id, and never `resume: self`
+for a reviewer. Never mix Codex and Cursor spawn protocols in one task.
+
+## Host adapters
+
+Shared skills, packets, artifacts, authority, cleanup declarations, and Git are
+identical across hosts. Each host owns spawn/wait/close, the model matrix,
+conversation identity, permissions, and `browser_route`.
+
+- Codex has native/external modes, Guardian defaults, `session_model.py`, and
+  profiles under `$CODEX_HOME/agents`. Wait uses `wait_agent` with
+  `timeout_ms: 600000`. Close uses V1 `close_agent` or V2 completed-state
+  evidence.
+- Cursor has no native/external mode and does not run `session_model.py`. It
+  reads `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Dispatch
+  uses Cursor Task workers from that matrix plus the existing `orchestra-role-*`
+  skill. Custom `~/.cursor/agents` files are not the dispatch API. Wait uses a
+  background Task and completion notification without busy-polling. Cleanup
+  requires completed agents with no retained write-capable resources. Cursor
+  sync never writes Codex `config.toml` or Cursor `settings.json`.
+
+Shared helpers, checkout-mode, and worktree-root live under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}`. `$CODEX_HOME` remains the Codex-only
+install root. During the compatibility window, Codex sync also mirrors helpers
+under `$CODEX_HOME/orchestra/scripts`.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -114,7 +142,7 @@ The installed `task_control.py` helper is a harness-neutral JSON boundary for a
 small local prepared-task Kanban. `task create` assigns an immutable human ID
 and UUID; `task note` accepts caller-stable idempotency keys and bounded source
 references. Capturing or preparing a card does not activate Orchestra, launch
-Codex, choose permissions or tier, create a checkout, or authorize
+an execution host, choose permissions or tier, create a checkout, or authorize
 implementation.
 
 A card becomes `ready` only after focused repository research equivalent to
@@ -125,15 +153,24 @@ digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
 legacy `runs`, `turns`, and `interactions` remain readable after migration but
 new code never writes or exposes App Server operations.
 
-Adoption occurs only inside the user's current native Codex chat. `task adopt`
-requires its host-provided `CODEX_THREAD_ID`; no caller may invent or override
-that identity. The chat then explicitly activates Orchestra, inherits its
-current permissions, and applies the installed checkout policy. Matching Git
+Adoption occurs only inside the user's current native Codex or Cursor chat.
+`task adopt` requires the adapter-provided conversation identity; no caller may
+invent or override that identity. On Codex that identity is `CODEX_THREAD_ID`
+(UUID). On Cursor the plugin's `sessionStart` hook verifies that `session_id`
+matches `conversation_id` and exposes that exact value through
+`ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. The chat then explicitly activates Orchestra,
+inherits its current permissions, and applies the installed checkout policy. Matching Git
 reuses prepared context; changed Git requires a focused `repository_context`
 delta and specification reconfirmation only when the result materially changes.
 After checkout and task-state initialization, Coordinator registers with the
 Kanban UUID. An explicit stable-checkpoint transfer releases ownership so
-another native chat can resume the same worktree and plan.
+another native chat can resume the same worktree and plan. When that owning
+chat cannot release the card, an explicit user resume or reclaim of the same
+ID in a different native host chat runs `task reclaim --authorized`, swaps
+ownership in one transaction, and resumes the existing worktree and plan.
+Ordinary `task adopt` of a card owned by another thread remains `busy`.
+Reclaim abandons the previous chat; do not use it while that chat is still
+working. The helper does not ping the previous host.
 
 One card is the default. The agent proposes a minimal two- or three-card
 initiative only for independent execution, acceptance, repository, or delivery
@@ -163,28 +200,40 @@ context delta; only a material specification change requires confirmation
 again.
 
 The public stdio MCP exposes capture, query, notes, preparation, confirmed
-decomposition, archive, and restore only. It cannot adopt, transfer, finish,
-record delivery, start Codex, or mutate a
+decomposition, archive, and restore only. It cannot adopt, transfer, reclaim,
+finish, record delivery, start an execution host, or mutate a
 checkout. Hub and menu-bar surfaces remain GET-only. Git, the approved
 `plan.md`, the native conversation, and explicit user authority remain
 authoritative for formal work.
 
 ## Tier flows and models
 
-The user selects the root's current Sol medium or Sol high entry outside
-Orchestra. The additive `dual` installation exposes native Sol as V2 and an
-Orchestra Sol compatibility alias as V1. Before tier selection, Orchestra reads
-the current task's model, multi-agent version, and effort through the installed
-read-only session helper. Native Sol V2 selects `native`; the Orchestra Sol V1
-alias selects `external`. Any other root combination blocks before resource
-creation. Orchestra never changes or respawns the root.
+Tiers are host-specific lookups, not a shared enum.
+
+On Codex, the user selects the root's current Sol medium or Sol high entry
+outside Orchestra. The additive `dual` installation exposes native Sol as V2
+and an Orchestra Sol compatibility alias as V1. Before tier selection, Orchestra
+reads the current task's model, multi-agent version, and effort through the
+installed read-only session helper. Native Sol V2 selects `native`; the
+Orchestra Sol V1 alias selects `external`. Any other root combination blocks
+before resource creation. Orchestra never changes or respawns the root.
+
+On Cursor, there is no native/external mode and `session_model.py` is not
+invoked. The root reads
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Cursor offers
+`minimal`, `standard`, and `critical`. This cut assigns `minimal` and
+`standard`. The
+root recommends `standard`; it recommends `minimal` when the user prioritizes
+cost or speed. Selecting `critical` blocks until
+those rows are assigned.
 
 For every spawned dispatch, the root selects the explicit capability, base
-profile, model, and reasoning effort from the selected mode in the one installed
+profile, and host assignment from the selected Codex mode or the Cursor host
 matrix. The selected model configuration is kept in memory before plan approval
 and in plan Decisions afterward. It cannot change within a task, including
-during tier transitions. Legacy `native` and `external` installations continue
-to provide one fixed top-level matrix and do not run session detection.
+during tier transitions. Legacy Codex `native` and `external` installations
+continue to provide one fixed top-level matrix and do not run session
+detection.
 
 The installed assignment is always attempted first. The only runtime
 compatibility exception is `repository_context`: when its assigned model is
@@ -209,13 +258,18 @@ the shared architecture guidance reference also used with `technical_planning`
 or `independent_review` when architecture is named; it has no dedicated
 playbook.
 
-The native mode offers `standard` and `critical`. The external mode additionally
-offers `luna` as a cost-focused opt-in for ordinary, bounded work when the user
-explicitly prioritizes cost. `standard` remains the default recommendation.
-Material risk still calls for `standard` or `critical`; choosing `luna` after a
-warning never waives production, migration, data, security, payment,
-destructive-action, or delivery authority gates. Tier transitions remain
-user-directed and cannot change the task's selected mode.
+The native Codex mode offers `standard` and `critical`. The Codex external mode
+additionally offers `luna` as a cost-focused opt-in for ordinary, bounded work
+when the user explicitly prioritizes cost. On Codex, `standard` remains the
+default recommendation. Material risk still calls for `standard` or `critical`;
+choosing `luna` after a warning never waives production, migration, data,
+security, payment, destructive-action, or delivery authority gates. Tier
+transitions remain user-directed and cannot change the task's selected Codex
+mode.
+
+Cursor `minimal` is the equivalent of Codex `luna`. This cut also assigns
+Cursor `standard`. Hard gates never change with the cheap tier. Do not
+rename the Codex `luna` key.
 
 ### Native standard configuration
 
@@ -298,6 +352,46 @@ Frontend implementation composes `orchestra_implementation_worker`; browser acce
 composes `orchestra_verifier`. They remain independent and never run as one combined
 role.
 
+### Cursor minimal configuration
+
+Cursor has no native/external mode. Product contract for `minimal`:
+
+| Tier | Capability | Base profile | Product model |
+| --- | --- | --- | --- |
+| Minimal | `repository_context` | `orchestra_analyst` | Luna high |
+| Minimal | `web_research` | `orchestra_analyst` | Luna high |
+| Minimal | `runtime_verification` | `orchestra_verifier` | Luna high |
+| Minimal | `browser_acceptance` | `orchestra_verifier` | Luna high |
+| Minimal | `technical_planning` | `orchestra_analyst` | Grok 4.6 medium |
+| Minimal | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 medium |
+| Minimal | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 medium |
+| Minimal | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 medium |
+| Minimal | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 medium |
+| Minimal | `independent_review` | `orchestra_reviewer` | Grok 4.6 medium |
+
+`hosts/cursor/config/roles.cursor.toml` records that contract. The Cursor spawn
+reference maps each row onto the closest live Task worker without rewriting the
+product names.
+
+### Cursor standard configuration
+
+Product contract for `standard`. All rows are Grok 4.6; effort varies:
+
+| Tier | Capability | Base profile | Product model |
+| --- | --- | --- | --- |
+| Standard | `repository_context` | `orchestra_analyst` | Grok 4.6 medium |
+| Standard | `web_research` | `orchestra_analyst` | Grok 4.6 medium |
+| Standard | `runtime_verification` | `orchestra_verifier` | Grok 4.6 medium |
+| Standard | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 medium |
+| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 high |
+| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 high |
+| Standard | `technical_planning` | `orchestra_analyst` | Grok 4.6 xhigh |
+| Standard | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 xhigh |
+| Standard | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 xhigh |
+| Standard | `independent_review` | `orchestra_reviewer` | Grok 4.6 xhigh |
+
+Cursor `critical` remains unassigned; selecting it blocks.
+
 ## Context and planning
 
 After explicit activation in an execution-capable mode:
@@ -310,18 +404,23 @@ After explicit activation in an execution-capable mode:
    an objective, ask for it before creating resources. If the user explicitly
    limits the request to brainstorming, remain read-only until the user
    authorizes formal task setup.
-2. The root reads the installed assignment matrix. A dual matrix requires one
-   successful read-only session inspection and selects `native` or `external`
-   from the root model and multi-agent version before tier selection. A legacy
-   matrix remains fixed. The selected dual mode is immutable for the task.
-3. From that brief, the root recommends an available tier with one concise
-   explanation of material risk, added scrutiny, and expected cost-benefit.
-   Native offers `standard` or `critical`; external may recommend `luna` only
-   when ordinary bounded work has an explicit cost priority, and otherwise
-   defaults to `standard`. The user explicitly chooses the active tier. A
-   user-selected `luna` or `standard` tier does not waive separate authority
-   gates for production, migrations, data, security, payments, destructive
-   actions, or delivery.
+2. The root identifies the host and reads the installed assignment matrix. On
+   Codex, a dual matrix requires one successful read-only session inspection and
+   selects `native` or `external` from the root model and multi-agent version
+   before tier selection. A legacy Codex matrix remains fixed. The selected dual
+   mode is immutable for the task. On Cursor, skip session inspection and read
+   the Cursor host matrix; `minimal` and `standard` are assigned.
+3. From that brief, the root recommends an available assigned tier with one
+   concise explanation of material risk, added scrutiny, and expected
+   cost-benefit. Codex native offers `standard` or `critical`; Codex external
+   may recommend `luna` only when ordinary bounded work has an explicit cost
+   priority, and otherwise defaults to `standard`. Cursor recommends `standard`,
+   recommends `minimal` when cost or speed is the priority, and blocks
+   `critical` until those rows are assigned. The user
+   explicitly chooses the active assigned tier. A user-selected `luna`,
+   `minimal`, or `standard` tier does not waive separate authority gates for
+   production, migrations, data, security, payments, destructive actions, or
+   delivery.
 4. The root resolves the intended base branch and revision and performs a short
    read-only Git preflight. For a fresh task on the repository's canonical base
    branch, it resolves that branch's configured upstream before fixing the base
@@ -362,8 +461,9 @@ After explicit activation in an execution-capable mode:
    idempotent `coordination.py task create`. For an adopted Kanban card it passes
    the exact Control UUID with `--task-id`, so both stores expose one technical
    identity. When the state database is outside
-   the active workspace, this first attempt uses one exact, narrow Guardian
-   escalation instead of first running the known-protected operation
+   the active workspace, this first attempt uses one exact, narrow host
+   permission escalation (Guardian on Codex) instead of first running the
+   known-protected operation
    unprivileged. An `invalid` or `unavailable` result after that correctly
    authorized attempt is reported as lost observability; the root omits the
    task identifier from every later agent packet and the normal workflow
@@ -471,6 +571,11 @@ authority beyond the user's instruction.
 On resume, the root resolves the path again and requires checkout, initial
 identity, current branch, base, HEAD, and relevant commits to reconcile with
 Git, then resolves every current phase through its exact ID or recorded path.
+Do not require a clean worktree or a phase commit. Preserve uncommitted unique
+work and report observed Git and plan status. After reclaim, skip the previous
+host's wait and close contract, spawn fresh workers on this host, re-read this
+host's assignment matrix, and recommend an assigned tier; a recorded Codex
+tier is not a Cursor assignment. Permissions stay those of the current chat.
 Git is authoritative for code, worktree state, and history; the plan is
 authoritative only for approved intent, exact bundle selection, and progress.
 A missing or unreadable plan prevents automatic continuation until reconstructed
@@ -503,9 +608,11 @@ authority rules.
 ### Coordination snapshots and artifacts
 
 The installed
-`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py` helper exposes
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py` helper exposes
 `task` and `activity` commands with compact JSON results. It stores task and
 activity snapshots in `$HOME/.orchestra/state.sqlite3`.
+If that helper path is missing, use the Codex compatibility copy at
+`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py`.
 The database and its SQLite sidecars use mode `0600`. Schema creation and
 version assignment are one transaction; an empty version-zero file may be
 initialized, but a partial, unknown, or corrupt database remains untouched and
@@ -852,10 +959,12 @@ consumed and can never affect the commit result.
 
 ### Test permissions and browser routing
 
-Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. The active permission choice for the task, host, or launcher
-remains authoritative: Orchestra never changes it or blocks execution solely
-because it differs. When Guardian is active, commands inside the workspace run
+On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
+Auto-review) as the default. Cursor observes the host permission choice and
+never writes permission configuration. The active permission choice for the
+task, host, or launcher remains authoritative: Orchestra never changes it or
+blocks execution solely because it differs. When Codex Guardian is active,
+commands inside the workspace run
 directly and one exact command that crosses a protected boundary requests one
 narrow escalation for automatic review. With manual approvals, that escalation
 may prompt the user; with Full Access, it runs without the workspace sandbox
@@ -868,11 +977,11 @@ never broadens the task's approved authority.
 Packets for `frontend_implementation` browser work and `browser_acceptance`
 carry `browser_route: auto | in_app | chrome`:
 
-- `auto` explicitly selects the dedicated Chrome connector first. After
+- `auto` on Codex explicitly selects the dedicated Chrome connector first. After
   supported connection recovery, it may fall back to Codex's in-app Browser
   only when Chrome is unavailable or has a technical capability gap that the
-  in-app Browser can satisfy.
-- `in_app` selects only the in-app Browser.
+  in-app Browser can satisfy. On Cursor, `auto` maps to Playwright.
+- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor.
 - `chrome` selects only the dedicated Chrome connector.
 
 An explicit route from the user, relayed by the root or given directly in the
@@ -932,9 +1041,11 @@ Do not cycle on:
 ## Task checkout and branch
 
 Every formal Orchestra task uses a fresh `orchestra/<task-slug>[-N]` branch.
-The installed `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode` selects
+The installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` file selects
 `managed` by default or opt-in `hybrid`; an explicit task direction may override
-that value and is recorded in the approved plan.
+that value and is recorded in the approved plan. If that file is missing, read
+the Codex compatibility copy at
+`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`.
 
 Managed mode uses a dedicated Git worktree below the effective root resolved
 from `ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
@@ -956,19 +1067,20 @@ stacked work stays possible; a PR-required task must still prove that selected
 base is remotely usable before task mutation.
 Neither mode ever implements on the starting branch or directly on `main`.
 
-Synchronization reads `codex --version` before mutation and requires Codex
-0.146.0 or later. It installs exactly one modern configuration:
+Codex synchronization reads `codex --version` before mutation and requires
+Codex 0.146.0 or later. It installs exactly one modern configuration:
 `default_permissions = ":workspace"`, `approval_policy = "on-request"`, and
 `approvals_reviewer = "auto_review"`. No legacy sandbox mode, custom permission
 profile, workspace-root list, execpolicy rule, or Git helper is installed.
 Older or unreadable clients block before any destination changes. Historical
 manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
 remains version-independent and restores the exact prior configuration.
+Cursor synchronization never writes those Codex permission keys.
 
-Native Codex chats inherit their configured permission choice; Task Control
-never launches Codex or supplies a permission override. Explicit host choices
-remain authoritative and Orchestra does not reject or rewrite them. When
-Guardian is active, protected shared
+Native host chats inherit their configured permission choice; Task Control
+never launches an execution host or supplies a permission override. Explicit
+host choices remain authoritative and Orchestra does not reject or rewrite
+them. When Codex Guardian is active, protected shared
 Git metadata remains outside the workspace boundary, so the root issues the
 exact direct Git operation once with a narrow escalation for automatic review.
 A denial is not bypassed or converted to Full Access.
@@ -1138,8 +1250,9 @@ It does not authorize release, deployment, or production mutation.
 
 ## Maturity
 
-Automated checks and representative canaries provide evidence. The user decides
-when Codex Orchestra is sufficiently mature to port to another harness.
+Automated checks and representative canaries provide evidence. Codex and Cursor
+are approved execution hosts. Hermes, Devin, and any further harness remain
+deferred.
 
 ## User-facing progress and handoff
 
@@ -1169,4 +1282,4 @@ selection, ask one concise plain-text question in the final response and wait
 for the user without retrying the selector. Automatic resolution is reserved
 for explicitly informational, non-blocking questions whose timeout can safely
 accept the recommended default. This rule does not change command, test, or
-`wait_agent` timeouts.
+host-wait timeouts.

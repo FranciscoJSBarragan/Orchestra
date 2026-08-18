@@ -30,7 +30,7 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 - **Event table / ledger** — only if snapshot polling demonstrably misses
   needed transitions in real use.
 - **Hub-owned schema migrations or workflow tables** — never; the Hub remains
-  a pure consumer of Control schemas v3/v4 and Coordinator schema v1.
+  a pure consumer of Control schemas v3/v4/v5 and Coordinator schema v1.
 - **Controlled `status`/`stage` vocabulary** — only after real use shows the
   conservative attention feed is insufficient; it would be a workflow-docs
   contract, not SQL.
@@ -65,7 +65,7 @@ panel / menu bar / Hermes / laptop ──GET over loopback or Tailscale─┘
 
   ```python
   SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
-  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4})
+  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5})
   ```
 
 - At runtime the Hub compares `PRAGMA user_version` against that set. It must

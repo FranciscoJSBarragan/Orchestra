@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize the repository-owned Orchestra runtime into Codex user paths."""
+"""Synchronize the repository-owned Orchestra runtime into host user paths."""
 
 from __future__ import annotations
 
@@ -70,7 +70,11 @@ HELPERS = (
 )
 RETIRED_HELPERS = ("create_worktree.py",)
 MODELCONFIGS = ("native", "external", "dual")
+HOSTS = ("codex", "cursor", "all")
+HOST_SCOPES = ("codex", "cursor")
+ENTRY_SCOPES = ("shared", *HOST_SCOPES)
 CHECKOUT_MODES = ("managed", "hybrid")
+CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
 DUAL_MODEL_ALIASES = (
     ("gpt-5.6-sol", "orchestra-v1/gpt-5.6-sol"),
     ("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),
@@ -81,8 +85,12 @@ END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
 CONFIG_END = b"# orchestra-worktree-root:end"
 MANIFEST_PATH = "orchestra/install-manifest.json"
+ORCHESTRA_MANIFEST_PATH = "install-manifest.json"
+MANIFEST_SCHEMA_VERSION = 2
 WORKTREE_ROOT_PATH = "orchestra/worktree-root"
 CHECKOUT_MODE_PATH = "orchestra/checkout-mode"
+ORCHESTRA_WORKTREE_ROOT_PATH = "worktree-root"
+ORCHESTRA_CHECKOUT_MODE_PATH = "checkout-mode"
 RETIRED_RULES_PATHS = ("rules/orchestra.rules",)
 CACHE_TOOLS = ("poetry", "pip", "uv", "npm")
 PERMISSION_BACKENDS = ("profile", "legacy")
@@ -157,6 +165,34 @@ def _result(
 
 def _orchestra_root(home: Path) -> Path:
     return Path(os.path.abspath(home / ".orchestra"))
+
+
+def _orchestra_home(home: Path) -> Path:
+    configured = os.environ.get("ORCHESTRA_HOME")
+    if configured:
+        return Path(os.path.abspath(configured))
+    return _orchestra_root(home)
+
+
+def _includes_codex(host: str) -> bool:
+    return host in {"codex", "all"}
+
+
+def _includes_cursor(host: str) -> bool:
+    return host in {"cursor", "all"}
+
+
+def _cursor_mcp_json(orchestra_home: Path) -> bytes:
+    helper = orchestra_home / "scripts" / "task_mcp.py"
+    payload = {
+        "mcpServers": {
+            "orchestra_tasks": {
+                "command": "python3",
+                "args": [str(helper)],
+            }
+        }
+    }
+    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
 
 
 def _detect_codex_version() -> tuple[str, tuple[int, int, int]]:
@@ -412,6 +448,15 @@ def _safe_path(root: Path, relative: str, *, allow_missing: bool = True) -> Path
     return current
 
 
+def _manifest_file(codex_home: Path, orchestra_home: Path, host: str = "all") -> Path:
+    _ = codex_home, host
+    return _safe_path(orchestra_home, ORCHESTRA_MANIFEST_PATH)
+
+
+def _legacy_manifest_file(codex_home: Path) -> Path:
+    return _safe_path(codex_home, MANIFEST_PATH)
+
+
 def _read_file(path: Path, label: str) -> bytes:
     if path.is_symlink() or not path.is_file():
         raise SyncError(f"expected a regular file: {label}")
@@ -434,8 +479,25 @@ def _walk_files(directory: Path) -> list[Path]:
     return files
 
 
+def _entry_scope(root: str, path: str) -> str:
+    parts = _relative(path).parts
+    if root == "codex_home":
+        return "codex"
+    if root == "home" and parts[:2] == (".cursor", "plugins"):
+        return "cursor"
+    if root == "orchestra_home" and parts[:2] == ("hosts", "cursor"):
+        return "cursor"
+    return "shared"
+
+
 def _entry(root: str, path: str, kind: str, content: bytes) -> dict[str, Any]:
-    return {"root": root, "path": path, "type": kind, "content": content}
+    return {
+        "root": root,
+        "path": path,
+        "type": kind,
+        "scope": _entry_scope(root, path),
+        "content": content,
+    }
 
 
 def compose_dual_matrix(native_text: str, external_text: str) -> str:
@@ -470,14 +532,18 @@ def _roles_content(source_root: Path, modelconfig: str) -> bytes:
 
 def _inventory(
     source_root: Path,
-    modelconfig: str,
+    modelconfig: str | None,
     checkout_mode: str,
     worktree_root: Path,
+    host: str,
+    orchestra_home: Path,
 ) -> dict[tuple[str, str], dict[str, Any]]:
-    if modelconfig not in MODELCONFIGS:
-        raise SyncError(f"unknown model configuration: {modelconfig}")
+    if host not in HOSTS:
+        raise SyncError(f"unknown host: {host}")
     if checkout_mode not in CHECKOUT_MODES:
         raise SyncError(f"unknown checkout mode: {checkout_mode}")
+    if _includes_codex(host) and modelconfig not in MODELCONFIGS:
+        raise SyncError(f"unknown model configuration: {modelconfig}")
     entries: dict[tuple[str, str], dict[str, Any]] = {}
     skill_root = source_root / "codex" / "skills"
     if skill_root.is_symlink() or not skill_root.is_dir():
@@ -498,68 +564,132 @@ def _inventory(
                 "home", destination, "file", _read_file(source, str(source))
             )
 
-    agent_dir = source_root / "codex" / "agents"
-    actual_agents = []
-    if agent_dir.is_symlink() or not agent_dir.is_dir():
-        raise SyncError(f"expected a source directory: {agent_dir}")
-    for child in sorted(agent_dir.iterdir(), key=lambda item: item.name):
-        if child.is_symlink() or not child.is_file() or child.suffix != ".toml":
-            raise SyncError(f"unexpected agent source entry: {child}")
-        actual_agents.append(child.stem)
-    if tuple(actual_agents) != AGENTS:
-        raise SyncError("agent source inventory does not match the four supported profiles")
-    for name in AGENTS:
-        source = agent_dir / f"{name}.toml"
-        destination = f"agents/{name}.toml"
-        entries[("codex_home", destination)] = _entry(
-            "codex_home", destination, "file", _read_file(source, str(source))
-        )
-
-    entries[("codex_home", "orchestra/roles.toml")] = _entry(
-        "codex_home",
-        "orchestra/roles.toml",
-        "file",
-        _roles_content(source_root, modelconfig),
-    )
     for helper in HELPERS:
         source = source_root / "codex/scripts" / helper
-        destination = f"orchestra/scripts/{helper}"
-        entries[("codex_home", destination)] = _entry(
-            "codex_home", destination, "file", _read_file(source, str(source))
+        destination = f"scripts/{helper}"
+        entries[("orchestra_home", destination)] = _entry(
+            "orchestra_home", destination, "file", _read_file(source, str(source))
         )
-    control_root = source_root / "codex" / "control"
-    if control_root.is_symlink() or not control_root.is_dir():
-        raise SyncError(f"expected a source directory: {control_root}")
-    for source in _walk_files(control_root):
-        relative = source.relative_to(control_root).as_posix()
-        if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
-            continue
-        destination = f"orchestra/control/{relative}"
-        entries[("codex_home", destination)] = _entry(
-            "codex_home", destination, "file", _read_file(source, str(source))
-        )
-    entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
-        "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
+    entries[("orchestra_home", ORCHESTRA_WORKTREE_ROOT_PATH)] = _entry(
+        "orchestra_home",
+        ORCHESTRA_WORKTREE_ROOT_PATH,
+        "file",
+        f"{worktree_root}\n".encode(),
     )
-    entries[("codex_home", CHECKOUT_MODE_PATH)] = _entry(
-        "codex_home", CHECKOUT_MODE_PATH, "file", f"{checkout_mode}\n".encode()
+    entries[("orchestra_home", ORCHESTRA_CHECKOUT_MODE_PATH)] = _entry(
+        "orchestra_home",
+        ORCHESTRA_CHECKOUT_MODE_PATH,
+        "file",
+        f"{checkout_mode}\n".encode(),
     )
 
-    block_source = source_root / "codex/runtime/AGENTS.orchestra.md"
-    block = _read_file(block_source, str(block_source))
-    span = _block_span(block)
-    if span != (0, len(block)):
-        raise SyncError("runtime AGENTS source must contain exactly the managed block")
-    entries[("codex_home", "AGENTS.md")] = _entry(
-        "codex_home", "AGENTS.md", "managed_block", block
-    )
+    if _includes_codex(host):
+        agent_dir = source_root / "codex" / "agents"
+        actual_agents = []
+        if agent_dir.is_symlink() or not agent_dir.is_dir():
+            raise SyncError(f"expected a source directory: {agent_dir}")
+        for child in sorted(agent_dir.iterdir(), key=lambda item: item.name):
+            if child.is_symlink() or not child.is_file() or child.suffix != ".toml":
+                raise SyncError(f"unexpected agent source entry: {child}")
+            actual_agents.append(child.stem)
+        if tuple(actual_agents) != AGENTS:
+            raise SyncError(
+                "agent source inventory does not match the four supported profiles"
+            )
+        for name in AGENTS:
+            source = agent_dir / f"{name}.toml"
+            destination = f"agents/{name}.toml"
+            entries[("codex_home", destination)] = _entry(
+                "codex_home", destination, "file", _read_file(source, str(source))
+            )
+
+        assert modelconfig is not None
+        entries[("codex_home", "orchestra/roles.toml")] = _entry(
+            "codex_home",
+            "orchestra/roles.toml",
+            "file",
+            _roles_content(source_root, modelconfig),
+        )
+        for helper in HELPERS:
+            source = source_root / "codex/scripts" / helper
+            destination = f"orchestra/scripts/{helper}"
+            entries[("codex_home", destination)] = _entry(
+                "codex_home", destination, "file", _read_file(source, str(source))
+            )
+        control_root = source_root / "codex" / "control"
+        if control_root.is_symlink() or not control_root.is_dir():
+            raise SyncError(f"expected a source directory: {control_root}")
+        for source in _walk_files(control_root):
+            relative = source.relative_to(control_root).as_posix()
+            if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
+                continue
+            destination = f"orchestra/control/{relative}"
+            entries[("codex_home", destination)] = _entry(
+                "codex_home", destination, "file", _read_file(source, str(source))
+            )
+        entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
+            "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
+        )
+        entries[("codex_home", CHECKOUT_MODE_PATH)] = _entry(
+            "codex_home", CHECKOUT_MODE_PATH, "file", f"{checkout_mode}\n".encode()
+        )
+
+        block_source = source_root / "codex/runtime/AGENTS.orchestra.md"
+        block = _read_file(block_source, str(block_source))
+        span = _block_span(block)
+        if span != (0, len(block)):
+            raise SyncError("runtime AGENTS source must contain exactly the managed block")
+        entries[("codex_home", "AGENTS.md")] = _entry(
+            "codex_home", "AGENTS.md", "managed_block", block
+        )
+
+    if _includes_cursor(host):
+        cursor_roles = source_root / "hosts/cursor/config/roles.cursor.toml"
+        cursor_spawn = source_root / "hosts/cursor/references/spawn.md"
+        plugin_root = source_root / "hosts/cursor/plugin"
+        for source, destination in (
+            (cursor_roles, "hosts/cursor/roles.toml"),
+            (cursor_spawn, "hosts/cursor/spawn.md"),
+        ):
+            entries[("orchestra_home", destination)] = _entry(
+                "orchestra_home",
+                destination,
+                "file",
+                _read_file(source, str(source)),
+            )
+        for source in _walk_files(plugin_root):
+            relative = source.relative_to(plugin_root).as_posix()
+            destination = f"{CURSOR_PLUGIN_ROOT}/{relative}"
+            entries[("home", destination)] = _entry(
+                "home", destination, "file", _read_file(source, str(source))
+            )
+        mcp_destination = f"{CURSOR_PLUGIN_ROOT}/mcp.json"
+        entries[("home", mcp_destination)] = _entry(
+            "home",
+            mcp_destination,
+            "file",
+            _cursor_mcp_json(orchestra_home),
+        )
     return entries
 
 
 def _allowed_entry(root: str, path: str, kind: str) -> bool:
     parts = _relative(path).parts
-    if root == "home" and kind == "file" and len(parts) >= 4:
-        return parts[:2] == (".agents", "skills") and parts[2] in SKILLS
+    if root == "home" and kind == "file":
+        if len(parts) >= 4 and parts[:2] == (".agents", "skills") and parts[2] in SKILLS:
+            return True
+        plugin_parts = Path(CURSOR_PLUGIN_ROOT).parts
+        return (
+            len(parts) >= len(plugin_parts) + 1
+            and parts[: len(plugin_parts)] == plugin_parts
+        )
+    if root == "orchestra_home" and kind == "file":
+        return path in {
+            ORCHESTRA_WORKTREE_ROOT_PATH,
+            ORCHESTRA_CHECKOUT_MODE_PATH,
+            "hosts/cursor/roles.toml",
+            "hosts/cursor/spawn.md",
+        } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)}
     if root != "codex_home":
         return False
     if kind == "managed_block":
@@ -592,32 +722,40 @@ def _backup_path(root: str, path: str) -> str:
     return f"orchestra/backups/{root}/{path}"
 
 
-def _manifest_entry(entry: dict[str, Any], backup: str | None = None) -> dict[str, str]:
+def _backup_root_name(entry: dict[str, Any]) -> str:
+    configured = entry.get("backup_root")
+    if configured in {"codex_home", "orchestra_home"}:
+        return str(configured)
+    return "codex_home" if entry["scope"] == "codex" else "orchestra_home"
+
+
+def _manifest_entry(
+    entry: dict[str, Any],
+    backup: str | None = None,
+    backup_root: str | None = None,
+) -> dict[str, str]:
     result = {
         "digest": _digest(entry["content"]),
         "path": entry["path"],
         "root": entry["root"],
+        "scope": entry["scope"],
         "type": entry["type"],
     }
     if backup is not None:
         result["backup"] = backup
+        result["backup_root"] = backup_root or (
+            "codex_home" if entry["scope"] == "codex" else "orchestra_home"
+        )
     return result
 
 
-def _load_manifest(
-    codex_home: Path,
-) -> tuple[
-    dict[tuple[str, str], dict[str, str]],
-    bool,
-    list[str],
-    str | None,
-    str | None,
-    str | None,
-]:
-    path = _safe_path(codex_home, MANIFEST_PATH)
-    if not path.exists():
-        return {}, False, [], None, None, None
-    data = _read_file(path, MANIFEST_PATH)
+def _read_manifest(
+    path: Path,
+    *,
+    default_backup_root: str,
+) -> dict[str, Any]:
+    data = _read_file(path, str(path))
+
     def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
         for key, value in pairs:
@@ -625,18 +763,37 @@ def _load_manifest(
                 raise SyncError(f"duplicate install manifest field: {key}")
             result[key] = value
         return result
+
     try:
         payload = json.loads(data, object_pairs_hook=reject_duplicate_keys)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SyncError(f"invalid install manifest: {exc}") from exc
-    if (
-        not isinstance(payload, dict)
-        or not {"entries"} <= set(payload)
-        or set(payload)
-        - {"entries", "modelconfig", "checkout_mode", "permission_backend"}
-        or not isinstance(payload["entries"], list)
-    ):
+    if not isinstance(payload, dict) or not isinstance(payload.get("entries"), list):
         raise SyncError("invalid install manifest structure")
+    modern = "schema_version" in payload
+    allowed_fields = {
+        "schema_version",
+        "installed_hosts",
+        "entries",
+        "modelconfig",
+        "checkout_mode",
+        "permission_backend",
+    }
+    if set(payload) - allowed_fields:
+        raise SyncError("invalid install manifest structure")
+    if modern and payload.get("schema_version") != MANIFEST_SCHEMA_VERSION:
+        raise SyncError("unsupported install manifest schema version")
+    if modern:
+        raw_hosts = payload.get("installed_hosts")
+        if (
+            not isinstance(raw_hosts, list)
+            or any(host not in HOST_SCOPES for host in raw_hosts)
+            or len(set(raw_hosts)) != len(raw_hosts)
+        ):
+            raise SyncError("invalid install manifest installed_hosts")
+        installed_hosts = set(raw_hosts)
+    else:
+        installed_hosts: set[str] = set()
     modelconfig = payload.get("modelconfig")
     if modelconfig is not None and modelconfig not in MODELCONFIGS:
         raise SyncError("invalid install manifest modelconfig")
@@ -644,46 +801,127 @@ def _load_manifest(
     if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
         raise SyncError("invalid install manifest checkout mode")
     permission_backend = payload.get("permission_backend")
-    if (
-        permission_backend is not None
-        and permission_backend not in PERMISSION_BACKENDS
-    ):
+    if permission_backend is not None and permission_backend not in PERMISSION_BACKENDS:
         raise SyncError("invalid install manifest permission backend")
-    result: dict[tuple[str, str], dict[str, str]] = {}
-    auxiliary_drift: list[str] = []
+    entries: dict[tuple[str, str], dict[str, str]] = {}
     for raw in payload["entries"]:
         if not isinstance(raw, dict):
             raise SyncError("invalid install manifest entry")
         required = {"digest", "path", "root", "type"}
-        if not required <= set(raw) or set(raw) - (required | {"backup"}):
+        optional = {"backup"}
+        if modern:
+            required.add("scope")
+            optional.add("backup_root")
+        if not required <= set(raw) or set(raw) - (required | optional):
             raise SyncError("invalid install manifest entry fields")
         if any(not isinstance(raw[name], str) for name in raw):
             raise SyncError("install manifest values must be strings")
-        if len(raw["digest"]) != 64 or any(char not in "0123456789abcdef" for char in raw["digest"]):
+        if len(raw["digest"]) != 64 or any(
+            char not in "0123456789abcdef" for char in raw["digest"]
+        ):
             raise SyncError("invalid install manifest digest")
         if not _allowed_entry(raw["root"], raw["path"], raw["type"]):
-            raise SyncError(f"install manifest contains an unauthorized destination: {raw['path']}")
-        key = (raw["root"], raw["path"])
-        if key in result:
-            raise SyncError(f"duplicate install manifest destination: {raw['path']}")
-        if "backup" in raw:
-            expected = _backup_path(raw["root"], raw["path"])
-            if raw["backup"] != expected:
-                raise SyncError(f"invalid backup reference for {raw['path']}")
-            backup = _safe_path(codex_home, raw["backup"])
-            if not backup.exists():
-                auxiliary_drift.append(f"referenced backup is missing: {raw['backup']}")
-            elif not backup.is_file():
-                raise SyncError(f"referenced backup is not a regular file: {raw['backup']}")
-        result[key] = dict(raw)
-    return (
-        result,
-        True,
-        auxiliary_drift,
-        modelconfig,
-        checkout_mode,
-        permission_backend,
-    )
+            raise SyncError(
+                f"install manifest contains an unauthorized destination: {raw['path']}"
+            )
+        entry = dict(raw)
+        inferred_scope = _entry_scope(entry["root"], entry["path"])
+        if modern and entry["scope"] != inferred_scope:
+            raise SyncError(f"invalid install scope for {entry['path']}")
+        entry["scope"] = inferred_scope
+        if entry.get("backup"):
+            expected = _backup_path(entry["root"], entry["path"])
+            if entry["backup"] != expected:
+                raise SyncError(f"invalid backup reference for {entry['path']}")
+            entry["backup_root"] = entry.get("backup_root", default_backup_root)
+            if entry["backup_root"] not in {"codex_home", "orchestra_home"}:
+                raise SyncError(f"invalid backup root for {entry['path']}")
+        elif "backup_root" in entry:
+            raise SyncError(f"backup root without backup for {entry['path']}")
+        key = (entry["root"], entry["path"])
+        if key in entries:
+            raise SyncError(f"duplicate install manifest destination: {entry['path']}")
+        entries[key] = entry
+        if entry["scope"] in HOST_SCOPES:
+            installed_hosts.add(entry["scope"])
+    if modern and any(
+        entry["scope"] in HOST_SCOPES and entry["scope"] not in installed_hosts
+        for entry in entries.values()
+    ):
+        raise SyncError("install manifest entries exceed installed_hosts")
+    return {
+        "entries": entries,
+        "installed_hosts": installed_hosts,
+        "modelconfig": modelconfig,
+        "checkout_mode": checkout_mode,
+        "permission_backend": permission_backend,
+        "modern": modern,
+    }
+
+
+def _load_install_state(
+    codex_home: Path,
+    orchestra_home: Path,
+) -> dict[str, Any]:
+    canonical = _manifest_file(codex_home, orchestra_home)
+    legacy = _legacy_manifest_file(codex_home)
+    candidates: list[tuple[Path, str]] = []
+    if canonical.exists():
+        candidates.append((canonical, "orchestra_home"))
+    if legacy != canonical and legacy.exists():
+        candidates.append((legacy, "codex_home"))
+    merged: dict[tuple[str, str], dict[str, str]] = {}
+    installed_hosts: set[str] = set()
+    auxiliary_drift: list[str] = []
+    metadata: dict[str, str | None] = {
+        "modelconfig": None,
+        "checkout_mode": None,
+        "permission_backend": None,
+    }
+    migration_pending = False
+    for path, default_backup_root in candidates:
+        parsed = _read_manifest(path, default_backup_root=default_backup_root)
+        migration_pending = migration_pending or not parsed["modern"] or path == legacy
+        installed_hosts.update(parsed["installed_hosts"])
+        if not parsed["installed_hosts"] and parsed["entries"]:
+            installed_hosts.add("codex" if path == legacy else "cursor")
+        for name in metadata:
+            value = parsed[name]
+            if value is None:
+                continue
+            if metadata[name] is not None and metadata[name] != value:
+                raise SyncError(f"conflicting install manifest {name}")
+            metadata[name] = value
+        for key, entry in parsed["entries"].items():
+            existing = merged.get(key)
+            if existing is not None and existing != entry:
+                raise SyncError(
+                    f"conflicting install manifest destination: {entry['path']}"
+                )
+            merged[key] = entry
+    roots = {"codex_home": codex_home, "orchestra_home": orchestra_home}
+    for entry in merged.values():
+        backup_rel = entry.get("backup")
+        if not backup_rel:
+            continue
+        backup = _safe_path(roots[entry["backup_root"]], backup_rel)
+        if not backup.exists():
+            auxiliary_drift.append(f"referenced backup is missing: {backup_rel}")
+        elif not backup.is_file():
+            raise SyncError(f"referenced backup is not a regular file: {backup_rel}")
+    if migration_pending:
+        auxiliary_drift.append("install manifest migration pending")
+    return {
+        "entries": merged,
+        "present": bool(candidates),
+        "auxiliary_drift": auxiliary_drift,
+        "modelconfig": metadata["modelconfig"],
+        "checkout_mode": metadata["checkout_mode"],
+        "permission_backend": metadata["permission_backend"],
+        "installed_hosts": installed_hosts,
+        "migration_pending": migration_pending,
+        "legacy_path": legacy if legacy != canonical and legacy.exists() else None,
+    }
 
 
 def _managed_span(
@@ -1207,8 +1445,14 @@ def _insert_config_block(data: bytes, block: bytes) -> bytes:
     return _render_managed_config(data, block)
 
 
-def _roots(home: Path, codex_home: Path) -> dict[str, Path]:
-    return {"home": home, "codex_home": codex_home}
+def _roots(
+    home: Path, codex_home: Path, orchestra_home: Path | None = None
+) -> dict[str, Path]:
+    return {
+        "home": home,
+        "codex_home": codex_home,
+        "orchestra_home": orchestra_home or _orchestra_home(home),
+    }
 
 
 def _destination(roots: dict[str, Path], entry: dict[str, Any]) -> Path:
@@ -1234,41 +1478,61 @@ def _analyze(
     source_root: Path,
     home: Path,
     codex_home: Path,
-    modelconfig: str,
+    modelconfig: str | None,
     checkout_mode: str,
     worktree_root: Path,
     orchestra_root: Path,
+    orchestra_home: Path,
     cache_roots: dict[str, Path],
     installed: dict[tuple[str, str], dict[str, str]],
     auxiliary_drift: list[str],
-    permission_backend: str,
+    permission_backend: str | None,
+    host: str,
 ) -> tuple[
     dict[tuple[str, str], dict[str, Any]],
     list[dict[str, Any]],
     list[str],
     list[str],
 ]:
-    desired = _inventory(source_root, modelconfig, checkout_mode, worktree_root)
-    config_entry, missing_cache_tools = _desired_config_entry(
-        home,
-        codex_home,
+    desired = _inventory(
+        source_root,
+        modelconfig,
+        checkout_mode,
         worktree_root,
-        orchestra_root,
-        cache_roots,
-        installed,
-        permission_backend,
+        host,
+        orchestra_home,
     )
-    desired[("codex_home", "config.toml")] = config_entry
-    roots = _roots(home, codex_home)
+    missing_cache_tools: list[str] = []
+    if _includes_codex(host):
+        assert permission_backend is not None
+        config_entry, missing_cache_tools = _desired_config_entry(
+            home,
+            codex_home,
+            worktree_root,
+            orchestra_root,
+            cache_roots,
+            installed,
+            permission_backend,
+        )
+        desired[("codex_home", "config.toml")] = config_entry
+    roots = _roots(home, codex_home, orchestra_home)
     operations: list[dict[str, Any]] = []
 
     for key in sorted(desired):
         entry = desired[key]
         path = _destination(roots, entry)
         owner = installed.get(key)
+        if owner is not None and owner["scope"] != entry["scope"]:
+            raise SyncError(f"owned destination scope drift: {entry['path']}")
         if entry["type"] == "file":
             if owner is None:
                 if path.exists():
+                    current = _read_file(path, entry["path"])
+                    if (
+                        entry["root"] == "orchestra_home"
+                        and current == entry["content"]
+                    ):
+                        continue
                     raise SyncError(f"unmanaged destination collision: {entry['path']}")
                 operations.append(_operation("create", entry, None))
                 continue
@@ -1314,8 +1578,12 @@ def _analyze(
                     operation["config_recovery"] = config_recovery
                 operations.append(operation)
 
+    selected_scopes = {"shared"}
+    selected_scopes.update(HOST_SCOPES if host == "all" else {host})
     for key in sorted(set(installed) - set(desired)):
         owner = installed[key]
+        if owner["scope"] not in selected_scopes:
+            continue
         path = _safe_path(roots[owner["root"]], owner["path"])
         current = _read_file(path, owner["path"])
         if owner["type"] in {"managed_block", "managed_config"}:
@@ -1333,9 +1601,13 @@ def _analyze(
             continue
         entry = operation["entry"]
         backup_rel = _backup_path(entry["root"], entry["path"])
-        backup = _safe_path(codex_home, backup_rel)
+        backup = _safe_path(roots[_backup_root_name(entry)], backup_rel)
         owner = installed.get((entry["root"], entry["path"]))
-        if backup.exists() and (owner is None or owner.get("backup") != backup_rel):
+        if backup.exists() and (
+            owner is None
+            or owner.get("backup") != backup_rel
+            or owner.get("backup_root") != _backup_root_name(entry)
+        ):
             raise SyncError(f"unmanaged backup collision: {backup_rel}")
     operations.sort(key=lambda item: (item["entry"]["root"], item["entry"]["path"], item["kind"]))
     return desired, operations, auxiliary_drift, missing_cache_tools
@@ -1388,18 +1660,24 @@ def _atomic_write(path: Path, data: bytes, root: Path, *, new_mode: int = 0o644)
 
 
 def _write_manifest(
-    codex_home: Path,
+    orchestra_home: Path,
     entries: dict[tuple[str, str], dict[str, str]],
+    installed_hosts: set[str],
     modelconfig: str | None,
     checkout_mode: str | None,
     permission_backend: str | None,
 ) -> None:
-    path = _safe_path(codex_home, MANIFEST_PATH)
-    if not entries:
+    root = orchestra_home
+    path = _safe_path(orchestra_home, ORCHESTRA_MANIFEST_PATH)
+    if not entries and not installed_hosts:
         if path.exists():
             path.unlink()
         return
+    if any(host not in HOST_SCOPES for host in installed_hosts):
+        raise SyncError("invalid installed host set")
     payload: dict[str, Any] = {
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "installed_hosts": sorted(installed_hosts),
         "entries": [entries[key] for key in sorted(entries)]
     }
     if modelconfig is not None:
@@ -1415,7 +1693,7 @@ def _write_manifest(
             raise SyncError(f"unknown permission backend: {permission_backend}")
         payload["permission_backend"] = permission_backend
     data = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
-    _atomic_write(path, data, codex_home, new_mode=0o600)
+    _atomic_write(path, data, root, new_mode=0o600)
 
 
 def _preview(operations: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -1431,8 +1709,14 @@ def _preview(operations: list[dict[str, Any]]) -> list[dict[str, str]]:
 
 def _restart_required(changes: list[dict[str, str]]) -> bool:
     return any(
-        change["root"] == "codex_home"
-        and change["path"] in {"config.toml", *RETIRED_RULES_PATHS}
+        (
+            change["root"] == "codex_home"
+            and change["path"] in {"config.toml", *RETIRED_RULES_PATHS}
+        )
+        or (
+            change["root"] == "home"
+            and change["path"].startswith(f"{CURSOR_PLUGIN_ROOT}/")
+        )
         for change in changes
     )
 
@@ -1447,7 +1731,7 @@ def _check_before(path: Path, before: bytes | None) -> None:
 
 
 def _apply_operation(
-    operation: dict[str, Any], roots: dict[str, Path], codex_home: Path
+    operation: dict[str, Any], roots: dict[str, Path], backup_root: Path
 ) -> dict[str, Any]:
     entry = operation["entry"]
     path = _destination(roots, entry)
@@ -1468,13 +1752,13 @@ def _apply_operation(
     try:
         if before is not None and not operation["preserve_backup"]:
             backup_rel = _backup_path(entry["root"], entry["path"])
-            backup = _safe_path(codex_home, backup_rel)
+            backup = _safe_path(backup_root, backup_rel)
             state["backup"] = backup
             state["backup_rel"] = backup_rel
             if backup.exists():
                 state["backup_before"] = _read_file(backup, backup_rel)
                 state["backup_mode"] = stat.S_IMODE(backup.stat().st_mode)
-            _atomic_write(backup, before, codex_home, new_mode=0o600)
+            _atomic_write(backup, before, backup_root, new_mode=0o600)
 
         kind = operation["kind"]
         if kind in {"create", "update"}:
@@ -1523,24 +1807,24 @@ def _apply_operation(
                     path.unlink()
             else:
                 path.unlink()
-            _cleanup_operation_backup(state, codex_home)
+            _cleanup_operation_backup(state, backup_root)
         else:
             raise SyncError(f"unknown operation: {kind}")
     except Exception:
-        _restore_operation(state, codex_home)
+        _restore_operation(state, backup_root)
         raise
     return state
 
 
-def _cleanup_operation_backup(state: dict[str, Any], codex_home: Path) -> None:
+def _cleanup_operation_backup(state: dict[str, Any], backup_root: Path) -> None:
     """Remove the transient delete backup while local compensation is possible."""
     backup = state["backup"]
     if backup is not None and backup.exists():
         backup.unlink()
-        _cleanup_empty(backup.parent, codex_home)
+        _cleanup_empty(backup.parent, backup_root)
 
 
-def _restore_operation(state: dict[str, Any], codex_home: Path) -> None:
+def _restore_operation(state: dict[str, Any], backup_root: Path) -> None:
     path = state["path"]
     before = state["before"]
     if before is None:
@@ -1561,12 +1845,12 @@ def _restore_operation(state: dict[str, Any], codex_home: Path) -> None:
             if backup.is_symlink() or not backup.is_file():
                 raise SyncError(f"cannot compensate unsafe backup: {backup}")
             backup.unlink()
-        _cleanup_empty(backup.parent, codex_home)
+        _cleanup_empty(backup.parent, backup_root)
     else:
         _atomic_write(
             backup,
             state["backup_before"],
-            codex_home,
+            backup_root,
             new_mode=state["backup_mode"] or 0o600,
         )
         os.chmod(backup, state["backup_mode"])
@@ -1582,6 +1866,27 @@ def _cleanup_empty(path: Path, stop: Path) -> None:
         current = current.parent
 
 
+def _persist_manifest(
+    host: str,
+    codex_home: Path,
+    orchestra_home: Path,
+    entries: dict[tuple[str, str], dict[str, str]],
+    installed_hosts: set[str],
+    modelconfig: str | None,
+    checkout_mode: str | None,
+    permission_backend: str | None,
+) -> None:
+    _ = host, codex_home
+    _write_manifest(
+        orchestra_home,
+        entries,
+        installed_hosts,
+        modelconfig,
+        checkout_mode,
+        permission_backend,
+    )
+
+
 def synchronize(
     source_root: Path,
     home: Path,
@@ -1592,6 +1897,7 @@ def synchronize(
     modelconfig: str | None = None,
     checkout_mode: str | None = None,
     worktree_root: Path | str | None = None,
+    host: str = "codex",
 ) -> dict[str, Any]:
     """Run one synchronization action against explicit destination roots."""
     source_root = Path(os.path.abspath(source_root))
@@ -1599,35 +1905,52 @@ def synchronize(
     codex_home = Path(os.path.abspath(codex_home))
     label = "apply --dry-run" if action == "apply" and dry_run else action
     orchestra_root = _orchestra_root(home)
-    try:
-        codex_version, parsed_codex_version = _detect_codex_version()
-    except SyncError as exc:
+    orchestra_home = _orchestra_home(home)
+    if host not in HOSTS:
         return _result(
             "blocked",
             label,
             [],
-            str(exc),
+            f"unknown host: {host}",
             sandbox_root=orchestra_root,
-            codex_version="unknown",
         )
-    try:
-        permission_backend = _permission_backend(parsed_codex_version)
-    except SyncError as exc:
-        return _result(
-            "blocked",
-            label,
-            [],
-            str(exc),
-            sandbox_root=orchestra_root,
-            codex_version=codex_version,
-        )
-    try:
-        cache_roots, omitted_cache_tools = _discover_cache_roots(home)
-    except OSError:
+    include_codex = _includes_codex(host)
+    selected_hosts = set(HOST_SCOPES if host == "all" else (host,))
+    permission_backend: str | None = None
+    if include_codex:
+        try:
+            codex_version, parsed_codex_version = _detect_codex_version()
+        except SyncError as exc:
+            return _result(
+                "blocked",
+                label,
+                [],
+                str(exc),
+                sandbox_root=orchestra_root,
+                codex_version="unknown",
+            )
+        try:
+            permission_backend = _permission_backend(parsed_codex_version)
+        except SyncError as exc:
+            return _result(
+                "blocked",
+                label,
+                [],
+                str(exc),
+                sandbox_root=orchestra_root,
+                codex_version=codex_version,
+            )
+        try:
+            cache_roots, omitted_cache_tools = _discover_cache_roots(home)
+        except OSError:
+            cache_roots = {}
+            omitted_cache_tools = {
+                tool: "cache discovery unavailable" for tool in CACHE_TOOLS
+            }
+    else:
+        codex_version = None
         cache_roots = {}
-        omitted_cache_tools = {
-            tool: "cache discovery unavailable" for tool in CACHE_TOOLS
-        }
+        omitted_cache_tools = {}
     result_context: dict[str, Any] = {
         "sandbox_root": orchestra_root,
         "cache_roots": cache_roots,
@@ -1641,21 +1964,21 @@ def synchronize(
     missing_cache_tools: list[str] = []
     try:
         effective_worktree_root = _resolve_worktree_root(home, worktree_root)
-        (
-            installed,
-            manifest_present,
-            auxiliary_drift,
-            installed_modelconfig,
-            installed_checkout_mode,
-            installed_permission_backend,
-        ) = _load_manifest(codex_home)
+        install_state = _load_install_state(codex_home, orchestra_home)
+        installed = install_state["entries"]
+        manifest_present = install_state["present"]
+        auxiliary_drift = list(install_state["auxiliary_drift"])
+        installed_modelconfig = install_state["modelconfig"]
+        installed_checkout_mode = install_state["checkout_mode"]
+        installed_permission_backend = install_state["permission_backend"]
+        installed_hosts = set(install_state["installed_hosts"])
         if modelconfig is not None and modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
         effective_modelconfig = modelconfig or installed_modelconfig
         if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
             raise SyncError(f"unknown checkout mode: {checkout_mode}")
         effective_checkout_mode = checkout_mode or installed_checkout_mode or "managed"
-        if effective_modelconfig is None:
+        if include_codex and effective_modelconfig is None:
             detail = (
                 "model configuration is not selected; pass "
                 "--modelconfig dual, --modelconfig native, or "
@@ -1680,10 +2003,12 @@ def synchronize(
             effective_checkout_mode,
             effective_worktree_root,
             orchestra_root,
+            orchestra_home,
             cache_roots,
             installed,
             auxiliary_drift,
             permission_backend,
+            host,
         )
     except (OSError, SyncError) as exc:
         return _result(
@@ -1703,25 +2028,28 @@ def synchronize(
     if action == "status" or dry_run:
         detail = "; ".join(auxiliary_drift)
         try:
-            config_path = _safe_path(codex_home, "config.toml")
-            current_config = (
-                _read_file(config_path, "config.toml")
-                if config_path.exists()
-                else b""
-            )
-            desired_roots = _minimal_writable_roots(
-                orchestra_root, effective_worktree_root, cache_roots
-            )
-            profile_configured = (
-                permission_backend == "profile"
-                and _profile_is_configured(
-                    current_config,
-                    home,
-                    desired_roots,
-                    permission_backend,
+            profile_configured = False
+            if include_codex:
+                assert permission_backend is not None
+                config_path = _safe_path(codex_home, "config.toml")
+                current_config = (
+                    _read_file(config_path, "config.toml")
+                    if config_path.exists()
+                    else b""
                 )
-                and not config_change_pending
-            )
+                desired_roots = _minimal_writable_roots(
+                    orchestra_root, effective_worktree_root, cache_roots
+                )
+                profile_configured = (
+                    permission_backend == "profile"
+                    and _profile_is_configured(
+                        current_config,
+                        home,
+                        desired_roots,
+                        permission_backend,
+                    )
+                    and not config_change_pending
+                )
         except (OSError, SyncError) as exc:
             return _result(
                 "blocked",
@@ -1762,24 +2090,70 @@ def synchronize(
             **result_context,
         )
 
-    roots = _roots(home, codex_home)
+    if install_state["migration_pending"]:
+        try:
+            _write_manifest(
+                orchestra_home,
+                installed,
+                installed_hosts,
+                installed_modelconfig,
+                installed_checkout_mode,
+                installed_permission_backend,
+            )
+            legacy_path = install_state.get("legacy_path")
+            if legacy_path is not None and legacy_path.exists():
+                legacy_path.unlink()
+            auxiliary_drift = [
+                item
+                for item in auxiliary_drift
+                if item != "install manifest migration pending"
+            ]
+        except (OSError, SyncError) as exc:
+            return _result(
+                "partial" if _manifest_file(codex_home, orchestra_home).exists() else "blocked",
+                label,
+                [],
+                f"install manifest migration failed: {exc}",
+                modelconfig=installed_modelconfig,
+                checkout_mode=installed_checkout_mode,
+                worktree_root=effective_worktree_root,
+                unconfigured_cache_tools=missing_cache_tools,
+                restart_required=False,
+                profile_configured=False,
+                **result_context,
+            )
+
+    roots = _roots(home, codex_home, orchestra_home)
     current = dict(installed)
+    current_hosts = installed_hosts | selected_hosts
     current_modelconfig = installed_modelconfig
     current_checkout_mode = installed_checkout_mode
+    effective_permission_backend = (
+        permission_backend if include_codex else installed_permission_backend
+    )
     current_permission_backend = installed_permission_backend
     completed: list[dict[str, str]] = []
     for operation in operations:
         entry = operation["entry"]
         key = (entry["root"], entry["path"])
         next_current = dict(current)
+        operation_backup_root = roots[_backup_root_name(entry)]
         try:
-            state = _apply_operation(operation, roots, codex_home)
+            state = _apply_operation(operation, roots, operation_backup_root)
             if operation["kind"] == "delete":
                 next_current.pop(key, None)
             else:
+                current_owner = current.get(key, {})
+                backup_rel = state["backup_rel"] or current_owner.get("backup")
+                backup_root_name = (
+                    _backup_root_name(entry)
+                    if state["backup_rel"]
+                    else current_owner.get("backup_root")
+                )
                 next_current[key] = _manifest_entry(
                     desired[key],
-                    state["backup_rel"] or current.get(key, {}).get("backup"),
+                    backup_rel,
+                    backup_root_name,
                 )
             next_modelconfig = current_modelconfig
             next_checkout_mode = current_checkout_mode
@@ -1788,11 +2162,17 @@ def synchronize(
                 next_modelconfig = effective_modelconfig
             if key == ("codex_home", "config.toml"):
                 next_permission_backend = permission_backend
-            if key == ("codex_home", CHECKOUT_MODE_PATH):
+            if key in {
+                ("codex_home", CHECKOUT_MODE_PATH),
+                ("orchestra_home", ORCHESTRA_CHECKOUT_MODE_PATH),
+            }:
                 next_checkout_mode = effective_checkout_mode
-            _write_manifest(
+            _persist_manifest(
+                host,
                 codex_home,
+                orchestra_home,
                 next_current,
+                current_hosts,
                 next_modelconfig,
                 next_checkout_mode,
                 next_permission_backend,
@@ -1800,7 +2180,7 @@ def synchronize(
         except (OSError, SyncError) as exc:
             if "state" in locals():
                 try:
-                    _restore_operation(state, codex_home)
+                    _restore_operation(state, operation_backup_root)
                 except (OSError, SyncError) as restore_exc:
                     exc = SyncError(f"{exc}; local compensation failed: {restore_exc}")
                 del state
@@ -1825,18 +2205,34 @@ def synchronize(
         completed.extend(_preview([operation]))
         del state
 
+    claimed = False
+    for key, entry in desired.items():
+        if key in current or entry["type"] != "file":
+            continue
+        path = _destination(roots, entry)
+        if path.exists() and _read_file(path, entry["path"]) == entry["content"]:
+            if entry["root"] != "orchestra_home":
+                continue
+            current[key] = _manifest_entry(entry)
+            claimed = True
+
     if current and (
-        current_modelconfig != effective_modelconfig
+        claimed
+        or current_hosts != installed_hosts
+        or current_modelconfig != effective_modelconfig
         or current_checkout_mode != effective_checkout_mode
-        or current_permission_backend != permission_backend
+        or current_permission_backend != effective_permission_backend
     ):
         try:
-            _write_manifest(
+            _persist_manifest(
+                host,
                 codex_home,
+                orchestra_home,
                 current,
+                current_hosts,
                 effective_modelconfig,
                 effective_checkout_mode,
-                permission_backend,
+                effective_permission_backend,
             )
         except (OSError, SyncError) as exc:
             return _result(
@@ -1854,17 +2250,14 @@ def synchronize(
             )
         current_modelconfig = effective_modelconfig
         current_checkout_mode = effective_checkout_mode
-        current_permission_backend = permission_backend
+        current_permission_backend = effective_permission_backend
 
     try:
-        (
-            _,
-            _,
-            remaining_drift,
-            persisted_modelconfig,
-            persisted_checkout_mode,
-            persisted_permission_backend,
-        ) = _load_manifest(codex_home)
+        persisted_state = _load_install_state(codex_home, orchestra_home)
+        remaining_drift = list(persisted_state["auxiliary_drift"])
+        persisted_modelconfig = persisted_state["modelconfig"]
+        persisted_checkout_mode = persisted_state["checkout_mode"]
+        persisted_permission_backend = persisted_state["permission_backend"]
     except (OSError, SyncError) as exc:
         return _result(
             "partial",
@@ -1880,25 +2273,28 @@ def synchronize(
             **result_context,
         )
     try:
-        config_path = _safe_path(codex_home, "config.toml")
-        final_config = (
-            _read_file(config_path, "config.toml") if config_path.exists() else b""
-        )
-        final_missing_cache_tools = _unconfigured_cache_tools(
-            final_config, home, cache_roots, permission_backend
-        )
-        desired_roots = _minimal_writable_roots(
-            orchestra_root, effective_worktree_root, cache_roots
-        )
-        profile_configured = (
-            persisted_permission_backend == "profile"
-            and _profile_is_configured(
-                final_config,
-                home,
-                desired_roots,
-                permission_backend,
+        final_missing_cache_tools: list[str] = []
+        profile_configured = False
+        if include_codex and permission_backend is not None:
+            config_path = _safe_path(codex_home, "config.toml")
+            final_config = (
+                _read_file(config_path, "config.toml") if config_path.exists() else b""
             )
-        )
+            final_missing_cache_tools = _unconfigured_cache_tools(
+                final_config, home, cache_roots, permission_backend
+            )
+            desired_roots = _minimal_writable_roots(
+                orchestra_root, effective_worktree_root, cache_roots
+            )
+            profile_configured = (
+                persisted_permission_backend == "profile"
+                and _profile_is_configured(
+                    final_config,
+                    home,
+                    desired_roots,
+                    permission_backend,
+                )
+            )
     except (OSError, SyncError) as exc:
         return _result(
             "partial" if completed else "blocked",
@@ -1934,21 +2330,24 @@ def synchronize(
     )
 
 
-def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
+def uninstall(home: Path, codex_home: Path, *, host: str = "codex") -> dict[str, Any]:
     """Remove only destinations still matching the recorded ownership digests."""
     home = Path(os.path.abspath(home))
     codex_home = Path(os.path.abspath(codex_home))
+    orchestra_home = _orchestra_home(home)
+    if host not in HOSTS:
+        return _result("blocked", "uninstall", [], f"unknown host: {host}")
     try:
-        (
-            installed,
-            present,
-            auxiliary_drift,
-            modelconfig,
-            checkout_mode,
-            permission_backend,
-        ) = _load_manifest(codex_home)
+        install_state = _load_install_state(codex_home, orchestra_home)
     except (OSError, SyncError) as exc:
         return _result("blocked", "uninstall", [], str(exc))
+    installed = install_state["entries"]
+    present = install_state["present"]
+    auxiliary_drift = list(install_state["auxiliary_drift"])
+    modelconfig = install_state["modelconfig"]
+    checkout_mode = install_state["checkout_mode"]
+    permission_backend = install_state["permission_backend"]
+    installed_hosts = set(install_state["installed_hosts"])
     result_context = {
         "permission_backend": permission_backend,
         "permission_profile": (
@@ -1957,15 +2356,55 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
     }
     if not present:
         return _result("ok", "uninstall", [], **result_context)
-    roots = _roots(home, codex_home)
-    current = dict(installed)
-    changes: list[dict[str, str]] = []
-    drift: list[str] = []
-    for key in sorted(installed):
-        owner = installed[key]
+    roots = _roots(home, codex_home, orchestra_home)
+    if install_state["migration_pending"]:
+        try:
+            _write_manifest(
+                orchestra_home,
+                installed,
+                installed_hosts,
+                modelconfig,
+                checkout_mode,
+                permission_backend,
+            )
+            legacy_path = install_state.get("legacy_path")
+            if legacy_path is not None and legacy_path.exists():
+                legacy_path.unlink()
+            auxiliary_drift = [
+                item
+                for item in auxiliary_drift
+                if item != "install manifest migration pending"
+            ]
+        except (OSError, SyncError) as exc:
+            return _result(
+                "partial" if _manifest_file(codex_home, orchestra_home).exists() else "blocked",
+                "uninstall",
+                [],
+                f"install manifest migration failed: {exc}",
+                **result_context,
+            )
+
+    target_hosts = set(HOST_SCOPES if host == "all" else (host,))
+    remaining_hosts = installed_hosts - target_hosts
+    remove_scopes = set(target_hosts)
+    if not remaining_hosts:
+        remove_scopes.add("shared")
+    target_entries = [
+        (key, installed[key])
+        for key in sorted(installed)
+        if installed[key]["scope"] in remove_scopes
+    ]
+    if not target_entries:
+        return _result("ok", "uninstall", [], **result_context)
+
+    prepared: list[tuple[tuple[str, str], dict[str, str], dict[str, Any], Path, Path]] = []
+    preflight_errors: list[str] = []
+    for key, owner in target_entries:
+        backup_root = roots[_backup_root_name(owner)]
         try:
             path = _safe_path(roots[owner["root"]], owner["path"])
             data = _read_file(path, owner["path"])
+            recovery = None
             if owner["type"] in {"managed_block", "managed_config"}:
                 span = _entry_span(owner, data)
                 recovery = (
@@ -1982,18 +2421,14 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
             else:
                 matches = _digest(data) == owner["digest"]
             if not matches:
-                drift.append(f"{owner['path']}: owned content drift")
-                continue
+                raise SyncError("owned content drift")
             backup_rel = _backup_path(owner["root"], owner["path"])
-            backup = _safe_path(codex_home, backup_rel)
-            if backup.exists() and owner.get("backup") != backup_rel:
-                drift.append(f"{owner['path']}: unmanaged backup collision")
-                continue
-        except (OSError, SyncError) as exc:
-            drift.append(f"{owner['path']}: {exc}")
-            continue
-
-        try:
+            backup = _safe_path(backup_root, backup_rel)
+            if backup.exists() and (
+                owner.get("backup") != backup_rel
+                or owner.get("backup_root") != _backup_root_name(owner)
+            ):
+                raise SyncError("unmanaged backup collision")
             stale = dict(owner)
             stale["content"] = b""
             stale["_keep_empty"] = (
@@ -2010,29 +2445,49 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 operation["config_recovery"] = recovery
             if owner["type"] == "managed_config" and "backup" in owner:
                 operation["restore"] = _read_file(backup, owner["backup"])
-            state = _apply_operation(operation, roots, codex_home)
+            prepared.append((key, owner, operation, path, backup_root))
+        except (OSError, SyncError) as exc:
+            preflight_errors.append(f"{owner['path']}: {exc}")
+    current = dict(installed)
+    changes: list[dict[str, str]] = []
+    for key, owner, operation, path, backup_root in prepared:
+        try:
+            state = _apply_operation(operation, roots, backup_root)
             next_current = dict(current)
             next_current.pop(key)
+            next_hosts = set(remaining_hosts)
+            next_hosts.update(
+                entry["scope"]
+                for entry in next_current.values()
+                if entry["scope"] in HOST_SCOPES
+            )
+            if not next_hosts and any(
+                entry["scope"] == "shared" for entry in next_current.values()
+            ):
+                next_hosts.update(installed_hosts & target_hosts)
             try:
                 next_permission_backend = (
-                    None
-                    if key == ("codex_home", "config.toml")
-                    else permission_backend
+                    permission_backend if "codex" in next_hosts else None
                 )
-                _write_manifest(
+                next_modelconfig = modelconfig if "codex" in next_hosts else None
+                next_checkout_mode = checkout_mode if next_hosts else None
+                _persist_manifest(
+                    host,
                     codex_home,
+                    orchestra_home,
                     next_current,
-                    modelconfig,
-                    checkout_mode,
+                    next_hosts,
+                    next_modelconfig,
+                    next_checkout_mode,
                     next_permission_backend,
                 )
             except (OSError, SyncError) as exc:
                 try:
-                    _restore_operation(state, codex_home)
+                    _restore_operation(state, backup_root)
                 except (OSError, SyncError) as restore_exc:
                     exc = SyncError(f"{exc}; local compensation failed: {restore_exc}")
                 status = "partial" if changes else "blocked"
-                detail = "; ".join([*drift, *auxiliary_drift, str(exc)])
+                detail = "; ".join([*preflight_errors, *auxiliary_drift, str(exc)])
                 return _result(
                     status,
                     "uninstall",
@@ -2042,15 +2497,24 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                     **result_context,
                 )
             current = next_current
+            modelconfig = next_modelconfig
+            checkout_mode = next_checkout_mode
             permission_backend = next_permission_backend
-            if owner["type"] == "managed_config" and backup.exists():
-                backup.unlink()
-                _cleanup_empty(backup.parent, codex_home)
+            owned_backup = (
+                _safe_path(backup_root, owner["backup"])
+                if owner["type"] == "managed_config" and "backup" in owner
+                else None
+            )
+            if owned_backup is not None and owned_backup.exists():
+                owned_backup.unlink()
+                _cleanup_empty(owned_backup.parent, backup_root)
             changes.extend(_preview([operation]))
             _cleanup_empty(path.parent, roots[owner["root"]])
         except (OSError, SyncError) as exc:
             status = "partial" if changes else "blocked"
-            detail = "; ".join([*drift, *auxiliary_drift, f"{owner['path']}: {exc}"])
+            detail = "; ".join(
+                [*preflight_errors, *auxiliary_drift, f"{owner['path']}: {exc}"]
+            )
             return _result(
                 status,
                 "uninstall",
@@ -2060,15 +2524,25 @@ def uninstall(home: Path, codex_home: Path) -> dict[str, Any]:
                 **result_context,
             )
     try:
-        _, _, remaining_auxiliary, _, _, _ = _load_manifest(codex_home)
-        _cleanup_empty((codex_home / "orchestra/backups"), codex_home)
+        remaining_state = _load_install_state(codex_home, orchestra_home)
+        remaining_auxiliary = list(remaining_state["auxiliary_drift"])
+        for root in (codex_home, orchestra_home):
+            _cleanup_empty((root / "orchestra/backups"), root)
         _cleanup_empty((codex_home / "orchestra"), codex_home)
     except (OSError, SyncError) as exc:
-        drift.append(f"manifest: {exc}")
+        manifest_drift = [f"manifest: {exc}"]
         remaining_auxiliary = auxiliary_drift
-    detail = "; ".join([*drift, *remaining_auxiliary])
+    else:
+        manifest_drift = []
+    result_context["permission_backend"] = permission_backend
+    result_context["permission_profile"] = (
+        PERMISSION_PROFILE if permission_backend == "profile" else None
+    )
+    detail = "; ".join([*preflight_errors, *manifest_drift, *remaining_auxiliary])
     return _result(
-        "partial" if drift or remaining_auxiliary else "ok",
+        "partial"
+        if preflight_errors or manifest_drift or remaining_auxiliary
+        else "ok",
         "uninstall",
         changes,
         detail,
@@ -2084,12 +2558,15 @@ def _parser() -> argparse.ArgumentParser:
     status_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
     status_parser.add_argument("--checkout-mode", choices=CHECKOUT_MODES)
     status_parser.add_argument("--worktree-root", type=Path)
+    status_parser.add_argument("--host", choices=HOSTS, default="codex")
     apply_parser = subparsers.add_parser("apply")
     apply_parser.add_argument("--dry-run", action="store_true")
     apply_parser.add_argument("--modelconfig", choices=MODELCONFIGS)
     apply_parser.add_argument("--checkout-mode", choices=CHECKOUT_MODES)
     apply_parser.add_argument("--worktree-root", type=Path)
-    subparsers.add_parser("uninstall")
+    apply_parser.add_argument("--host", choices=HOSTS, default="codex")
+    uninstall_parser = subparsers.add_parser("uninstall")
+    uninstall_parser.add_argument("--host", choices=HOSTS, default="codex")
     return parser
 
 
@@ -2098,8 +2575,9 @@ def main(argv: list[str] | None = None) -> int:
     source_root = Path(__file__).resolve().parents[2]
     home = Path(os.environ["HOME"])
     codex_home = Path(os.environ.get("CODEX_HOME", str(home / ".codex")))
+    host = getattr(args, "host", "codex")
     if args.command == "uninstall":
-        payload = uninstall(home, codex_home)
+        payload = uninstall(home, codex_home, host=host)
     else:
         payload = synchronize(
             source_root,
@@ -2110,6 +2588,7 @@ def main(argv: list[str] | None = None) -> int:
             modelconfig=getattr(args, "modelconfig", None),
             checkout_mode=getattr(args, "checkout_mode", None),
             worktree_root=getattr(args, "worktree_root", None),
+            host=host,
         )
     print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
     return 2 if payload["status"] == "blocked" else 0

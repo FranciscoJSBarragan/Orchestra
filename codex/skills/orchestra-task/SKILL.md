@@ -1,20 +1,22 @@
 ---
 name: orchestra-task
-description: Use only for an explicit `$orchestra-task` invocation or an unequivocal request to prepare, minimally decompose, adopt, continue, transfer, inspect, archive, or restore one Orchestra Kanban task. Do not use for ordinary mentions of tasks or Orchestra. Preparation never creates a Codex chat, branch, worktree, or implementation run; adoption happens only from the user's current native Codex chat and then activates the normal `$orchestra` workflow.
+description: Use only for an explicit `$orchestra-task` invocation or an unequivocal request to prepare, minimally decompose, adopt, continue, transfer, reclaim, inspect, archive, or restore one Orchestra Kanban task. Do not use for ordinary mentions of tasks or Orchestra. Preparation never creates a host chat, branch, worktree, or implementation run; adoption happens only from the user's current native Codex or Cursor chat and then activates the normal `$orchestra` workflow.
 ---
 
 # Orchestra Task
 
-Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and invoke the
+Use `${ORCHESTRA_HOME:-$HOME/.orchestra}` as the installed Orchestra runtime
+home and invoke the
 deterministic helper at
-`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py`. Never write
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py`. If that helper is
+missing, use `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py`. Never write
 `control.sqlite3` or task documents directly. Human task IDs are
 case-insensitive; always display their canonical uppercase form.
 
 ## Prepare a task card
 
 Preparation is discovery, not Orchestra execution. It never creates or owns a
-Codex chat, branch, worktree, plan, implementation process, or permission
+host chat, branch, worktree, plan, implementation process, or permission
 profile.
 
 1. Require a non-empty objective. Resolve the canonical Git root when known;
@@ -34,12 +36,12 @@ profile.
    revision by digest.
 
 ```sh
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" \
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
   task create --title "<title>" --brief "<brief>" \
   --source-harness codex --idempotency-key "<stable-key>" \
   --repository "<canonical-root>"
 
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" \
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
   task prepare --task "<short-id>" --repository "<canonical-root>" \
   --repository-context-file "<private-context-file>" \
   --specification-file "<private-specification-file>" --confirmed
@@ -68,7 +70,7 @@ response maps manifest keys to human IDs. Never retry with a new idempotency key
 after an uncertain result; first query the source card.
 
 ```sh
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" \
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
   task decompose --task "<short-id>" --manifest-file "<private-manifest.json>" \
   --confirmed --idempotency-key "<stable-key>"
 ```
@@ -82,15 +84,17 @@ self-contained specification because dependencies order work but do not carry
 context. Decomposition is fixed after creation; material restructuring creates
 a new initiative instead of rewriting ready or adopted cards.
 
-## Adopt or continue from a native Codex chat
+## Adopt or continue from a native host chat
 
 When the user says `Start A1 with Orchestra`, `Arranca A1 con Orchestra`, or
-an equivalent unequivocal instruction in a native Codex chat:
+an equivalent unequivocal instruction in a native Codex or Cursor chat:
 
 1. Run `task adopt --task <short-id> --repository <canonical-root>` from that
-   chat. The helper requires the host-provided `CODEX_THREAD_ID`; never supply,
-   invent, copy, or override it. A non-native harness without that identity
-   cannot adopt.
+   chat. The helper requires the adapter-provided conversation identity; never
+   supply, invent, copy, or override it. On Codex that identity is
+   `CODEX_THREAD_ID`. On Cursor the plugin's `sessionStart` hook verifies
+   `session_id == conversation_id` and exposes that exact value as
+   `ORCHESTRA_HOST_THREAD_ID`. If the identity is missing, adopt is `blocked`.
 2. Open the returned private context and specification paths. Verify that the
    objective matches the user's instruction and adopt the specification as
    already confirmed context. Never expose the marker or private document body
@@ -109,18 +113,40 @@ an equivalent unequivocal instruction in a native Codex chat:
    occurs before the checkout exists.
 6. If `resume_existing_checkout` is true, first recover the exact existing
    Orchestra worktree and approved `plan.md`; do not create another checkout.
-   Block unless Git and plan identity prove a safe resume.
+   Do not require a clean worktree or a phase commit. Preserve uncommitted
+   unique work. Report observed Git and plan status (`clean` or `dirty`,
+   `active`/`blocked`/`completed`, HEAD) and continue. Skip the previous host's
+   wait and close contract; spawn fresh workers on this host. Re-read this
+   host's assignment matrix and recommend an assigned tier; a recorded Codex
+   tier is not a Cursor assignment. Permissions stay those of the current chat.
 
-## Transfer, finish, and manage
+## Transfer, reclaim, finish, and manage
 
 - Transfer only from the adopting chat at a stable Orchestra checkpoint:
   `task transfer --task <short-id> --stable-checkpoint`. The next native chat
   adopts the same UUID and resumes the existing worktree and plan.
+- Reclaim only from a different native host chat after an explicit user
+  resume or reclaim of that ID (`retoma A1`, `continue A1 here`, `reclaim A1`).
+  That instruction is the authority checkpoint; do not ask again while the
+  facts are unchanged. Reclaim abandons the previous chat; do not use it while
+  that chat is still working. The helper does not ping the previous host.
+  Pass `--authorized` only after that explicit instruction in this chat:
+
+  ```sh
+  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+    task reclaim --task "<short-id>" --repository "<canonical-or-checkout>" \
+    --authorized
+  ```
+
+  The helper keeps the card `adopted`, swaps `adopted_thread_id`, and returns
+  `resume_existing_checkout: true`. Ordinary `task adopt` of a card owned by
+  another thread remains `busy`. Then activate `$orchestra` and follow the
+  resume rule above.
 - Mark the Kanban card completed from the adopting chat after the reviewed
   terminal commit exists:
 
   ```sh
-  python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" \
+  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
     task finish --task "<short-id>" --repository "<task-checkout>" \
     --task-revision "<terminal-sha>"
   ```
@@ -132,7 +158,7 @@ an equivalent unequivocal instruction in a native Codex chat:
   exact result from the owning native chat:
 
   ```sh
-  python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" \
+  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
     task record-delivery --task "<short-id>" --repository "<base-checkout>" \
     --task-revision "<terminal-sha>" \
     --delivery-revision "<integrated-base-sha>" \
@@ -146,7 +172,9 @@ an equivalent unequivocal instruction in a native Codex chat:
 - Inspect with `task get` or `task list`; add later context with `task note`.
 - Archive only on explicit direction. An adopted task must first reach a stable
   finish or transfer checkpoint. Archive and restore never delete Git,
-  documents, worktrees, plans, or Codex chats.
+  documents, worktrees, plans, or host chats.
 - On `busy`, `blocked`, or digest/identity mismatch, report the exact reason and
-  stop. Never steal ownership, edit the database, start Codex through a CLI or
-  App Server, replay a turn, or bypass the current chat's permissions.
+  stop. Never steal ownership except through `task reclaim --authorized` after
+  an explicit reclaim or resume in this chat. Never invent identity, edit the
+  database, start a host through a CLI or App Server, replay a turn, or bypass
+  the current chat's permissions.

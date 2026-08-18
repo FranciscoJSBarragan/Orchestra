@@ -19,7 +19,7 @@ from orchestra_hub.db import (  # noqa: E402
 class DbTests(unittest.TestCase):
     def test_supported_schema_versions(self) -> None:
         self.assertEqual(SUPPORTED_SCHEMA_VERSIONS, frozenset({1}))
-        self.assertEqual(SUPPORTED_CONTROL_SCHEMA_VERSIONS, frozenset({3, 4}))
+        self.assertEqual(SUPPORTED_CONTROL_SCHEMA_VERSIONS, frozenset({3, 4, 5}))
 
     def test_missing_file_raises_hub_unavailable_missing(self) -> None:
         missing = Path(tempfile.mkdtemp()) / "absent.sqlite3"

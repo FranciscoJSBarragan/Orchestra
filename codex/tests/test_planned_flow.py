@@ -204,6 +204,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
             "architecture_guidance.md",
             "shared_conduct.md",
+            "host_codex.md",
         }
         self.assertEqual({path.name for path in self.references.iterdir()}, expected)
         for name in PLAYBOOK_NAMES:
@@ -966,9 +967,9 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertLess(isolation, repository_dispatch)
         normalized = " ".join(self.skill.split())
         for invariant in (
-            "`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`",
+            "`${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode`",
             "`managed` or `hybrid`",
-            "`${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`",
+            "`${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root`",
             "`$HOME/.orchestra/worktrees`",
             "`git worktree add`",
             "configured upstream",
@@ -1074,17 +1075,20 @@ class PlannedFlowContractTests(unittest.TestCase):
     ) -> None:
         normalized = " ".join(self.skill.split())
         for contract in (
-            "`wait_agent` in non-interruptive ten-minute windows",
+            "host wait contract in non-interruptive ten-minute windows",
             "`timeout_ms: 600000`",
-            "returns as soon as an agent reaches a final state",
-            "`timed_out` means only that the agent is still working",
-            "wait again without `send_input`",
-            "`interrupt: true`",
+            "Completion wakes the root immediately",
+            "timeout means only that the agent is still working",
+            "wait again without a status request",
             "After 30 accumulated minutes",
             "elapsed time alone is not a failure",
             "A normal timeout is not a user-visible transition",
         ):
             self.assertIn(contract, normalized)
+        host_codex = (
+            ROOT / "codex/skills/orchestra/references/host_codex.md"
+        ).read_text()
+        self.assertIn("`wait_agent` in non-interruptive ten-minute windows", host_codex)
 
     def test_planning_assigns_full_suite_only_to_independent_verification(self) -> None:
         planning = (self.references / "technical_planning.md").read_text()
@@ -1234,9 +1238,11 @@ class PlannedFlowContractTests(unittest.TestCase):
                 "reasoning_effort": "max",
             },
         )
-        normalized = " ".join(self.skill.split())
-        assigned_first = normalized.index("Always attempt the installed assignment first")
-        fallback = normalized.index("Luna and reasoning `high`")
+        host_codex = " ".join(
+            (ROOT / "codex/skills/orchestra/references/host_codex.md").read_text().split()
+        )
+        assigned_first = host_codex.index("Always attempt the installed assignment first")
+        fallback = host_codex.index("Luna and reasoning `high`")
         self.assertLess(assigned_first, fallback)
         for contract in (
             "Only when a `repository_context` spawn is rejected before execution",
@@ -1250,7 +1256,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "use this fallback for another capability",
             "If any other capability's assigned model is unsupported, return `blocked`",
         ):
-            self.assertIn(contract, normalized)
+            self.assertIn(contract, host_codex)
 
     def test_git_worktree_contract_isolated_collision_and_safe_cancel(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1559,7 +1565,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             "reuse it for affected reruns",
             "Keep it open for meaningful delta review",
             "same reviewer",
-            "call `close_agent`",
+            "host close contract",
+            "`close_agent`",
             "so descendants close as well",
             "Under V2, where no true close operation is exposed",
             "require every phase agent to be `completed`",
@@ -1567,7 +1574,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(contract, routing)
         self.assertLess(
-            routing.index("call `close_agent`"),
+            routing.index("host close contract"),
             routing.index("Have the root commit the accepted phase"),
         )
         self.assertIn(
@@ -1619,7 +1626,7 @@ class PlannedFlowContractTests(unittest.TestCase):
                 "never changes it or blocks execution solely because it differs",
                 normalized,
             )
-            self.assertIn("When Guardian is active", normalized)
+            self.assertIn("Guardian is active", normalized)
             self.assertIn("Auto-review", normalized)
             self.assertIn("protected boundary", normalized)
             self.assertIn(
@@ -1738,7 +1745,6 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
 
         protocol_sources = (
-            self.skill,
             (ROOT / "docs/WORKFLOW.md").read_text(),
             (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text(),
         )
@@ -1750,6 +1756,10 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn("no true close operation", normalized)
             self.assertIn("completed", normalized)
             self.assertIn("no active descendant", normalized)
+        skill_close = " ".join(self.skill.lower().split())
+        self.assertIn("host close contract", skill_close)
+        self.assertIn("close_agent", skill_close)
+        self.assertIn("completed", skill_close)
 
     def test_commit_and_pr_observation_remain_root_owned(self) -> None:
         commit_skill = (
@@ -1826,9 +1836,9 @@ class PlannedFlowContractTests(unittest.TestCase):
     def test_user_selects_and_can_transition_tier_without_restart(self) -> None:
         routing = " ".join(self.skill.split())
         for contract in (
-            "The user may still choose `luna` or `standard` after a higher recommendation",
+            "The user may still choose `luna`, `minimal`, or `standard` after a higher recommendation",
             "never waives separate authority gates",
-            "active tier may change among those available in the selected mode",
+            "active tier may change among those assigned in the selected Codex mode or Cursor host matrix",
             "Never change tier unilaterally",
             "Do not revert, restart, or create a transition commit",
             "replacement worker owns the remaining phase",
@@ -1836,7 +1846,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         ):
             self.assertIn(contract, routing)
         for model_contract in (
-            "run `python3 \"${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/session_model.py\"` once",
+            "run `python3 \"${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/session_model.py\"` once",
             "immutable lookup mode for the task",
             "current session helper returns the same mode",
             "Changing `native` and `external` requires a new task",
@@ -1907,7 +1917,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertRegex(normalized, r"(Do not retry|without retrying) the selector")
             self.assertIn("explicitly informational, non-blocking", normalized)
             self.assertIn(
-                "does not change command, test, or `wait_agent` timeouts",
+                "does not change command, test, or host-wait timeouts",
                 normalized.lower(),
             )
 

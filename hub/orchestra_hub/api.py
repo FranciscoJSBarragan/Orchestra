@@ -234,8 +234,8 @@ def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
         visible_status = "archived" if row["disposition"] == "archived" else status
         next_action = {
             "draft": "Complete repository context and confirm the specification",
-            "ready": f"Open a native Codex chat and ask it to start {row['short_id']} with Orchestra",
-            "adopted": "Continue in the adopting native Codex chat",
+            "ready": f"Open a native host chat and ask it to start {row['short_id']} with Orchestra",
+            "adopted": "Continue in the adopting native host chat",
             "completed": "",
         }.get(status, "")
         blocked_by = dependency_views.get(str(row["id"]), [])

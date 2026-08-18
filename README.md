@@ -1,6 +1,7 @@
 # Orchestra
 
-Orchestra is a Codex-native, cost-efficient, multi-agent software-delivery workflow.
+Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex
+and Cursor.
 
 It helps an individual developer move from an idea or an explicitly activated
 Orchestra request through a runnable foundation, confirmed specification,
@@ -34,10 +35,11 @@ together.
 ## Delivery model
 
 Orchestra starts only from explicit activation. It reuses the conversation,
-classifies any prior candidate checkpoint, and recommends an available tier.
-Native offers standard and critical; external additionally offers Luna as a
-cost-focused opt-in for ordinary, bounded work when the user explicitly
-prioritizes cost. It then creates one collision-free
+classifies any prior candidate checkpoint, and recommends an available assigned
+tier. Codex native offers standard and critical; Codex external additionally
+offers Luna as a cost-focused opt-in for ordinary, bounded work when the user
+explicitly prioritizes cost. Cursor offers minimal, standard, and critical with
+no native/external mode; this cut assigns minimal and standard and recommends standard. It then creates one collision-free
 `orchestra/<task-slug>[-N]` branch before repository analysis. Managed mode
 creates a dedicated Git worktree under a portable Orchestra root; opt-in hybrid
 mode uses the current clean primary checkout or linked worktree and creates the
@@ -46,7 +48,7 @@ supports hold, PR, or local integration when policy allows.
 
 After plan approval, Orchestra scales implementation, review, and verification
 to the active tier. The user may direct a safe tier change among the tiers
-available in the selected mode without restarting the workflow or discarding
+available assigned tiers without restarting the workflow or discarding
 valid work. Tier choice changes model and scrutiny intensity; it never waives
 separate authority for production, security, payments, destructive operations,
 merge, release, or deployment.
@@ -54,7 +56,7 @@ merge, release, or deployment.
 The four profiles are `orchestra_analyst`,
 `orchestra_implementation_worker`, `orchestra_reviewer`, and
 `orchestra_verifier`. Namespacing prevents Orchestra from intercepting ordinary
-Codex agents. The root selects explicit capability assignments and their
+host agents. The root selects explicit capability assignments and their
 applicable internal references. The approved
 formal plan is written directly as `active` to one root-owned, unversioned path
 at `<task-worktree>/.orchestra/plan.md`. Semantic reports live beside it under
@@ -70,7 +72,7 @@ verification uses ordered argument arrays, not shell command strings.
 
 The source repository is authoritative. Runtime resources are installed through
 repository-driven direct sync, with one owner for managed files and no changes
-to unrelated Codex configuration.
+to unrelated host configuration.
 
 ## First task quickstart
 
@@ -105,14 +107,15 @@ formal planning, independent review, phase commits, or delivery coordination.
 - Required local services and credentials for the project; Orchestra identifies
   their categories but does not print or persist secret values.
 
-Choose `dual` to expose both native V2 and external V1 Orchestra routing. The
-root model selector then chooses the mode automatically for each new task:
-native Sol selects V2, while the Orchestra Sol compatibility alias selects V1.
-Choose legacy `native` or `external` only when one fixed matrix is preferred.
-External assignments require their configured providers and model identifiers.
-Dual mode also requires CodexBridge in `catalog` mode with a refreshed catalog
-that publishes the reserved `orchestra-v1/` aliases. Orchestra sync does not
-change or restart CodexBridge.
+Choose `dual` to expose both Codex native V2 and external V1 Orchestra routing.
+The Codex root model selector then chooses the mode automatically for each new
+Codex task: native Sol selects V2, while the Orchestra Sol compatibility alias
+selects V1. Choose legacy `native` or `external` only when one fixed Codex
+matrix is preferred. External assignments require their configured providers
+and model identifiers. Dual mode also requires CodexBridge in `catalog` mode
+with a refreshed catalog that publishes the reserved `orchestra-v1/` aliases.
+Orchestra sync does not change or restart CodexBridge. Cursor ignores
+`--modelconfig` and reads `hosts/cursor` roles instead.
 
 ## Direct sync
 
@@ -124,6 +127,8 @@ python3 codex/scripts/sync.py status --modelconfig dual
 python3 codex/scripts/sync.py apply --dry-run --modelconfig dual
 python3 codex/scripts/sync.py apply --modelconfig dual
 python3 codex/scripts/sync.py apply --modelconfig dual --checkout-mode hybrid
+python3 codex/scripts/sync.py apply --host cursor
+python3 codex/scripts/sync.py apply --host all --modelconfig dual
 python3 codex/scripts/sync.py status --modelconfig native
 python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
 python3 codex/scripts/sync.py status
@@ -131,7 +136,10 @@ python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
 
-Choose `dual`, `native`, or `external` on the first apply. The install manifest
+`--host` is `codex`, `cursor`, or `all`. Default `codex` preserves existing
+installs and does not write `~/.cursor`. Shared skills still install under
+`$HOME/.agents/skills/` for any host. Choose `dual`, `native`, or `external` on
+the first Codex apply. The install manifest
 records that global choice, so later status and apply calls may omit
 `--modelconfig`. Passing another value previews or applies an atomic
 configuration switch. Do not switch the installed configuration while an
@@ -141,9 +149,11 @@ task opened with the matching root model entry.
 
 The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
 sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
-to `$CODEX_HOME/orchestra/worktree-root`. `--checkout-mode managed|hybrid`
+to `${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root` and, for Codex, also
+mirrors it at `$CODEX_HOME/orchestra/worktree-root`. `--checkout-mode managed|hybrid`
 selects the task-checkout strategy and is persisted at
-`$CODEX_HOME/orchestra/checkout-mode`; `managed` is the backward-compatible
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` with a Codex compatibility
+mirror; `managed` is the backward-compatible
 default. Hybrid mode uses either the primary checkout or a linked worktree when
 it is clean, but always creates a new `orchestra/*` branch before work and never
 implements directly on `main`. Dirty, detached, conflicted, or otherwise
@@ -167,7 +177,8 @@ User-owned `sandbox_mode`, `default_permissions`, conflicting permission
 profiles, or incompatible legacy sandbox tables block synchronization without
 changing the file. Sync takes reversible ownership of `approval_policy`,
 `approvals_reviewer`, and `default_permissions`; unrelated options such as
-`web_search` are preserved byte-for-byte. Task Control never launches Codex or
+`web_search` are preserved byte-for-byte. Task Control never launches an
+execution host or
 changes permissions; adoption uses the current native chat's configured choice.
 
 Restart the Codex host after a permission change so new agent sessions receive
@@ -187,14 +198,15 @@ Sync results use:
   the operation; resolve the named blocker before retrying.
 
 Thirteen skills and their internal playbook references install under
-`$HOME/.agents/skills/`. Four agent profiles install under
-`$CODEX_HOME/agents/`; capability assignments and runtime helpers install under
-`$CODEX_HOME/orchestra/`. When `CODEX_HOME` is unset it defaults to
-`$HOME/.codex`. The tool owns only destinations recorded in
-`$CODEX_HOME/orchestra/install-manifest.json` and the exactly marked Orchestra
-blocks in `$CODEX_HOME/AGENTS.md` and `$CODEX_HOME/config.toml`. Only the
-selected source matrix is installed, always at
-`$CODEX_HOME/orchestra/roles.toml`.
+`$HOME/.agents/skills/`. Shared helpers install under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/` and, for Codex, also under
+`$CODEX_HOME/orchestra/scripts/`. Four Codex agent profiles install under
+`$CODEX_HOME/agents/`; the Codex capability matrix installs under
+`$CODEX_HOME/orchestra/roles.toml`. The Cursor matrix installs under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. When
+`CODEX_HOME` is unset it defaults to `$HOME/.codex`. When `ORCHESTRA_HOME` is
+unset it defaults to `$HOME/.orchestra`. The tool owns only destinations
+recorded in the install manifest.
 
 Before replacing or removing an existing owned destination, the tool writes one
 current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.
@@ -205,14 +217,14 @@ restores unrelated user configuration.
 ## Coordination CLI
 
 Direct sync installs a fail-soft coordination helper at
-`$CODEX_HOME/orchestra/scripts/coordination.py`. Orchestra uses it to expose
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py`. Orchestra uses it to expose
 multiple active tasks, material agent activity, and revision-identified
 Markdown artifact locators without making telemetry authoritative:
 
 ```sh
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task list
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task show --task <uuid>
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" artifact list --task <uuid>
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task list
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task show --task <uuid>
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" artifact list --task <uuid>
 ```
 
 The helper lazily creates `$HOME/.orchestra/state.sqlite3` with mode `0600`.
@@ -233,14 +245,15 @@ executable, event ledger, heartbeat system, or dashboard in this version.
 
 Direct sync also installs `$orchestra-task` and its local JSON helper. Any
 harness can capture or prepare a card without activating Orchestra. New cards
-receive immutable IDs such as `A1`; a native Codex chat later adopts that ID
+receive immutable IDs such as `A1`; a native Codex or Cursor chat later adopts
+that ID
 and starts the normal visible Orchestra flow:
 
 ```sh
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task list
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task create \
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task list
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task create \
   --title "<title>" --brief "<objective>" --idempotency-key "<stable-key>"
-python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py" task prepare \
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task prepare \
   --task A1 --repository "<repo>" \
   --repository-context-file "<context>" \
   --specification-file "<specification>" --confirmed
@@ -263,8 +276,9 @@ recorded integration revision. The helper never pulls or transports context.
 The helper stores private state in `$HOME/.orchestra/control.sqlite3` and
 revision-bound documents below `$HOME/.orchestra/tasks/<id>/`. Direct sync also
 registers the local stdio `orchestra_tasks` MCP server, exposing capture,
-query, notes, preparation, confirmed decomposition, archive, and restore only. It cannot adopt a task,
-start Codex, create a worktree, or change permissions. From a native Codex chat,
+query, notes, preparation, confirmed decomposition, archive, and restore only. It cannot adopt, transfer, reclaim, finish, or record delivery for a task,
+start an execution host, create a worktree, or change permissions. From a native
+Codex or Cursor chat,
 say `Arranca A1 con Orchestra`; that chat adopts the UUID, activates normal
 Orchestra, and Coordinator registers the same UUID after checkout creation.
 The store never substitutes for the native conversation, approved `plan.md`,

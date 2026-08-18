@@ -79,6 +79,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra/references/runtime_verification.md",
     "codex/skills/orchestra/references/architecture_guidance.md",
     "codex/skills/orchestra/references/shared_conduct.md",
+    "codex/skills/orchestra/references/host_codex.md",
     "codex/skills/orchestra-role-analyst/SKILL.md",
     "codex/skills/orchestra-role-analyst/agents/openai.yaml",
     "codex/skills/orchestra-role-implementer/SKILL.md",
@@ -111,6 +112,13 @@ REQUIRED_PATHS = (
     "codex/tests/test_pr_flow.py",
     "codex/tests/test_local_integration.py",
     "codex/tests/test_sync.py",
+    "codex/tests/test_cursor_host.py",
+    "hosts/cursor/config/roles.cursor.toml",
+    "hosts/cursor/references/spawn.md",
+    "hosts/cursor/plugin/.cursor-plugin/plugin.json",
+    "hosts/cursor/plugin/commands/orchestra.md",
+    "hosts/cursor/plugin/hooks/hooks.json",
+    "hosts/cursor/plugin/scripts/session_identity.py",
 )
 
 PERMANENT_DOCS = (
@@ -123,8 +131,8 @@ PERMANENT_DOCS = (
 )
 
 IDENTITY = (
-    "Orchestra is a Codex-native, cost-efficient, multi-agent "
-    "software-delivery workflow."
+    "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex\n"
+    "and Cursor."
 )
 
 HISTORICAL_NARRATIVES = (
@@ -166,7 +174,7 @@ HISTORICAL_NARRATIVES = (
 ROADMAP_REQUIREMENTS = (
     "This roadmap is non-canonical. It does not override `VISION.md`, "
     "`docs/WORKFLOW.md`, `docs/ARCHITECTURE.md`, or `AGENTS.md`.",
-    "Plugin distribution remains deferred until all of these conditions hold:",
+    "Plugin and marketplace distribution remains deferred until all of these",
     "does not prescribe an implementation design.",
 )
 
@@ -745,6 +753,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         *(f"{name}.md" for name in PLAYBOOK_NAMES),
         f"{ARCHITECTURE_REFERENCE}.md",
         "shared_conduct.md",
+        "host_codex.md",
     }
     if not references.is_dir():
         failures.append("skill-contract: orchestra internal references are missing")
@@ -755,7 +764,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         ):
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
-                "one architecture reference, and one shared conduct reference"
+                "one architecture reference, one shared conduct reference, "
+                "and the Codex spawn adapter"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():
@@ -855,18 +865,19 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
             "${CODEX_HOME:-$HOME/.codex}/agents/",
             "selected managed or hybrid checkout is the only task checkout",
-            "${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode",
-            "${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root",
+            "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/",
+            "${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode",
+            "${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root",
             "timeout_ms: 600000",
             "Incomplete intended post-mutation cleanup is `partial`",
         ):
             if target not in text:
                 failures.append(f"runtime-contract: managed block must route to {target}")
-    fallback = "${CODEX_HOME:-$HOME/.codex}"
+    orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
     for name in (skill for skill in SKILL_NAMES if skill != "orchestra-project-start"):
         skill = root / f"codex/skills/{name}/SKILL.md"
-        if skill.is_file() and fallback not in skill.read_text(encoding="utf-8"):
-            failures.append(f"runtime-contract: {name} must state the Codex home fallback")
+        if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
+            failures.append(f"runtime-contract: {name} must state the Orchestra home")
     return failures
 
 
@@ -893,6 +904,7 @@ def check_direct_sync(root: Path) -> list[str]:
                 "LEGACY_AGENTS",
                 "HELPERS",
                 "MODELCONFIGS",
+                "HOSTS",
                 "PERMISSION_PROFILE",
                 "GUARDIAN_MIN_VERSION",
             }:
@@ -938,6 +950,10 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append(
             "sync-contract: modelconfig choices must be exactly native, external, and dual"
         )
+    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "all"):
+        failures.append(
+            "sync-contract: host choices must be exactly codex, cursor, and all"
+        )
     if constants.get("PERMISSION_PROFILE") != ":workspace":
         failures.append(
             "sync-contract: installs must select the built-in workspace profile"
@@ -960,6 +976,8 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append("sync-contract: CLI must expose --worktree-root")
     if '"--checkout-mode"' not in text:
         failures.append("sync-contract: CLI must expose --checkout-mode")
+    if '"--host"' not in text:
+        failures.append("sync-contract: CLI must expose --host")
     for destination in (
         ".agents/skills/",
         "agents/",
@@ -967,7 +985,10 @@ def check_direct_sync(root: Path) -> list[str]:
         "orchestra/worktree-root",
         "orchestra/checkout-mode",
         "orchestra/scripts/",
-        "orchestra/install-manifest.json",
+        "install-manifest.json",
+        "scripts/",
+        "hosts/cursor/roles.toml",
+        ".cursor/plugins/local/orchestra",
         "AGENTS.md",
         "config.toml",
     ):
@@ -1109,6 +1130,155 @@ def check_python_tests(root: Path) -> list[str]:
     return [f"python-tests: unittest discovery failed\n{output}"]
 
 
+CURSOR_CAPABILITIES = (
+    "repository_context",
+    "web_research",
+    "runtime_verification",
+    "browser_acceptance",
+    "technical_planning",
+    "architecture_analysis",
+    "difficult_debugging",
+    "general_implementation",
+    "frontend_implementation",
+    "independent_review",
+)
+CURSOR_LUNA_CAPABILITIES = {
+    "repository_context",
+    "web_research",
+    "runtime_verification",
+    "browser_acceptance",
+}
+CURSOR_STANDARD_MEDIUM_CAPABILITIES = set(CURSOR_LUNA_CAPABILITIES)
+CURSOR_STANDARD_HIGH_CAPABILITIES = {
+    "general_implementation",
+    "frontend_implementation",
+}
+CURSOR_STANDARD_XHIGH_CAPABILITIES = {
+    "technical_planning",
+    "architecture_analysis",
+    "difficult_debugging",
+    "independent_review",
+}
+ASSIGNMENT_FIELDS = {"profile", "subagent_type", "model", "effort"}
+
+
+def _cursor_assignment_failures(
+    tier: str,
+    assignments: object,
+    expected_model_effort: Callable[[str], tuple[str, str, str]],
+) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(assignments, dict) or set(assignments) != set(CURSOR_CAPABILITIES):
+        return [
+            f"cursor-contract: {tier} must define all ten capabilities and no extras"
+        ]
+    for capability, assignment in assignments.items():
+        if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
+            failures.append(
+                f"cursor-contract: {tier}.{capability} needs profile, "
+                "subagent_type, model, and effort"
+            )
+            continue
+        model, effort, worker = expected_model_effort(capability)
+        if assignment["model"] != model or assignment["effort"] != effort:
+            failures.append(
+                f"cursor-contract: {tier}.{capability} must be {model} {effort}"
+            )
+        if assignment["subagent_type"] != worker:
+            failures.append(
+                f"cursor-contract: {tier}.{capability} must dispatch {worker}"
+            )
+        if assignment["profile"] not in PROFILE_NAMES:
+            failures.append(
+                f"cursor-contract: {tier}.{capability} has an invalid profile"
+            )
+    return failures
+
+
+def check_cursor_host(root: Path) -> list[str]:
+    """Validate the Cursor adapter inventory, deferred critical, and spawn contract."""
+    failures: list[str] = []
+    roles_path = root / "hosts/cursor/config/roles.cursor.toml"
+    spawn_path = root / "hosts/cursor/references/spawn.md"
+    hooks_path = root / "hosts/cursor/plugin/hooks/hooks.json"
+    identity_path = root / "hosts/cursor/plugin/scripts/session_identity.py"
+    if not all(path.is_file() for path in (roles_path, spawn_path, hooks_path, identity_path)):
+        return failures
+    try:
+        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"cursor-contract: roles.cursor.toml is invalid: {error}"]
+    tiers = roles.get("tiers")
+    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard"}:
+        failures.append(
+            "cursor-contract: roles.cursor.toml must assign minimal and standard only"
+        )
+        return failures
+    if "critical" in tiers:
+        failures.append("cursor-contract: critical must remain unassigned")
+
+    def minimal_contract(capability: str) -> tuple[str, str, str]:
+        if capability in CURSOR_LUNA_CAPABILITIES:
+            return "gpt-5.6-luna", "high", "luna-worker"
+        return "cursor-grok-4.6", "medium", "grok-worker"
+
+    def standard_contract(capability: str) -> tuple[str, str, str]:
+        if capability in CURSOR_STANDARD_MEDIUM_CAPABILITIES:
+            return "cursor-grok-4.6", "medium", "grok-worker"
+        if capability in CURSOR_STANDARD_HIGH_CAPABILITIES:
+            return "cursor-grok-4.6", "high", "grok-worker"
+        return "cursor-grok-4.6", "xhigh", "grok-worker"
+
+    failures.extend(_cursor_assignment_failures("minimal", tiers.get("minimal"), minimal_contract))
+    failures.extend(
+        _cursor_assignment_failures("standard", tiers.get("standard"), standard_contract)
+    )
+    spawn = spawn_path.read_text(encoding="utf-8")
+    for required in (
+        "fresh",
+        "Task",
+        "run_in_background",
+        "resume",
+        "resume: self",
+        "luna-worker",
+        "grok-worker",
+        "isolated",
+        "matrix row is not assigned",
+        "cursor-grok-4.6-xhigh",
+    ):
+        if required not in spawn:
+            failures.append(f"cursor-contract: spawn.md must name {required}")
+    try:
+        hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as error:
+        failures.append(f"cursor-contract: hooks.json is invalid: {error}")
+    else:
+        expected_hooks = {
+            "version": 1,
+            "hooks": {
+                "sessionStart": [
+                    {"command": "python3 ./scripts/session_identity.py"}
+                ]
+            },
+        }
+        if hooks != expected_hooks:
+            failures.append(
+                "cursor-contract: sessionStart must invoke the identity bridge exactly once"
+            )
+    identity = identity_path.read_text(encoding="utf-8")
+    for required in (
+        "conversation_id",
+        "session_id",
+        "ORCHESTRA_HOST_THREAD_ID",
+        "return 2",
+    ):
+        if required not in identity:
+            failures.append(
+                f"cursor-contract: session identity bridge must name {required}"
+            )
+    return failures
+
+
 Check = Callable[[Path], list[str]]
 QUICK_CHECKS: tuple[Check, ...] = (
     check_required_paths,
@@ -1119,6 +1289,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_roles_and_profiles,
     check_skills_and_runtime,
     check_direct_sync,
+    check_cursor_host,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

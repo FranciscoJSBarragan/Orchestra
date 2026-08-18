@@ -86,8 +86,9 @@ def insert_prepared_task(database: Path, **overrides) -> dict:
         "preparation_status": "ready", "prepared_revision": HEX40,
         "repository_context_digest": "b" * 64, "specification_digest": "c" * 64,
         "specification_confirmed_at": "2026-08-02T18:00:00Z",
-        "adopted_thread_id": None, "adopted_revision": None,
-        "adopted_at": None, "previous_thread_id": None,
+        "adopted_thread_id": None, "adopted_harness": None,
+        "adopted_revision": None, "adopted_at": None,
+        "previous_thread_id": None, "previous_harness": None,
         "transfer_generation": 0, "transfer_requested_at": None,
         "completed_at": None, "initiative_id": None,
         "decomposition_reason": None, "repository_common_dir": None,
@@ -117,6 +118,8 @@ def insert_prepared_task(database: Path, **overrides) -> dict:
                     "delivery_kind", "delivered_at",
                 ]
             )
+        if version >= 5:
+            columns.extend(["adopted_harness", "previous_harness"])
         columns.extend(["created_at", "updated_at"])
         connection.execute(
             f"INSERT INTO tasks ({', '.join(columns)}) VALUES "

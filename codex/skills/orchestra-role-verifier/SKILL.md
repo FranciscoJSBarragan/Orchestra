@@ -20,7 +20,7 @@ phase. Availability preserves agent context, not tool resources: follow shared
 resource hygiene at every stable or blocked handoff and recreate any process,
 terminal session, or task tab that a later rerun needs.
 
-When the packet supplies a coordination task identifier, use only `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `verification-report` for each capability and evaluated revision directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-verification-report.md` file and return that exact file name. Coordination writes are private telemetry and never reinterpret evidence.
+When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `verification-report` for each capability and evaluated revision directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-verification-report.md` file and return that exact file name. Coordination writes are private telemetry and never reinterpret evidence.
 
 ## Input
 

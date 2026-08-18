@@ -2,8 +2,9 @@
 
 ## Architectural objective
 
-Build a Codex-native orchestration product whose complexity is dominated by
-software delivery work, not by its own control plane.
+Build a multi-host orchestration product whose complexity is dominated by
+software delivery work, not by its own control plane. Codex and Cursor are
+equal execution hosts; shared skills, helpers, and Git remain one copy.
 
 ```mermaid
 flowchart LR
@@ -33,8 +34,10 @@ Orchestra/
 │   ├── ARCHITECTURE.md
 │   └── ROADMAP.md              # non-canonical sequencing
 ├── .githooks/                 # versioned thin wrappers only
+├── hosts/
+│   └── cursor/                # Cursor spawn, roles, local plugin
 └── codex/
-    ├── agents/                # four behavior-only base profiles
+    ├── agents/                # four Codex TOML base profiles
     ├── control/               # local prepared-task Kanban and native-chat ownership
     ├── skills/                # public lanes and internal playbook references
     ├── scripts/               # deterministic mechanical helpers
@@ -48,8 +51,8 @@ Orchestra/
 `codex/control/orchestra_control` and the thin `task_control.py` entry point own
 one private prepared-task Kanban. Their direct consumers are
 `$orchestra-task`, the stdio MCP adapter, the read-only Hub, and harnesses using
-the JSON CLI. Capture and preparation are inert. They never launch Codex,
-create a checkout, select permissions, or own an implementation process.
+the JSON CLI. Capture and preparation are inert. They never launch an execution
+host, create a checkout, select permissions, or own an implementation process.
 
 `control.sqlite3` owns UUID and immutable human ID, briefs, origin references,
 notes, preparation state, revision and document digests, native-chat ownership,
@@ -57,10 +60,15 @@ and transfer generation. Complete private context, specification, and marker
 documents live under `$HOME/.orchestra/tasks/<short-id>/`. The v3 migration
 leaves preexisting tasks without human IDs and retains the old run, turn, and
 interaction tables as read-only legacy history. New public code exposes no App
-Server operation. Native-chat adoption requires the host-provided
-`CODEX_THREAD_ID`; the chat then invokes normal Orchestra. Coordinator receives
-the same UUID only after checkout creation. Hub joins both stores by UUID and
-remains GET-only.
+Server operation. Native-chat adoption requires the adapter-provided conversation
+identity (`CODEX_THREAD_ID` on Codex; on Cursor, the plugin `sessionStart` hook
+verifies `session_id == conversation_id` and exports that value as
+`ORCHESTRA_HOST_THREAD_ID`). The
+chat then invokes normal Orchestra. Coordinator receives the same UUID only
+after checkout creation. Hub joins both stores by UUID and remains GET-only.
+Cooperative transfer remains owning-chat plus stable checkpoint. When that
+chat cannot release the card, explicit reclaim from another native host chat
+swaps ownership without passing through `ready`.
 
 ### Orchestrator
 
@@ -401,15 +409,43 @@ native-chat delivery registration; the CLI supplies current Git identity and
 ancestry evidence. The Hub accepts control schemas v3 and v4 during migration,
 projects initiative/dependency fields through an allowlist, and stays GET-only.
 
+## Host adapters
+
+Shared product, skills, packets, artifacts, Git, and the four role skills are
+host-neutral. Each execution host supplies only spawn/wait/close, the model
+matrix, conversation identity, permissions, and `browser_route`.
+
+The root detects the host from available tools: Codex when `spawn_agent` and
+`wait_agent` exist; Cursor when `Task` exists. It never mixes protocols in one
+task. Codex keeps `fork_turns: none`, V1 `close_agent`, and V2 completed-state
+evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
+phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
+`subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
+dispatch API.
+
+Cursor has no native/external mode and does not run `session_model.py`. Codex
+mode detection remains Codex-only. Shared helpers, checkout-mode, and
+worktree-root live under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; `$CODEX_HOME`
+remains the Codex-only install root for profiles, Guardian, and session
+inspection.
+
 ## Model and reasoning configuration
 
-The approved capability matrices are documented in `WORKFLOW.md`. The user
-selects the root's current Sol medium or Sol high entry outside Orchestra.
-Source retains only the `native` and `external` matrices; the `dual` matrix is
-composed deterministically at sync time from those two sources (native wrapped
-under `modes.native`, external wrapped under `modes.external` with its
-Orchestra V1 aliases). Direct sync installs exactly one matrix at the canonical
-`$CODEX_HOME/orchestra/roles.toml` path and records that install choice.
+The approved Codex capability matrices are documented in `WORKFLOW.md`. On
+Codex, the user selects the root's current Sol medium or Sol high entry outside
+Orchestra. Source retains only the `native` and `external` matrices; the `dual`
+matrix is composed deterministically at sync time from those two sources
+(native wrapped under `modes.native`, external wrapped under `modes.external`
+with its Orchestra V1 aliases). Direct Codex sync installs exactly one matrix
+at the canonical `$CODEX_HOME/orchestra/roles.toml` path and records that
+install choice.
+
+Cursor reads one host matrix at
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. It offers
+`minimal`, `standard`, and `critical` with no mode split. This cut assigns
+`minimal` (Luna high for low-analysis capabilities, Grok 4.6 medium for
+implementation and remaining judgment) and `standard` (Grok 4.6 medium / high /
+xhigh). Selecting `critical` on Cursor blocks until those rows are assigned.
 
 The dual matrix contains `native` and `external` modes. Before task setup, a
 read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
@@ -470,22 +506,24 @@ encrypted compaction blobs are not portable across alias/native routes.
 
 ## Verification environment and browser routing
 
-Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default while the active permission choice for the task, host, or
-launcher remains authoritative; the complete permission rules live in
-`docs/WORKFLOW.md` ("Test permissions and browser routing"). Deterministic
-syntax, type, compile, lint, import, assertion, validation-contract, and
-CLI-usage failures remain real failures.
+On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
+Auto-review) as the default. Cursor observes the host permission choice and
+never writes permission configuration. The active permission choice for the
+task, host, or launcher remains authoritative; the complete permission rules
+live in `docs/WORKFLOW.md` ("Test permissions and browser routing").
+Deterministic syntax, type, compile, lint, import, assertion,
+validation-contract, and CLI-usage failures remain real failures.
 
 Browser packets use the transient `browser_route` value `auto`, `in_app`, or
 `chrome`. An explicit user route is attempted even as a tool canary and remains
 fixed without fallback; an agent may report its technical blocker but may not
-veto or substitute it.
-Without an explicit route, `auto` selects the dedicated Chrome connector first
-and uses Codex's in-app Browser only for a technical availability or capability
-gap that the in-app Browser can satisfy. `chrome` and `in_app` select only their
-named surface. Computer Use and standalone browser automation are not browser
-route substitutes.
+veto or substitute it. On Codex, without an explicit route, `auto` selects the
+dedicated Chrome connector first and uses Codex's in-app Browser only for a
+technical availability or capability gap that the in-app Browser can satisfy.
+On Cursor, `auto` maps to Playwright and `in_app` is blocked. `chrome` selects
+only the dedicated Chrome connector on both hosts. Computer Use and standalone
+browser automation are not browser route substitutes, except that Cursor `auto`
+uses Playwright as the host-mapped surface.
 
 Every browser run creates a new task-owned tab rather than claiming or reusing a
 user tab or a prior run's tab. Frontend iteration and independent browser
@@ -516,10 +554,12 @@ agent or process capable of writing the worktree blocks commit; an unclosed
 source-read-only task tab is reported as partial cleanup without invalidating
 the commit.
 
-Live-agent observation uses `wait_agent` with a ten-minute maximum. Completion
-wakes the root immediately; timeout does not contact, interrupt, restart, or
-fail the agent. After 30 accumulated minutes, only concrete blocker evidence
-justifies intervention.
+Live-agent observation uses the host wait contract with a ten-minute maximum.
+On Codex that is `wait_agent`. On Cursor it is a background Task plus
+completion notification without busy-polling. Completion wakes the root
+immediately; timeout does not contact, interrupt, restart, or fail the agent.
+After 30 accumulated minutes, only concrete blocker evidence justifies
+intervention.
 
 Once the root gives a stable revision packet to a verifier, it stops
 speculative source review until that verification returns. It interrupts a
@@ -544,7 +584,8 @@ checks should stay deterministic and fast enough for local use. It validates:
 
 - required canonical files and direct-sync boundaries;
 - skill links and profile references;
-- capability matrix/profile consistency;
+- capability matrix/profile consistency, including the Cursor `minimal` and
+  `standard` matrices;
 - concise AGENTS/runtime instructions;
 - forbidden distribution paths and historical product narrative;
 - representative workflow contract tests.
@@ -573,15 +614,18 @@ implement three competing rule sets.
 
 Tests protect the few important invariants:
 
-- only explicit `$orchestra`, native-chat adoption of a ready
+- only explicit `$orchestra`, native-host-chat adoption of a ready
   `$orchestra-task`, or an unequivocal use/start Orchestra imperative activates
   the workflow;
-- ordinary capture and preparation remain inert and never create a Codex chat,
+- ordinary capture and preparation remain inert and never create a host chat,
   branch, worktree, tier, permission override, or implementation run;
 - immutable case-insensitive human IDs are never reused, while Coordinator and
   Control use the same UUID after checkout creation;
 - adoption is exclusive to one native chat, changed Git requests only a focused
   context delta, and stable-checkpoint transfer preserves worktree and plan;
+  when the owning chat cannot release the card, explicit reclaim from another
+  native chat with `task reclaim --authorized` preserves the same worktree and
+  plan;
 - the visible primary skill name is `Orchestra`;
 - planning-only host mode reuses context without mutation and continues when
   execution-capable without a second invocation;
@@ -596,10 +640,13 @@ Tests protect the few important invariants:
 - only repository context may use the transient Luna-high unsupported-model
   fallback, after attempting the installed assignment first and without
   crossing from dual native V2 into V1;
-- dual routing derives an immutable task mode from the root model and
-  multi-agent version, while legacy native and external installs remain fixed;
-- native defines only standard and critical assignments, while external adds
-  exactly one complete Luna assignment matrix;
+- Cursor has no native/external mode, does not run `session_model.py`, and
+  dispatches through isolated Task workers rather than Codex profiles;
+- native Codex defines only standard and critical assignments, while Codex
+  external adds exactly one complete Luna assignment matrix;
+- Cursor offers `minimal`, `standard`, and `critical` with no native/external
+  mode, assigns `minimal` and `standard` in this cut, and blocks unassigned
+  Cursor `critical`;
 - plan approval permits phase commits but not merge/deploy;
 - every formal task creates one collision-free `orchestra/*` branch before work;
 - managed mode creates an isolated Orchestra-root worktree, while hybrid mode
@@ -633,9 +680,10 @@ Tests protect the few important invariants:
   with no denial retry;
 - the root recommends a tier, the user selects it, and a user-directed tier
   transition preserves unchanged work and evidence;
-- browser routing honors explicit selection and otherwise prefers the Chrome
-  connector with capability-based in-app Browser fallback, using a fresh
-  task-owned tab per run and closing it before every handoff;
+- browser routing honors explicit selection; Codex otherwise prefers the Chrome
+  connector with capability-based in-app Browser fallback, while Cursor maps
+  `auto` to Playwright and blocks `in_app`, using a fresh task-owned tab per
+  run and closing it before every handoff;
 - the first review covers the bounded target while delta reviews stay focused;
 - the implicit greenfield skill never silently activates Orchestra;
 - PR-open authority includes the review/fix/push loop but not implicit merge;
@@ -674,7 +722,7 @@ helper, agent profile, or capability playbook, document:
 
 - its named consumer;
 - a demonstrated failure, explicit requirement, or reproducible risk;
-- why an existing Git, GitHub, Codex, or project-test primitive is insufficient;
+- why an existing Git, GitHub, host, or project-test primitive is insufficient;
 - lifecycle, ownership, and cleanup;
 - why its cost is proportional;
 - why a smaller direct implementation does not suffice.
@@ -739,21 +787,28 @@ unused mechanisms.
 
 ## Installation boundary
 
-The source repository is authoritative. V1 installation uses only
-repository-driven direct sync. A single sync tool owns explicitly managed Codex
-resources. It supports dry-run and backup, preserves unrelated user
-configuration, reports what it installed, and requires a restart when its
-permission backend changes. Orchestra runtime installation is never part of
-ordinary task execution, and bootstrap of Orchestra itself must not invoke
-Orchestra.
+The source repository is authoritative. Installation uses only
+repository-driven direct sync. A single sync tool owns explicitly managed
+resources per requested host (`codex`, `cursor`, or `all`; default `codex`). It
+supports dry-run and backup, preserves unrelated user configuration, reports
+what it installed, and requires a restart when a Codex permission backend
+changes. Orchestra runtime installation is never part of ordinary task
+execution, and bootstrap of Orchestra itself must not invoke Orchestra.
 
-The direct-sync destinations are `$HOME/.agents/skills/<skill>` including their
-internal playbook references, the four `$CODEX_HOME/agents/<profile>.toml`
-files, and `$CODEX_HOME/orchestra/` for the capability matrix, runtime helpers,
-manifest, and deterministic current backups. The default `CODEX_HOME` is
-`$HOME/.codex`. The
-only managed content in `$CODEX_HOME/AGENTS.md` is the single block delimited by
-`<!-- orchestra:start -->` and `<!-- orchestra:end -->`.
+Shared destinations are `$HOME/.agents/skills/<skill>` including their internal
+playbook references, and `${ORCHESTRA_HOME:-$HOME/.orchestra}/` for helpers,
+checkout-mode, worktree-root, and the Cursor host matrix. Codex-only
+destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
+`$CODEX_HOME/orchestra/` for the Codex matrix, helper mirrors, manifest, and
+deterministic current backups, plus the marked blocks in `$CODEX_HOME/AGENTS.md`
+and `$CODEX_HOME/config.toml`. Cursor-only destinations are the local plugin
+under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference. The
+default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
+`$HOME/.orchestra`. Cursor sync never writes Codex or Cursor permission
+configuration.
+
+The only managed content in `$CODEX_HOME/AGENTS.md` is the single block
+delimited by `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.
 
 `status` and `apply --dry-run` are read-only. `apply` creates, upgrades, and
 removes stale owned resources only after a complete preflight. `uninstall`

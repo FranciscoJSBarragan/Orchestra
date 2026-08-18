@@ -8,7 +8,7 @@ import sqlite3
 import stat
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 PREPARATION_STATES = ("legacy", "draft", "ready", "adopted", "completed")
 SCHEMA = (
     """
@@ -43,9 +43,15 @@ SCHEMA = (
         specification_digest TEXT,
         specification_confirmed_at TEXT,
         adopted_thread_id TEXT,
+        adopted_harness TEXT CHECK (
+            adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor')
+        ),
         adopted_revision TEXT,
         adopted_at TEXT,
         previous_thread_id TEXT,
+        previous_harness TEXT CHECK (
+            previous_harness IS NULL OR previous_harness IN ('codex', 'cursor')
+        ),
         transfer_generation INTEGER NOT NULL DEFAULT 0,
         transfer_requested_at TEXT,
         completed_at TEXT,
@@ -243,6 +249,18 @@ def _migrate_v3(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
+def _migrate_v5(connection: sqlite3.Connection) -> None:
+    """Namespace historical owner identities by execution harness."""
+    statements = (
+        "ALTER TABLE tasks ADD COLUMN adopted_harness TEXT CHECK (adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor'))",
+        "ALTER TABLE tasks ADD COLUMN previous_harness TEXT CHECK (previous_harness IS NULL OR previous_harness IN ('codex', 'cursor'))",
+        "UPDATE tasks SET adopted_harness = 'codex' WHERE adopted_thread_id IS NOT NULL",
+        "UPDATE tasks SET previous_harness = 'codex' WHERE previous_thread_id IS NOT NULL",
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
 def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
     database = state_root(explicit_root) / "control.sqlite3"
     if database.is_symlink() or (database.exists() and not database.is_file()):
@@ -276,9 +294,14 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
         elif version == 2:
             _migrate_v2(connection)
             _migrate_v3(connection)
+            _migrate_v5(connection)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         elif version == 3:
             _migrate_v3(connection)
+            _migrate_v5(connection)
+            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        elif version == 4:
+            _migrate_v5(connection)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         elif version != SCHEMA_VERSION:
             connection.rollback()

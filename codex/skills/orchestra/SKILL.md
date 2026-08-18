@@ -5,7 +5,8 @@ description: Use only for an explicit `$orchestra` invocation or an unequivocal 
 
 # Orchestra
 
-Keep the root orchestrator responsible for specification alignment, tier recommendation, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. The user chooses the active tier and remains the final authority after receiving a concise recommendation and any applicable warning. Use the root's current session configuration selected outside Orchestra; the root has no assignment in `roles.toml` and is never respawned.
+Keep the root orchestrator responsible for specification alignment, tier recommendation, capability routing, compact synthesis, blocker resolution, ordinary reversible in-scope decisions, the local plan, phase commits, direct PR observation, and final technical judgment. The user chooses the active tier and remains the final authority after receiving a concise recommendation and any applicable warning. Identify the execution host from available tools and never mix spawn protocols. The root has no assignment in the host matrix and is never respawned.
+Use `${ORCHESTRA_HOME:-$HOME/.orchestra}` as the shared runtime home. Invoke helpers at `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/<name>.py`. If that path is missing, use `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/<name>.py`.
 ## Activate explicitly and align the specification
 
 Orchestra activates only through an explicit `$orchestra` invocation or an
@@ -40,42 +41,60 @@ remain unchanged. Do not ask for the same confirmation twice.
 An adopted Kanban specification already satisfies final confirmation. After tier
 selection and checkout creation, reuse its exact prepared-revision context and
 plan. If Git changed, inspect only the delta and reconfirm only when it materially
-changes the specification. Preserve the approved objective, constraints,
+changes the specification. After reclaim or a transferred resume, recover the
+existing checkout and `plan.md`, preserve uncommitted work, skip the previous
+host's wait/close contract, spawn fresh workers here, and re-recommend this host's assigned tier. Preserve the approved objective, constraints,
 acceptance, and authority unless the user explicitly changes them. Treat a
 proposed mechanism or causal explanation as a hypothesis; challenge it against
 current evidence and choose the smallest supported approach that preserves the approved result.
 ## Resolve the installed model configuration
-Before recommending a tier or creating resources, read
+Before recommending a tier or creating resources, identify the host: Codex when
+`spawn_agent` and `wait_agent` exist; Cursor when `Task` exists. Read the matching
+spawn reference and never mix protocols.
+
+On Codex, read [host_codex](references/host_codex.md) and
 `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`.
 
 When it contains top-level `modes`, require exactly `native` and `external`,
-run `python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/session_model.py"`
-once, and require an `ok` result. Use its `modelconfig` as the immutable lookup
+run `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/session_model.py"`
+once, and require an `ok` result. If that helper path is missing, use
+`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/session_model.py`. Use its `modelconfig` as the immutable lookup
 mode for the task and report the selected mode concisely. If the user explicitly
 requested the other mode, or the helper blocks because the root model, protocol,
 or reasoning effort is incompatible, stop before tier selection, worktree
 creation, or capability dispatch and tell the user which model selector entry
 is required for a new task. Never change or respawn the root model.
 
-When the installed matrix contains top-level `tiers`, treat it as a legacy
+When the installed Codex matrix contains top-level `tiers`, treat it as a legacy
 fixed configuration and preserve the existing behavior without running the
 session helper. Keep the selected dual mode in root memory before approval and
 record it in Decisions when `plan.md` becomes active. A resumed dual task uses
 the recorded mode only after the current session helper returns the same mode.
 Changing `native` and `external` requires a new task; a tier transition never
 changes the selected model configuration.
+
+On Cursor, do not run `session_model.py`. Read
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml` and
+[hosts/cursor/references/spawn.md](../../../hosts/cursor/references/spawn.md)
+(installed copy: `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/spawn.md`).
+Cursor offers `minimal`, `standard`, and `critical` with no mode split. This
+cut assigns `minimal` and `standard`. Recommend `standard`; `minimal` when
+cost or speed is the priority. Unassigned Cursor `critical` is `blocked`.
 ## Recommend and transition tiers
 
 Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
-from the minimum brief before creating formal task resources. Native mode
-offers `standard` and `critical`. External mode additionally offers `luna`, but
+from the minimum brief before creating formal task resources. Codex native mode
+offers `standard` and `critical`. Codex external mode additionally offers `luna`, but
 recommend it only when the user explicitly prioritizes cost for ordinary,
-bounded work; otherwise `standard` remains the default. When the brief needs
+bounded work; otherwise `standard` remains the default. Cursor offers `minimal`,
+`standard`, and `critical` with no mode split; recommend `standard`, `minimal`
+when cost or speed is the priority, and treat unassigned Cursor `critical` as `blocked`. When the brief needs
 clarification, ask those questions and give the tier recommendation in the same
 single message rather than sequential interactions. Explain the material risk
 and expected scrutiny or cost in one concise summary, then obtain the user's
-explicit tier choice. Material risk calls for `standard` or `critical`. The
-user may still choose `luna` or `standard` after a higher recommendation; that
+explicit tier choice. Material risk calls for `standard` or `critical` where
+those matrices exist. The
+user may still choose `luna`, `minimal`, or `standard` after a higher recommendation; that
 choice changes model and workflow intensity but never waives separate authority
 gates for production, migrations, data, security, payments, destructive
 actions, or other high-impact mutations. After focused repository evidence and
@@ -84,18 +103,19 @@ the user choose.
 
 Destructive means irreversible loss of unique data or work. An operation whose reversibility is proven by a cheap preflight (for example `git branch --contains` showing the commits exist in the base, or state that is regenerable) is not destructive and does not force critical.
 
-Use `standard` for ordinary planned features and fixes. In external mode, use
+Use `standard` for ordinary planned features and fixes. In Codex external mode, use
 `luna` only as the user's explicit cost-focused choice for ordinary, bounded
-work. Select `critical` for security-sensitive work, credentials, payments,
+work. On Cursor, `minimal` is that cheap tier. Select `critical` for security-sensitive work, credentials, payments,
 migrations, destructive actions, production changes, or comparable high-impact
 risk.
 
-Tier exemplars: Luna covers cost-prioritized bounded ordinary work in external
-mode; standard covers ordinary planned features and fixes; critical covers
+Tier exemplars: Luna or Cursor minimal covers cost-prioritized bounded ordinary work;
+standard covers ordinary planned features and fixes; critical covers
 schema migrations, auth/payment/credential changes, unrecoverable deletion,
 and production mutation.
 
-The active tier may change among those available in the selected mode after
+The active tier may change among those assigned in the selected Codex mode or
+Cursor host matrix after
 explicit user direction.
 Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
@@ -111,12 +131,12 @@ provenance, and generated paths relevant to the task.
 
 For a fresh task on the repository's canonical base branch, resolve its configured upstream and fetch only its remote branch before fixing the base revision. A configured upstream whose fetch fails blocks task setup. With no remote or upstream, proceed locally only after identifying the base as not remotely verified. Preserve an explicitly selected noncanonical base at its captured commit for stacked work. Never run `git pull`, create an implicit merge, or rebase during setup.
 
-Read `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`; accept only
+Read `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode`, falling back to `${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`; accept only
 `managed` or `hybrid`, default a missing legacy value to `managed`, and let an
 explicit task instruction override it for that task. Record the effective mode
 in the approved plan.
 
-Managed mode preserves the isolated flow: resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed `${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root` file, or `$HOME/.orchestra/worktrees`; prove the repository directory writable; choose the first matching `orchestra/<task-slug>[-N]` branch/path pair; and run direct `git worktree add` against the fetched upstream's verified full commit without updating the base checkout, or the unverified local base when no upstream exists.
+Managed mode preserves the isolated flow: resolve the worktree root from `ORCHESTRA_WORKTREE_ROOT`, the installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root` file, `${CODEX_HOME:-$HOME/.codex}/orchestra/worktree-root`, or `$HOME/.orchestra/worktrees`; prove the repository directory writable; choose the first matching `orchestra/<task-slug>[-N]` branch/path pair; and run direct `git worktree add` against the fetched upstream's verified full commit without updating the base checkout, or the unverified local base when no upstream exists.
 
 Hybrid mode uses the current primary checkout or linked worktree. Require a named starting branch, exact committed HEAD, clean status, no Git operation in progress, and no conflicting Orchestra plan. Prove that checkout writable. For a clean canonical base, proceed when equal to its fetched upstream, fast-forward when strictly behind with `git merge --ff-only <upstream>`, and block for one user decision when ahead or diverged. Capture its path, branch, and revision, then create `orchestra/*` with direct `git switch -c <branch> <captured-head>`. Equal or strictly behind needs no extra prompt because work starts only on the new branch. Dirty, detached, conflicted,
 active-operation, or identity-ambiguous state requires one consolidated user
@@ -136,14 +156,14 @@ ownership, base branch and revision, and authorized preexisting changes in root
 memory. Use that exact task checkout for
 every capability, planning, implementation, verification, review, plan, and
 commit operation. Immediately run `python3
-"${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_state.py" init --worktree
+"${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_state.py" init --worktree
 <task-worktree>` once. Keep its exact `state`, `plan`, and `artifacts` paths in
 root memory and pass the artifacts path to every producing agent. This
 workspace-local initialization must leave Git status unchanged and blocks
 before dispatch when the reserved path is tracked, ambiguous, or unsafe. An
 existing legacy result remains on its legacy paths for that task without
 copying or dual-writing it. Then attempt an idempotent task registration with
-`python3 "${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py" task
+`python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task
 create`. When adopting a prepared Kanban task, pass its exact technical UUID
 as `--task-id`; otherwise let the helper allocate one. Treat `invalid` or
 `unavailable` as lost observability: report it
@@ -169,34 +189,16 @@ committed work later passes unchanged, allow completion without an artificial
 commit.
 ## Resolve assignments and references
 
-Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
-`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the only
-machine-readable assignment matrix. For a dual matrix resolve exactly
-`modes.<modelconfig>.tiers.<tier>.<capability>` using the immutable mode
-selected above. For a legacy matrix resolve exactly
-`tiers.<tier>.<capability>`. Require every selected entry to contain only
-`profile`, `model`, and `reasoning_effort`. Load
-`${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the
-packet, and use the assignment's explicit model and reasoning overrides when
-spawning. A profile never selects its capability or assignment.
+Follow the host spawn reference selected above. On Codex, [host_codex](references/host_codex.md)
+owns spawn, wait, close, Guardian, and the Codex matrix. On Cursor,
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/spawn.md` owns Task dispatch
+and the Cursor matrix. A profile never selects its capability or assignment.
 
 Role behavior is self-serve: each profile is a minimal stub that reads its
 `orchestra-role-*` skill and the shared conduct reference itself at startup.
 The packet carries only the assignment — capability, authority, worktree,
 exact artifact identifiers, revision, stop conditions, and new context — and
 names any capability playbook; it never restates role behavior.
-
-Always attempt the installed assignment first. Only when a
-`repository_context` spawn is rejected before execution because the internal
-subagent runtime does not support the assigned model, retry that same
-`orchestra_analyst` packet internally with Luna and reasoning `high` only for a
-legacy matrix or the dual `external` mode. The dual external retry uses the
-installed Orchestra V1 Luna alias; legacy mode uses its existing Luna entry.
-The dual `native` mode blocks instead of crossing protocol versions. Record the
-substitution only in root memory for the live task when it is permitted. Do not
-create a visible Codex task, persist fallback state, edit the source or
-installed matrix, or use this fallback for another capability. If any other
-capability's assigned model is unsupported, return `blocked`.
 
 Compose assignments as follows:
 
@@ -411,9 +413,8 @@ authorized local-integration or PR-merge helper returns
 holding, or an unverified post-state never satisfies a Kanban dependency.
 ## Route tiered work
 
-Every dispatch starts from a clean context: under multi-agent V2 pass
-`fork_turns: none` explicitly on every spawn; under V1 never set
-`fork_context: true`. The packet and named artifacts carry the assignment.
+Every dispatch starts from a clean context using the host wait and close
+contract. The packet and named artifacts carry the assignment.
 
 1. Complete the mandatory read-only execution preflight and user confirmation from the minimum brief, establish the exact selected checkout, and attempt the fail-soft task registration. Then dispatch `repository_context` to an `orchestra_analyst` with bounded factual questions there. The analyst publishes each result as a revision-identified context artifact when available and otherwise returns the complete inline report. The root may skip or reduce this dispatch only when it cites the specific prior evidence it reuses (artifact and revision); otherwise dispatch. Consume the one-shot result and close that agent and its descendants before continuing.
 2. Continue the specification dialogue using the repository evidence. Dispatch additional `repository_context` only for a newly material factual question, request only the targeted context delta, and close each one-shot analyst and its descendants after consuming its result. Add `web_research` only for necessary time-sensitive external evidence. Then present and confirm the complete specification containing Objective, User-visible behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions. Propose one to three observable user journeys, including the main path and any material failure behavior, in non-technical language. Recommend any justified tier change; the user chooses whether to adopt it. Request only the context delta related to the newly discovered risk.
@@ -430,28 +431,26 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 9. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Pass exact overview, phase, and implementation-report identifiers plus explicit verification authority and revision. Create at most one verifier per used capability and reuse it for affected reruns. Each verifier publishes a complete `verification-report` for its capability and evaluated revision. Once a stable revision packet is under verification, stop speculative root source review. Interrupt only when the revision changed or a confirmed finding invalidates the packet. If verification returns `failed`, return its exact report identifier and accepted finding identifiers to the same implementation owner and re-verify. If it returns `blocked`, the root decides whether review proceeds on source alone and records the reason in review evidence. Dispose any verifier context discoveries before downstream use. Dispatch `independent_review` only after every required verifier has passed or its blocker is explicitly accepted.
 10. Then dispatch one `independent_review` agent with exact overview, phase, implementation, verification, and required context identifiers or labeled inline fallbacks. Keep it open for meaningful delta review. It judges approved intent before project guardrails, source, diff, and verification; publishes an initial `implementation-review` whose `Context basis` names only evidence actually consulted; and later receives only new or replaced evidence while naming the full-review base. It opens context only for a named `Review use`. A context discovery requires an exact `Affected judgment` and current-task consumer; incidental context is omitted, and only a named material judgment can block. For a second critical review, reuse `independent_review` only for a named measurable risk and independently detectable defect class.
 11. Return the review artifact and accepted finding IDs to the same owner; do not restate the findings. Validate stale context only when at least one result can change acceptance, a finding disposition, replanning, or required `persist`; otherwise discard it without dispatch. Send a confirmed descriptive correction to the same owner only with `persist`, its validating delta, and an exact authorized path. After correction, rerun affected verification and always obtain a post-edit context delta for the changed paths and dirty revision. Send only replacement reports, fresh context evidence, and the meaningful delta to the same reviewer. Never accept or commit while a named material context judgment remains unresolved.
-12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Under V1, call `close_agent` on every phase agent after owner cleanup so descendants close as well. Under V2, where no true close operation is exposed, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
+12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Follow the host close contract. Under V1 call `close_agent` so descendants close as well. Under V2, where no true close operation is exposed, and on Cursor, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
 13. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update that phase's status and commit in the manifest. Git is the commit authority; do not create a commit artifact.
 14. When the same causal failure repeats, correction cycles fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess, recommend a tier change, dispatch `difficult_debugging`, or ask the user at an authority boundary. The debugger publishes `debugging-report`; return its exact identifier to the same owner without root-authored diagnosis replay. Distinct legitimate findings alone are not an escalation trigger.
 15. After every phase is reviewed, verified, torn down, and committed, set `plan.md` to `completed` and best-effort mirror that descriptive state. Failure to update coordination never changes the commit or plan result.
 
 Apply that contract at steps 7, 10, 11, 13, 15, and delivery respectively.
 
-Wait for live agents with `wait_agent` in non-interruptive ten-minute windows
-using `timeout_ms: 600000`. The wait returns as soon as an agent reaches a final
-state; `timed_out` means only that the agent is still working. After a timeout,
-wait again without `send_input`, a status request, restart, or
-`interrupt: true`. After 30 accumulated minutes without a final result, assess
+Wait for live agents with the host wait contract in non-interruptive ten-minute windows (`timeout_ms: 600000` on Codex; Cursor uses the background Task completion analogue).
+Completion wakes the root immediately; timeout means only that the agent is still working. After a timeout,
+wait again without a status request, restart, or interrupt. After 30 accumulated minutes without a final result, assess
 once for concrete blocker evidence; elapsed time alone is not a failure. Interrupt only
 for cancellation, a material scope change, or indispensable information that
 invalidates the current assignment. A normal timeout is not a user-visible transition and produces no progress update unless the user asks; report the 30-minute assessment only when it establishes a material blocker or transition.
 
-Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed without fallback. A profile may report that route's technical blocker but may not veto or substitute it. `auto` explicitly selects the dedicated Chrome connector first and may use Codex's in-app Browser only for a technical availability or capability gap that the in-app Browser can satisfy; `chrome` and `in_app` remain strict. Computer Use and standalone browser automation are not route substitutes. A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the Chrome blocker, close any task-owned Chrome tab, and repeat the complete scenario in a new in-app Browser task tab without combining evidence. Every run creates a fresh task-owned tab, never claims or reuses a user or prior-run tab, and closes its exact tab and supporting processes before every successful, failed, or blocked handoff. Browser-work handoffs retain nothing and report `retained_resources: none`; browser control ends with the task tab rather than by closing the Chrome application or a shared window. Preserve unrelated tabs, sessions, windows, and browser state. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
+Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed without fallback. A profile may report that route's technical blocker but may not veto or substitute it. Follow the host spawn reference for `auto` / `in_app` / `chrome`. Computer Use and standalone browser automation are not route substitutes except Cursor `auto` mapping to Playwright. A functional failure, application timeout, or selector problem never triggers fallback. Every run creates a fresh task-owned tab, never claims or reuses a user or prior-run tab, and closes its exact tab and supporting processes before every successful, failed, or blocked handoff. Browser-work handoffs retain nothing and report `retained_resources: none`; browser control ends with the task tab rather than by closing the Chrome application or a shared window. Preserve unrelated tabs, sessions, windows, and browser state. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
 
-Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. The active permission choice for the task, host, or launcher
+On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+as the default. Cursor observes the host permission choice and never writes permission configuration. The active permission choice for the task, host, or launcher
 remains authoritative: Orchestra never changes it or blocks execution solely
-because it differs. When Guardian is active, commands inside the workspace run
+because it differs. When Codex Guardian is active, commands inside the workspace run
 directly and one exact command that crosses a protected boundary requests one
 narrow escalation for automatic review. With manual approvals, that escalation
 may prompt the user; with Full Access, it runs without the workspace sandbox
@@ -473,7 +472,7 @@ request only targeted context and reverification for a new risk. Mirror the new
 tier best-effort; coordination failure never delays or reverses the transition.
 ## Root-owned mechanical operations
 
-Phase commit and phase teardown are not profiles or capabilities. Agents clean their owned resources before each handoff; after review and verification pass, the root performs only the fallback cleanup described above, then retires the cohort with V1 `close_agent` or V2 completed-state evidence. It uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
+Phase commit and phase teardown are not profiles or capabilities. Agents clean their owned resources before each handoff; after review and verification pass, the root performs only the fallback cleanup described above, then retires the cohort with the host close contract. It uses direct Git by default through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and may invoke `commit_phase.py` when exact-path staging is useful. An isolated teardown or mechanical Git failure stays root-local. PR observation is also direct: the root invokes `pr.py observe` through [orchestra-pr-review](../orchestra-pr-review/SKILL.md), then reuses `independent_review` when PR feedback needs code-review judgment. Accepted PR fixes return to the same implementation owner.
 
 Report only material phase transitions, findings or decisions, blockers, fresh
 verification results, and authority requests. Each update states current state,

@@ -1,0 +1,10 @@
+{
+  "name": "orchestra",
+  "displayName": "Orchestra",
+  "description": "Local Orchestra Cursor host adapter: explicit planned-work workflow, Task dispatch, and prepared-task MCP.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Orchestra"
+  },
+  "keywords": ["orchestra", "workflow", "multi-agent"]
+}

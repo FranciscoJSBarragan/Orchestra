@@ -126,7 +126,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "readOnly": False,
     },
     "task_archive": {
-        "description": "Archive a task that is not adopted by a native Codex chat.",
+        "description": "Archive a task that is not adopted by a native host chat.",
         "inputSchema": schema({"task": S}, ["task"]),
         "readOnly": False,
     },

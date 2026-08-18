@@ -10,8 +10,8 @@ Use this internal playbook only with the `orchestra_verifier` profile and the ex
   and remains fixed without fallback. Do not
   veto or substitute a user-selected route; return its concrete technical
   blocker when it cannot run.
-- For `auto`, explicitly select the dedicated Chrome connector first. After its supported connection recovery, fall back to Codex's in-app Browser only when Chrome is unavailable or has a technical capability gap that the in-app Browser can satisfy.
-- For `in_app`, use only Codex's in-app Browser. For `chrome`, use only the dedicated Chrome connector. Do not substitute Computer Use or standalone browser automation.
+- For `auto`, follow the host spawn reference: on Codex, explicitly select the dedicated Chrome connector first and fall back to Codex's in-app Browser only when Chrome is unavailable or has a technical capability gap that the in-app Browser can satisfy; Cursor maps `auto` to Playwright.
+- For `in_app`, use only Codex's in-app Browser; on Cursor return `blocked`. For `chrome`, use only the dedicated Chrome connector. Do not substitute Computer Use or standalone browser automation. Cursor `auto` may use Playwright as the host-mapped surface.
 - A functional failure, application timeout, or selector problem never triggers fallback. For an allowed `auto` fallback, capture the Chrome blocker, close any dedicated Chrome tab already created, open a new in-app Browser task tab, and repeat the complete scenario; never combine partial evidence from two browser surfaces into one pass. Return `blocked` when both surfaces are unavailable.
 - For every acceptance run, create a fresh task-dedicated tab for the target application. Never claim or reuse a user's existing tab or a tab from an earlier run. Preserve all unrelated tabs, windows, authenticated sessions, and user state, and never close the Chrome application or a shared window. Keep acceptance tabs and evidence separate from frontend implementation.
 - Execute only the supplied acceptance scenario through visible interaction. Observe expected behavior, relevant accessibility or responsive states, and failure behavior named in the packet.

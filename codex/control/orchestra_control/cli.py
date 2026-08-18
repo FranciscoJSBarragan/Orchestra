@@ -10,7 +10,7 @@ import subprocess
 from typing import Any
 import uuid
 
-from .service import ControlError, ControlService
+from .service import ControlError, ControlService, host_thread_from_env
 
 
 class JsonParser(argparse.ArgumentParser):
@@ -147,6 +147,11 @@ def build_parser() -> JsonParser:
     transfer.add_argument("--task", required=True)
     transfer.add_argument("--stable-checkpoint", action="store_true")
 
+    reclaim = commands.add_parser("reclaim")
+    reclaim.add_argument("--task", required=True)
+    reclaim.add_argument("--repository", required=True)
+    reclaim.add_argument("--authorized", action="store_true")
+
     finish = commands.add_parser("finish")
     finish.add_argument("--task", required=True)
     finish.add_argument("--repository", required=True)
@@ -250,13 +255,15 @@ def main(argv: list[str] | None = None) -> int:
             return emit("ok", task=prepared)
         if args.command == "adopt":
             repository, revision, common_dir = repository_identity(args.repository)
+            harness, thread_id = host_thread_from_env()
             adopted = service.adopt_task(
                 task_ref=args.task,
-                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                thread_id=thread_id,
                 repository=str(repository),
                 current_revision=revision,
                 repository_common_dir=str(common_dir),
                 ancestor_contains=ancestor_checker(repository, revision),
+                source_harness=harness,
             )
             next_action = (
                 "resume the existing Orchestra checkout and plan"
@@ -265,39 +272,63 @@ def main(argv: list[str] | None = None) -> int:
             )
             return emit("ok", task=adopted, next_action=next_action)
         if args.command == "transfer":
+            harness, thread_id = host_thread_from_env()
             transferred = service.transfer_task(
                 task_ref=args.task,
-                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                thread_id=thread_id,
                 stable_checkpoint=args.stable_checkpoint,
+                source_harness=harness,
             )
             return emit(
                 "ok",
                 task=transferred,
-                next_action=f"open another native Codex chat and ask it to adopt {transferred['short_id']}",
+                next_action=f"open another native host chat and ask it to adopt {transferred['short_id']}",
+            )
+        if args.command == "reclaim":
+            repository, revision, common_dir = repository_identity(args.repository)
+            harness, thread_id = host_thread_from_env()
+            reclaimed = service.reclaim_task(
+                task_ref=args.task,
+                thread_id=thread_id,
+                repository=str(repository),
+                current_revision=revision,
+                authorized=args.authorized,
+                repository_common_dir=str(common_dir),
+                ancestor_contains=ancestor_checker(repository, revision),
+                source_harness=harness,
+            )
+            return emit(
+                "ok",
+                task=reclaimed,
+                next_action="resume the existing Orchestra checkout and plan",
             )
         if args.command == "finish":
             repository, revision, common_dir = repository_identity(args.repository)
             requested_revision = args.task_revision
             if requested_revision != revision:
                 raise ControlError("invalid", "task revision must match the repository's current HEAD")
+            harness, thread_id = host_thread_from_env()
             completed = service.finish_task(
                 task_ref=args.task,
-                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                thread_id=thread_id,
                 repository=str(repository),
                 terminal_revision=revision,
                 repository_common_dir=str(common_dir),
+                source_harness=harness,
             )
             return emit("ok", task=completed)
         if args.command == "record-delivery":
             repository, _, common_dir = repository_identity(args.repository)
+            harness, thread_id = host_thread_from_env()
             completed = service.record_delivery(
                 task_ref=args.task,
-                thread_id=os.environ.get("CODEX_THREAD_ID"),
+                thread_id=thread_id,
                 repository=str(repository),
                 task_revision=args.task_revision,
                 delivery_revision=args.delivery_revision,
                 kind=args.kind,
                 repository_common_dir=str(common_dir),
+                source_harness=harness,
             )
             return emit("ok", task=completed)
         if args.command in ("archive", "restore"):
