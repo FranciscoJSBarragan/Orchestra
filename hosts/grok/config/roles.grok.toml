@@ -1,70 +1,11 @@
 # Grok Build host assignment matrix.
-# Product tiers are minimal, standard, and critical. This cut assigns
-# minimal and standard. Selecting critical must block until those rows exist.
-# Fields: profile is the Orchestra behavior skill; subagent_type is the Grok
-# spawn_subagent type; model and effort are the product contract. spawn.md
-# maps those names onto live Grok primitives. Effort is inherit: Grok spawn
-# does not expose a per-dispatch reasoning override.
-
-[tiers.minimal.repository_context]
-profile = "orchestra_analyst"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.web_research]
-profile = "orchestra_analyst"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.runtime_verification]
-profile = "orchestra_verifier"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.browser_acceptance]
-profile = "orchestra_verifier"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.technical_planning]
-profile = "orchestra_analyst"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.architecture_analysis]
-profile = "orchestra_analyst"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.difficult_debugging]
-profile = "orchestra_analyst"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.general_implementation]
-profile = "orchestra_implementation_worker"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.frontend_implementation]
-profile = "orchestra_implementation_worker"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
-
-[tiers.minimal.independent_review]
-profile = "orchestra_reviewer"
-subagent_type = "general-purpose"
-model = "grok-4.5"
-effort = "inherit"
+# Product tiers named by Orchestra are minimal, standard, and critical.
+# This cut assigns standard and critical. Selecting minimal must block:
+# the live catalog is grok-4.6 at the same cost, so there is no cheaper row.
+# Critical uses the same spawn rows as standard; it raises root scrutiny,
+# not model or reasoning. spawn.md maps these names onto live primitives.
+# Effort is inherit: Grok spawn does not expose a per-dispatch reasoning
+# override.
 
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
@@ -121,6 +62,66 @@ model = "grok-4.6"
 effort = "inherit"
 
 [tiers.standard.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.web_research]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.critical.independent_review]
 profile = "orchestra_reviewer"
 subagent_type = "general-purpose"
 model = "grok-4.6"

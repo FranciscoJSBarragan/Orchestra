@@ -9,10 +9,14 @@ Cursor `Task`.
 
 Read `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Grok has no
 native/external mode and does not run `session_model.py`. Assigned tiers are
-those with complete capability rows. This cut assigns `minimal` and
-`standard`. Recommend `standard`. Recommend `minimal` when the user prioritizes
-cost or speed for ordinary bounded work. If the user selects `critical`, stop
-with `blocked`: Grok matrix row is not assigned.
+those with complete capability rows. This cut assigns `standard` and
+`critical`. The live catalog is `grok-4.6` at one cost, so there is no
+cheaper assigned tier. Recommend `standard`. Recommend `critical` when the
+brief matches security, credentials, payments, migrations, destructive
+actions, or production mutation. If the user selects `minimal`, stop with
+`blocked`: Grok matrix row is not assigned. `critical` uses the same spawn
+rows as `standard`; it raises root scrutiny and does not change model or
+reasoning. Do not invent a per-dispatch `reasoning_effort` field.
 
 Dispatch every assigned capability through `general-purpose`. Do not treat
 unofficial Claude-compat worker types as the Grok product contract. Do not
@@ -29,8 +33,10 @@ For each capability:
    `background: true`, `isolation: none`, and `cwd` set to the exact Orchestra
    task checkout. Never pass `isolation: worktree`; Orchestra already owns the
    checkout.
-3. Pass `model` when the live schema accepts the product model. `effort:
-   inherit` means do not invent a Grok `reasoning_effort` field.
+3. Pass `model` `grok-4.6` when the live schema accepts it; inheriting the
+   parent `grok-4.6` session also satisfies the contract. `effort: inherit`
+   means do not invent a Grok `reasoning_effort` field. Do not treat a child's
+   self-reported worker label as the assignment.
 4. The prompt is the packet plus: read
    `${HOME}/.agents/skills/orchestra-role-<role>/SKILL.md` and the shared
    conduct it names, then execute only the assigned capability. Role mapping:

@@ -466,8 +466,9 @@ xhigh). Selecting `critical` on Cursor blocks until those rows are assigned.
 Grok Build reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers
 `minimal`, `standard`, and `critical` with no mode split. This cut assigns
-`minimal` (`grok-4.5`) and `standard` (`grok-4.6`). Selecting `critical` on
-Grok blocks until those rows are assigned.
+`standard` and `critical` on the live `grok-4.6` catalog. There is no cheaper
+assigned tier. `critical` uses the same spawn rows and raises root scrutiny.
+Selecting `minimal` on Grok blocks.
 
 The dual matrix contains `native` and `external` modes. Before task setup, a
 read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
@@ -667,11 +668,16 @@ Tests protect the few important invariants:
   crossing from dual native V2 into V1;
 - Cursor has no native/external mode, does not run `session_model.py`, and
   dispatches through isolated Task workers rather than Codex profiles;
+- Grok Build has no native/external mode, does not run `session_model.py`, and
+  dispatches through isolated `spawn_subagent` `general-purpose` workers;
 - native Codex defines only standard and critical assignments, while Codex
   external adds exactly one complete Luna assignment matrix;
 - Cursor offers `minimal`, `standard`, and `critical` with no native/external
   mode, assigns `minimal` and `standard` in this cut, and blocks unassigned
   Cursor `critical`;
+- Grok Build assigns `standard` and `critical` on the live `grok-4.6` catalog
+  and blocks unassigned `minimal`; `critical` uses the same spawn rows and
+  raises root scrutiny;
 - plan approval permits phase commits but not merge/deploy;
 - every formal task creates one collision-free `orchestra/*` branch before work;
 - managed mode creates an isolated Orchestra-root worktree, while hybrid mode

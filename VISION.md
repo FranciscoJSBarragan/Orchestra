@@ -72,11 +72,13 @@ workflow, and phase agents do not create user-facing visualizations.
 The active tier controls assignment intensity, not user authority. Tiers are
 host-specific lookups. Codex native tasks offer standard and critical; Codex
 external tasks may additionally use Luna as a cost-focused opt-in when the user
-explicitly prioritizes cost for ordinary, bounded work. Cursor and Grok Build tasks offer
+explicitly prioritizes cost for ordinary, bounded work. Cursor tasks offer
 minimal, standard, and critical, with no native/external mode: minimal is the
-equivalent of Codex Luna. Codex still defaults to standard; Cursor and Grok
-recommend standard, and `minimal` when the user prioritizes cost or speed.
-Cursor and Grok `critical` remain unassigned.
+equivalent of Codex Luna. Codex still defaults to standard; Cursor
+recommends standard, and `minimal` when the user prioritizes cost or speed.
+Cursor `critical` remains unassigned. Grok Build tasks offer standard and
+critical on grok-4.6; there is no cheaper assigned tier, and `minimal` is
+blocked.
 Material risk still calls for standard or critical where those matrices exist.
 A user may choose an available assigned tier or direct a safe transition within
 the selected Codex mode after a concise recommendation. Independent authority
@@ -92,9 +94,10 @@ direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
 or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
 scrutiny for actual high-impact risk; external Luna is considered only when the
-user explicitly prioritizes cost for ordinary, bounded work. On Cursor and Grok
-Build it recommends `standard`, and `minimal` when the user prioritizes cost or
-speed. Unassigned Cursor or Grok `critical` remains blocked. The
+user explicitly prioritizes cost for ordinary, bounded work. On Cursor it recommends `standard`, and `minimal` when the user prioritizes
+cost or speed; unassigned Cursor `critical` remains blocked. On Grok Build it
+recommends `standard` and offers `critical` for matching high-impact risk;
+unassigned Grok `minimal` remains blocked. The
 user makes the final tier choice among assigned tiers.
 
 ### Prepared-task Kanban and native-chat continuity

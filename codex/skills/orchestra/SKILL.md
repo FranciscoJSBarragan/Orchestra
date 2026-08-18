@@ -80,19 +80,18 @@ On Cursor or Grok Build, do not run `session_model.py`. Read
 [hosts/cursor/references/spawn.md](../../../hosts/cursor/references/spawn.md)
 or [hosts/grok/references/spawn.md](../../../hosts/grok/references/spawn.md)
 (installed copies: `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/<host>/spawn.md`).
-Both offer `minimal`, `standard`, and `critical` with no mode split. This
-cut assigns `minimal` and `standard`. Recommend `standard`; `minimal` when
-cost or speed is the priority. Unassigned Cursor `critical` is `blocked`.
-Unassigned Grok `critical` is `blocked`.
+Cursor assigns `minimal` and `standard`; unassigned Cursor `critical` is `blocked`.
+Grok assigns `standard` and `critical` on `grok-4.6`; unassigned Grok `minimal` is `blocked`.
+Recommend `standard`. On Cursor, recommend `minimal` when cost or speed is the priority.
 ## Recommend and transition tiers
 
 Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
 from the minimum brief before creating formal task resources. Codex native mode
 offers `standard` and `critical`. Codex external mode additionally offers `luna`, but
 recommend it only when the user explicitly prioritizes cost for ordinary,
-bounded work; otherwise `standard` remains the default. Cursor and Grok Build offer `minimal`,
+bounded work; otherwise `standard` remains the default. Cursor offers `minimal`,
 `standard`, and `critical` with no mode split; recommend `standard`, `minimal`
-when cost or speed is the priority, and treat unassigned Cursor or Grok `critical` as `blocked`. When the brief needs
+when cost or speed is the priority, and treat unassigned Cursor `critical` as `blocked`. Grok Build offers `standard` and `critical` on `grok-4.6` and treats unassigned `minimal` as `blocked`. When the brief needs
 clarification, ask those questions and give the tier recommendation in the same
 single message rather than sequential interactions. Explain the material risk
 and expected scrutiny or cost in one concise summary, then obtain the user's
@@ -109,11 +108,11 @@ Destructive means irreversible loss of unique data or work. An operation whose r
 
 Use `standard` for ordinary planned features and fixes. In Codex external mode, use
 `luna` only as the user's explicit cost-focused choice for ordinary, bounded
-work. On Cursor and Grok Build, `minimal` is that cheap tier. Select `critical` for security-sensitive work, credentials, payments,
+work. On Cursor, `minimal` is that cheap tier. On Grok there is no cheaper assigned tier. Select `critical` for security-sensitive work, credentials, payments,
 migrations, destructive actions, production changes, or comparable high-impact
 risk.
 
-Tier exemplars: Luna or Cursor/Grok minimal covers cost-prioritized bounded ordinary work;
+Tier exemplars: Luna or Cursor minimal covers cost-prioritized bounded ordinary work;
 standard covers ordinary planned features and fixes; critical covers
 schema migrations, auth/payment/credential changes, unrecoverable deletion,
 and production mutation.

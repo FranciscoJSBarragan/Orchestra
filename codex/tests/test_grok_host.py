@@ -13,12 +13,12 @@ SPAWN = ROOT / "hosts/grok/references/spawn.md"
 class GrokHostTests(unittest.TestCase):
     def test_matrix_assigns_minimal_and_standard_only(self) -> None:
         roles = tomllib.loads(ROLES.read_text(encoding="utf-8"))
-        self.assertEqual(set(roles["tiers"]), {"minimal", "standard"})
-        self.assertNotIn("critical", roles["tiers"])
-        for tier, model in (("minimal", "grok-4.5"), ("standard", "grok-4.6")):
+        self.assertEqual(set(roles["tiers"]), {"standard", "critical"})
+        self.assertNotIn("minimal", roles["tiers"])
+        for tier in ("standard", "critical"):
             for assignment in roles["tiers"][tier].values():
                 self.assertEqual(assignment["subagent_type"], "general-purpose")
-                self.assertEqual(assignment["model"], model)
+                self.assertEqual(assignment["model"], "grok-4.6")
                 self.assertEqual(assignment["effort"], "inherit")
 
     def test_spawn_adapter_names_grok_primitives_and_forbids_host_worktrees(self) -> None:

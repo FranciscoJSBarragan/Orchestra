@@ -1298,19 +1298,19 @@ def check_grok_host(root: Path) -> list[str]:
     except (tomllib.TOMLDecodeError, UnicodeError) as error:
         return [f"grok-contract: roles.grok.toml is invalid: {error}"]
     tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard"}:
+    if not isinstance(tiers, dict) or set(tiers) != {"standard", "critical"}:
         failures.append(
-            "grok-contract: roles.grok.toml must assign minimal and standard only"
+            "grok-contract: roles.grok.toml must assign standard and critical only"
         )
         return failures
-    if "critical" in tiers:
-        failures.append("grok-contract: critical must remain unassigned")
+    if "minimal" in tiers:
+        failures.append("grok-contract: minimal must remain unassigned")
 
     def expected_assignment(tier: str, capability: str) -> tuple[str, str, str]:
-        model = "grok-4.5" if tier == "minimal" else "grok-4.6"
+        model = "grok-4.6"
         return model, "inherit", "general-purpose"
 
-    for tier_name in ("minimal", "standard"):
+    for tier_name in ("standard", "critical"):
         assignments = tiers.get(tier_name)
         if not isinstance(assignments, dict) or set(assignments) != set(GROK_CAPABILITIES):
             failures.append(

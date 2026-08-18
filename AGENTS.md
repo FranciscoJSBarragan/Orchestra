@@ -92,10 +92,11 @@ changes or respawns the root.
 Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
 the user's explicit choice. Codex native offers `standard` and `critical`;
 Codex external additionally offers `luna` only as a cost-focused opt-in for
-ordinary bounded work when the user explicitly prioritizes cost. Cursor and Grok Build offer
+ordinary bounded work when the user explicitly prioritizes cost. Cursor offers
 `minimal`, `standard`, and `critical` with no mode split; this cut assigns
-`minimal` and `standard` and recommends `standard`, while unassigned Cursor or
-Grok `critical` blocks. `minimal` is the cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
+`minimal` and `standard` and recommends `standard`, while unassigned Cursor
+`critical` blocks. Grok Build assigns `standard` and `critical` on `grok-4.6`
+and blocks `minimal`. `minimal` is the Cursor cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
 security-sensitive work, credentials, payments, migrations, destructive
 actions, or production changes. Destructive means irreversible loss of unique
 data or work; proven-reversible operations do not force critical. A

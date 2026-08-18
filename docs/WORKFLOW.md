@@ -251,10 +251,11 @@ those rows are assigned.
 On Grok Build, there is no native/external mode and `session_model.py` is not
 invoked. The root reads
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Grok offers
-`minimal`, `standard`, and `critical`. This cut assigns `minimal` and
-`standard`. The root recommends `standard`; it recommends `minimal` when the
-user prioritizes cost or speed. Selecting `critical` blocks until those rows
-are assigned.
+`minimal`, `standard`, and `critical`. This cut assigns `standard` and
+`critical` on the live `grok-4.6` catalog. The root recommends `standard`.
+Selecting `minimal` blocks: there is no cheaper Grok row. `critical` uses the
+same spawn rows and raises root scrutiny; it does not change model or
+reasoning.
 
 For every spawned dispatch, the root selects the explicit capability, base
 profile, and host assignment from the selected Codex mode or the Cursor or
@@ -296,9 +297,9 @@ security, payment, destructive-action, or delivery authority gates. Tier
 transitions remain user-directed and cannot change the task's selected Codex
 mode.
 
-Cursor and Grok `minimal` are the equivalent of Codex `luna`. This cut also
-assigns Cursor and Grok `standard`. Hard gates never change with the cheap
-tier. Do not rename the Codex `luna` key.
+Cursor `minimal` is the equivalent of Codex `luna`. This cut also assigns
+Cursor `standard`. Grok has no cheap assigned tier. Hard gates never change
+with the cheap tier. Do not rename the Codex `luna` key.
 
 ### Native standard configuration
 
@@ -421,45 +422,30 @@ Product contract for `standard`. All rows are Grok 4.6; effort varies:
 
 Cursor `critical` remains unassigned; selecting it blocks.
 
-### Grok Build minimal configuration
+### Grok Build standard and critical configuration
 
-Grok has no native/external mode. Product contract for `minimal`:
+Grok has no native/external mode. The live catalog is `grok-4.6` at one cost.
+Product contract for assigned `standard` and `critical` — the spawn rows are
+identical; `critical` raises root scrutiny (focused plan review, no skipped
+review, second review only for a named measurable risk):
 
 | Tier | Capability | Base profile | Product model |
 | --- | --- | --- | --- |
-| Minimal | `repository_context` | `orchestra_analyst` | Grok 4.5 inherit |
-| Minimal | `web_research` | `orchestra_analyst` | Grok 4.5 inherit |
-| Minimal | `runtime_verification` | `orchestra_verifier` | Grok 4.5 inherit |
-| Minimal | `browser_acceptance` | `orchestra_verifier` | Grok 4.5 inherit |
-| Minimal | `technical_planning` | `orchestra_analyst` | Grok 4.5 inherit |
-| Minimal | `architecture_analysis` | `orchestra_analyst` | Grok 4.5 inherit |
-| Minimal | `difficult_debugging` | `orchestra_analyst` | Grok 4.5 inherit |
-| Minimal | `general_implementation` | `orchestra_implementation_worker` | Grok 4.5 inherit |
-| Minimal | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.5 inherit |
-| Minimal | `independent_review` | `orchestra_reviewer` | Grok 4.5 inherit |
+| Standard and critical | `repository_context` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard and critical | `web_research` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard and critical | `runtime_verification` | `orchestra_verifier` | Grok 4.6 inherit |
+| Standard and critical | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 inherit |
+| Standard and critical | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
+| Standard and critical | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
+| Standard and critical | `technical_planning` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard and critical | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard and critical | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard and critical | `independent_review` | `orchestra_reviewer` | Grok 4.6 inherit |
 
 `hosts/grok/config/roles.grok.toml` records that contract. The Grok spawn
 reference maps each row onto `spawn_subagent` `general-purpose` without
-inventing a per-dispatch reasoning field.
-
-### Grok Build standard configuration
-
-Product contract for `standard`. All rows are Grok 4.6 inherit:
-
-| Tier | Capability | Base profile | Product model |
-| --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard | `web_research` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard | `runtime_verification` | `orchestra_verifier` | Grok 4.6 inherit |
-| Standard | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 inherit |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
-| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
-| Standard | `technical_planning` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard | `independent_review` | `orchestra_reviewer` | Grok 4.6 inherit |
-
-Grok `critical` remains unassigned; selecting it blocks.
+inventing a per-dispatch reasoning field. Grok `minimal` remains unassigned;
+selecting it blocks.
 
 ## Context and planning
 
@@ -479,15 +465,17 @@ After explicit activation in an execution-capable mode:
    before tier selection. A legacy Codex matrix remains fixed. The selected dual
    mode is immutable for the task. On Cursor, skip session inspection and read
    the Cursor host matrix; `minimal` and `standard` are assigned. On Grok
-   Build, skip session inspection and read the Grok host matrix; `minimal` and
-   `standard` are assigned.
+   Build, skip session inspection and read the Grok host matrix; `standard`
+   and `critical` are assigned.
 3. From that brief, the root recommends an available assigned tier with one
    concise explanation of material risk, added scrutiny, and expected
    cost-benefit. Codex native offers `standard` or `critical`; Codex external
    may recommend `luna` only when ordinary bounded work has an explicit cost
-   priority, and otherwise defaults to `standard`. Cursor and Grok recommend
-   `standard`, recommend `minimal` when cost or speed is the priority, and
-   block `critical` until those rows are assigned. The user
+   priority, and otherwise defaults to `standard`. Cursor recommends
+   `standard`, recommends `minimal` when cost or speed is the priority, and
+   blocks `critical` until those rows are assigned. Grok recommends `standard`
+   and offers `critical` for matching high-impact risk; it blocks `minimal`.
+   The user
    explicitly chooses the active assigned tier. A user-selected `luna`,
    `minimal`, or `standard` tier does not waive separate authority gates for
    production, migrations, data, security, payments, destructive actions, or
