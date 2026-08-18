@@ -24,6 +24,8 @@ CODEX_THREAD_PATTERN = re.compile(
 )
 CURSOR_THREAD_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,200}$")
 CURSOR_THREAD_ENV = "ORCHESTRA_HOST_THREAD_ID"
+GROK_THREAD_ENV = "GROK_SESSION_ID"
+OWNER_HARNESSES = frozenset({"codex", "cursor", "grok"})
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40,64}$", re.IGNORECASE)
 CARD_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 DEPENDENCY_CONDITIONS = {"completed", "delivered"}
@@ -79,6 +81,9 @@ def host_thread_from_env(environ: dict[str, str] | None = None) -> tuple[str | N
     codex = env.get("CODEX_THREAD_ID")
     if codex:
         return "codex", codex
+    grok = env.get(GROK_THREAD_ENV)
+    if grok:
+        return "grok", grok
     cursor = env.get(CURSOR_THREAD_ENV)
     if cursor:
         return "cursor", cursor
@@ -93,6 +98,13 @@ def validate_thread_id(value: str | None, harness: str | None = "codex") -> str:
                 "Cursor host conversation identity is missing or invalid",
             )
         return value.strip()
+    if harness == "grok":
+        if not value or not CODEX_THREAD_PATTERN.fullmatch(value.strip()):
+            raise ControlError(
+                "blocked",
+                "Grok host session identity is missing or invalid",
+            )
+        return value.strip().lower()
     if harness != "codex":
         raise ControlError("blocked", "host conversation identity is missing")
     if not value or not CODEX_THREAD_PATTERN.fullmatch(value.strip()):
@@ -106,7 +118,7 @@ def owner_identity(task: dict[str, Any], prefix: str = "adopted") -> tuple[str, 
     harness = task.get(f"{prefix}_harness")
     if not thread:
         return None
-    if harness not in {"codex", "cursor"}:
+    if harness not in OWNER_HARNESSES:
         raise ControlError("blocked", f"{prefix} task owner has no valid host namespace")
     return str(harness), str(thread)
 

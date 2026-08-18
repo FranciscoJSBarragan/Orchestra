@@ -1,0 +1,127 @@
+# Grok Build host assignment matrix.
+# Product tiers are minimal, standard, and critical. This cut assigns
+# minimal and standard. Selecting critical must block until those rows exist.
+# Fields: profile is the Orchestra behavior skill; subagent_type is the Grok
+# spawn_subagent type; model and effort are the product contract. spawn.md
+# maps those names onto live Grok primitives. Effort is inherit: Grok spawn
+# does not expose a per-dispatch reasoning override.
+
+[tiers.minimal.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.web_research]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.minimal.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "general-purpose"
+model = "grok-4.5"
+effort = "inherit"
+
+[tiers.standard.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.web_research]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"
+
+[tiers.standard.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "general-purpose"
+model = "grok-4.6"
+effort = "inherit"

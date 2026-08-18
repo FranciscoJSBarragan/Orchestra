@@ -83,17 +83,19 @@ Before tier selection, identify the execution host and resolve its installed
 model configuration as specified in `docs/WORKFLOW.md`. Codex uses `roles.toml`
 plus `session_model.py` for dual matrices; that mode is immutable for the task.
 Cursor reads the Cursor host matrix, has no native/external mode, and does not
-run `session_model.py`. Orchestra never changes or respawns the root.
+run `session_model.py`. Grok Build reads the Grok host matrix, has no
+native/external mode, and does not run `session_model.py`. Orchestra never
+changes or respawns the root.
 
 ## Tier selection
 
 Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
 the user's explicit choice. Codex native offers `standard` and `critical`;
 Codex external additionally offers `luna` only as a cost-focused opt-in for
-ordinary bounded work when the user explicitly prioritizes cost. Cursor offers
+ordinary bounded work when the user explicitly prioritizes cost. Cursor and Grok Build offer
 `minimal`, `standard`, and `critical` with no mode split; this cut assigns
-`minimal` and `standard` and recommends `standard`, while unassigned Cursor
-`critical` blocks. `minimal` is the cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
+`minimal` and `standard` and recommends `standard`, while unassigned Cursor or
+Grok `critical` blocks. `minimal` is the cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
 security-sensitive work, credentials, payments, migrations, destructive
 actions, or production changes. Destructive means irreversible loss of unique
 data or work; proven-reversible operations do not force critical. A
@@ -178,13 +180,13 @@ Never deploy, release, publish, or mutate production without explicit scope.
 
 ## Permissions and browser routing
 
-On Codex, Orchestra synchronizes Guardian as the default. Cursor observes the
-host permission choice and never writes permission configuration. The active
-permission choice for the task, host, or launcher stays authoritative and
-Orchestra never changes it (full rules in `docs/WORKFLOW.md`, "Test permissions
-and browser routing"). Browser packets carry `browser_route`; an explicit user
-route wins and is never vetoed or substituted. Cursor maps `auto` to Playwright
-and blocks `in_app`.
+On Codex, Orchestra synchronizes Guardian as the default. Cursor and Grok
+observe the host permission choice and never write permission configuration.
+The active permission choice for the task, host, or launcher stays
+authoritative and Orchestra never changes it (full rules in `docs/WORKFLOW.md`,
+"Test permissions and browser routing"). Browser packets carry `browser_route`;
+an explicit user route wins and is never vetoed or substituted. Cursor and Grok
+map `auto` to Playwright and block `in_app`. Grok also blocks `chrome`.
 
 ## User-facing progress
 

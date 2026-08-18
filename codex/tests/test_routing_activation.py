@@ -122,6 +122,7 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("equivalent to Orchestra `repository_context`", normalized_skill)
         self.assertIn("grants no implementation authority", normalized_skill)
         self.assertIn("CODEX_THREAD_ID", normalized_skill)
+        self.assertIn("GROK_SESSION_ID", normalized_skill)
         self.assertIn("never supply, invent, copy, or override it", normalized_skill)
         self.assertIn("never creates a host chat", normalized_skill)
         for path in (ROOT / "VISION.md", ROOT / "docs/WORKFLOW.md"):

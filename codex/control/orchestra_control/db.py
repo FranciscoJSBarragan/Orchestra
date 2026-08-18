@@ -8,21 +8,10 @@ import sqlite3
 import stat
 
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 PREPARATION_STATES = ("legacy", "draft", "ready", "adopted", "completed")
-SCHEMA = (
-    """
-    CREATE TABLE task_initiatives (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        brief TEXT NOT NULL,
-        source_task_id TEXT NOT NULL UNIQUE,
-        idempotency_key TEXT NOT NULL UNIQUE,
-        manifest_digest TEXT NOT NULL,
-        created_at TEXT NOT NULL
-    )
-    """,
-    """
+OWNER_HARNESSES = ("codex", "cursor", "grok")
+TASKS_TABLE_SQL = """
     CREATE TABLE tasks (
         id TEXT PRIMARY KEY,
         short_id TEXT COLLATE NOCASE UNIQUE,
@@ -44,13 +33,13 @@ SCHEMA = (
         specification_confirmed_at TEXT,
         adopted_thread_id TEXT,
         adopted_harness TEXT CHECK (
-            adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor')
+            adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor', 'grok')
         ),
         adopted_revision TEXT,
         adopted_at TEXT,
         previous_thread_id TEXT,
         previous_harness TEXT CHECK (
-            previous_harness IS NULL OR previous_harness IN ('codex', 'cursor')
+            previous_harness IS NULL OR previous_harness IN ('codex', 'cursor', 'grok')
         ),
         transfer_generation INTEGER NOT NULL DEFAULT 0,
         transfer_requested_at TEXT,
@@ -68,7 +57,20 @@ SCHEMA = (
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     )
+"""
+SCHEMA = (
+    """
+    CREATE TABLE task_initiatives (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        brief TEXT NOT NULL,
+        source_task_id TEXT NOT NULL UNIQUE,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        manifest_digest TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
     """,
+    TASKS_TABLE_SQL,
     """
     CREATE TABLE task_dependencies (
         task_id TEXT NOT NULL REFERENCES tasks(id),
@@ -261,6 +263,33 @@ def _migrate_v5(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
+def _migrate_v6(connection: sqlite3.Connection) -> None:
+    """Widen owner harness CHECK constraints to include grok."""
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+    ).fetchone()
+    if row is not None and row[0] is not None and "'grok'" in row[0]:
+        return
+    columns = [
+        info[1] for info in connection.execute("PRAGMA table_info(tasks)").fetchall()
+    ]
+    quoted = ", ".join(f'"{name}"' for name in columns)
+    connection.execute(TASKS_TABLE_SQL.replace("CREATE TABLE tasks", "CREATE TABLE tasks_v6", 1))
+    connection.execute(f"INSERT INTO tasks_v6 ({quoted}) SELECT {quoted} FROM tasks")
+    connection.execute("DROP TABLE tasks")
+    connection.execute("ALTER TABLE tasks_v6 RENAME TO tasks")
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS tasks_disposition_rank ON tasks(disposition, rank, created_at)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS tasks_initiative ON tasks(initiative_id, rank, created_at)"
+    )
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS tasks_short_id ON tasks(short_id COLLATE NOCASE) "
+        "WHERE short_id IS NOT NULL"
+    )
+
+
 def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
     database = state_root(explicit_root) / "control.sqlite3"
     if database.is_symlink() or (database.exists() and not database.is_file()):
@@ -291,18 +320,21 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
             for statement in SCHEMA:
                 connection.execute(statement)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version == 2:
-            _migrate_v2(connection)
-            _migrate_v3(connection)
-            _migrate_v5(connection)
+        elif version in {2, 3, 4, 5}:
+            if version == 2:
+                _migrate_v2(connection)
+            if version in {2, 3}:
+                _migrate_v3(connection)
+            if version in {2, 3, 4}:
+                _migrate_v5(connection)
+            connection.commit()
+            connection.execute("PRAGMA foreign_keys = OFF")
+            connection.execute("BEGIN IMMEDIATE")
+            _migrate_v6(connection)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version == 3:
-            _migrate_v3(connection)
-            _migrate_v5(connection)
-            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version == 4:
-            _migrate_v5(connection)
-            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            connection.commit()
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("BEGIN IMMEDIATE")
         elif version != SCHEMA_VERSION:
             connection.rollback()
             raise StorageError(f"unsupported control schema version: {version}")

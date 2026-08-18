@@ -113,12 +113,15 @@ REQUIRED_PATHS = (
     "codex/tests/test_local_integration.py",
     "codex/tests/test_sync.py",
     "codex/tests/test_cursor_host.py",
+    "codex/tests/test_grok_host.py",
     "hosts/cursor/config/roles.cursor.toml",
     "hosts/cursor/references/spawn.md",
     "hosts/cursor/plugin/.cursor-plugin/plugin.json",
     "hosts/cursor/plugin/commands/orchestra.md",
     "hosts/cursor/plugin/hooks/hooks.json",
     "hosts/cursor/plugin/scripts/session_identity.py",
+    "hosts/grok/config/roles.grok.toml",
+    "hosts/grok/references/spawn.md",
 )
 
 PERMANENT_DOCS = (
@@ -131,8 +134,8 @@ PERMANENT_DOCS = (
 )
 
 IDENTITY = (
-    "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex\n"
-    "and Cursor."
+    "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,\n"
+    "Cursor, and Grok Build."
 )
 
 HISTORICAL_NARRATIVES = (
@@ -950,9 +953,9 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append(
             "sync-contract: modelconfig choices must be exactly native, external, and dual"
         )
-    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "all"):
+    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "all"):
         failures.append(
-            "sync-contract: host choices must be exactly codex, cursor, and all"
+            "sync-contract: host choices must be exactly codex, cursor, grok, and all"
         )
     if constants.get("PERMISSION_PROFILE") != ":workspace":
         failures.append(
@@ -988,6 +991,7 @@ def check_direct_sync(root: Path) -> list[str]:
         "install-manifest.json",
         "scripts/",
         "hosts/cursor/roles.toml",
+        "hosts/grok/roles.toml",
         ".cursor/plugins/local/orchestra",
         "AGENTS.md",
         "config.toml",
@@ -1279,6 +1283,80 @@ def check_cursor_host(root: Path) -> list[str]:
     return failures
 
 
+GROK_CAPABILITIES = CURSOR_CAPABILITIES
+
+
+def check_grok_host(root: Path) -> list[str]:
+    """Validate the Grok adapter inventory, deferred critical, and spawn contract."""
+    failures: list[str] = []
+    roles_path = root / "hosts/grok/config/roles.grok.toml"
+    spawn_path = root / "hosts/grok/references/spawn.md"
+    if not roles_path.is_file() or not spawn_path.is_file():
+        return failures
+    try:
+        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"grok-contract: roles.grok.toml is invalid: {error}"]
+    tiers = roles.get("tiers")
+    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard"}:
+        failures.append(
+            "grok-contract: roles.grok.toml must assign minimal and standard only"
+        )
+        return failures
+    if "critical" in tiers:
+        failures.append("grok-contract: critical must remain unassigned")
+
+    def expected_assignment(tier: str, capability: str) -> tuple[str, str, str]:
+        model = "grok-4.5" if tier == "minimal" else "grok-4.6"
+        return model, "inherit", "general-purpose"
+
+    for tier_name in ("minimal", "standard"):
+        assignments = tiers.get(tier_name)
+        if not isinstance(assignments, dict) or set(assignments) != set(GROK_CAPABILITIES):
+            failures.append(
+                f"grok-contract: {tier_name} must define all ten capabilities and no extras"
+            )
+            continue
+        for capability, assignment in assignments.items():
+            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
+                failures.append(
+                    f"grok-contract: {tier_name}.{capability} needs profile, "
+                    "subagent_type, model, and effort"
+                )
+                continue
+            model, effort, worker = expected_assignment(tier_name, capability)
+            if assignment["model"] != model or assignment["effort"] != effort:
+                failures.append(
+                    f"grok-contract: {tier_name}.{capability} must be {model} {effort}"
+                )
+            if assignment["subagent_type"] != worker:
+                failures.append(
+                    f"grok-contract: {tier_name}.{capability} must dispatch {worker}"
+                )
+            if assignment["profile"] not in PROFILE_NAMES:
+                failures.append(
+                    f"grok-contract: {tier_name}.{capability} has an invalid profile"
+                )
+    spawn = spawn_path.read_text(encoding="utf-8")
+    for required in (
+        "spawn_subagent",
+        "background: true",
+        "isolation: none",
+        "isolation: worktree",
+        "resume_from",
+        "get_command_or_subagent_output",
+        "timeout_ms: 600000",
+        "GROK_SESSION_ID",
+        "Playwright",
+        "general-purpose",
+        "matrix row is not assigned",
+        "workflow",
+    ):
+        if required not in spawn:
+            failures.append(f"grok-contract: spawn.md must name {required}")
+    return failures
+
+
 Check = Callable[[Path], list[str]]
 QUICK_CHECKS: tuple[Check, ...] = (
     check_required_paths,
@@ -1290,6 +1368,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_skills_and_runtime,
     check_direct_sync,
     check_cursor_host,
+    check_grok_host,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

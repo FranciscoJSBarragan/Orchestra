@@ -49,8 +49,9 @@ proposed mechanism or causal explanation as a hypothesis; challenge it against
 current evidence and choose the smallest supported approach that preserves the approved result.
 ## Resolve the installed model configuration
 Before recommending a tier or creating resources, identify the host: Codex when
-`spawn_agent` and `wait_agent` exist; Cursor when `Task` exists. Read the matching
-spawn reference and never mix protocols.
+`spawn_agent` and `wait_agent` exist; otherwise Grok Build when `spawn_subagent`
+exists; otherwise Cursor when `Task` exists. Read the matching spawn reference
+and never mix protocols.
 
 On Codex, read [host_codex](references/host_codex.md) and
 `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml`.
@@ -73,22 +74,25 @@ the recorded mode only after the current session helper returns the same mode.
 Changing `native` and `external` requires a new task; a tier transition never
 changes the selected model configuration.
 
-On Cursor, do not run `session_model.py`. Read
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml` and
+On Cursor or Grok Build, do not run `session_model.py`. Read
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml` or
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml` and
 [hosts/cursor/references/spawn.md](../../../hosts/cursor/references/spawn.md)
-(installed copy: `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/spawn.md`).
-Cursor offers `minimal`, `standard`, and `critical` with no mode split. This
+or [hosts/grok/references/spawn.md](../../../hosts/grok/references/spawn.md)
+(installed copies: `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/<host>/spawn.md`).
+Both offer `minimal`, `standard`, and `critical` with no mode split. This
 cut assigns `minimal` and `standard`. Recommend `standard`; `minimal` when
 cost or speed is the priority. Unassigned Cursor `critical` is `blocked`.
+Unassigned Grok `critical` is `blocked`.
 ## Recommend and transition tiers
 
 Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
 from the minimum brief before creating formal task resources. Codex native mode
 offers `standard` and `critical`. Codex external mode additionally offers `luna`, but
 recommend it only when the user explicitly prioritizes cost for ordinary,
-bounded work; otherwise `standard` remains the default. Cursor offers `minimal`,
+bounded work; otherwise `standard` remains the default. Cursor and Grok Build offer `minimal`,
 `standard`, and `critical` with no mode split; recommend `standard`, `minimal`
-when cost or speed is the priority, and treat unassigned Cursor `critical` as `blocked`. When the brief needs
+when cost or speed is the priority, and treat unassigned Cursor or Grok `critical` as `blocked`. When the brief needs
 clarification, ask those questions and give the tier recommendation in the same
 single message rather than sequential interactions. Explain the material risk
 and expected scrutiny or cost in one concise summary, then obtain the user's
@@ -105,17 +109,16 @@ Destructive means irreversible loss of unique data or work. An operation whose r
 
 Use `standard` for ordinary planned features and fixes. In Codex external mode, use
 `luna` only as the user's explicit cost-focused choice for ordinary, bounded
-work. On Cursor, `minimal` is that cheap tier. Select `critical` for security-sensitive work, credentials, payments,
+work. On Cursor and Grok Build, `minimal` is that cheap tier. Select `critical` for security-sensitive work, credentials, payments,
 migrations, destructive actions, production changes, or comparable high-impact
 risk.
 
-Tier exemplars: Luna or Cursor minimal covers cost-prioritized bounded ordinary work;
+Tier exemplars: Luna or Cursor/Grok minimal covers cost-prioritized bounded ordinary work;
 standard covers ordinary planned features and fixes; critical covers
 schema migrations, auth/payment/credential changes, unrecoverable deletion,
 and production mutation.
 
-The active tier may change among those assigned in the selected Codex mode or
-Cursor host matrix after
+The active tier may change among those assigned in the selected Codex mode or Cursor host matrix, or the Grok host matrix, after
 explicit user direction.
 Recommend reconsideration when a newly discovered risk materially changes the
 cost-benefit, the same causal failure repeats, or correction cycles
@@ -192,7 +195,9 @@ commit.
 Follow the host spawn reference selected above. On Codex, [host_codex](references/host_codex.md)
 owns spawn, wait, close, Guardian, and the Codex matrix. On Cursor,
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/spawn.md` owns Task dispatch
-and the Cursor matrix. A profile never selects its capability or assignment.
+and the Cursor matrix. On Grok,
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/spawn.md` owns `spawn_subagent`
+and the Grok matrix. A profile never selects its capability or assignment.
 
 Role behavior is self-serve: each profile is a minimal stub that reads its
 `orchestra-role-*` skill and the shared conduct reference itself at startup.
@@ -431,24 +436,19 @@ contract. The packet and named artifacts carry the assignment.
 9. Dispatch `runtime_verification` for applicable checks and `browser_acceptance` only for a named browser scenario. Pass exact overview, phase, and implementation-report identifiers plus explicit verification authority and revision. Create at most one verifier per used capability and reuse it for affected reruns. Each verifier publishes a complete `verification-report` for its capability and evaluated revision. Once a stable revision packet is under verification, stop speculative root source review. Interrupt only when the revision changed or a confirmed finding invalidates the packet. If verification returns `failed`, return its exact report identifier and accepted finding identifiers to the same implementation owner and re-verify. If it returns `blocked`, the root decides whether review proceeds on source alone and records the reason in review evidence. Dispose any verifier context discoveries before downstream use. Dispatch `independent_review` only after every required verifier has passed or its blocker is explicitly accepted.
 10. Then dispatch one `independent_review` agent with exact overview, phase, implementation, verification, and required context identifiers or labeled inline fallbacks. Keep it open for meaningful delta review. It judges approved intent before project guardrails, source, diff, and verification; publishes an initial `implementation-review` whose `Context basis` names only evidence actually consulted; and later receives only new or replaced evidence while naming the full-review base. It opens context only for a named `Review use`. A context discovery requires an exact `Affected judgment` and current-task consumer; incidental context is omitted, and only a named material judgment can block. For a second critical review, reuse `independent_review` only for a named measurable risk and independently detectable defect class.
 11. Return the review artifact and accepted finding IDs to the same owner; do not restate the findings. Validate stale context only when at least one result can change acceptance, a finding disposition, replanning, or required `persist`; otherwise discard it without dispatch. Send a confirmed descriptive correction to the same owner only with `persist`, its validating delta, and an exact authorized path. After correction, rerun affected verification and always obtain a post-edit context delta for the changed paths and dirty revision. Send only replacement reports, fresh context evidence, and the meaningful delta to the same reviewer. Never accept or commit while a named material context judgment remains unresolved.
-12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Follow the host close contract. Under V1 call `close_agent` so descendants close as well. Under V2, where no true close operation is exposed, and on Cursor, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
+12. After final evidence is consumed and every material context discovery has an explicit disposition, inspect each phase agent's latest `cleanup` and `retained_resources` declarations. Do not contact an agent that reported `cleanup: pass` with `retained_resources: none`. Send one parallel cleanup-only follow-up, with no new implementation or verification work, only to owners that reported authorized retained resources, `partial`, or `blocked`; stop root-owned shared test processes at the same boundary. Consume those cleanup results. Follow the host close contract. Under V1 call `close_agent` so descendants close as well. Under V2, where no true close operation is exposed, and on Cursor or Grok, require every phase agent to be `completed` with no active descendant or retained resource. A known live agent or owned process with worktree write access blocks commit; an unclosed source-read-only task tab is partial cleanup and does not invalidate accepted evidence. The root may stop directly only a root-owned resource or an exact safely addressable handle reported by its owner. Never scan for or kill unrelated processes or close unrelated browser state.
 13. Have the root commit the accepted phase through [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), then update that phase's status and commit in the manifest. Git is the commit authority; do not create a commit artifact.
 14. When the same causal failure repeats, correction cycles fail to converge, scope expands, or evidence indicates a deeper shared cause, stop blind retries and choose: reassess, recommend a tier change, dispatch `difficult_debugging`, or ask the user at an authority boundary. The debugger publishes `debugging-report`; return its exact identifier to the same owner without root-authored diagnosis replay. Distinct legitimate findings alone are not an escalation trigger.
 15. After every phase is reviewed, verified, torn down, and committed, set `plan.md` to `completed` and best-effort mirror that descriptive state. Failure to update coordination never changes the commit or plan result.
 
 Apply that contract at steps 7, 10, 11, 13, 15, and delivery respectively.
 
-Wait for live agents with the host wait contract in non-interruptive ten-minute windows (`timeout_ms: 600000` on Codex; Cursor uses the background Task completion analogue).
-Completion wakes the root immediately; timeout means only that the agent is still working. After a timeout,
-wait again without a status request, restart, or interrupt. After 30 accumulated minutes without a final result, assess
-once for concrete blocker evidence; elapsed time alone is not a failure. Interrupt only
-for cancellation, a material scope change, or indispensable information that
-invalidates the current assignment. A normal timeout is not a user-visible transition and produces no progress update unless the user asks; report the 30-minute assessment only when it establishes a material blocker or transition.
+Wait for live agents with the host wait contract in non-interruptive ten-minute windows (`timeout_ms: 600000` on Codex and Grok `get_command_or_subagent_output`; Cursor uses the background Task completion analogue). Completion wakes the root immediately; timeout means only that the agent is still working. After a timeout, wait again without a status request, restart, or interrupt. After 30 accumulated minutes without a final result, assess once for concrete blocker evidence; elapsed time alone is not a failure. Interrupt only for cancellation, a material scope change, or indispensable information that invalidates the current assignment. A normal timeout is not a user-visible transition and produces no progress update unless the user asks; report the 30-minute assessment only when it establishes a material blocker or transition.
 
-Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed without fallback. A profile may report that route's technical blocker but may not veto or substitute it. Follow the host spawn reference for `auto` / `in_app` / `chrome`. Computer Use and standalone browser automation are not route substitutes except Cursor `auto` mapping to Playwright. A functional failure, application timeout, or selector problem never triggers fallback. Every run creates a fresh task-owned tab, never claims or reuses a user or prior-run tab, and closes its exact tab and supporting processes before every successful, failed, or blocked handoff. Browser-work handoffs retain nothing and report `retained_resources: none`; browser control ends with the task tab rather than by closing the Chrome application or a shared window. Preserve unrelated tabs, sessions, windows, and browser state. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
+Frontend visual iteration and browser acceptance use `browser_route: auto | in_app | chrome`. Explicit user selection, whether relayed by the root or supplied in the agent conversation, must be attempted even when the scenario is a canary for a previously failing tool and remains fixed without fallback. A profile may report that route's technical blocker but may not veto or substitute it. Follow the host spawn reference for `auto` / `in_app` / `chrome`. Computer Use and standalone browser automation are not route substitutes except Cursor or Grok `auto` mapping to Playwright. A functional failure, application timeout, or selector problem never triggers fallback. Every run creates a fresh task-owned tab, never claims or reuses a user or prior-run tab, and closes its exact tab and supporting processes before every successful, failed, or blocked handoff. Browser-work handoffs retain nothing and report `retained_resources: none`; browser control ends with the task tab rather than by closing the Chrome application or a shared window. Preserve unrelated tabs, sessions, windows, and browser state. Frontend and independent acceptance tabs and evidence remain separate; browser acceptance is an independent verifier dispatch. The frontend owner never accepts its own work.
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-as the default. Cursor observes the host permission choice and never writes permission configuration. The active permission choice for the task, host, or launcher
+as the default. Cursor and Grok observe the host permission choice and never write permission configuration. The active permission choice for the task, host, or launcher
 remains authoritative: Orchestra never changes it or blocks execution solely
 because it differs. When Codex Guardian is active, commands inside the workspace run
 directly and one exact command that crosses a protected boundary requests one

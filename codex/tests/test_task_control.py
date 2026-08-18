@@ -86,6 +86,7 @@ class TaskControlTests(unittest.TestCase):
         *args: str,
         thread: str | None = None,
         cursor_thread: str | None = None,
+        grok_thread: str | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], dict]:
         environment = os.environ.copy()
         for key in (
@@ -93,12 +94,15 @@ class TaskControlTests(unittest.TestCase):
             "CURSOR_CONVERSATION_ID",
             "CURSOR_THREAD_ID",
             "ORCHESTRA_HOST_THREAD_ID",
+            "GROK_SESSION_ID",
         ):
             environment.pop(key, None)
         if thread is not None:
             environment["CODEX_THREAD_ID"] = thread
         if cursor_thread is not None:
             environment["ORCHESTRA_HOST_THREAD_ID"] = cursor_thread
+        if grok_thread is not None:
+            environment["GROK_SESSION_ID"] = grok_thread
         result = subprocess.run(
             [sys.executable, str(HELPER), "--state-root", str(self.state_root), *args],
             cwd=ROOT,
@@ -263,6 +267,19 @@ class TaskControlTests(unittest.TestCase):
             ("cursor", "cursor-thread-1"),
         )
         self.assertEqual(
+            host_thread_from_env({"GROK_SESSION_ID": THREAD_TWO}),
+            ("grok", THREAD_TWO),
+        )
+        self.assertEqual(
+            host_thread_from_env(
+                {
+                    "CODEX_THREAD_ID": THREAD_ONE,
+                    "GROK_SESSION_ID": THREAD_TWO,
+                }
+            ),
+            ("codex", THREAD_ONE),
+        )
+        self.assertEqual(
             host_thread_from_env({"CURSOR_CONVERSATION_ID": "undocumented"}),
             (None, None),
         )
@@ -274,6 +291,10 @@ class TaskControlTests(unittest.TestCase):
             validate_thread_id(None, None)
         self.assertEqual(missing.exception.status, "blocked")
         self.assertIn("host conversation identity is missing", missing.exception.reason)
+        with self.assertRaises(ControlError) as grok_missing:
+            validate_thread_id("not-a-uuid", "grok")
+        self.assertEqual(grok_missing.exception.status, "blocked")
+        self.assertIn("Grok host session identity", grok_missing.exception.reason)
 
     def test_adoption_rejects_tampered_prepared_documents(self) -> None:
         self.create_task()
@@ -969,6 +990,137 @@ class TaskControlTests(unittest.TestCase):
         )
         self.assertEqual(reclaimed["adopted_harness"], "codex")
         self.assertEqual(reclaimed["previous_harness"], "cursor")
+
+    def test_grok_session_identity_is_a_distinct_owner_namespace(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="grok",
+        )
+        self.assertEqual(adopted["adopted_harness"], "grok")
+        self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+        with self.assertRaises(ControlError) as busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness="codex",
+            )
+        self.assertEqual(busy.exception.status, "busy")
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="cursor",
+        )
+        self.assertEqual(reclaimed["adopted_harness"], "cursor")
+        self.assertEqual(reclaimed["previous_harness"], "grok")
+        result, cli_adopted = self.cli(
+            "task",
+            "adopt",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            grok_thread=THREAD_TWO,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(cli_adopted["status"], "busy")
+
+    def test_schema_v5_migration_widens_owner_harness_to_grok(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="cursor",
+        )
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute("PRAGMA foreign_keys = OFF")
+            connection.execute("ALTER TABLE tasks RENAME TO tasks_old")
+            connection.execute(
+                """
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    short_id TEXT COLLATE NOCASE UNIQUE,
+                    title TEXT NOT NULL,
+                    brief TEXT NOT NULL,
+                    brief_revision INTEGER NOT NULL DEFAULT 1,
+                    source_harness TEXT NOT NULL,
+                    source_conversation TEXT NOT NULL,
+                    source_message TEXT NOT NULL,
+                    repository TEXT,
+                    rank INTEGER NOT NULL,
+                    disposition TEXT NOT NULL,
+                    idempotency_key TEXT NOT NULL UNIQUE,
+                    preparation_status TEXT NOT NULL DEFAULT 'draft',
+                    prepared_revision TEXT,
+                    repository_context_digest TEXT,
+                    specification_digest TEXT,
+                    specification_confirmed_at TEXT,
+                    adopted_thread_id TEXT,
+                    adopted_harness TEXT CHECK (
+                        adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor')
+                    ),
+                    adopted_revision TEXT,
+                    adopted_at TEXT,
+                    previous_thread_id TEXT,
+                    previous_harness TEXT CHECK (
+                        previous_harness IS NULL OR previous_harness IN ('codex', 'cursor')
+                    ),
+                    transfer_generation INTEGER NOT NULL DEFAULT 0,
+                    transfer_requested_at TEXT,
+                    completed_at TEXT,
+                    initiative_id TEXT,
+                    decomposition_reason TEXT,
+                    repository_common_dir TEXT,
+                    completed_revision TEXT,
+                    delivered_task_revision TEXT,
+                    delivery_revision TEXT,
+                    delivery_kind TEXT,
+                    delivered_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute("INSERT INTO tasks SELECT * FROM tasks_old")
+            connection.execute("DROP TABLE tasks_old")
+            connection.execute("PRAGMA user_version = 5")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["adopted_harness"], "cursor")
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="grok",
+        )
+        self.assertEqual(reclaimed["adopted_harness"], "grok")
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
+            sql = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+        self.assertIn("'grok'", sql)
 
 
 if __name__ == "__main__":

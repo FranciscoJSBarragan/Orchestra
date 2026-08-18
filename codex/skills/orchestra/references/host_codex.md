@@ -1,7 +1,7 @@
 # Codex spawn adapter
 
 Use this reference only when the execution host is Codex (`spawn_agent` and
-`wait_agent` exist). Never mix Codex spawn with Cursor `Task`.
+`wait_agent` exist). Never mix Codex spawn with Cursor `Task` or Grok `spawn_subagent`.
 
 Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
 `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the Codex assignment

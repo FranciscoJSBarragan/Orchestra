@@ -1,7 +1,8 @@
 # Cursor spawn adapter
 
 Use this reference only when the execution host is Cursor (`Task` exists).
-Never mix Cursor Task with Codex `spawn_agent` / `wait_agent` / `close_agent`.
+Never mix Cursor Task with Codex `spawn_agent` / `wait_agent` / `close_agent`
+or Grok `spawn_subagent`.
 
 ## Host matrix
 

@@ -11,10 +11,10 @@ quality-to-cost ratio.
 ## Vision
 
 Orchestra should make it practical to hand a well-defined implementation to a
-Codex or Cursor orchestrator and trust it to reach a correct, reviewed, and
+Codex, Cursor, or Grok Build orchestrator and trust it to reach a correct, reviewed, and
 committed result. The user remains the product owner and final authority; the
-orchestrator acts as the technical lead responsible for execution. Codex and
-Cursor are first-class execution hosts; they share one product, skills, helpers,
+orchestrator acts as the technical lead responsible for execution. Codex,
+Cursor, and Grok Build are first-class execution hosts; they share one product, skills, helpers,
 and Git workflow, and each host supplies only spawn, models, conversation
 identity, permissions, and browser routing.
 
@@ -72,11 +72,11 @@ workflow, and phase agents do not create user-facing visualizations.
 The active tier controls assignment intensity, not user authority. Tiers are
 host-specific lookups. Codex native tasks offer standard and critical; Codex
 external tasks may additionally use Luna as a cost-focused opt-in when the user
-explicitly prioritizes cost for ordinary, bounded work. Cursor tasks offer
+explicitly prioritizes cost for ordinary, bounded work. Cursor and Grok Build tasks offer
 minimal, standard, and critical, with no native/external mode: minimal is the
-Cursor equivalent of Codex Luna. Codex still defaults to standard; Cursor
-recommends standard, and `minimal` when the user prioritizes cost or speed.
-Cursor `critical` remains unassigned.
+equivalent of Codex Luna. Codex still defaults to standard; Cursor and Grok
+recommend standard, and `minimal` when the user prioritizes cost or speed.
+Cursor and Grok `critical` remain unassigned.
 Material risk still calls for standard or critical where those matrices exist.
 A user may choose an available assigned tier or direct a safe transition within
 the selected Codex mode after a concise recommendation. Independent authority
@@ -92,9 +92,9 @@ direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
 or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
 scrutiny for actual high-impact risk; external Luna is considered only when the
-user explicitly prioritizes cost for ordinary, bounded work. On Cursor it
-recommends `standard`, and `minimal` when the user prioritizes cost or speed.
-Unassigned Cursor `critical` remains blocked. The
+user explicitly prioritizes cost for ordinary, bounded work. On Cursor and Grok
+Build it recommends `standard`, and `minimal` when the user prioritizes cost or
+speed. Unassigned Cursor or Grok `critical` remains blocked. The
 user makes the final tier choice among assigned tiers.
 
 ### Prepared-task Kanban and native-chat continuity
@@ -112,7 +112,7 @@ started directly without adopting a card has no `A#` identity and is displayed
 with repository plus human title. This keeps simultaneous direct tasks distinct
 without introducing another allocator.
 
-The user starts a ready card from a native Codex or Cursor chat by asking that chat to
+The user starts a ready card from a native Codex, Cursor, or Grok Build chat by asking that chat to
 adopt its human ID with Orchestra. The chat becomes the visible conversational
 owner, inherits its current permissions, and follows the normal Orchestra
 checkout and approval flow. Revision-bound prepared context is reused when
@@ -178,8 +178,8 @@ read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor observes the host permission choice and
-never writes Codex or Cursor permission configuration. The active permission
+Auto-review) as the default. Cursor and Grok observe the host permission choice and
+never write Codex, Cursor, or Grok permission configuration. The active permission
 choice for the task, host, or launcher remains authoritative; the complete
 permission rules live in `docs/WORKFLOW.md`. Deterministic product, assertion,
 compilation, or CLI-usage failures remain real failures.
@@ -330,8 +330,8 @@ Shared runtime helpers, checkout mode, and worktree root install under
 values under `$CODEX_HOME/orchestra/` for one compatibility window, requires
 Codex 0.146.0 or later, and by default selects the built-in `:workspace`
 permission profile, keeps `approval_policy = "on-request"`, and routes eligible
-boundary requests through `approvals_reviewer = "auto_review"`. Cursor sync
-never writes Codex or Cursor permission configuration. An explicit permission
+boundary requests through `approvals_reviewer = "auto_review"`. Cursor and Grok
+sync never write Codex, Cursor, or Grok permission configuration. An explicit permission
 choice for the current task, host, or launcher remains authoritative at
 runtime. Sync installs no custom permission profile, writable-root list,
 command rule, or Git bridge.
@@ -365,7 +365,7 @@ external or integration mutation.
 Orchestra succeeds when:
 
 - a task can be prepared durably without starting Orchestra, then adopted in a
-  visible native Codex or Cursor chat without losing its origin, human ID, or
+  visible native Codex, Cursor, or Grok Build chat without losing its origin, human ID, or
   UUID;
 - ordinary tasks finish without workflow repair or manual state cleanup;
 - accepted phases leave no active write-capable agent or owned test process;

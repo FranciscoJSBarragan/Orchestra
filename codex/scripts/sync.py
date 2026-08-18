@@ -70,8 +70,8 @@ HELPERS = (
 )
 RETIRED_HELPERS = ("create_worktree.py",)
 MODELCONFIGS = ("native", "external", "dual")
-HOSTS = ("codex", "cursor", "all")
-HOST_SCOPES = ("codex", "cursor")
+HOSTS = ("codex", "cursor", "grok", "all")
+HOST_SCOPES = ("codex", "cursor", "grok")
 ENTRY_SCOPES = ("shared", *HOST_SCOPES)
 CHECKOUT_MODES = ("managed", "hybrid")
 CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
@@ -180,6 +180,10 @@ def _includes_codex(host: str) -> bool:
 
 def _includes_cursor(host: str) -> bool:
     return host in {"cursor", "all"}
+
+
+def _includes_grok(host: str) -> bool:
+    return host in {"grok", "all"}
 
 
 def _cursor_mcp_json(orchestra_home: Path) -> bytes:
@@ -487,6 +491,8 @@ def _entry_scope(root: str, path: str) -> str:
         return "cursor"
     if root == "orchestra_home" and parts[:2] == ("hosts", "cursor"):
         return "cursor"
+    if root == "orchestra_home" and parts[:2] == ("hosts", "grok"):
+        return "grok"
     return "shared"
 
 
@@ -670,6 +676,19 @@ def _inventory(
             "file",
             _cursor_mcp_json(orchestra_home),
         )
+    if _includes_grok(host):
+        grok_roles = source_root / "hosts/grok/config/roles.grok.toml"
+        grok_spawn = source_root / "hosts/grok/references/spawn.md"
+        for source, destination in (
+            (grok_roles, "hosts/grok/roles.toml"),
+            (grok_spawn, "hosts/grok/spawn.md"),
+        ):
+            entries[("orchestra_home", destination)] = _entry(
+                "orchestra_home",
+                destination,
+                "file",
+                _read_file(source, str(source)),
+            )
     return entries
 
 
@@ -689,6 +708,8 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             ORCHESTRA_CHECKOUT_MODE_PATH,
             "hosts/cursor/roles.toml",
             "hosts/cursor/spawn.md",
+            "hosts/grok/roles.toml",
+            "hosts/grok/spawn.md",
         } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)}
     if root != "codex_home":
         return False

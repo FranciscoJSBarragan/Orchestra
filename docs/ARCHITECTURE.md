@@ -3,8 +3,9 @@
 ## Architectural objective
 
 Build a multi-host orchestration product whose complexity is dominated by
-software delivery work, not by its own control plane. Codex and Cursor are
-equal execution hosts; shared skills, helpers, and Git remain one copy.
+software delivery work, not by its own control plane. Codex, Cursor, and Grok
+Build are equal execution hosts; shared skills, helpers, and Git remain one
+copy.
 
 ```mermaid
 flowchart LR
@@ -35,7 +36,8 @@ Orchestra/
 │   └── ROADMAP.md              # non-canonical sequencing
 ├── .githooks/                 # versioned thin wrappers only
 ├── hosts/
-│   └── cursor/                # Cursor spawn, roles, local plugin
+│   ├── cursor/                # Cursor spawn, roles, local plugin
+│   └── grok/                  # Grok Build spawn and roles
 └── codex/
     ├── agents/                # four Codex TOML base profiles
     ├── control/               # local prepared-task Kanban and native-chat ownership
@@ -63,7 +65,7 @@ interaction tables as read-only legacy history. New public code exposes no App
 Server operation. Native-chat adoption requires the adapter-provided conversation
 identity (`CODEX_THREAD_ID` on Codex; on Cursor, the plugin `sessionStart` hook
 verifies `session_id == conversation_id` and exports that value as
-`ORCHESTRA_HOST_THREAD_ID`). The
+`ORCHESTRA_HOST_THREAD_ID`; on Grok Build, `GROK_SESSION_ID`). The
 chat then invokes normal Orchestra. Coordinator receives the same UUID only
 after checkout creation. Hub joins both stores by UUID and remains GET-only.
 Cooperative transfer remains owning-chat plus stable checkpoint. When that
@@ -417,7 +419,7 @@ revisions. Initiative membership groups cards but has no state or executable
 human ID. Parallelism is a read-time graph derivation. The Control service owns
 transactional decomposition, DAG validation, dependency satisfaction, and
 native-chat delivery registration; the CLI supplies current Git identity and
-ancestry evidence. The Hub accepts control schemas v3 and v4 during migration,
+ancestry evidence. The Hub accepts control schemas v3 through v6 during migration,
 projects initiative/dependency fields through an allowlist, and stays GET-only.
 
 ## Host adapters
@@ -427,15 +429,18 @@ host-neutral. Each execution host supplies only spawn/wait/close, the model
 matrix, conversation identity, permissions, and `browser_route`.
 
 The root detects the host from available tools: Codex when `spawn_agent` and
-`wait_agent` exist; Cursor when `Task` exists. It never mixes protocols in one
+`wait_agent` exist; otherwise Grok Build when `spawn_subagent` exists;
+otherwise Cursor when `Task` exists. It never mixes protocols in one
 task. Codex keeps `fork_turns: none`, V1 `close_agent`, and V2 completed-state
 evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
 phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
-dispatch API.
+dispatch API. Grok uses a fresh `spawn_subagent` per dispatch, `isolation:
+none`, `cwd` equal to the task checkout, may `resume_from` the same
+phase-cohort agent after completion, and never resumes a reviewer.
 
-Cursor has no native/external mode and does not run `session_model.py`. Codex
-mode detection remains Codex-only. Shared helpers, checkout-mode, and
+Cursor and Grok have no native/external mode and do not run `session_model.py`.
+Codex mode detection remains Codex-only. Shared helpers, checkout-mode, and
 worktree-root live under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; `$CODEX_HOME`
 remains the Codex-only install root for profiles, Guardian, and session
 inspection.
@@ -457,6 +462,12 @@ Cursor reads one host matrix at
 `minimal` (Luna high for low-analysis capabilities, Grok 4.6 medium for
 implementation and remaining judgment) and `standard` (Grok 4.6 medium / high /
 xhigh). Selecting `critical` on Cursor blocks until those rows are assigned.
+
+Grok Build reads one host matrix at
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers
+`minimal`, `standard`, and `critical` with no mode split. This cut assigns
+`minimal` (`grok-4.5`) and `standard` (`grok-4.6`). Selecting `critical` on
+Grok blocks until those rows are assigned.
 
 The dual matrix contains `native` and `external` modes. Before task setup, a
 read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
@@ -518,8 +529,8 @@ encrypted compaction blobs are not portable across alias/native routes.
 ## Verification environment and browser routing
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor observes the host permission choice and
-never writes permission configuration. The active permission choice for the
+Auto-review) as the default. Cursor and Grok observe the host permission
+choice and never write permission configuration. The active permission choice for the
 task, host, or launcher remains authoritative; the complete permission rules
 live in `docs/WORKFLOW.md` ("Test permissions and browser routing").
 Deterministic syntax, type, compile, lint, import, assertion,
@@ -531,10 +542,11 @@ fixed without fallback; an agent may report its technical blocker but may not
 veto or substitute it. On Codex, without an explicit route, `auto` selects the
 dedicated Chrome connector first and uses Codex's in-app Browser only for a
 technical availability or capability gap that the in-app Browser can satisfy.
-On Cursor, `auto` maps to Playwright and `in_app` is blocked. `chrome` selects
-only the dedicated Chrome connector on both hosts. Computer Use and standalone
-browser automation are not browser route substitutes, except that Cursor `auto`
-uses Playwright as the host-mapped surface.
+On Cursor and Grok, `auto` maps to Playwright and `in_app` is blocked. `chrome`
+selects only the dedicated Chrome connector on Codex and Cursor and is blocked
+on Grok. Computer Use and standalone browser automation are not browser route
+substitutes, except that Cursor and Grok `auto` use Playwright as the
+host-mapped surface.
 
 Every browser run creates a new task-owned tab rather than claiming or reusing a
 user tab or a prior run's tab. Frontend iteration and independent browser
@@ -567,7 +579,8 @@ the commit.
 
 Live-agent observation uses the host wait contract with a ten-minute maximum.
 On Codex that is `wait_agent`. On Cursor it is a background Task plus
-completion notification without busy-polling. Completion wakes the root
+completion notification without busy-polling. On Grok it is
+`get_command_or_subagent_output` with `timeout_ms: 600000`. Completion wakes the root
 immediately; timeout does not contact, interrupt, restart, or fail the agent.
 After 30 accumulated minutes, only concrete blocker evidence justifies
 intervention.
@@ -801,7 +814,7 @@ unused mechanisms.
 
 The source repository is authoritative. Installation uses only
 repository-driven direct sync. A single sync tool owns explicitly managed
-resources per requested host (`codex`, `cursor`, or `all`; default `codex`). It
+resources per requested host (`codex`, `cursor`, `grok`, or `all`; default `codex`). It
 supports dry-run and backup, preserves unrelated user configuration, reports
 what it installed, and requires a restart when a Codex permission backend
 changes. Orchestra runtime installation is never part of ordinary task
@@ -809,15 +822,17 @@ execution, and bootstrap of Orchestra itself must not invoke Orchestra.
 
 Shared destinations are `$HOME/.agents/skills/<skill>` including their internal
 playbook references, and `${ORCHESTRA_HOME:-$HOME/.orchestra}/` for helpers,
-checkout-mode, worktree-root, and the Cursor host matrix. Codex-only
+checkout-mode, worktree-root, and the Cursor and Grok host matrices. Codex-only
 destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
 `$CODEX_HOME/orchestra/` for the Codex matrix, helper mirrors, manifest, and
 deterministic current backups, plus the marked blocks in `$CODEX_HOME/AGENTS.md`
 and `$CODEX_HOME/config.toml`. Cursor-only destinations are the local plugin
-under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference. The
+under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference.
+Grok-only destinations are the Grok roles and spawn reference under
+`${ORCHESTRA_HOME}/hosts/grok/`. The
 default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
-`$HOME/.orchestra`. Cursor sync never writes Codex or Cursor permission
-configuration.
+`$HOME/.orchestra`. Cursor and Grok sync never write Codex, Cursor, or Grok
+permission configuration.
 
 The only managed content in `$CODEX_HOME/AGENTS.md` is the single block
 delimited by `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.

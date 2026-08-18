@@ -64,9 +64,13 @@ available tools and reads that host's spawn reference. Codex: `spawn_agent`
 and `wait_agent` exist; under multi-agent V2 pass `fork_turns: none` explicitly
 on every spawn (the V2 default forks the full root history, which multiplies
 token cost and destroys reviewer independence); under V1 never set
-`fork_context: true`. Cursor: `Task` exists; use a fresh isolated Task per
-dispatch, resume only the same phase-cohort agent id, and never `resume: self`
-for a reviewer. Never mix Codex and Cursor spawn protocols in one task.
+`fork_context: true`. Grok Build: `spawn_subagent` exists and `spawn_agent`
+does not; use a fresh isolated subagent per dispatch, `isolation: none`,
+`cwd` equal to the task checkout, resume only the same phase-cohort agent
+with `resume_from`, and never resume a reviewer. Cursor: `Task` exists; use a
+fresh isolated Task per dispatch, resume only the same phase-cohort agent id,
+and never `resume: self` for a reviewer. Never mix Codex, Cursor, and Grok
+spawn protocols in one task.
 
 ## Host adapters
 
@@ -85,6 +89,14 @@ conversation identity, permissions, and `browser_route`.
   background Task and completion notification without busy-polling. Cleanup
   requires completed agents with no retained write-capable resources. Cursor
   sync never writes Codex `config.toml` or Cursor `settings.json`.
+- Grok Build has no native/external mode and does not run `session_model.py`.
+  It reads `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Dispatch
+  uses `spawn_subagent` with `general-purpose` plus the existing
+  `orchestra-role-*` skill. Do not use the host workflow tool or
+  `isolation: worktree`. Wait uses `get_command_or_subagent_output` with
+  `timeout_ms: 600000`. Cleanup requires completed agents with no retained
+  write-capable resources. Grok sync never writes `~/.grok/config.toml` or
+  Codex `config.toml`.
 
 Shared helpers, checkout-mode, and worktree-root live under
 `${ORCHESTRA_HOME:-$HOME/.orchestra}`. `$CODEX_HOME` remains the Codex-only
@@ -159,12 +171,15 @@ digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
 legacy `runs`, `turns`, and `interactions` remain readable after migration but
 new code never writes or exposes App Server operations.
 
-Adoption occurs only inside the user's current native Codex or Cursor chat.
+Adoption occurs only inside the user's current native Codex, Cursor, or Grok
+Build chat.
 `task adopt` requires the adapter-provided conversation identity; no caller may
 invent or override that identity. On Codex that identity is `CODEX_THREAD_ID`
 (UUID). On Cursor the plugin's `sessionStart` hook verifies that `session_id`
 matches `conversation_id` and exposes that exact value through
-`ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. The chat then explicitly activates Orchestra,
+`ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. On Grok
+Build that identity is `GROK_SESSION_ID`; if it is unavailable, adopt is
+`blocked`. The chat then explicitly activates Orchestra,
 inherits its current permissions, and applies the installed checkout policy. Matching Git
 reuses prepared context; changed Git requires a focused `repository_context`
 delta and specification reconfirmation only when the result materially changes.
@@ -233,9 +248,17 @@ root recommends `standard`; it recommends `minimal` when the user prioritizes
 cost or speed. Selecting `critical` blocks until
 those rows are assigned.
 
+On Grok Build, there is no native/external mode and `session_model.py` is not
+invoked. The root reads
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Grok offers
+`minimal`, `standard`, and `critical`. This cut assigns `minimal` and
+`standard`. The root recommends `standard`; it recommends `minimal` when the
+user prioritizes cost or speed. Selecting `critical` blocks until those rows
+are assigned.
+
 For every spawned dispatch, the root selects the explicit capability, base
-profile, and host assignment from the selected Codex mode or the Cursor host
-matrix. The selected model configuration is kept in memory before plan approval
+profile, and host assignment from the selected Codex mode or the Cursor or
+Grok host matrix. The selected model configuration is kept in memory before plan approval
 and in plan Decisions afterward. It cannot change within a task, including
 during tier transitions. Legacy Codex `native` and `external` installations
 continue to provide one fixed top-level matrix and do not run session
@@ -273,9 +296,9 @@ security, payment, destructive-action, or delivery authority gates. Tier
 transitions remain user-directed and cannot change the task's selected Codex
 mode.
 
-Cursor `minimal` is the equivalent of Codex `luna`. This cut also assigns
-Cursor `standard`. Hard gates never change with the cheap tier. Do not
-rename the Codex `luna` key.
+Cursor and Grok `minimal` are the equivalent of Codex `luna`. This cut also
+assigns Cursor and Grok `standard`. Hard gates never change with the cheap
+tier. Do not rename the Codex `luna` key.
 
 ### Native standard configuration
 
@@ -398,6 +421,46 @@ Product contract for `standard`. All rows are Grok 4.6; effort varies:
 
 Cursor `critical` remains unassigned; selecting it blocks.
 
+### Grok Build minimal configuration
+
+Grok has no native/external mode. Product contract for `minimal`:
+
+| Tier | Capability | Base profile | Product model |
+| --- | --- | --- | --- |
+| Minimal | `repository_context` | `orchestra_analyst` | Grok 4.5 inherit |
+| Minimal | `web_research` | `orchestra_analyst` | Grok 4.5 inherit |
+| Minimal | `runtime_verification` | `orchestra_verifier` | Grok 4.5 inherit |
+| Minimal | `browser_acceptance` | `orchestra_verifier` | Grok 4.5 inherit |
+| Minimal | `technical_planning` | `orchestra_analyst` | Grok 4.5 inherit |
+| Minimal | `architecture_analysis` | `orchestra_analyst` | Grok 4.5 inherit |
+| Minimal | `difficult_debugging` | `orchestra_analyst` | Grok 4.5 inherit |
+| Minimal | `general_implementation` | `orchestra_implementation_worker` | Grok 4.5 inherit |
+| Minimal | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.5 inherit |
+| Minimal | `independent_review` | `orchestra_reviewer` | Grok 4.5 inherit |
+
+`hosts/grok/config/roles.grok.toml` records that contract. The Grok spawn
+reference maps each row onto `spawn_subagent` `general-purpose` without
+inventing a per-dispatch reasoning field.
+
+### Grok Build standard configuration
+
+Product contract for `standard`. All rows are Grok 4.6 inherit:
+
+| Tier | Capability | Base profile | Product model |
+| --- | --- | --- | --- |
+| Standard | `repository_context` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard | `web_research` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard | `runtime_verification` | `orchestra_verifier` | Grok 4.6 inherit |
+| Standard | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 inherit |
+| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
+| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
+| Standard | `technical_planning` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 inherit |
+| Standard | `independent_review` | `orchestra_reviewer` | Grok 4.6 inherit |
+
+Grok `critical` remains unassigned; selecting it blocks.
+
 ## Context and planning
 
 After explicit activation in an execution-capable mode:
@@ -415,14 +478,16 @@ After explicit activation in an execution-capable mode:
    selects `native` or `external` from the root model and multi-agent version
    before tier selection. A legacy Codex matrix remains fixed. The selected dual
    mode is immutable for the task. On Cursor, skip session inspection and read
-   the Cursor host matrix; `minimal` and `standard` are assigned.
+   the Cursor host matrix; `minimal` and `standard` are assigned. On Grok
+   Build, skip session inspection and read the Grok host matrix; `minimal` and
+   `standard` are assigned.
 3. From that brief, the root recommends an available assigned tier with one
    concise explanation of material risk, added scrutiny, and expected
    cost-benefit. Codex native offers `standard` or `critical`; Codex external
    may recommend `luna` only when ordinary bounded work has an explicit cost
-   priority, and otherwise defaults to `standard`. Cursor recommends `standard`,
-   recommends `minimal` when cost or speed is the priority, and blocks
-   `critical` until those rows are assigned. The user
+   priority, and otherwise defaults to `standard`. Cursor and Grok recommend
+   `standard`, recommend `minimal` when cost or speed is the priority, and
+   block `critical` until those rows are assigned. The user
    explicitly chooses the active assigned tier. A user-selected `luna`,
    `minimal`, or `standard` tier does not waive separate authority gates for
    production, migrations, data, security, payments, destructive actions, or
@@ -973,8 +1038,8 @@ consumed and can never affect the commit result.
 ### Test permissions and browser routing
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor observes the host permission choice and
-never writes permission configuration. The active permission choice for the
+Auto-review) as the default. Cursor and Grok observe the host permission
+choice and never write permission configuration. The active permission choice for the
 task, host, or launcher remains authoritative: Orchestra never changes it or
 blocks execution solely because it differs. When Codex Guardian is active,
 commands inside the workspace run
@@ -993,9 +1058,12 @@ carry `browser_route: auto | in_app | chrome`:
 - `auto` on Codex explicitly selects the dedicated Chrome connector first. After
   supported connection recovery, it may fall back to Codex's in-app Browser
   only when Chrome is unavailable or has a technical capability gap that the
-  in-app Browser can satisfy. On Cursor, `auto` maps to Playwright.
-- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor.
-- `chrome` selects only the dedicated Chrome connector.
+  in-app Browser can satisfy. On Cursor and Grok Build, `auto` maps to
+  Playwright.
+- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor
+  and Grok.
+- `chrome` selects only the dedicated Chrome connector and is `blocked` on
+  Grok.
 
 An explicit route from the user, relayed by the root or given directly in the
 agent conversation, must be attempted even when the scenario is a canary for a
@@ -1088,7 +1156,8 @@ profile, workspace-root list, execpolicy rule, or Git helper is installed.
 Older or unreadable clients block before any destination changes. Historical
 manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
 remains version-independent and restores the exact prior configuration.
-Cursor synchronization never writes those Codex permission keys.
+Cursor and Grok synchronization never write those Codex permission keys or
+Grok permission configuration.
 
 Native host chats inherit their configured permission choice; Task Control
 never launches an execution host or supplies a permission override. Explicit
@@ -1263,9 +1332,9 @@ It does not authorize release, deployment, or production mutation.
 
 ## Maturity
 
-Automated checks and representative canaries provide evidence. Codex and Cursor
-are approved execution hosts. Hermes, Devin, and any further harness remain
-deferred.
+Automated checks and representative canaries provide evidence. Codex, Cursor,
+and Grok Build are approved execution hosts. Hermes, Devin, and any further
+harness remain deferred.
 
 ## User-facing progress and handoff
 

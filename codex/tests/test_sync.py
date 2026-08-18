@@ -1977,16 +1977,16 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(applied["status"], "ok", applied.get("detail"))
         manifest = self.manifest()
         self.assertEqual(manifest["schema_version"], sync.MANIFEST_SCHEMA_VERSION)
-        self.assertEqual(manifest["installed_hosts"], ["codex", "cursor"])
+        self.assertEqual(manifest["installed_hosts"], ["codex", "cursor", "grok"])
         scopes = {entry["scope"] for entry in manifest["entries"]}
-        self.assertEqual(scopes, {"shared", "codex", "cursor"})
+        self.assertEqual(scopes, {"shared", "codex", "cursor", "grok"})
         self.assertFalse(self.legacy_manifest_path().exists())
-        for selected in ("codex", "cursor", "all"):
+        for selected in ("codex", "cursor", "grok", "all"):
             with self.subTest(host=selected):
                 status = self.run_sync(
                     "status",
                     host=selected,
-                    modelconfig="external" if selected != "cursor" else None,
+                    modelconfig="external" if selected not in {"cursor", "grok"} else None,
                 )
                 self.assertEqual(status["status"], "ok", status.get("detail"))
 
@@ -2020,6 +2020,38 @@ class SyncTests(unittest.TestCase):
             self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").is_file()
         )
 
+    def test_grok_host_installs_adapter_without_codex_config(self) -> None:
+        preview = self.run_sync(
+            "apply", dry_run=True, modelconfig=None, host="grok"
+        )
+        self.assertEqual(preview["status"], "partial")
+        self.assertIsNone(preview.get("codex_version"))
+        self.assertFalse(self.codex_home.exists())
+        applied = self.run_sync("apply", modelconfig=None, host="grok")
+        self.assertEqual(applied["status"], "ok", applied.get("detail"))
+        self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
+        self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertTrue(
+            self.orchestra_root.joinpath("hosts/grok/roles.toml").is_file()
+        )
+        self.assertTrue(
+            self.orchestra_root.joinpath("hosts/grok/spawn.md").is_file()
+        )
+        self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+        self.assertFalse(self.codex_home.joinpath("orchestra/roles.toml").exists())
+        self.assertFalse(
+            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").exists()
+        )
+        roles = self.orchestra_root.joinpath("hosts/grok/roles.toml").read_text()
+        self.assertIn("[tiers.minimal.independent_review]", roles)
+        self.assertIn("[tiers.standard.independent_review]", roles)
+        self.assertNotIn("[tiers.critical.", roles)
+        self.assertIn('model = "grok-4.6"', roles)
+        self.assertFalse(self.legacy_manifest_path().exists())
+        removed = sync.uninstall(self.home, self.codex_home, host="grok")
+        self.assertEqual(removed["status"], "ok", removed.get("detail"))
+        self.assertFalse(self.orchestra_root.joinpath("hosts/grok/roles.toml").exists())
+
     def test_legacy_all_manifest_migrates_without_moving_backups(self) -> None:
         self.codex_home.mkdir(parents=True)
         self.codex_home.joinpath("AGENTS.md").write_text("Personal rules.\n")
@@ -2052,7 +2084,7 @@ class SyncTests(unittest.TestCase):
         migrated = self.run_sync("apply", host="all")
         self.assertEqual(migrated["status"], "ok", migrated.get("detail"))
         self.assertFalse(self.legacy_manifest_path().exists())
-        self.assertEqual(self.manifest()["installed_hosts"], ["codex", "cursor"])
+        self.assertEqual(self.manifest()["installed_hosts"], ["codex", "cursor", "grok"])
         owner = next(
             entry for entry in self.manifest()["entries"] if entry["path"] == "AGENTS.md"
         )

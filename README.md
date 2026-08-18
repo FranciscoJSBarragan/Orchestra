@@ -1,7 +1,7 @@
 # Orchestra
 
-Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex
-and Cursor.
+Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,
+Cursor, and Grok Build.
 
 It helps an individual developer move from an idea or an explicitly activated
 Orchestra request through a runnable foundation, confirmed specification,
@@ -38,7 +38,7 @@ Orchestra starts only from explicit activation. It reuses the conversation,
 classifies any prior candidate checkpoint, and recommends an available assigned
 tier. Codex native offers standard and critical; Codex external additionally
 offers Luna as a cost-focused opt-in for ordinary, bounded work when the user
-explicitly prioritizes cost. Cursor offers minimal, standard, and critical with
+explicitly prioritizes cost. Cursor and Grok Build offer minimal, standard, and critical with
 no native/external mode; this cut assigns minimal and standard and recommends standard. It then creates one collision-free
 `orchestra/<task-slug>[-N]` branch before repository analysis. Managed mode
 creates a dedicated Git worktree under a portable Orchestra root; opt-in hybrid
@@ -115,7 +115,7 @@ matrix is preferred. External assignments require their configured providers
 and model identifiers. Dual mode also requires CodexBridge in `catalog` mode
 with a refreshed catalog that publishes the reserved `orchestra-v1/` aliases.
 Orchestra sync does not change or restart CodexBridge. Cursor ignores
-`--modelconfig` and reads `hosts/cursor` roles instead.
+`--modelconfig` and reads `hosts/cursor` or `hosts/grok` roles instead.
 
 ## Direct sync
 
@@ -128,6 +128,7 @@ python3 codex/scripts/sync.py apply --dry-run --modelconfig dual
 python3 codex/scripts/sync.py apply --modelconfig dual
 python3 codex/scripts/sync.py apply --modelconfig dual --checkout-mode hybrid
 python3 codex/scripts/sync.py apply --host cursor
+python3 codex/scripts/sync.py apply --host grok
 python3 codex/scripts/sync.py apply --host all --modelconfig dual
 python3 codex/scripts/sync.py status --modelconfig native
 python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
@@ -136,9 +137,9 @@ python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
 
-`--host` is `codex`, `cursor`, or `all`. Default `codex` preserves existing
-installs and does not write `~/.cursor`. Shared skills still install under
-`$HOME/.agents/skills/` for any host. Choose `dual`, `native`, or `external` on
+`--host` is `codex`, `cursor`, `grok`, or `all`. Default `codex` preserves
+existing installs and does not write `~/.cursor` or `~/.grok`. Shared skills
+still install under `$HOME/.agents/skills/` for any host. Choose `dual`, `native`, or `external` on
 the first Codex apply. The install manifest
 records that global choice, so later status and apply calls may omit
 `--modelconfig`. Passing another value previews or applies an atomic
@@ -203,7 +204,8 @@ Thirteen skills and their internal playbook references install under
 `$CODEX_HOME/orchestra/scripts/`. Four Codex agent profiles install under
 `$CODEX_HOME/agents/`; the Codex capability matrix installs under
 `$CODEX_HOME/orchestra/roles.toml`. The Cursor matrix installs under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. When
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. The Grok matrix
+installs under `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. When
 `CODEX_HOME` is unset it defaults to `$HOME/.codex`. When `ORCHESTRA_HOME` is
 unset it defaults to `$HOME/.orchestra`. The tool owns only destinations
 recorded in the install manifest.
@@ -245,7 +247,7 @@ executable, event ledger, heartbeat system, or dashboard in this version.
 
 Direct sync also installs `$orchestra-task` and its local JSON helper. Any
 harness can capture or prepare a card without activating Orchestra. New cards
-receive immutable IDs such as `A1`; a native Codex or Cursor chat later adopts
+receive immutable IDs such as `A1`; a native Codex, Cursor, or Grok Build chat later adopts
 that ID
 and starts the normal visible Orchestra flow:
 
@@ -278,7 +280,7 @@ revision-bound documents below `$HOME/.orchestra/tasks/<id>/`. Direct sync also
 registers the local stdio `orchestra_tasks` MCP server, exposing capture,
 query, notes, preparation, confirmed decomposition, archive, and restore only. It cannot adopt, transfer, reclaim, finish, or record delivery for a task,
 start an execution host, create a worktree, or change permissions. From a native
-Codex or Cursor chat,
+Codex, Cursor, or Grok Build chat,
 say `Arranca A1 con Orchestra`; that chat adopts the UUID, activates normal
 Orchestra, and Coordinator registers the same UUID after checkout creation.
 The store never substitutes for the native conversation, approved `plan.md`,
