@@ -53,6 +53,14 @@ valid work. Tier choice changes model and scrutiny intensity; it never waives
 separate authority for production, security, payments, destructive operations,
 merge, release, or deployment.
 
+The implementation owner runs and autocorrects required local deterministic
+checks before handoff, including the canonical full suite when one exists. The
+reviewer inspects intent, source, diff, tests, and fresh evidence without
+routinely rerunning those gates. Orchestra
+creates a separate verifier only for browser or runtime boundaries, mutable
+data, credentials, network or external environments, explicit repository
+policy, and critical work; critical phases retain independent double evidence.
+
 The four profiles are `orchestra_analyst`,
 `orchestra_implementation_worker`, `orchestra_reviewer`, and
 `orchestra_verifier`. Namespacing prevents Orchestra from intercepting ordinary

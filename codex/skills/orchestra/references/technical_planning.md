@@ -27,12 +27,18 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   or tests coupled to implementation details unless those details are an
   approved contract.
 - Within each phase's existing `Verification` section, distinguish
-  `Implementation handoff checks`, the smallest targeted checks required for a
-  stable owner handoff, from the `Independent verification gate`. Assign a
-  canonical full-suite command only to the independent verifier, never both
-  roles. After fixes, require only affected reruns unless repository policy
-  explicitly requires another full gate; configured delivery checks remain a
-  separate final boundary.
+  `Implementation handoff checks` from the `Independent verification gate`.
+  Assign every required local deterministic check to the implementation owner,
+  including affected tests, lint, type checks, builds, validation commands,
+  and the canonical full suite when one exists. Set
+  the independent gate to `none` for an ordinary deterministic non-critical
+  phase. Assign a verifier only for browser interaction, owned services or
+  processes, mutable or stateful data, credentials, network or another external
+  environment, explicit repository policy, or any critical phase. A critical
+  phase requires the implementer to run its deterministic checks and an
+  independent verifier to repeat the applicable gate. After fixes, require only
+  affected reruns unless repository policy explicitly requires another full
+  gate; configured delivery checks remain a separate final boundary.
 - Define the fewest independently reviewable phases. Each phase document must
   be independently executable and state one outcome, its relationship to the
   overview, preconditions and dependencies, exact allowed scope, required

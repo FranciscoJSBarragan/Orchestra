@@ -30,6 +30,15 @@ Every dispatch starts from a clean context: under multi-agent V2 pass
 `fork_turns: none` explicitly on every spawn; under V1 never set
 `fork_context: true`.
 
+Apply the phase verification contract before resolving a verifier assignment.
+When the `Independent verification gate` is `none`, do not spawn
+`runtime_verification` or `browser_acceptance`; matrix entries describe
+available capabilities, not mandatory agents. Spawn a verifier only for a
+named browser, service/process, mutable-data, credential, network/external,
+repository-policy, or critical-tier gate. Critical phases independently repeat
+the applicable deterministic gate already evidenced by the implementation
+owner.
+
 Wait for live agents with `wait_agent` in non-interruptive ten-minute windows
 (`timeout_ms: 600000`). Completion wakes the root immediately; `timed_out`
 means continue waiting without `send_input` or `interrupt: true`. A normal

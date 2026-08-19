@@ -857,12 +857,19 @@ set. A phase-specific subplan is created only when the phase cannot be safely
 delegated from the main plan.
 
 The phase's existing `Verification` section distinguishes `Implementation
-handoff checks`, the smallest targeted checks the owner needs for a stable
-handoff, from the `Independent verification gate`, which owns any canonical
-full-suite command. The planner never assigns the same full-suite gate to both
-roles. After an accepted fix, the verifier reruns only affected checks unless
-the repository explicitly requires another full gate. Configured delivery
-checks remain a separate final delivery boundary.
+handoff checks` from the `Independent verification gate`. The implementation
+owner runs every required local deterministic check: affected tests, lint, type
+checks, builds, validation commands, and the canonical full suite when one
+exists. The owner diagnoses and corrects failures within approved scope before
+handoff. An ordinary deterministic non-critical phase sets the independent
+gate to `none`. A verifier is required only for browser interaction, owned
+services or processes, mutable or stateful data, credentials, network or
+another external environment, explicit repository policy, or any critical
+phase. Critical phases keep double evidence: the owner runs the deterministic
+checks and a verifier independently repeats the applicable gate. After an
+accepted fix, the owner and any applicable verifier rerun only affected checks
+unless the repository explicitly requires another full gate. Configured
+delivery checks remain a separate final delivery boundary.
 
 Every planned or added test maps to an observable acceptance journey or a named
 regression risk. Do not add duplicated coverage, count-driven tests, or tests
@@ -889,6 +896,13 @@ The loop is:
    corrections.
 2. At each stable handoff, the worker publishes a complete
    `implementation-report` for the evaluated revision or returns it inline.
+   It cannot return `implemented` while a required deterministic check is
+   failing, omitted without an approved reason, stale for the reported
+   revision, contradicted by its output, or weakened to manufacture a pass.
+   For every check the report names the exact command and working directory,
+   evaluated revision and dirty paths, exit status and salient output, mapped
+   acceptance or regression risk, tests changed and their coverage, permitted
+   generated effects and cleanup, and residual risk.
    The root performs at most one bounded check of exact
    Git identity, status, allowed-path scope, `git diff --check`, and the declared
    evidence inventory. If it investigates a possible correctness defect
@@ -903,8 +917,11 @@ The loop is:
    source-read-only task tab or window, and `blocked` prevents downstream
    dispatch. A blocked cleanup receives one cleanup-only follow-up to the same
    owner; failure to clear it blocks the phase without a retry loop.
-3. The root creates at most one verifier for each applicable capability and
-   passes exact overview, phase, implementation-report, authority, and revision.
+3. The root first validates the owner's evidence inventory. When the phase's
+   independent gate is `none`, it creates no verifier. Otherwise it creates at
+   most one verifier for each applicable capability and passes the exact
+   dedicated-gate reason, overview, phase, implementation-report, authority,
+   and revision.
    Every capability publishes a complete `verification-report`. If verification
    fails, its report ID and accepted finding IDs return to the same owner
    without root-authored replay, followed by affected reverification
@@ -916,22 +933,30 @@ The loop is:
    current source and diff invalidates that packet. Context discovered by a
    verifier stays in its verification report and receives the same root
    disposition before downstream use.
-4. Only after required verification passes or an environment blocker is
+4. Only after every required verifier passes or an environment blocker is
    explicitly accepted does one reviewer receive exact overview, phase,
-   implementation, and verification IDs, plus every exact repository-context
-   artifact or inline fallback required by the approved overview and current
-   phase. It independently inspects source and diff, evaluates approved intent
-   before project guardrails and current implementation evidence, publishes a
-   complete initial `implementation-review` with `Context basis`, and later
-   publishes meaningful deltas naming the full-review base and prior finding
-   dispositions. `Context basis` names only evidence actually consulted, and a
+   implementation, and any required verification IDs, plus every exact
+   repository-context artifact or inline fallback required by the approved
+   overview and current phase. It independently inspects source and diff,
+   evaluates approved intent before project guardrails and current
+   implementation evidence, publishes a complete initial
+   `implementation-review` with `Context basis`, and later publishes meaningful
+   deltas naming the full-review base and prior finding dispositions. `Context
+   basis` names only evidence actually consulted, and a
    delta review receives only new or replaced evidence rather than replaying the
-   full packet. The reviewer opens full context only for a named `Review use`
-   whose judgment depends on it. A context discovery remains read-only and
-   requires its exact `Affected judgment` and named current-task consumer;
-   incidental stale information is omitted. Missing, stale, or conflicting
-   context returns `blocked` only when that exact material judgment is named,
-   after independently resolvable findings are reported.
+   full packet. The reviewer does not routinely rerun tests, lint, type checks,
+   builds, or full-suite gates already evidenced by the owner or verifier. It
+   inspects source, diff, tests, evidence freshness and completeness, and may
+   run only the smallest local deterministic check needed to test one concrete
+   defect hypothesis. That diagnostic command and result stay in the
+   `implementation-review`, not a `verification-report`. Missing, stale,
+   contradictory, incomplete, or artificially weakened required evidence is a
+   finding or blocker. The reviewer opens full context only for a named
+   `Review use` whose judgment depends on it. A context discovery remains
+   read-only and requires its exact `Affected judgment` and named current-task
+   consumer; incidental stale information is omitted. Missing, stale, or
+   conflicting context returns `blocked` only when that exact material judgment
+   is named, after independently resolvable findings are reported.
 5. The review artifact and accepted stable finding IDs return to the same owner;
    the root does not restate findings. For a potentially stale context
    discovery, the root first confirms that at least one validation result can
@@ -942,11 +967,13 @@ The loop is:
    `normative` or `uncertain` conflicts are corrected as implementation defects,
    replanned, deferred, or taken to the applicable authority boundary rather
    than rewritten to follow code automatically.
-6. Re-run affected verification with the same verifier. After context
-   documentation changes, also run one targeted repository-context
-   revalidation against the exact changed paths and current dirty revision.
-   Send only its fresh context delta, exact replacement verification reports,
-   and the meaningful implementation delta to the same reviewer.
+6. Have the same implementation owner rerun affected deterministic handoff
+   checks, and rerun an applicable independent gate with the same verifier.
+   After context documentation changes, also run one targeted
+   repository-context revalidation against the exact changed paths and current
+   dirty revision. Send only its fresh context delta, any exact replacement
+   verification reports, and the meaningful implementation delta to the same
+   reviewer.
 7. After final evidence is consumed and every material context discovery has an
    explicit disposition, require the reviewer to have an unblocked current
    context basis. A material unresolved, stale, or conflicting context basis
@@ -1266,9 +1293,14 @@ The unchanged public PR skills preserve the proven behavioral chain:
    review-thread state.
 4. The root evaluates actionable feedback against intent, current code, and
    scope, using an independent `orchestra_reviewer` when code-review judgment is useful.
-5. The implementation owner applies accepted fixes and verifies them. The root
-   commits them, updates the affected phase's terminal manifest commit, and
-   pushes.
+5. The same implementation owner applies accepted fixes, reruns affected
+   deterministic handoff checks, and publishes a replacement
+   `implementation-report`; any applicable independent gate reruns with the
+   same verifier. The same reviewer evaluates the meaningful delta and
+   replacement evidence, producing the current accepted `pr-review`. The root
+   commits with that current review and only the `verification-report` evidence
+   required by the relevant gate, updates the affected phase's terminal
+   manifest commit, and pushes.
 6. The loop continues until two complete clean observations occur on the same
    head. The root passes the first clean head directly to the second observation
    in memory; a push or head change resets it. The second observation on an

@@ -1,10 +1,19 @@
 # Runtime verification playbook
 
-Use this internal playbook only with the `orchestra_verifier` profile and the explicit `runtime_verification` capability.
+Use this internal playbook only with the `orchestra_verifier` profile and the
+explicit `runtime_verification` capability. Do not dispatch it for routine
+local deterministic checks in a non-critical phase; those belong to the
+implementation owner.
 
 ## Contract
 
-- Run the packet's smallest sufficient set of targeted tests, runtime checks, static checks, or log inspections against the exact revision.
+- Run the packet's smallest sufficient set of targeted tests, runtime checks,
+  static checks, or log inspections against the exact revision. The packet must
+  identify at least one dedicated-gate reason: owned services or processes,
+  mutable or stateful data, credentials, network or an external environment,
+  explicit repository policy, or a critical-tier phase. In a critical phase,
+  independently repeat the applicable deterministic gate already evidenced by
+  the implementation owner.
 - Confirm command arguments and working directory before execution. Commands must not pass through an unrequested shell wrapper or mutate source.
 - Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
   as the default. The active permission choice for the task, host, or launcher

@@ -234,14 +234,22 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertIn("Remain read-only with respect to repository source", analyst)
         worker = self.instructions("orchestra_implementation_worker")
         self.assertIn("approved paths and accepted fixes", worker)
+        self.assertIn("first deterministic quality gate", worker)
+        self.assertIn(
+            "Do not return `implemented` while a required check is failing",
+            " ".join(worker.split()),
+        )
         self.assertIn("same implementation owner", self.skill)
         reviewer = self.instructions("orchestra_reviewer")
         for target in ("plan", "architecture", "code revision", "PR feedback"):
             self.assertIn(target, reviewer)
         self.assertIn("Remain read-only and report-only", reviewer)
+        self.assertIn("Do not routinely repeat tests, lint, type checks, builds", reviewer)
+        self.assertIn("one concrete defect hypothesis", reviewer)
         verifier = self.instructions("orchestra_verifier")
         self.assertIn("runtime, test, log, or visible-browser checks", verifier)
         self.assertIn("Remain read-only with respect to repository source", verifier)
+        self.assertIn("dedicated independent gate", verifier)
         for name in PROFILE_NAMES:
             instructions = self.instructions(name)
             self.assertRegex(
@@ -1090,7 +1098,7 @@ class PlannedFlowContractTests(unittest.TestCase):
         ).read_text()
         self.assertIn("`wait_agent` in non-interruptive ten-minute windows", host_codex)
 
-    def test_planning_assigns_full_suite_only_to_independent_verification(self) -> None:
+    def test_planning_assigns_deterministic_gates_to_implementer(self) -> None:
         planning = (self.references / "technical_planning.md").read_text()
         workflow = (ROOT / "docs/WORKFLOW.md").read_text()
         for source in (self.skill, planning, workflow):
@@ -1098,6 +1106,30 @@ class PlannedFlowContractTests(unittest.TestCase):
             self.assertIn("Implementation handoff checks", normalized)
             self.assertIn("Independent verification gate", normalized)
             self.assertIn("canonical full", normalized)
+            self.assertIn("non-critical", normalized)
+            self.assertIn("any critical phase", normalized)
+        for source in (self.skill, planning):
+            normalized = " ".join(source.split())
+            self.assertIn("independent gate", normalized.lower())
+            self.assertIn("`none`", normalized)
+        self.assertIn(
+            "implementation owner runs every required local deterministic check",
+            " ".join(workflow.lower().split()),
+        )
+
+    def test_phase_commit_requires_only_applicable_verification_reports(self) -> None:
+        commit = " ".join(
+            (ROOT / "codex/skills/orchestra-phase-commit/SKILL.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        self.assertIn(
+            "every verification-report identifier required by that phase's "
+            "`independent verification gate`",
+            commit,
+        )
+        self.assertIn("a gate of `none` requires no `verification-report`", commit)
 
     def test_completed_manifest_revision_gates_delivery_and_new_scope(self) -> None:
         delivery = (
@@ -1125,7 +1157,7 @@ class PlannedFlowContractTests(unittest.TestCase):
             "an outcome or blocker"
         )
         handoff = normalized.index("At each implementation-owner handoff")
-        verification = normalized.index("Dispatch `runtime_verification`")
+        verification = normalized.index("Inspect the owner's implementation evidence first")
         self.assertLess(active_owner, handoff)
         self.assertLess(handoff, verification)
         for contract in (
@@ -1163,8 +1195,27 @@ class PlannedFlowContractTests(unittest.TestCase):
             "stop speculative root source review",
             "a confirmed finding invalidates the packet",
             "its blocker is explicitly accepted",
+            "do not spawn a verifier",
         ):
             self.assertIn(contract, normalized)
+
+    def test_implementation_evidence_and_reviewer_diagnostics_are_bounded(self) -> None:
+        worker = " ".join(self.instructions("orchestra_implementation_worker").split())
+        reviewer = " ".join(self.instructions("orchestra_reviewer").split())
+        for contract in (
+            "exact command and working directory",
+            "exit status and salient output",
+            "acceptance or named regression risk",
+            "permitted generated effects and cleanup",
+        ):
+            self.assertIn(contract, worker)
+        for contract in (
+            "smallest local deterministic check",
+            "concrete defect hypothesis",
+            "not a `verification-report`",
+            "missing, stale, contradictory, incomplete, or artificially weakened",
+        ):
+            self.assertIn(contract, reviewer)
 
     def test_phase_observation_boundary_is_consistent_across_sources(self) -> None:
         for path in (
@@ -1766,6 +1817,8 @@ class PlannedFlowContractTests(unittest.TestCase):
             ROOT / "codex/skills/orchestra-phase-commit/SKILL.md"
         ).read_text()
         review_skill = (ROOT / "codex/skills/orchestra-pr-review/SKILL.md").read_text()
+        normalized_commit = " ".join(commit_skill.split())
+        normalized_review = " ".join(review_skill.split())
         self.assertIn("commit_phase.py", commit_skill)
         self.assertIn("without a committer profile or capability", commit_skill)
         self.assertIn("root directly run", review_skill)
@@ -1778,6 +1831,21 @@ class PlannedFlowContractTests(unittest.TestCase):
         )
         self.assertIn("accepted identifiers without restating findings", review_skill)
         self.assertIn("same implementation owner", review_skill)
+        for contract in (
+            "the current `implementation-report` identifier",
+            "required by the relevant phase's `Independent verification gate`",
+            "A gate of `none` supplies no `verification-report`",
+            "publish a replacement `implementation-report`",
+            "rerun affected deterministic handoff checks",
+            "Rerun any applicable independent gate",
+            "current accepted `pr-review`",
+        ):
+            self.assertIn(contract, normalized_review)
+        for contract in (
+            "`implementation-review` for ordinary phase completion",
+            "`pr-review` for an accepted PR fix",
+        ):
+            self.assertIn(contract, normalized_commit)
         for retired in ("phase_committer", "pr_polling_specialist", "pr_triage_specialist"):
             self.assertNotIn(retired, commit_skill + review_skill + self.skill)
 

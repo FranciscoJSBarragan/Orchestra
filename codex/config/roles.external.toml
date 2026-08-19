@@ -1,3 +1,6 @@
+# Capability availability matrix. Verifier rows are resolved only when the
+# phase's Independent verification gate requires them; `none` spawns no verifier.
+
 [tiers.luna.repository_context]
 profile = "orchestra_analyst"
 model = "gpt-5.6-luna"

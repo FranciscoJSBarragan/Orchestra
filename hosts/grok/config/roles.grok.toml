@@ -6,6 +6,8 @@
 # not model or reasoning. spawn.md maps these names onto live primitives.
 # Effort is inherit: Grok spawn does not expose a per-dispatch reasoning
 # override.
+# Verifier rows express availability only. A phase gate of `none` creates no
+# verifier subagent.
 
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"

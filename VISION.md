@@ -273,6 +273,17 @@ The overview's review-context index points to exact repository evidence rather
 than replacing it; each phase uses exact, non-glob documentation-maintenance
 paths or explicitly states that none are authorized.
 
+The implementation owner is the first deterministic quality gate. It runs and
+autocorrects every required local deterministic check, including the canonical
+full suite when one exists. The independent reviewer judges intent, source,
+diff, tests, and evidence without routinely repeating those gates; it may run
+only a minimal diagnostic check for a concrete defect hypothesis. A separate
+verifier is reserved for browser interaction, owned services or processes,
+mutable data, credentials, network or external environments, explicit
+repository policy, and all critical phases. Critical work keeps double
+evidence: the owner verifies first and a verifier repeats the applicable gate
+independently.
+
 The installed assignment remains authoritative. On Codex, a dual installation
 uses the root session's model and multi-agent version to select its native V2
 or external V1 matrix before task setup; that model configuration is immutable
@@ -287,12 +298,13 @@ capability. Cursor does not run session detection or native/external modes; it
 reads one host matrix and currently assigns `minimal` and `standard`.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
-and one verifier for each used verification capability available for fixes,
-reruns, and delta review. Analysis agents are one-shot except that a technical
-planner remains open through a dispatched plan-review correction loop. Before
-each handoff, every agent closes its own temporary processes, terminal sessions,
-and task tabs; only a non-browser resource category explicitly authorized by
-the packet may survive for phase reuse. Before the phase commit, the root
+and, only when the independent gate requires one, a verifier for each used
+verification capability available for fixes, reruns, and delta review.
+Analysis agents are one-shot except that a technical planner remains open
+through a dispatched plan-review correction loop. Before each handoff, every
+agent closes its own temporary processes, terminal sessions, and task tabs;
+only a non-browser resource category explicitly authorized by the packet may
+survive for phase reuse. Before the phase commit, the root
 follows up only on authorized retained resources or incomplete cleanup, stops
 its own shared processes, and retires the phase cohort with the lifecycle
 evidence available to the active multi-agent protocol. Resource handles remain

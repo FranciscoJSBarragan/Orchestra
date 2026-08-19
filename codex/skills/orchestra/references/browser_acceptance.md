@@ -1,6 +1,9 @@
 # Browser acceptance playbook
 
-Use this internal playbook only with the `orchestra_verifier` profile and the explicit `browser_acceptance` capability. Browser acceptance uses the active user-selected tier.
+Use this internal playbook only with the `orchestra_verifier` profile and the
+explicit `browser_acceptance` capability. Browser acceptance is always a
+dedicated independent gate, never an `Implementation handoff check`, and uses
+the active user-selected tier.
 
 ## Contract
 

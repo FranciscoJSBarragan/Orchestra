@@ -48,6 +48,14 @@ For each capability:
    agent has completed. Never `resume_from` a reviewer or any independent
    gate.
 
+Apply the phase verification contract before launching a subagent. When the
+`Independent verification gate` is `none`, do not spawn a verifier; matrix
+entries describe available capabilities, not mandatory agents. Spawn one only
+for a named browser, service/process, mutable-data, credential,
+network/external, repository-policy, or critical-tier gate. Critical phases
+independently repeat the applicable deterministic gate already evidenced by
+the implementation owner.
+
 Do not use the host `workflow` tool, personas, or a planning-only host mode as
 the Orchestra control plane. Children cannot spawn children; do not ask them
 to.

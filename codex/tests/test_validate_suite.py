@@ -43,6 +43,118 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("quick conformance passed", result.stdout)
 
+    def test_verification_owner_contract_requires_planner_full_suite(self) -> None:
+        planning = (
+            self.root
+            / "codex/skills/orchestra/references/technical_planning.md"
+        )
+        planning.write_text(
+            planning.read_text(encoding="utf-8").replace(
+                "and the canonical full suite when one exists",
+                "and targeted tests when they exist",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "technical_planning.md must name canonical full suite when one exists",
+            result.stdout,
+        )
+
+    def test_verification_owner_contract_rejects_legacy_planner_semantics(
+        self,
+    ) -> None:
+        planning = (
+            self.root
+            / "codex/skills/orchestra/references/technical_planning.md"
+        )
+        planning.write_text(
+            planning.read_text(encoding="utf-8")
+            + "\nAssign a canonical full-suite command only to the independent verifier.\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("retains verifier-only semantics", result.stdout)
+
+    def test_verification_owner_contract_requires_runtime_gate_reason(self) -> None:
+        runtime = (
+            self.root
+            / "codex/skills/orchestra/references/runtime_verification.md"
+        )
+        runtime.write_text(
+            runtime.read_text(encoding="utf-8").replace(
+                "identify at least one dedicated-gate reason",
+                "identify a runtime reason",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "runtime_verification.md must name identify at least one dedicated-gate reason",
+            result.stdout,
+        )
+
+    def test_verification_owner_contract_keeps_phase_commit_gate_optional(
+        self,
+    ) -> None:
+        commit = self.root / "codex/skills/orchestra-phase-commit/SKILL.md"
+        commit.write_text(
+            commit.read_text(encoding="utf-8").replace(
+                "A gate of `none` requires no `verification-report`.",
+                "Every phase requires a `verification-report`.",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "orchestra-phase-commit/SKILL.md must name a gate of `none` "
+            "requires no `verification-report`",
+            result.stdout,
+        )
+
+    def test_verification_owner_contract_keeps_pr_fix_gate_optional(self) -> None:
+        review = self.root / "codex/skills/orchestra-pr-review/SKILL.md"
+        review.write_text(
+            review.read_text(encoding="utf-8").replace(
+                "A gate of `none` supplies no `verification-report`.",
+                "Every PR correction supplies a `verification-report`.",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "orchestra-pr-review/SKILL.md must name a gate of `none` supplies "
+            "no `verification-report`",
+            result.stdout,
+        )
+
+    def test_verification_owner_contract_requires_pr_fix_review_kind(self) -> None:
+        commit = self.root / "codex/skills/orchestra-phase-commit/SKILL.md"
+        commit.write_text(
+            commit.read_text(encoding="utf-8").replace(
+                "`pr-review` for an accepted PR fix",
+                "`implementation-review` for every context",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "orchestra-phase-commit/SKILL.md must name `pr-review` for an "
+            "accepted pr fix",
+            result.stdout,
+        )
+
     def test_full_mode_runs_the_fixture_test_suite(self) -> None:
         test_file = self.root / "codex/tests/test_validate_suite.py"
         test_file.write_text(

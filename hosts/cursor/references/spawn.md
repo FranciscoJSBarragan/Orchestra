@@ -33,6 +33,14 @@ Cursor `Task.subagent_type` is a closed enum. Do not dispatch through custom
 4. Resume only the same phase-cohort agent id (`resume`). Never `resume: self`
    for a reviewer or any independent gate.
 
+Apply the phase verification contract before launching a Task. When the
+`Independent verification gate` is `none`, do not create a verifier Task;
+matrix entries describe available capabilities, not mandatory agents. Create a
+verifier only for a named browser, service/process, mutable-data, credential,
+network/external, repository-policy, or critical-tier gate. Cursor currently
+blocks the critical tier, but this rule remains the host contract when that tier
+is assigned later.
+
 ## Product contract vs live Task slugs
 
 `roles.cursor.toml` records Luna high and Grok 4.6 medium/high/xhigh as the

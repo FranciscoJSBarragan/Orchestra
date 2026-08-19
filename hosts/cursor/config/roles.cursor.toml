@@ -4,6 +4,8 @@
 # Fields: profile is the Orchestra behavior skill; subagent_type is the Cursor
 # Task worker; model and effort are the product contract. spawn.md maps those
 # names onto the closest live Task slug.
+# Verifier rows express availability only. A phase gate of `none` creates no
+# verifier Task.
 
 [tiers.minimal.repository_context]
 profile = "orchestra_analyst"

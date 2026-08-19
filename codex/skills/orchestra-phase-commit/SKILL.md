@@ -1,11 +1,11 @@
 ---
 name: orchestra-phase-commit
-description: Let the root commit one accepted Orchestra phase directly, with the narrow exact-path helper available when useful. Use after implementation, targeted verification, and independent review pass; preserve unrelated work and return the resulting SHA without a committer profile or capability.
+description: Let the root commit one accepted Orchestra phase directly, with the narrow exact-path helper available when useful. Use after implementation handoff checks, any required independent verification, and independent review pass; preserve unrelated work and return the resulting SHA without a committer profile or capability.
 ---
 
 # Commit an accepted phase
 
-Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require accepted repository-relative paths, the exact current phase artifact, and passed implementation-review and verification-report identifiers for the current revision. Use a concise title plus useful intent and validation; include risks only when material. The resulting Git commit is authoritative; never create a duplicate commit artifact.
+Commit execution is a root responsibility. Do not resolve an assignment, spawn a committer profile, or create a commit capability. Require accepted repository-relative paths, the exact current phase artifact, an accepted current-review identifier — `implementation-review` for ordinary phase completion or `pr-review` for an accepted PR fix — and every verification-report identifier required by that phase's `Independent verification gate` for the current revision. A gate of `none` requires no `verification-report`. Use a concise title plus useful intent and validation; include risks only when material. The resulting Git commit is authoritative; never create a duplicate commit artifact.
 
 ## Execute the direct path
 

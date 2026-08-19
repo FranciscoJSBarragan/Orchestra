@@ -884,6 +884,135 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     return failures
 
 
+def check_verification_ownership(root: Path) -> list[str]:
+    """Keep deterministic checks owner-led and verifier dispatch conditional."""
+    failures: list[str] = []
+    required_by_path = {
+        "VISION.md": (
+            "implementation owner is the first deterministic quality gate",
+            "canonical full suite when one exists",
+            "a separate verifier is reserved",
+            "all critical phases",
+        ),
+        "docs/WORKFLOW.md": (
+            "implementation owner runs every required local deterministic check",
+            "canonical full suite when one exists",
+            "independent gate to `none`",
+            "any critical phase",
+            "same implementation owner applies accepted fixes",
+            "publishes a replacement `implementation-report`",
+            "any applicable independent gate reruns with the same verifier",
+            "current accepted `pr-review`",
+        ),
+        "docs/ARCHITECTURE.md": (
+            "first deterministic quality gate",
+            "canonical full suite when one exists",
+            "ordinary deterministic non-critical phases have no verifier",
+            "critical phases independently repeat",
+        ),
+        "AGENTS.md": (
+            "implementation owner runs and autocorrects every required local deterministic check",
+            "canonical full suite when one exists",
+            "use no verifier for ordinary deterministic non-critical work",
+            "every critical phase",
+        ),
+        "codex/runtime/AGENTS.orchestra.md": (
+            "owner runs and autocorrects every required local deterministic check",
+            "canonical full suite when one exists",
+            "ordinary deterministic non-critical independent gate",
+            "any critical phase",
+        ),
+        "codex/skills/orchestra/SKILL.md": (
+            "implementation owner every required local deterministic check",
+            "canonical full suite when one exists",
+            "do not spawn a verifier",
+            "any critical phase",
+        ),
+        "codex/skills/orchestra-role-implementer/SKILL.md": (
+            "first deterministic quality gate",
+            "canonical full suite",
+            "do not return `implemented` while a required check is failing",
+            "exact command and working directory",
+        ),
+        "codex/skills/orchestra-role-reviewer/SKILL.md": (
+            "do not routinely repeat tests, lint, type checks, builds",
+            "one concrete defect hypothesis",
+            "not a `verification-report`",
+        ),
+        "codex/skills/orchestra-role-verifier/SKILL.md": (
+            "dedicated independent gate",
+            "critical phase",
+        ),
+        "codex/skills/orchestra/references/technical_planning.md": (
+            "assign every required local deterministic check to the implementation owner",
+            "canonical full suite when one exists",
+            "set the independent gate to `none`",
+            "explicit repository policy",
+            "independent verifier to repeat the applicable gate",
+        ),
+        "codex/skills/orchestra/references/runtime_verification.md": (
+            "do not dispatch it for routine local deterministic checks in a non-critical phase",
+            "identify at least one dedicated-gate reason",
+            "in a critical phase",
+        ),
+        "codex/skills/orchestra/references/browser_acceptance.md": (
+            "always a dedicated independent gate",
+            "never an `implementation handoff check`",
+        ),
+        "codex/skills/orchestra/references/host_codex.md": (
+            "independent verification gate",
+            "do not spawn",
+            "matrix entries describe available capabilities",
+        ),
+        "codex/skills/orchestra-phase-commit/SKILL.md": (
+            "an accepted current-review identifier",
+            "`implementation-review` for ordinary phase completion",
+            "`pr-review` for an accepted pr fix",
+            "every verification-report identifier required by that phase's "
+            "`independent verification gate`",
+            "a gate of `none` requires no `verification-report`",
+        ),
+        "codex/skills/orchestra-pr-review/SKILL.md": (
+            "the current `implementation-report` identifier",
+            "every `verification-report` identifier required by the relevant "
+            "phase's `independent verification gate`",
+            "a gate of `none` supplies no `verification-report`",
+            "same owner apply the fixes",
+            "publish a replacement `implementation-report`",
+            "rerun affected deterministic handoff checks",
+            "rerun any applicable independent gate with the same verifier",
+            "current accepted `pr-review`",
+        ),
+    }
+    forbidden_contracts = (
+        "canonical full suite belongs only to the latter",
+        "canonical full suite belongs to the verifier",
+        "canonical full-suite command only to the independent verifier",
+        "independent verification gate`, which owns any canonical full-suite command",
+        "planner never assigns the same full-suite gate to both roles",
+        "assign any canonical full suite only to the latter",
+        "current implementation and verification report identifiers",
+        "run affected `runtime_verification` and any required `browser_acceptance`",
+    )
+    for relative, required in required_by_path.items():
+        path = root / relative
+        if not path.is_file():
+            continue
+        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
+        for contract in required:
+            if contract not in normalized:
+                failures.append(
+                    f"verification-ownership: {relative} must name {contract}"
+                )
+        for forbidden in forbidden_contracts:
+            if forbidden in normalized:
+                failures.append(
+                    f"verification-ownership: {relative} retains "
+                    f"verifier-only semantics: {forbidden}"
+                )
+    return failures
+
+
 def check_direct_sync(root: Path) -> list[str]:
     """Validate the bounded source inventory and direct-sync public contract."""
     failures: list[str] = []
@@ -1237,7 +1366,7 @@ def check_cursor_host(root: Path) -> list[str]:
     failures.extend(
         _cursor_assignment_failures("standard", tiers.get("standard"), standard_contract)
     )
-    spawn = spawn_path.read_text(encoding="utf-8")
+    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
         "fresh",
         "Task",
@@ -1249,6 +1378,9 @@ def check_cursor_host(root: Path) -> list[str]:
         "isolated",
         "matrix row is not assigned",
         "cursor-grok-4.6-xhigh",
+        "Independent verification gate",
+        "do not create a verifier Task",
+        "matrix entries describe available capabilities",
     ):
         if required not in spawn:
             failures.append(f"cursor-contract: spawn.md must name {required}")
@@ -1337,7 +1469,7 @@ def check_grok_host(root: Path) -> list[str]:
                 failures.append(
                     f"grok-contract: {tier_name}.{capability} has an invalid profile"
                 )
-    spawn = spawn_path.read_text(encoding="utf-8")
+    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
         "spawn_subagent",
         "background: true",
@@ -1351,6 +1483,9 @@ def check_grok_host(root: Path) -> list[str]:
         "general-purpose",
         "matrix row is not assigned",
         "workflow",
+        "Independent verification gate",
+        "do not spawn a verifier",
+        "matrix entries describe available capabilities",
     ):
         if required not in spawn:
             failures.append(f"grok-contract: spawn.md must name {required}")
@@ -1366,6 +1501,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_roles_and_profiles,
     check_skills_and_runtime,
+    check_verification_ownership,
     check_direct_sync,
     check_cursor_host,
     check_grok_host,

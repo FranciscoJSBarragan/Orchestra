@@ -115,12 +115,12 @@ specification and recommends any justified tier change after consuming that
 evidence, before formal planning; the user chooses.
 
 For each implementation phase, the root also keeps transient handles for the
-implementation owner, reviewer, one verifier per used verification capability,
-and only explicitly retained non-browser temporary processes created for that
-phase. Agents close their owned resources before each handoff by default while
-remaining available for fixes, reruns, and delta review. Before commit, the
-root follows up only on authorized retention or incomplete cleanup. Agent and
-resource handles remain in memory.
+implementation owner, reviewer, only verifiers required by the independent
+gate, and only explicitly retained non-browser temporary processes created for
+that phase. Agents close their owned resources before each handoff by default
+while remaining available for fixes, reruns, and delta review. Before commit,
+the root follows up only on authorized retention or incomplete cleanup. Agent
+and resource handles remain in memory.
 At any earlier handoff, blocked cleanup prevents downstream dispatch and
 receives one cleanup-only return to the same owner; failure to clear it blocks
 the phase. A source-read-only task tab or window may remain partial until phase
@@ -173,14 +173,16 @@ Orchestra has exactly four behavior-only base profiles:
   or diagnoses difficult failures. It does not edit implementation files,
   commit, route agents, or claim product authority.
 - `orchestra_implementation_worker` owns scoped code and test changes for an approved
-  packet. It may implement general or frontend work, but does not independently
-  review itself, commit, or manage delivery.
-- `orchestra_reviewer` independently examines plans, architecture, code, and meaningful
-  deltas. It reports evidence-backed findings and never silently implements
-  them.
-- `orchestra_verifier` runs targeted checks, runtime acceptance, or browser acceptance
-  and reports observed evidence. It does not edit source code or reinterpret a
-  failing result as success.
+  packet and acts as the first deterministic quality gate. It runs and
+  autocorrects required local deterministic checks. It may implement general or
+  frontend work, but does not independently review itself, commit, or manage
+  delivery.
+- `orchestra_reviewer` independently examines plans, architecture, code, meaningful
+  deltas, tests, and verification evidence. It does not routinely repeat gates,
+  reports evidence-backed findings, and never silently implements them.
+- `orchestra_verifier` supplies dedicated independent runtime or browser evidence
+  only when phase risk or policy requires it. It does not edit source code or
+  reinterpret a failing result as success.
 
 Each dispatch composes one profile with one explicit named capability selected
 by the root. `general_implementation` and `independent_review` are assignment
@@ -201,8 +203,9 @@ routing, and final judgment add no agent profile or capability key; a
 dispatched technical planner may author the exact candidate documents that the
 root approves or rejects.
 
-The implementation owner, reviewer, and each capability verifier form a bounded
-phase cohort. One-shot analysts close after their result is consumed. The cohort
+The implementation owner, reviewer, and each required capability verifier form
+a bounded phase cohort. Ordinary deterministic non-critical phases have no
+verifier. One-shot analysts close after their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
 without carrying implementation state across phases. Analysis agents are
 one-shot except that a technical planner remains open through a dispatched
@@ -585,6 +588,14 @@ completion notification without busy-polling. On Grok it is
 immediately; timeout does not contact, interrupt, restart, or fail the agent.
 After 30 accumulated minutes, only concrete blocker evidence justifies
 intervention.
+
+The implementation owner runs every required local deterministic check,
+including the canonical full suite when one exists. A verifier is created only
+for browser interaction, owned services or processes, mutable or stateful data,
+credentials, network or external environments, explicit repository policy, or
+a critical phase. Critical phases independently repeat the applicable owner-run
+gate. Reviewers inspect evidence rather than routinely repeating checks and may
+run only a minimal diagnostic check for a concrete defect hypothesis.
 
 Once the root gives a stable revision packet to a verifier, it stops
 speculative source review until that verification returns. It interrupts a

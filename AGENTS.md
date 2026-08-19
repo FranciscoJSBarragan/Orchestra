@@ -135,9 +135,16 @@ through the phase and closes before the phase commit. Waiting, observation
 boundaries, verification ordering, and review policy are specified in
 `docs/WORKFLOW.md`.
 
-Phase plans distinguish targeted implementation handoff checks from the
-independent verification gate. A canonical full suite belongs to the verifier
-once unless repository policy explicitly requires another full gate.
+Phase plans distinguish implementation handoff checks from the independent
+verification gate. The implementation owner runs and autocorrects every
+required local deterministic check, including the canonical full suite when
+one exists. Use no verifier for ordinary deterministic non-critical work.
+Reserve one for browser interaction, owned services or processes, mutable data,
+credentials, network or external environments, explicit repository policy,
+and every critical phase; critical repeats the applicable gate independently.
+Reviewers inspect source, diff, tests, and fresh evidence without routinely
+repeating gates, but may run one minimal diagnostic check for a concrete defect
+hypothesis.
 
 Every approved overview carries a provenance-preserving `Review context`, and
 every phase names its exact context dependencies plus exact non-glob `Context
