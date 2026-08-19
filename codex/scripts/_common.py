@@ -7,6 +7,7 @@ consumers live here. Materially different variants stay local to their script.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 import re
 import shutil
@@ -23,6 +24,16 @@ PRIVATE_STATE_MARKER_CONTENT = (
 )
 PRIVATE_STATE_PLAN = "plan.md"
 PRIVATE_STATE_ARTIFACTS = "artifacts"
+
+
+@dataclass(frozen=True)
+class GitRepositoryIdentity:
+    """One checkout plus the primary worktree identity shared by its clone."""
+
+    checkout_root: Path
+    repository_root: Path
+    common_dir: Path
+    head: str
 
 
 def _run(repo: Path, command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -72,6 +83,47 @@ def common_git_dir(repo: Path) -> Path | None:
 
 def head_commit(repo: Path) -> str | None:
     return resolve_commit(repo, "HEAD")
+
+
+def git_repository_identity(path: Path) -> GitRepositoryIdentity | None:
+    """Resolve checkout state without confusing a linked worktree for its repository."""
+    checkout = worktree_root(path)
+    if checkout is None:
+        return None
+    common_dir = common_git_dir(checkout)
+    head = head_commit(checkout)
+    if common_dir is None or head is None:
+        return None
+
+    repository = _primary_worktree(checkout, common_dir)
+    return GitRepositoryIdentity(
+        checkout_root=checkout,
+        repository_root=repository,
+        common_dir=common_dir,
+        head=head,
+    )
+
+
+def _primary_worktree(checkout: Path, common_dir: Path) -> Path:
+    """Return Git's primary worktree, falling back to the current checkout."""
+    if common_dir.name == ".git":
+        candidate = common_dir.parent.resolve()
+        if worktree_root(candidate) == candidate and common_git_dir(candidate) == common_dir:
+            return candidate
+
+    listed = _git(checkout, "worktree", "list", "--porcelain", "-z")
+    if listed.returncode:
+        return checkout
+    record = listed.stdout.split("\0\0", 1)[0]
+    fields = record.split("\0")
+    if "bare" in fields:
+        return checkout
+    entry = next((field[9:] for field in fields if field.startswith("worktree ")), "")
+    if entry:
+        candidate = Path(entry).resolve()
+        if worktree_root(candidate) == candidate and common_git_dir(candidate) == common_dir:
+            return candidate
+    return checkout
 
 
 def resolve_commit(repo: Path, revision: str) -> str | None:

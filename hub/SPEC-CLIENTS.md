@@ -19,6 +19,19 @@ The app installer owns only the app and its RunAtLoad LaunchAgent, with no
 KeepAlive; sync remains the sole owner of the shared runtime. The detailed
 legacy menu-only layout below is historical context, not the current contract.
 
+Current repository presentation supersedes the initiative-grouped historical
+layout below. The window, menu, TUI, and web panel group tasks directly under
+the Hub repository catalog name (configured pinned name, otherwise primary
+checkout basename) and reuse the compact row
+`● [worktree] A1 Title [Initiative]`. Worktree is omitted for the primary
+checkout, middle-truncated at 16 characters in the row, and preserved in full
+in detail or tooltip. A missing short ID has no placeholder. Initiative is a
+secondary badge rather than a tree level. Blocker, requested stop, stale,
+active, ready, draft, and inactive states use red, orange, yellow, blue, green,
+yellow, and gray respectively. Stage, textual status, branch, and full paths
+remain in detail. The web panel uses repository sections and native expandable
+details; the TUI has no intermediate “Independent tasks” node.
+
 ## 1. Purpose and motivation
 
 The MVP validated the Hub server and its read-only contract. Real use produced

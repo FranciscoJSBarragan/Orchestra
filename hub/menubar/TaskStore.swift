@@ -11,6 +11,7 @@ final class TaskStore: ObservableObject {
     @Published var isRefreshing = false
     @Published var errorMessage: String?
     @Published var lastRefresh: Date?
+    @Published var repositoryNames: [String: String] = [:]
 
     private let hub = HubClient(port: readHubPort())
     private var controlClient: TaskControlClient?
@@ -29,7 +30,15 @@ final class TaskStore: ObservableObject {
             search.isEmpty || $0.title.localizedCaseInsensitiveContains(search)
                 || $0.displayID.localizedCaseInsensitiveContains(search)
                 || $0.repositoryName.localizedCaseInsensitiveContains(search)
+                || ($0.worktree?.localizedCaseInsensitiveContains(search) ?? false)
+                || ($0.branch?.localizedCaseInsensitiveContains(search) ?? false)
         }
+    }
+    var visibleTaskGroups: [RepositoryTaskGroup] {
+        repositoryTaskGroups(visibleTasks, names: repositoryNames)
+    }
+    func groups(for tasks: [OrchestraTask]) -> [RepositoryTaskGroup] {
+        repositoryTaskGroups(tasks, names: repositoryNames)
     }
     func count(_ section: TaskSection) -> Int { tasks.filter(section.contains).count }
     func selectFirstVisibleTask() {
@@ -45,7 +54,12 @@ final class TaskStore: ObservableObject {
             let hubTasks: [OrchestraTask]
             let hubAvailable: Bool
             do {
-                hubTasks = try await hub.tasks()
+                let summary = try await hub.summary()
+                hubTasks = summary.tasks
+                repositoryNames = Dictionary(
+                    summary.repositories.map { ($0.path, $0.name) },
+                    uniquingKeysWith: { _, latest in latest }
+                )
                 hubAvailable = true
             } catch {
                 hubTasks = []

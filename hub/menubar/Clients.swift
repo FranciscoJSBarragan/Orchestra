@@ -14,7 +14,7 @@ enum ClientError: LocalizedError {
 
 struct HubClient {
     let port: Int
-    func tasks() async throws -> [OrchestraTask] {
+    func summary() async throws -> HubResponse {
         let url = URL(string: "http://127.0.0.1:\(port)/v1/summary")!
         var request = URLRequest(url: url)
         request.timeoutInterval = 5
@@ -22,7 +22,7 @@ struct HubClient {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw ClientError.invalidResponse(String(localized: "Hub is unavailable"))
         }
-        return try JSONDecoder().decode(HubResponse.self, from: data).tasks
+        return try JSONDecoder().decode(HubResponse.self, from: data)
     }
 }
 

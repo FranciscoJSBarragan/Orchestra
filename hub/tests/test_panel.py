@@ -76,6 +76,77 @@ class PanelTests(unittest.TestCase):
         self.assertIn("12 min ago", html)
         self.assertIn('http-equiv="refresh"', html)
 
+    def test_compact_rows_group_by_repository_and_keep_operational_details(self) -> None:
+        task = {
+            "id": "task-1",
+            "short_id": "A1",
+            "label": "Fallback de variante",
+            "repository": "/repos/NeniTPV",
+            "worktree": "/worktrees/a-very-long-worktree-name",
+            "branch": "orchestra/fallback",
+            "stage": "implementation",
+            "status": "active",
+            "summary": "Working",
+            "blocker": "Waiting on review",
+            "next_action": "Review",
+            "initiative": {"title": "Checkout"},
+            "blocked_by": [],
+            "parallel_with": [],
+            "current_activity": [],
+            "updated_at": "2026-08-02T18:48:00Z",
+            "stale": False,
+            "stop_requested_at": None,
+        }
+        direct = dict(task)
+        direct.update({
+            "id": "direct-1",
+            "short_id": None,
+            "label": "Direct task",
+            "worktree": "",
+            "branch": "",
+            "blocker": "",
+            "initiative": None,
+        })
+        summary = {
+            "repositories": [{
+                "path": "/repos/NeniTPV", "name": "NeniTPV", "pinned": True,
+                "observed": True, "active_tasks": 2, "completed_tasks": 0,
+            }],
+            "tasks": [task, direct],
+            "attention": [],
+        }
+
+        markup = render_panel(summary, NOW)
+
+        self.assertIn("<h3>NeniTPV</h3>", markup)
+        self.assertIn("[a-very-…ree-name]", markup)
+        self.assertIn("A1", markup)
+        self.assertIn("Fallback de variante", markup)
+        self.assertIn("[Checkout]", markup)
+        self.assertIn("Direct task", markup)
+        self.assertNotIn("—", markup)
+        self.assertIn('<details class="task">', markup)
+        self.assertIn("orchestra/fallback", markup)
+        self.assertIn("/worktrees/a-very-long-worktree-name", markup)
+        self.assertIn("status-red", markup)
+        self.assertIn('aria-label="Blocked"', markup)
+
+    def test_task_without_repository_is_rendered_in_synthetic_group(self) -> None:
+        support.insert_task(
+            self.database,
+            id="direct-task",
+            label="Direct task without repository",
+            repository="",
+            updated_at="2026-08-02T18:48:00Z",
+        )
+
+        markup = render_panel(self._summary(), NOW)
+
+        self.assertIn("<h2>Repositories</h2>", markup)
+        self.assertIn("<h3>No repository</h3>", markup)
+        self.assertIn("Direct task without repository", markup)
+        self.assertNotIn('<p class="repository-path"></p>', markup)
+
     def test_render_degraded_standalone(self) -> None:
         html = render_degraded("missing", "database not found")
         self.assertIn("degraded", html.lower())

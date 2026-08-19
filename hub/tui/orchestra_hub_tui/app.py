@@ -12,11 +12,12 @@ from textual.widgets import DataTable, Footer, Static, Tree
 
 from .client import FetchResult, HubClient, default_base_url
 from .viewmodel import (
-    attention_flags,
     build_tree,
     phase_progress,
     snapshot_age,
+    status_tone,
     task_rows,
+    worktree_name,
 )
 
 POLL_SECONDS = 5
@@ -183,43 +184,33 @@ class HubTuiApp(App):
             suffix = " · ".join(counters) or "quiet"
             label = f"[bold]{escape(node.name)}[/bold] [dim]{suffix}[/dim]"
             branch = tree.root.add(label, expand=node.active > 0)
-            initiatives: dict[str, list[dict]] = {}
             for task in node.tasks:
-                title = str((task.get("initiative") or {}).get("title") or "Independent tasks")
-                initiatives.setdefault(title, []).append(task)
-            for title, tasks in initiatives.items():
-                group = branch.add(
-                    f"[dim]{escape(title)}[/dim]",
-                    expand=any(task.get("status") not in {"completed", "archived"} for task in tasks),
-                )
-                for task in tasks:
-                    group.add_leaf(self._task_label(task), data=str(task.get("id")))
+                branch.add_leaf(self._task_label(task), data=str(task.get("id")))
         tree.root.expand()
 
     def _task_label(self, task: dict) -> str:
         label = escape(str(task.get("label", "")))
-        stage = escape(str(task.get("stage", "")))
-        relations = []
-        blocked_by = [
-            str(item.get("short_id", ""))
-            for item in task.get("blocked_by") or []
-            if not item.get("satisfied")
-        ]
-        if blocked_by:
-            relations.append("blocked by " + ", ".join(blocked_by))
-        parallel = [
-            str(item.get("short_id", "")) for item in task.get("parallel_with") or []
-        ]
-        if parallel:
-            relations.append("parallel with " + ", ".join(parallel))
-        relation_note = f" [dim]· {' · '.join(relations)}[/dim]" if relations else ""
-        if task.get("status") in {"completed", "archived"}:
-            return f"[dim]✓ {label}[/dim]{relation_note}"
-        flags = attention_flags(task)
-        if "blocker" in flags:
-            return f"[bold red]! {label}[/bold red] [dim]· {stage}[/dim]{relation_note}"
-        icon = "[yellow]~[/yellow]" if "stale" in flags else "[green]●[/green]"
-        return f"{icon} {label} [dim]· {stage}[/dim]{relation_note}"
+        tone = status_tone(task)
+        color = {
+            "red": "red",
+            "orange": "dark_orange",
+            "yellow": "yellow",
+            "blue": "blue",
+            "green": "green",
+            "muted": "dim",
+        }[tone]
+        parts = [f"[{color}]●[/{color}]" if color != "dim" else "[dim]●[/dim]"]
+        worktree = worktree_name(task)
+        if worktree:
+            parts.append(f"[dim]{escape(f'[{worktree}]')}[/dim]")
+        short_id = str(task.get("short_id") or "")
+        if short_id:
+            parts.append(f"[bold]{escape(short_id)}[/bold]")
+        parts.append(label)
+        initiative = str((task.get("initiative") or {}).get("title") or "")
+        if initiative:
+            parts.append(f"[dim]{escape(f'[{initiative}]')}[/dim]")
+        return " ".join(parts)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         task_id = event.node.data

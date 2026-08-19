@@ -176,6 +176,35 @@ class ApiTests(unittest.TestCase):
         ]
         self.assertEqual(names_paths, sorted(names_paths))
 
+    def test_task_without_repository_gets_a_synthetic_observed_group(self) -> None:
+        support.insert_task(
+            self.database,
+            id="no-repository",
+            label="Direct task",
+            repository="",
+            status="active",
+            updated_at="2026-08-02T18:50:00Z",
+        )
+
+        connection = self._connect()
+        try:
+            payload = summary_payload(connection, self.config, NOW)
+        finally:
+            connection.close()
+
+        by_path = {entry["path"]: entry for entry in payload["repositories"]}
+        self.assertEqual(
+            by_path[""],
+            {
+                "path": "",
+                "name": "No repository",
+                "pinned": False,
+                "observed": True,
+                "active_tasks": 1,
+                "completed_tasks": 0,
+            },
+        )
+
     def test_tasks_payload_status_filter_and_ordering(self) -> None:
         older = support.insert_task(
             self.database,

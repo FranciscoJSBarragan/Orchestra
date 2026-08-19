@@ -18,6 +18,7 @@ cp en.lproj/Localizable.strings "$APP/Contents/Resources/en.lproj/Localizable.st
 cp es.lproj/Localizable.strings "$APP/Contents/Resources/es.lproj/Localizable.strings"
 mkdir -p "$APP/Contents/Resources/control/orchestra_control" "$APP/Contents/Resources/scripts"
 cp ../../codex/scripts/task_control.py "$APP/Contents/Resources/scripts/task_control.py"
+cp ../../codex/scripts/_common.py "$APP/Contents/Resources/scripts/_common.py"
 cp ../../codex/control/orchestra_control/*.py "$APP/Contents/Resources/control/orchestra_control/"
 codesign --force --sign - "$APP"
 echo "Built $APP"

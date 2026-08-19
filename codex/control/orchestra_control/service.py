@@ -1114,6 +1114,7 @@ class ControlService:
         current_revision: str,
         repository_common_dir: str | None = None,
         ancestor_contains: Callable[[str], bool] | None = None,
+        repository_equivalent: Callable[[str], bool] | None = None,
         source_harness: str | None = "codex",
     ) -> dict[str, Any]:
         thread = validate_thread_id(thread_id, source_harness)
@@ -1148,13 +1149,19 @@ class ControlService:
                 )
             if owner and owner != identity:
                 raise ControlError("busy", "task is adopted by another native host chat")
-            self._require_adoptable_repository(
+            normalize_repository = self._require_adoptable_repository(
                 connection,
                 task,
                 canonical_repository=canonical_repository,
                 canonical_common_dir=canonical_common_dir,
                 ancestor_contains=ancestor_contains,
+                repository_equivalent=repository_equivalent,
             )
+            if normalize_repository:
+                connection.execute(
+                    "UPDATE tasks SET repository = ?, repository_common_dir = ? WHERE id = ?",
+                    (canonical_repository, canonical_common_dir, task["id"]),
+                )
             if not owner:
                 connection.execute(
                     """
@@ -1189,9 +1196,18 @@ class ControlService:
         canonical_repository: str,
         canonical_common_dir: str | None,
         ancestor_contains: Callable[[str], bool] | None,
-    ) -> None:
-        if task.get("repository") and task["repository"] != canonical_repository:
-            raise ControlError("invalid", "task was prepared for a different repository")
+        repository_equivalent: Callable[[str], bool] | None,
+    ) -> bool:
+        normalize_repository = False
+        if task.get("repository_common_dir") and canonical_common_dir:
+            if canonical_common_dir != task["repository_common_dir"]:
+                raise ControlError("invalid", "task was prepared for a different Git repository")
+        elif task.get("repository") and task["repository"] != canonical_repository:
+            if repository_equivalent is None or not repository_equivalent(task["repository"]):
+                raise ControlError("invalid", "task was prepared for a different repository")
+            normalize_repository = canonical_common_dir is not None
+        elif canonical_common_dir and not task.get("repository_common_dir"):
+            normalize_repository = True
         dependencies = self._dependency_views(
             connection,
             task,
@@ -1205,6 +1221,7 @@ class ControlService:
             )
             raise ControlError("blocked", f"task dependencies are not satisfied: {labels}")
         self._verify_prepared_documents(task)
+        return normalize_repository
 
     def reclaim_task(
         self,
@@ -1216,6 +1233,7 @@ class ControlService:
         authorized: bool,
         repository_common_dir: str | None = None,
         ancestor_contains: Callable[[str], bool] | None = None,
+        repository_equivalent: Callable[[str], bool] | None = None,
         source_harness: str | None = "codex",
     ) -> dict[str, Any]:
         thread = validate_thread_id(thread_id, source_harness)
@@ -1244,13 +1262,19 @@ class ControlService:
                     "invalid",
                     "already owned by this chat; continue instead of reclaim",
                 )
-            self._require_adoptable_repository(
+            normalize_repository = self._require_adoptable_repository(
                 connection,
                 task,
                 canonical_repository=canonical_repository,
                 canonical_common_dir=canonical_common_dir,
                 ancestor_contains=ancestor_contains,
+                repository_equivalent=repository_equivalent,
             )
+            if normalize_repository:
+                connection.execute(
+                    "UPDATE tasks SET repository = ?, repository_common_dir = ? WHERE id = ?",
+                    (canonical_repository, canonical_common_dir, task["id"]),
+                )
             connection.execute(
                 """
                 UPDATE tasks SET previous_harness = adopted_harness,
@@ -1321,6 +1345,7 @@ class ControlService:
         repository: str | None = None,
         terminal_revision: str | None = None,
         repository_common_dir: str | None = None,
+        repository_equivalent: Callable[[str], bool] | None = None,
         source_harness: str | None = "codex",
     ) -> dict[str, Any]:
         thread = validate_thread_id(thread_id, source_harness)
@@ -1358,14 +1383,27 @@ class ControlService:
                     not task.get("repository_common_dir")
                     and canonical_repository
                     and task.get("repository") != canonical_repository
+                    and (
+                        repository_equivalent is None
+                        or not task.get("repository")
+                        or not repository_equivalent(task["repository"])
+                    )
                 ):
                     raise ControlError("invalid", "task belongs to a different repository")
                 connection.execute(
                     """
-                    UPDATE tasks SET completed_revision = ?, repository_common_dir = COALESCE(?, repository_common_dir),
+                    UPDATE tasks SET completed_revision = ?,
+                        repository = COALESCE(?, repository),
+                        repository_common_dir = COALESCE(?, repository_common_dir),
                         updated_at = ? WHERE id = ?
                     """,
-                    (revision, canonical_common_dir, timestamp, task["id"]),
+                    (
+                        revision,
+                        canonical_repository,
+                        canonical_common_dir,
+                        timestamp,
+                        task["id"],
+                    ),
                 )
                 updated = row_dict(
                     connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
@@ -1385,14 +1423,27 @@ class ControlService:
             if (
                 not task.get("repository_common_dir")
                 and task.get("repository") != canonical_repository
+                and (
+                    repository_equivalent is None
+                    or not task.get("repository")
+                    or not repository_equivalent(task["repository"])
+                )
             ):
                 raise ControlError("invalid", "task belongs to a different repository")
             connection.execute(
                 """
                 UPDATE tasks SET preparation_status = 'completed', completed_at = ?,
-                    completed_revision = ?, repository_common_dir = ?, updated_at = ? WHERE id = ?
+                    completed_revision = ?, repository = ?, repository_common_dir = ?,
+                    updated_at = ? WHERE id = ?
                 """,
-                (timestamp, revision, canonical_common_dir, timestamp, task["id"]),
+                (
+                    timestamp,
+                    revision,
+                    canonical_repository,
+                    canonical_common_dir,
+                    timestamp,
+                    task["id"],
+                ),
             )
             completed = row_dict(
                 connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
@@ -1409,6 +1460,7 @@ class ControlService:
         delivery_revision: str,
         kind: str,
         repository_common_dir: str | None = None,
+        repository_equivalent: Callable[[str], bool] | None = None,
         source_harness: str | None = "codex",
     ) -> dict[str, Any]:
         thread = validate_thread_id(thread_id, source_harness)
@@ -1442,6 +1494,11 @@ class ControlService:
             if (
                 not task.get("repository_common_dir")
                 and task.get("repository") != canonical_repository
+                and (
+                    repository_equivalent is None
+                    or not task.get("repository")
+                    or not repository_equivalent(task["repository"])
+                )
             ):
                 raise ControlError("invalid", "delivery repository does not match the task")
             existing = (
@@ -1453,12 +1510,23 @@ class ControlService:
             if task.get("delivered_at"):
                 if existing != requested:
                     raise ControlError("busy", "task already has different delivery evidence")
+                if canonical_common_dir:
+                    connection.execute(
+                        "UPDATE tasks SET repository = ?, repository_common_dir = ? WHERE id = ?",
+                        (canonical_repository, canonical_common_dir, task["id"]),
+                    )
+                    task = row_dict(
+                        connection.execute(
+                            "SELECT * FROM tasks WHERE id = ?", (task["id"],)
+                        ).fetchone()
+                    )
                 return self._decorate_relations(connection, task)
             connection.execute(
                 """
                 UPDATE tasks SET delivered_task_revision = ?, delivery_revision = ?,
                     delivery_kind = ?, delivered_at = ?,
-                    repository_common_dir = COALESCE(?, repository_common_dir), updated_at = ?
+                    repository = ?, repository_common_dir = COALESCE(?, repository_common_dir),
+                    updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -1466,6 +1534,7 @@ class ControlService:
                     delivered,
                     delivery_kind,
                     timestamp,
+                    canonical_repository,
                     canonical_common_dir,
                     timestamp,
                     task["id"],

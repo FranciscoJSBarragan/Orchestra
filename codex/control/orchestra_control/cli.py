@@ -7,8 +7,15 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 from typing import Any
 import uuid
+
+SCRIPTS_ROOT = Path(__file__).resolve().parents[2] / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
+
+from _common import git_repository_identity
 
 from .service import ControlError, ControlService, host_thread_from_env
 
@@ -27,32 +34,24 @@ def emit(status: str, **values: Any) -> int:
 def repository_identity(value: str) -> tuple[Path, str, Path]:
     root = Path(value).expanduser().resolve()
     try:
-        identity = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel", "HEAD^{commit}"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        common_dir_result = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        identity = git_repository_identity(root)
     except OSError as error:
         raise ControlError("unavailable", f"cannot inspect Git repository: {error}") from error
-    lines = identity.stdout.splitlines()
-    if (
-        identity.returncode
-        or common_dir_result.returncode
-        or len(lines) != 2
-        or Path(lines[0]).resolve() != root
-    ):
+    if identity is None or identity.checkout_root != root:
         raise ControlError("invalid", f"not a canonical Git worktree root: {root}")
-    common_dir = Path(common_dir_result.stdout.strip()).resolve()
-    return root, lines[1], common_dir
+    return identity.repository_root, identity.head, identity.common_dir
+
+
+def draft_repository(value: str | None) -> str | None:
+    """Normalize a usable Git checkout while keeping unresolved draft paths."""
+    if value is None or not value.strip():
+        return value
+    resolved = Path(value).expanduser().resolve()
+    try:
+        identity = git_repository_identity(resolved)
+    except OSError:
+        identity = None
+    return str(identity.repository_root if identity is not None else resolved)
 
 
 def ancestor_checker(repository: Path, head_revision: str):
@@ -77,6 +76,20 @@ def ancestor_checker(repository: Path, head_revision: str):
         return False
 
     return contains
+
+
+def repository_equivalence_checker(common_dir: Path):
+    """Prove that a historical checkout belongs to the current local clone."""
+    def equivalent(value: str) -> bool:
+        try:
+            identity = git_repository_identity(Path(value).expanduser().resolve())
+        except OSError as error:
+            raise ControlError(
+                "unavailable", f"cannot inspect historical Git repository: {error}"
+            ) from error
+        return identity is not None and identity.common_dir == common_dir
+
+    return equivalent
 
 
 def _read_document(path: Path, label: str) -> str:
@@ -202,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
                 source_harness=args.source_harness,
                 source_conversation=args.source_conversation,
                 source_message=args.source_message,
-                repository=args.repository,
+                repository=draft_repository(args.repository),
                 idempotency_key=args.idempotency_key or str(uuid.uuid4()),
             )
             return emit("ok", task=task)
@@ -247,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
                 "brief": args.brief,
             }
             if hasattr(args, "repository"):
-                values["repository"] = args.repository
+                values["repository"] = draft_repository(args.repository)
             return emit("ok", task=service.update_draft(**values))
         if args.command == "note":
             note = service.add_note(
@@ -296,6 +309,7 @@ def main(argv: list[str] | None = None) -> int:
                 current_revision=revision,
                 repository_common_dir=str(common_dir),
                 ancestor_contains=ancestor_checker(repository, revision),
+                repository_equivalent=repository_equivalence_checker(common_dir),
                 source_harness=harness,
             )
             next_action = (
@@ -328,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
                 authorized=args.authorized,
                 repository_common_dir=str(common_dir),
                 ancestor_contains=ancestor_checker(repository, revision),
+                repository_equivalent=repository_equivalence_checker(common_dir),
                 source_harness=harness,
             )
             return emit(
@@ -347,6 +362,7 @@ def main(argv: list[str] | None = None) -> int:
                 repository=str(repository),
                 terminal_revision=revision,
                 repository_common_dir=str(common_dir),
+                repository_equivalent=repository_equivalence_checker(common_dir),
                 source_harness=harness,
             )
             return emit("ok", task=completed)
@@ -361,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
                 delivery_revision=args.delivery_revision,
                 kind=args.kind,
                 repository_common_dir=str(common_dir),
+                repository_equivalent=repository_equivalence_checker(common_dir),
                 source_harness=harness,
             )
             return emit("ok", task=completed)

@@ -100,6 +100,15 @@ one only after an exact UUID join to Control. Consequently concurrent chats do
 not need leases or a second counter: prepared cards serialize in the existing
 SQLite transaction, while direct tasks use repository plus title.
 
+The shared Git identity resolver separates clone identity from execution
+location: `repository` is the validated primary worktree of the clone,
+`worktree` is the specific task checkout, and Git common-dir is the comparison
+key for cross-worktree preparation, adoption, resume, and registration. This
+uses only local Git metadata. It neither resolves remotes nor treats a GitHub
+URL as identity, so separate clones intentionally remain separate repository
+groups. The existing columns and API shape are sufficient; rows that contain
+older checkout paths remain readable and are not backfilled.
+
 ### Orchestrator
 
 Owns user dialogue, tier recommendation, product clarification, capability routing,

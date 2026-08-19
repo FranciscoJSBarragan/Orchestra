@@ -5,12 +5,12 @@ struct StatusMark: View {
     let task: OrchestraTask
     var color: Color {
         if task.blocker?.isEmpty == false { return .red }
+        if task.stopRequestedAt != nil { return .orange }
+        if task.stale { return .yellow }
         switch task.effectiveStatus {
         case "adopted", "active": return .blue
         case "ready": return .green
-        case "cancelled": return .orange
-        case "completed": return .secondary
-        case "archived", "trashed": return .secondary
+        case "cancelled", "completed", "archived", "trashed": return .secondary
         default: return .yellow
         }
     }
@@ -44,22 +44,20 @@ struct SidebarView: View {
 struct TaskRow: View {
     let task: OrchestraTask
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            StatusMark(task: task).padding(.top, 6)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 7) {
-                    Text(task.displayID).font(.caption.monospaced()).foregroundStyle(.secondary)
-                    Text(task.title).fontWeight(.medium).lineLimit(1)
-                }
-                if let summary = task.summary, !summary.isEmpty {
-                    Text(summary).font(.callout).foregroundStyle(.secondary).lineLimit(2)
-                } else {
-                    Text(task.repositoryName).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
-                }
-                if task.stopRequestedAt != nil {
-                    Label("Stop requested", systemImage: "pause.circle.fill")
-                        .font(.caption).foregroundStyle(.orange)
-                }
+        HStack(spacing: 7) {
+            StatusMark(task: task)
+            if let worktree = task.worktreeLabel {
+                Text("[\(worktree)]")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .help(task.worktree ?? worktree)
+            }
+            if !task.displayID.isEmpty {
+                Text(task.displayID).font(.caption.monospaced().weight(.semibold))
+            }
+            Text(task.title).fontWeight(.medium).lineLimit(1)
+            if let initiative = task.initiative?.title, !initiative.isEmpty {
+                Text("[\(initiative)]").font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
@@ -86,8 +84,14 @@ struct TaskListView: View {
                     description: Text("Tasks in this section will appear here.")
                 )
             } else {
-                List(store.visibleTasks, selection: $store.selectedID) { task in
-                    TaskRow(task: task).tag(task.id)
+                List(selection: $store.selectedID) {
+                    ForEach(store.visibleTaskGroups) { group in
+                        Section(group.name) {
+                            ForEach(group.tasks) { task in
+                                TaskRow(task: task).tag(task.id)
+                            }
+                        }
+                    }
                 }
                 .listStyle(.inset)
             }
@@ -125,7 +129,9 @@ struct TaskDetailView: View {
                     VStack(alignment: .leading, spacing: 22) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text(task.displayID).font(.callout.monospaced()).foregroundStyle(.secondary)
+                            if !task.displayID.isEmpty {
+                                Text(task.displayID).font(.callout.monospaced()).foregroundStyle(.secondary)
+                            }
                             Text(task.title).font(.title.weight(.semibold)).textSelection(.enabled)
                             HStack(spacing: 8) {
                                 StatusMark(task: task)
@@ -165,6 +171,18 @@ struct TaskDetailView: View {
                             Text("Repository").font(.headline)
                             Text(repository).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
                         }
+                    }
+                    if let worktree = task.worktree, !worktree.isEmpty {
+                        DetailSection(title: "Worktree", text: worktree)
+                    }
+                    if let branch = task.branch, !branch.isEmpty {
+                        DetailSection(title: "Branch", text: branch)
+                    }
+                    if let stage = task.stage, !stage.isEmpty {
+                        DetailSection(title: "Stage", text: stage)
+                    }
+                    if let initiative = task.initiative?.title, !initiative.isEmpty {
+                        DetailSection(title: "Initiative", text: initiative)
                     }
                     Divider()
                     HStack {
@@ -291,7 +309,8 @@ struct NoteEditor: View {
     @State private var bodyText = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Add note to \(task.displayID)").font(.title2.weight(.semibold))
+            Text("Add note to \(task.displayID.isEmpty ? task.title : task.displayID)")
+                .font(.title2.weight(.semibold))
             TextEditor(text: $bodyText).frame(height: 150).border(.separator)
             HStack { Spacer(); Button("Cancel") { dismiss() }; Button("Add note") {
                 Task { await store.addNote(task, body: bodyText); dismiss() }
@@ -370,6 +389,7 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
     @ObservedObject var store: TaskStore
     var activeTasks: [OrchestraTask] { store.tasks.filter { $0.isActive }.prefix(5).map { $0 } }
+    var activeGroups: [RepositoryTaskGroup] { store.groups(for: activeTasks) }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -384,12 +404,17 @@ struct MenuBarView: View {
                     Text("No active tasks").foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity).padding(.vertical, 28)
             } else {
-                ForEach(activeTasks) { task in
-                    Button {
-                        store.selectedID = task.id; store.selectedSection = .active; openWindow(id: "tasks")
-                    } label: { TaskRow(task: task).padding(.horizontal, 12) }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 30)
+                ForEach(activeGroups) { group in
+                    Text(group.name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 3)
+                    ForEach(group.tasks) { task in
+                        Button {
+                            store.selectedID = task.id; store.selectedSection = .active; openWindow(id: "tasks")
+                        } label: { TaskRow(task: task).padding(.horizontal, 12) }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             HStack {

@@ -89,13 +89,17 @@ a new initiative instead of rewriting ready or adopted cards.
 When the user says `Start A1 with Orchestra`, `Arranca A1 con Orchestra`, or
 an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build chat:
 
-1. Run `task adopt --task <short-id> --repository <canonical-root>` from that
+1. Run `task adopt --task <short-id> --repository <current-checkout-root>` from that
    chat. The helper requires the adapter-provided conversation identity; never
    supply, invent, copy, or override it. On Codex that identity is
    `CODEX_THREAD_ID`. On Cursor the plugin's `sessionStart` hook verifies
    `session_id == conversation_id` and exposes that exact value as
    `ORCHESTRA_HOST_THREAD_ID`. On Grok Build that identity is `GROK_SESSION_ID`.
    If the identity is missing, adopt is `blocked`.
+   The helper resolves the clone's primary worktree as `repository`, keeps the
+   current checkout as `worktree` where applicable, and compares Git common-dir;
+   a linked worktree from the prepared clone is valid, while a different local
+   clone or Git repository is not. Do not query GitHub or remotes for identity.
 2. Open the returned private context and specification paths. Verify that the
    objective matches the user's instruction and adopt the specification as
    already confirmed context. Never expose the marker or private document body

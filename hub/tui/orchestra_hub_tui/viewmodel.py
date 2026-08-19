@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import posixpath
 
 TASK_ROW_FIELDS = (
     "label", "tier", "stage", "status", "branch", "worktree",
@@ -19,6 +20,43 @@ class RepoNode:
     active: int
     completed: int
     tasks: tuple[dict, ...]
+
+
+def compact_middle(value: str, limit: int = 16) -> str:
+    if len(value) <= limit:
+        return value
+    left = (limit - 1) // 2
+    right = limit - left - 1
+    return value[:left] + "…" + value[-right:]
+
+
+def worktree_name(task: dict) -> str:
+    repository = str(task.get("repository") or "")
+    worktree = str(task.get("worktree") or "")
+    if not worktree or (
+        repository and posixpath.normpath(worktree) == posixpath.normpath(repository)
+    ):
+        return ""
+    return compact_middle(posixpath.basename(posixpath.normpath(worktree)))
+
+
+def status_tone(task: dict) -> str:
+    if str(task.get("blocker") or ""):
+        return "red"
+    if task.get("stop_requested_at"):
+        return "orange"
+    if task.get("stale") is True:
+        return "yellow"
+    status = str(task.get("status") or task.get("preparation_status") or "")
+    if status in {"active", "adopted"}:
+        return "blue"
+    if status == "ready":
+        return "green"
+    if status in {"draft"}:
+        return "yellow"
+    if status in {"cancelled", "completed", "archived", "trashed"}:
+        return "muted"
+    return "yellow"
 
 
 def build_tree(summary: dict) -> list[RepoNode]:
@@ -77,16 +115,6 @@ def task_rows(task: dict) -> list[tuple[str, str]]:
             )
         rows.append((field, str(value)))
     return rows
-
-
-def attention_flags(task: dict) -> frozenset[str]:
-    flags = set()
-    completed = task.get("status") in {"completed", "archived"}
-    if not completed and str(task.get("blocker", "")):
-        flags.add("blocker")
-    if task.get("stale") is True:
-        flags.add("stale")
-    return frozenset(flags)
 
 
 def phase_progress(artifacts: list[dict] | tuple) -> tuple[int, int] | None:

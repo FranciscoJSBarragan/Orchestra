@@ -132,6 +132,21 @@ class TaskControlTests(unittest.TestCase):
         for sequence, short_id in expected.items():
             self.assertEqual(sequence_to_short_id(sequence), short_id)
 
+    def test_cli_package_import_resolves_shared_git_helper(self) -> None:
+        script = (
+            "import sys; "
+            f"sys.path.insert(0, {str(CONTROL_ROOT)!r}); "
+            "import orchestra_control.cli"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_capture_is_idempotent_allocates_human_id_and_is_private(self) -> None:
         first = self.create_task()
         second = self.create_task()
@@ -404,6 +419,113 @@ class TaskControlTests(unittest.TestCase):
             )
         self.assertEqual(error.exception.status, "blocked")
         self.assertIn("unsafe", error.exception.reason)
+
+    def test_capture_and_adoption_share_identity_across_linked_worktrees(self) -> None:
+        linked = self.root / "N1"
+        self.git("worktree", "add", "-q", "-b", "orchestra/n1", str(linked), self.revision)
+        result, payload = self.cli(
+            "task", "create",
+            "--title", "Linked task",
+            "--brief", "Prepare from a linked checkout.",
+            "--repository", str(linked),
+            "--source-harness", "test",
+            "--idempotency-key", "linked-capture",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["task"]["repository"], str(self.repository.resolve()))
+
+        self.prepare("A1")
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(linked),
+            current_revision=self.revision,
+            repository_common_dir=self.common_dir,
+        )
+        self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+
+        other = self.root / "other-repository"
+        other.mkdir()
+        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=other, check=True)
+        other_common_dir = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=other, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        self.service.transfer_task(
+            task_ref="A1", thread_id=THREAD_ONE, stable_checkpoint=True
+        )
+        with self.assertRaises(ControlError) as error:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_TWO,
+                repository=str(other),
+                current_revision=self.revision,
+                repository_common_dir=other_common_dir,
+            )
+        self.assertEqual(error.exception.status, "invalid")
+        self.assertIn("different Git repository", error.exception.reason)
+
+    def test_cli_lifecycle_normalizes_legacy_linked_repository(self) -> None:
+        linked_a = self.root / "legacy-a"
+        linked_b = self.root / "legacy-b"
+        self.git(
+            "worktree", "add", "-q", "-b", "orchestra/legacy-a",
+            str(linked_a), self.revision,
+        )
+        self.git(
+            "worktree", "add", "-q", "-b", "orchestra/legacy-b",
+            str(linked_b), self.revision,
+        )
+        self.create_task()
+        self.prepare("A1")
+        database = self.state_root / "control.sqlite3"
+
+        def restore_legacy_identity() -> None:
+            with sqlite3.connect(database) as connection:
+                connection.execute(
+                    "UPDATE tasks SET repository = ?, repository_common_dir = NULL "
+                    "WHERE short_id = 'A1'",
+                    (str(linked_a.resolve()),),
+                )
+
+        restore_legacy_identity()
+        result, adopted = self.cli(
+            "task", "adopt", "--task", "A1", "--repository", str(linked_b),
+            thread=THREAD_ONE,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(adopted["task"]["repository"], str(self.repository.resolve()))
+        self.assertEqual(adopted["task"]["repository_common_dir"], self.common_dir)
+
+        restore_legacy_identity()
+        result, reclaimed = self.cli(
+            "task", "reclaim", "--task", "A1", "--repository", str(linked_b),
+            "--authorized", thread=THREAD_TWO,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(reclaimed["task"]["repository"], str(self.repository.resolve()))
+        self.assertEqual(reclaimed["task"]["repository_common_dir"], self.common_dir)
+
+        restore_legacy_identity()
+        result, finished = self.cli(
+            "task", "finish", "--task", "A1", "--repository", str(linked_b),
+            "--task-revision", self.revision, thread=THREAD_TWO,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(finished["task"]["repository"], str(self.repository.resolve()))
+        self.assertEqual(finished["task"]["repository_common_dir"], self.common_dir)
+
+        restore_legacy_identity()
+        result, delivered = self.cli(
+            "task", "record-delivery", "--task", "A1",
+            "--repository", str(linked_b),
+            "--task-revision", self.revision,
+            "--delivery-revision", self.revision,
+            "--kind", "local-integration", thread=THREAD_TWO,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(delivered["task"]["repository"], str(self.repository.resolve()))
+        self.assertEqual(delivered["task"]["repository_common_dir"], self.common_dir)
 
     def test_only_one_chat_adopts_and_transfer_requires_stable_checkpoint(self) -> None:
         self.create_task()

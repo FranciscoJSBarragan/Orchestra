@@ -104,13 +104,11 @@ def repository_entries(
         }
     for task in tasks:
         path = str(task["repository"] or "")
-        if not path:
-            continue
         current = repos.get(path)
         if current is None:
             current = {
                 "path": path,
-                "name": Path(path).name,
+                "name": Path(path).name if path else "No repository",
                 "pinned": False,
                 "observed": False,
                 "active_tasks": 0,

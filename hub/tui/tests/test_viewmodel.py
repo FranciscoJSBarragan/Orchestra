@@ -6,11 +6,13 @@ from datetime import datetime, timezone
 
 import support  # noqa: F401  (sys.path setup)
 from orchestra_hub_tui.viewmodel import (
-    attention_flags,
     build_tree,
+    compact_middle,
     phase_progress,
     snapshot_age,
+    status_tone,
     task_rows,
+    worktree_name,
 )
 
 
@@ -116,6 +118,20 @@ class BuildTreeTest(unittest.TestCase):
         names = [node.path for node in tree]
         self.assertIn("/repos/other", names)
 
+    def test_task_without_repository_uses_catalog_group_name(self) -> None:
+        summary = _summary()
+        summary["repositories"].append({
+            "path": "", "name": "No repository", "pinned": False,
+            "observed": True, "active_tasks": 1, "completed_tasks": 0,
+        })
+        summary["tasks"].append(_task(id="direct", repository="", worktree=""))
+
+        tree = build_tree(summary)
+
+        node = next(item for item in tree if item.path == "")
+        self.assertEqual(node.name, "No repository")
+        self.assertEqual([task["id"] for task in node.tasks], ["direct"])
+
 
 class TaskRowsTest(unittest.TestCase):
     def test_rows_are_ordered_and_stringified(self) -> None:
@@ -136,27 +152,26 @@ class TaskRowsTest(unittest.TestCase):
         self.assertEqual(dict(task_rows(task))["summary"], "")
 
 
-class AttentionFlagsTest(unittest.TestCase):
-    def test_blocker_flag(self) -> None:
-        self.assertEqual(attention_flags(_task(blocker="stuck")),
-                         frozenset({"blocker"}))
-
-    def test_completed_task_with_blocker_has_no_flag(self) -> None:
+class CompactTaskPresentationTest(unittest.TestCase):
+    def test_worktree_is_hidden_for_primary_checkout(self) -> None:
         self.assertEqual(
-            attention_flags(_task(blocker="stuck", status="completed")),
-            frozenset(),
+            worktree_name(_task(repository="/repos/NeniTPV", worktree="/repos/NeniTPV")),
+            "",
         )
 
-    def test_stale_flag(self) -> None:
-        self.assertEqual(attention_flags(_task(stale=True)),
-                         frozenset({"stale"}))
+    def test_worktree_name_is_middle_truncated_to_sixteen_characters(self) -> None:
+        name = worktree_name(_task(worktree="/worktrees/a-very-long-worktree-name"))
+        self.assertEqual(name, "a-very-…ree-name")
+        self.assertEqual(len(name), 16)
+        self.assertEqual(compact_middle("N1"), "N1")
 
-    def test_both_flags(self) -> None:
-        self.assertEqual(attention_flags(_task(blocker="x", stale=True)),
-                         frozenset({"blocker", "stale"}))
-
-    def test_clean_task_has_no_flags(self) -> None:
-        self.assertEqual(attention_flags(_task()), frozenset())
+    def test_status_priority_matches_shared_presentation(self) -> None:
+        self.assertEqual(status_tone(_task(blocker="blocked", stop_requested_at="now")), "red")
+        self.assertEqual(status_tone(_task(stop_requested_at="now", stale=True)), "orange")
+        self.assertEqual(status_tone(_task(stale=True)), "yellow")
+        self.assertEqual(status_tone(_task(status="active")), "blue")
+        self.assertEqual(status_tone(_task(status="ready")), "green")
+        self.assertEqual(status_tone(_task(status="completed")), "muted")
 
 
 class SnapshotAgeTest(unittest.TestCase):

@@ -203,6 +203,32 @@ class CoordinationTests(unittest.TestCase):
         self.assertEqual(collision["status"], "invalid")
         self.assertIn("task id already belongs", collision["reason"])
 
+    def test_bare_primary_falls_back_to_current_linked_checkout(self) -> None:
+        bare = self.repository.parent / "bare.git"
+        linked = self.repository.parent / "bare-linked"
+        result = subprocess.run(
+            ["git", "clone", "--bare", str(self.repository), str(bare)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = subprocess.run(
+            ["git", "--git-dir", str(bare), "worktree", "add", str(linked), "main"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        identity = coordination.git_repository_identity(linked)
+
+        self.assertIsNotNone(identity)
+        assert identity is not None
+        self.assertEqual(identity.checkout_root, linked.resolve())
+        self.assertEqual(identity.repository_root, linked.resolve())
+        self.assertEqual(identity.common_dir, bare.resolve())
+
     def test_explicit_uuid_cannot_adopt_an_existing_worktree_snapshot(self) -> None:
         existing = self.create_task(self.task_one)
         result, collision = self.run_cli(
@@ -302,6 +328,45 @@ class CoordinationTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual([task["id"] for task in filtered["tasks"]], [task_id])
+
+    def test_linked_checkout_resolves_primary_repository_and_preserves_legacy_retry(self) -> None:
+        identity = coordination.git_repository_identity(self.task_one)
+        self.assertIsNotNone(identity)
+        assert identity is not None
+        self.assertEqual(identity.checkout_root, self.task_one.resolve())
+        self.assertEqual(identity.repository_root, self.repository.resolve())
+        self.assertNotEqual(identity.checkout_root, identity.repository_root)
+
+        result, created = self.run_cli(
+            "task", "create",
+            "--repository", str(self.task_one),
+            "--worktree", str(self.task_one),
+            "--base-revision", self.head,
+            "--tier", "standard",
+            "--label", "Linked checkout",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(created["task"]["repository"], str(self.repository.resolve()))
+        self.assertEqual(created["task"]["worktree"], str(self.task_one.resolve()))
+
+        database = self.state_root / "state.sqlite3"
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE tasks SET repository = ? WHERE id = ?",
+                (str(self.task_one.resolve()), created["task"]["id"]),
+            )
+
+        result, repeated = self.run_cli(
+            "task", "create",
+            "--repository", str(self.repository),
+            "--worktree", str(self.task_one),
+            "--base-revision", self.head,
+            "--tier", "standard",
+            "--label", "Ignored retry",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(repeated["created"])
+        self.assertEqual(repeated["task"]["repository"], str(self.task_one.resolve()))
 
     def test_localized_visible_text_round_trips_with_canonical_labels(self) -> None:
         task_id = self.create_task(self.task_one)["task"]["id"]

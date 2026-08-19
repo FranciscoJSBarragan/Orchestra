@@ -115,6 +115,12 @@ started directly without adopting a card has no `A#` identity and is displayed
 with repository plus human title. This keeps simultaneous direct tasks distinct
 without introducing another allocator.
 
+Repository identity is local and clone-scoped. Git resolves the primary
+worktree of the clone as `repository`, while the checkout used by one task is
+kept separately as `worktree`. Linked worktrees therefore stay grouped under
+the same repository without depending on GitHub, remotes, or network access;
+two independent clones remain distinct. Historical rows are not backfilled.
+
 The user starts a ready card from a native Codex, Cursor, or Grok Build chat by asking that chat to
 adopt its human ID with Orchestra. The chat becomes the visible conversational
 owner, inherits its current permissions, and follows the normal Orchestra

@@ -129,7 +129,7 @@ capability dispatch, resolve the intended base branch and revision and perform a
 short read-only Git preflight. Read repository delivery policy and identify the
 canonical runtime, dependency setup, services, permissions, credential
 categories without reading secrets, verification commands, test-data
-provenance, and generated paths relevant to the task.
+provenance, and generated paths relevant to the task. Resolve `repository` as the validated primary worktree and `worktree` as the task checkout; common-dir accepts linked worktrees from that local clone and rejects different repositories without GitHub, remote, URL identity, or historical backfill.
 
 For a fresh task on the repository's canonical base branch, resolve its configured upstream and fetch only its remote branch before fixing the base revision. A configured upstream whose fetch fails blocks task setup. With no remote or upstream, proceed locally only after identifying the base as not remotely verified. Preserve an explicitly selected noncanonical base at its captured commit for stacked work. Never run `git pull`, create an implicit merge, or rebase during setup.
 

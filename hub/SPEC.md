@@ -164,6 +164,14 @@ Local repository/worktree paths are exposed deliberately: they are part of
 the product. Artifact content, prompts, diffs, and environment variables are
 never exposed.
 
+`repository` is the validated primary worktree of the local Git clone;
+`worktree` is the concrete checkout used by the task. The producers derive
+both from local Git metadata and use Git common-dir to recognize linked
+worktrees. The Hub performs no GitHub, remote, URL, or network resolution.
+Separate clones remain separate local repositories. Historical rows may still
+contain a former checkout path in `repository`; the Hub reads them without
+rewriting or rejecting them.
+
 ### `GET /v1/health` — always `200`
 
 ```json
@@ -207,7 +215,17 @@ Degraded variant (still `200`; health reports, it does not fail):
   replacing the title shown next to the immutable `short_id`.
 - `repositories`: union of observed (derived from `tasks.repository`) and
   pinned (TOML) repositories. `name` = pinned name, else path basename.
-  Sorted by `name`, then `path`.
+  Tasks without a repository are grouped under the synthetic observed entry
+  `{"path": "", "name": "No repository"}`. Sorted by `name`, then `path`.
+- Clients render tasks directly under each repository as
+  `● [worktree] A1 Title [Initiative]`. The worktree segment appears only when
+  it exists and differs from `repository`; names over 16 characters are
+  truncated in the middle while the full path remains in task detail or a
+  tooltip. Missing short IDs consume no placeholder. Initiative is secondary
+  metadata, never a navigation level. Operational stage, textual status,
+  branch, and full paths remain in detail.
+- Presentation priority is blocker red, requested stop orange, stale yellow,
+  active blue, ready green, draft yellow, and inactive gray.
 - No `generated_at` in this body: the body must be byte-stable when nothing
   changed so the `ETag` works. Clients use the HTTP `Date` header if needed.
 

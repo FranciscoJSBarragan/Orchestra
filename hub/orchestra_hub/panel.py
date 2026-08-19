@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
+import posixpath
 
 from orchestra_hub.api import parse_timestamp
 
@@ -17,21 +18,36 @@ _MAIN_TEMPLATE = """\
     body {{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 0.85rem; margin: 1.5rem; color: #d0d7de;
             background: #0d1117; }}
-    h1 {{ font-size: 1.25rem; color: #e6edf3; letter-spacing: 0.02em; }}
-    h2 {{ font-size: 0.95rem; margin-top: 1.75rem; color: #8b949e;
-          text-transform: uppercase; letter-spacing: 0.08em; }}
-    table {{ border-collapse: collapse; width: 100%; margin-top: 0.5rem; }}
-    th, td {{ border: 1px solid #21262d; padding: 0.4rem 0.6rem;
-              text-align: left; vertical-align: top; }}
-    th {{ background: #161b22; color: #8b949e; font-weight: 600; }}
-    tbody tr:hover {{ background: #161b22; }}
+    h1 {{ font-size: 1.25rem; color: #e6edf3; }}
+    h2 {{ font-size: 1.05rem; color: #e6edf3; }}
+    h3 {{ font-size: 1rem; margin: 0; color: #e6edf3; }}
     .empty {{ font-style: italic; color: #8b949e; }}
     .attention {{ margin: 0.5rem 0 1rem; padding: 0.6rem 0.85rem;
                   background: #161b22; border: 1px solid #21262d;
                   border-left: 3px solid #f85149; }}
     .attention strong {{ color: #f85149; }}
-    .initiative td {{ background: #161b22; color: #8b949e; font-weight: 600; }}
-    .badge {{ display: inline-block; margin-right: 0.35rem; color: #d29922; }}
+    .repository {{ margin-top: 1.5rem; border-top: 1px solid #30363d; }}
+    .repository-header {{ display: flex; gap: 0.75rem; align-items: baseline;
+                          padding: 0.75rem 0 0.45rem; }}
+    .repository-meta, .repository-path {{ color: #8b949e; }}
+    .repository-path {{ margin: 0 0 0.5rem; }}
+    details.task {{ border-top: 1px solid #21262d; }}
+    details.task:last-child {{ border-bottom: 1px solid #21262d; }}
+    details.task summary {{ cursor: pointer; padding: 0.55rem 0.25rem;
+                            color: #d0d7de; }}
+    details.task summary:hover {{ background: #161b22; }}
+    .status {{ display: inline-block; width: 1.1rem; text-align: center; }}
+    .status-red {{ color: #f85149; }}
+    .status-orange {{ color: #d29922; }}
+    .status-yellow {{ color: #e3b341; }}
+    .status-blue {{ color: #58a6ff; }}
+    .status-green {{ color: #3fb950; }}
+    .status-muted, .worktree, .initiative {{ color: #8b949e; }}
+    .task-id {{ color: #e6edf3; }}
+    dl {{ display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 0.3rem 1rem;
+          margin: 0; padding: 0.35rem 1.35rem 0.8rem; }}
+    dt {{ color: #8b949e; }}
+    dd {{ margin: 0; overflow-wrap: anywhere; }}
   </style>
 </head>
 <body>
@@ -78,6 +94,114 @@ def _escape(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+def _compact_middle(value: str, limit: int = 16) -> str:
+    if len(value) <= limit:
+        return value
+    left = (limit - 1) // 2
+    right = limit - left - 1
+    return value[:left] + "…" + value[-right:]
+
+
+def _worktree_name(task: dict) -> str:
+    repository = str(task.get("repository") or "")
+    worktree = str(task.get("worktree") or "")
+    if not worktree or (
+        repository and posixpath.normpath(repository) == posixpath.normpath(worktree)
+    ):
+        return ""
+    return _compact_middle(posixpath.basename(posixpath.normpath(worktree)))
+
+
+def _status_tone(task: dict) -> str:
+    if task.get("blocker"):
+        return "red"
+    if task.get("stop_requested_at"):
+        return "orange"
+    if task.get("stale"):
+        return "yellow"
+    status = str(task.get("status") or task.get("preparation_status") or "")
+    if status in {"active", "adopted"}:
+        return "blue"
+    if status == "ready":
+        return "green"
+    if status in {"cancelled", "completed", "archived", "trashed"}:
+        return "muted"
+    return "yellow"
+
+
+def _status_label(task: dict) -> str:
+    if task.get("blocker"):
+        return "Blocked"
+    if task.get("stop_requested_at"):
+        return "Stop requested"
+    if task.get("stale"):
+        return "Stale"
+    status = str(task.get("status") or task.get("preparation_status") or "")
+    if status in {"active", "adopted"}:
+        return "Active"
+    if status == "ready":
+        return "Ready"
+    if status in {"cancelled", "completed", "archived", "trashed"}:
+        return "Inactive"
+    return "Draft"
+
+
+def _task_markup(task: dict, now: datetime) -> str:
+    tone = _status_tone(task)
+    pieces = [
+        f'<span class="status status-{tone}" aria-label="{_escape(_status_label(task))}">●</span>'
+    ]
+    worktree_name = _worktree_name(task)
+    if worktree_name:
+        pieces.append(
+            f'<span class="worktree" title="{_escape(task.get("worktree", ""))}">'
+            f'[{_escape(worktree_name)}]</span>'
+        )
+    short_id = str(task.get("short_id") or "")
+    if short_id:
+        pieces.append(f'<strong class="task-id">{_escape(short_id)}</strong>')
+    pieces.append(_escape(task.get("label", "")))
+    initiative = str((task.get("initiative") or {}).get("title") or "")
+    if initiative:
+        pieces.append(f'<span class="initiative">[{_escape(initiative)}]</span>')
+
+    blocked_by = ", ".join(
+        str(item.get("short_id", ""))
+        for item in task.get("blocked_by") or []
+        if not item.get("satisfied")
+    )
+    parallel = ", ".join(
+        str(item.get("short_id", "")) for item in task.get("parallel_with") or []
+    )
+    activity = ", ".join(
+        f"{entry.get('capability', '')}: {entry.get('summary') or entry.get('state', '')}"
+        for entry in task.get("current_activity") or []
+    )
+    values = (
+        ("stage", task.get("stage")),
+        ("status", task.get("status")),
+        ("branch", task.get("branch")),
+        ("worktree", task.get("worktree")),
+        ("summary", task.get("summary")),
+        ("blocker", task.get("blocker")),
+        ("next action", task.get("next_action")),
+        ("blocked by", blocked_by),
+        ("parallel", parallel),
+        ("activity", activity),
+        ("updated", _age(task.get("updated_at", ""), now)),
+    )
+    details = "".join(
+        f"<dt>{_escape(label)}</dt><dd>{_escape(value)}</dd>"
+        for label, value in values
+        if value
+    )
+    return (
+        '<details class="task"><summary>'
+        + " ".join(pieces)
+        + f"</summary><dl>{details}</dl></details>"
+    )
+
+
 def render_degraded(condition: str, detail: str) -> str:
     return _DEGRADED_TEMPLATE.format(
         condition=_escape(condition),
@@ -116,93 +240,37 @@ def render_panel(summary: dict, now: datetime) -> str:
     if not repositories:
         parts.append('<p class="empty">No repositories.</p>')
     else:
-        rows = []
+        tasks_by_repository: dict[str, list[dict]] = {}
+        for task in tasks:
+            tasks_by_repository.setdefault(str(task.get("repository") or ""), []).append(task)
         for repo in repositories:
             flags = []
             if repo.get("pinned"):
                 flags.append("pinned")
             if repo.get("observed"):
                 flags.append("observed")
-            rows.append(
-                "<tr>"
-                f"<td>{_escape(repo.get('name', ''))}</td>"
-                f"<td>{_escape(repo.get('path', ''))}</td>"
-                f"<td>{_escape(repo.get('active_tasks', 0))}</td>"
-                f"<td>{_escape(repo.get('completed_tasks', 0))}</td>"
-                f"<td>{_escape(', '.join(flags))}</td>"
-                "</tr>"
+            path = str(repo.get("path") or "")
+            counts = (
+                f"{repo.get('active_tasks', 0)} active · "
+                f"{repo.get('completed_tasks', 0)} completed"
             )
-        parts.append(
-            "<table><thead><tr>"
-            "<th>Name</th><th>Path</th><th>Active</th><th>Completed</th>"
-            "<th>Flags</th></tr></thead><tbody>"
-            + "".join(rows)
-            + "</tbody></table>"
-        )
-
-    parts.append("<h2>Tasks</h2>")
-    if not tasks:
-        parts.append('<p class="empty">No tasks.</p>')
-    else:
-        rows = []
-        grouped = sorted(
-            tasks,
-            key=lambda task: (
-                str((task.get("initiative") or {}).get("title") or "~ Independent tasks"),
-                str(task.get("short_id") or ""),
-            ),
-        )
-        current_group = object()
-        for task in grouped:
-            initiative = task.get("initiative") or {}
-            group = initiative.get("title") or "Independent tasks"
-            if group != current_group:
-                rows.append(
-                    '<tr class="initiative"><td colspan="8">'
-                    f"{_escape(group)}</td></tr>"
-                )
-                current_group = group
-            age = _age(task.get("updated_at", ""), now)
-            if task.get("stale"):
-                age = f"{age} · stale"
-            activities = task.get("current_activity") or []
-            activity = ", ".join(
-                f"{entry.get('capability', '')}: {entry.get('summary') or entry.get('state', '')}"
-                for entry in activities
+            meta = " · ".join(item for item in (counts, ", ".join(flags)) if item)
+            task_markup = "".join(
+                _task_markup(task, now) for task in tasks_by_repository.get(path, [])
             )
-            human_id = task.get("short_id") or ""
-            label = task.get("label", "")
-            display_label = f"{human_id} · {label}" if human_id else label
-            badges = []
-            for dependency in task.get("blocked_by") or []:
-                if not dependency.get("satisfied"):
-                    badges.append(f"blocked by {dependency.get('short_id', '')}")
-            parallel = [
-                str(item.get("short_id", "")) for item in task.get("parallel_with") or []
-            ]
-            if parallel:
-                badges.append("parallel with " + ", ".join(parallel))
-            badge_markup = "".join(
-                f'<span class="badge">{_escape(badge)}</span>' for badge in badges
+            if not task_markup:
+                task_markup = '<p class="empty">No tasks.</p>'
+            path_markup = (
+                f'<p class="repository-path">{_escape(path)}</p>' if path else ""
             )
-            rows.append(
-                "<tr>"
-                f"<td>{_escape(display_label)}</td>"
-                f"<td>{_escape(task.get('repository', ''))}</td>"
-                f"<td>{_escape(task.get('stage', ''))}</td>"
-                f"<td>{_escape(task.get('status', ''))}</td>"
-                f"<td>{badge_markup}</td>"
-                f"<td>{_escape(activity)}</td>"
-                f"<td>{_escape(task.get('summary', ''))}</td>"
-                f"<td>last snapshot {_escape(age)}</td>"
-                "</tr>"
+            parts.append(
+                '<section class="repository">'
+                '<div class="repository-header">'
+                f"<h3>{_escape(repo.get('name', ''))}</h3>"
+                f'<span class="repository-meta">{_escape(meta)}</span>'
+                "</div>"
+                f"{path_markup}"
+                f"{task_markup}</section>"
             )
-        parts.append(
-            "<table><thead><tr>"
-            "<th>Task</th><th>Repository</th><th>Stage</th><th>Status</th><th>Relations</th>"
-            "<th>Current activity</th><th>Last result</th><th>Age</th></tr></thead><tbody>"
-            + "".join(rows)
-            + "</tbody></table>"
-        )
 
     return _MAIN_TEMPLATE.format(body="\n".join(parts))

@@ -19,7 +19,7 @@ import subprocess
 from typing import Any
 import uuid
 
-from _common import SHA_PATTERN
+from _common import SHA_PATTERN, git_repository_identity
 
 
 SCHEMA_VERSION = 1
@@ -282,10 +282,14 @@ def create_task(
 ) -> dict[str, Any]:
     if not SHA_PATTERN.fullmatch(base_revision):
         raise CoordinationInvalid("base revision must be a full Git object name")
-    repository_root = _git_root(repository)
+    provided_repository_root = _git_root(repository)
     worktree_root = _git_root(worktree)
-    if not _same_repository(repository_root, worktree_root):
+    if not _same_repository(provided_repository_root, worktree_root):
         raise CoordinationInvalid("repository and task worktree do not share a Git repository")
+    repository_identity = git_repository_identity(provided_repository_root)
+    if repository_identity is None:
+        raise CoordinationInvalid("cannot resolve the primary repository worktree")
+    repository_root = repository_identity.repository_root
     branch = _branch(worktree_root)
     if not branch.startswith("orchestra/"):
         raise CoordinationInvalid("task worktree branch must use the orchestra/ namespace")
@@ -328,8 +332,7 @@ def create_task(
         ).fetchone()
         if by_id is not None:
             if (
-                by_id["repository"] != str(repository_root)
-                or by_id["worktree"] != str(worktree_root)
+                by_id["worktree"] != str(worktree_root)
                 or by_id["branch"] != branch
                 or by_id["base_revision"] != base_revision
             ):
@@ -356,10 +359,7 @@ def create_task(
                 raise CoordinationInvalid(
                     "worktree already belongs to a different task id"
                 )
-            if (
-                existing["repository"] != str(repository_root)
-                or existing["branch"] != branch
-            ):
+            if existing["branch"] != branch:
                 raise CoordinationInvalid(
                     "worktree already belongs to a different active task snapshot"
                 )

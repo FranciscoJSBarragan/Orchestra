@@ -36,12 +36,20 @@ struct TaskCapabilities: Codable, Equatable {
     }
 }
 
+struct TaskInitiative: Decodable, Equatable {
+    let id: String?
+    let title: String
+    let brief: String?
+}
+
 struct OrchestraTask: Decodable, Identifiable {
     let id: String
     var shortID: String?
     var title: String
     var brief: String?
     var repository: String?
+    var worktree: String?
+    var branch: String?
     var preparationStatus: String
     var disposition: String
     var stage: String?
@@ -51,10 +59,13 @@ struct OrchestraTask: Decodable, Identifiable {
     var nextAction: String?
     var updatedAt: String
     var stopRequestedAt: String?
+    var stale: Bool
+    var initiative: TaskInitiative?
     var capabilities: TaskCapabilities
 
     enum CodingKeys: String, CodingKey {
-        case id, brief, repository, disposition, stage, status, summary, blocker, capabilities
+        case id, brief, repository, worktree, branch, disposition, stage, status, summary
+        case blocker, stale, initiative, capabilities
         case shortID = "short_id"
         case title
         case label
@@ -72,6 +83,8 @@ struct OrchestraTask: Decodable, Identifiable {
             ?? values.decodeIfPresent(String.self, forKey: .label) ?? id
         brief = try values.decodeIfPresent(String.self, forKey: .brief)
         repository = try values.decodeIfPresent(String.self, forKey: .repository)
+        worktree = try values.decodeIfPresent(String.self, forKey: .worktree)
+        branch = try values.decodeIfPresent(String.self, forKey: .branch)
         preparationStatus = try values.decodeIfPresent(String.self, forKey: .preparationStatus)
             ?? values.decodeIfPresent(String.self, forKey: .status) ?? "legacy"
         disposition = try values.decodeIfPresent(String.self, forKey: .disposition) ?? "open"
@@ -82,11 +95,13 @@ struct OrchestraTask: Decodable, Identifiable {
         nextAction = try values.decodeIfPresent(String.self, forKey: .nextAction)
         updatedAt = try values.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
         stopRequestedAt = try values.decodeIfPresent(String.self, forKey: .stopRequestedAt)
+        stale = try values.decodeIfPresent(Bool.self, forKey: .stale) ?? false
+        initiative = try values.decodeIfPresent(TaskInitiative.self, forKey: .initiative)
         capabilities = try values.decodeIfPresent(TaskCapabilities.self, forKey: .capabilities)
             ?? TaskCapabilities()
     }
 
-    var displayID: String { shortID ?? "—" }
+    var displayID: String { shortID ?? "" }
     var effectiveStatus: String {
         if disposition == "trashed" { return "trashed" }
         if disposition == "archived" { return "archived" }
@@ -99,14 +114,31 @@ struct OrchestraTask: Decodable, Identifiable {
         guard let repository, !repository.isEmpty else { return String(localized: "No repository") }
         return URL(fileURLWithPath: repository).lastPathComponent
     }
+    var worktreeLabel: String? {
+        guard let worktree, !worktree.isEmpty else { return nil }
+        if let repository, !repository.isEmpty,
+           URL(fileURLWithPath: worktree).standardizedFileURL.path
+            == URL(fileURLWithPath: repository).standardizedFileURL.path {
+            return nil
+        }
+        let name = URL(fileURLWithPath: worktree).lastPathComponent
+        guard name.count > 16 else { return name }
+        let left = name.prefix(7)
+        let right = name.suffix(8)
+        return "\(left)…\(right)"
+    }
     var isActive: Bool { disposition == "open" && preparationStatus == "adopted" }
 
     mutating func mergeObservation(_ observed: OrchestraTask) {
+        worktree = observed.worktree
+        branch = observed.branch
         stage = observed.stage
         status = observed.status
         summary = observed.summary
         blocker = observed.blocker
         nextAction = observed.nextAction
+        stale = observed.stale
+        initiative = observed.initiative ?? initiative
         if observed.updatedAt > updatedAt { updatedAt = observed.updatedAt }
     }
 }
@@ -119,7 +151,40 @@ struct ControlResponse: Decodable {
     let task: OrchestraTask?
     let tasks: [OrchestraTask]?
 }
-struct HubResponse: Decodable { let status: String; let tasks: [OrchestraTask] }
+struct HubRepository: Decodable {
+    let path: String
+    let name: String
+}
+struct HubResponse: Decodable {
+    let status: String
+    let tasks: [OrchestraTask]
+    let repositories: [HubRepository]
+}
+
+struct RepositoryTaskGroup: Identifiable {
+    let path: String
+    let name: String
+    let tasks: [OrchestraTask]
+    var id: String { path }
+}
+
+func repositoryTaskGroups(
+    _ tasks: [OrchestraTask],
+    names: [String: String] = [:]
+) -> [RepositoryTaskGroup] {
+    Dictionary(grouping: tasks) { $0.repository ?? "" }.map { path, groupedTasks in
+        RepositoryTaskGroup(
+            path: path,
+            name: path.isEmpty
+                ? String(localized: "No repository")
+                : names[path] ?? groupedTasks.first?.repositoryName ?? path,
+            tasks: groupedTasks
+        )
+    }.sorted {
+        ($0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending)
+            || ($0.name.caseInsensitiveCompare($1.name) == .orderedSame && $0.path < $1.path)
+    }
+}
 
 enum TaskSection: String, CaseIterable, Identifiable {
     case active, drafts, ready, cancelled, completed, archived, trash

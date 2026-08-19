@@ -163,6 +163,17 @@ activity, a branch name, or an example in these documents. A direct Orchestra
 task has no short ID. Clients join a short ID to execution state only when the
 Coordinator task UUID exactly matches the Control UUID.
 
+For every newly resolved Git path, `repository` means the validated primary
+worktree of that local clone and `worktree` means the task's concrete checkout.
+The shared resolver records the current checkout, primary worktree, Git
+common-dir, and HEAD. Preparation, adoption, resume, decomposition, and
+Coordinator registration compare the common-dir when available, so another
+linked worktree from the same clone is valid and a different clone or Git
+repository is rejected. Draft paths that are not yet usable Git checkouts stay
+verbatim until preparation. Existing rows are never mass-rewritten, and legacy
+path identity remains a tolerated idempotency fallback. No remote, URL, or
+GitHub lookup participates in this identity.
+
 A card becomes `ready` only after focused repository research equivalent to
 `repository_context` and explicit specification confirmation. The helper binds
 private `repository-context.md`, `specification.md`, and a marker under
