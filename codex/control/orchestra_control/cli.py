@@ -105,9 +105,29 @@ def build_parser() -> JsonParser:
     create.add_argument("--repository")
     create.add_argument("--idempotency-key", default=None)
 
-    for name in ("get", "archive", "restore"):
+    for name in (
+        "get",
+        "archive",
+        "restore",
+        "trash",
+        "restore-trash",
+        "request-stop",
+        "withdraw-stop",
+        "acknowledge-stop",
+        "reopen",
+    ):
         command = commands.add_parser(name)
         command.add_argument("--task", required=True)
+
+    update = commands.add_parser("update")
+    update.add_argument("--task", required=True)
+    update.add_argument("--title", required=True)
+    update.add_argument("--brief", required=True)
+    update.add_argument("--repository", default=argparse.SUPPRESS)
+
+    purge = commands.add_parser("purge")
+    purge.add_argument("--task", required=True)
+    purge.add_argument("--confirm", required=True)
 
     decompose = commands.add_parser("decompose")
     decompose.add_argument("--task", required=True)
@@ -119,6 +139,7 @@ def build_parser() -> JsonParser:
 
     listing = commands.add_parser("list")
     listing.add_argument("--include-archived", action="store_true")
+    listing.add_argument("--include-trashed", action="store_true")
 
     note = commands.add_parser("note")
     note.add_argument("--task", required=True)
@@ -215,7 +236,19 @@ def main(argv: list[str] | None = None) -> int:
             )
             return emit("ok", **result)
         if args.command == "list":
-            return emit("ok", tasks=service.list_tasks(args.include_archived))
+            return emit(
+                "ok",
+                tasks=service.list_tasks(args.include_archived, args.include_trashed),
+            )
+        if args.command == "update":
+            values: dict[str, Any] = {
+                "task_ref": args.task,
+                "title": args.title,
+                "brief": args.brief,
+            }
+            if hasattr(args, "repository"):
+                values["repository"] = args.repository
+            return emit("ok", task=service.update_draft(**values))
         if args.command == "note":
             note = service.add_note(
                 task_id=args.task,
@@ -336,6 +369,33 @@ def main(argv: list[str] | None = None) -> int:
                 "ok",
                 task=service.set_archived(args.task, args.command == "archive"),
             )
+        if args.command in ("trash", "restore-trash"):
+            return emit(
+                "ok",
+                task=service.set_trashed(args.task, args.command == "trash"),
+            )
+        if args.command == "purge":
+            purged = service.purge_task(args.task, args.confirm)
+            warning = purged.pop("warning", None)
+            if warning is not None:
+                return emit("ok", task=purged, warning=warning)
+            return emit("ok", task=purged)
+        if args.command == "request-stop":
+            return emit("ok", task=service.request_stop(args.task))
+        if args.command == "withdraw-stop":
+            return emit("ok", task=service.withdraw_stop(args.task))
+        if args.command == "acknowledge-stop":
+            harness, thread_id = host_thread_from_env()
+            return emit(
+                "ok",
+                task=service.acknowledge_stop(
+                    args.task,
+                    thread_id,
+                    source_harness=harness,
+                ),
+            )
+        if args.command == "reopen":
+            return emit("ok", task=service.reopen_cancelled(args.task))
         raise ControlError("invalid", "unsupported command")
     except ControlError as error:
         return emit(error.status, reason=error.reason)

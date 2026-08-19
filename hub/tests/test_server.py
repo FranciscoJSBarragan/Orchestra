@@ -121,7 +121,7 @@ class ServerTests(unittest.TestCase):
         status, _headers, body = self._request("/v1/summary")
         self.assertEqual(status, 200)
         summary = json.loads(body.decode("utf-8"))
-        self.assertEqual(summary["material_fingerprint_version"], 2)
+        self.assertEqual(summary["material_fingerprint_version"], 3)
         self.assertTrue(
             any(
                 "blocker" in entry.get("reasons", [])

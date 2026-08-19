@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sqlite3
 import stat
 from typing import Any, Callable, Iterator
@@ -30,6 +31,7 @@ REVISION_PATTERN = re.compile(r"^[0-9a-f]{40,64}$", re.IGNORECASE)
 CARD_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 DEPENDENCY_CONDITIONS = {"completed", "delivered"}
 DELIVERY_KINDS = {"local-integration", "pr-merge"}
+REPOSITORY_UNSET = object()
 
 
 class ControlError(Exception):
@@ -162,6 +164,10 @@ class ControlService:
         try:
             with connection:
                 yield connection
+        except ControlError:
+            raise
+        except sqlite3.Error as error:
+            raise ControlError("unavailable", f"control database is unavailable: {error}") from error
         finally:
             connection.close()
 
@@ -179,7 +185,10 @@ class ControlService:
         return row
 
     def _documents_directory(self, short_id: str, *, create: bool) -> Path:
-        root = resolve_state_root(self.state_root)
+        try:
+            root = resolve_state_root(self.state_root)
+        except StorageError as error:
+            raise ControlError("unavailable", str(error)) from error
         tasks_root = root / "tasks"
         directory = tasks_root / normalize_short_id(short_id)
         if not create:
@@ -273,7 +282,80 @@ class ControlService:
 
     def _decorate(self, task: dict[str, Any]) -> dict[str, Any]:
         task["documents"] = self._document_payload(task) if task.get("short_id") else {}
+        status = task.get("preparation_status")
+        disposition = task.get("disposition")
+        has_relations = bool(task.get("initiative_id"))
+        task["capabilities"] = {
+            "edit": disposition == "open" and status == "draft" and not has_relations,
+            "note": disposition != "trashed",
+            "archive": disposition == "open" and status != "adopted",
+            "restore_archive": disposition == "archived",
+            "trash": disposition != "trashed" and status != "adopted",
+            "restore_trash": disposition == "trashed",
+            "request_stop": (
+                disposition == "open"
+                and status == "adopted"
+                and not task.get("stop_requested_at")
+            ),
+            "withdraw_stop": (
+                disposition == "open"
+                and status == "adopted"
+                and bool(task.get("stop_requested_at"))
+            ),
+            "reopen": disposition == "open" and status == "cancelled",
+            "purge": False,
+        }
         return task
+
+    def _purge_blockers(
+        self, connection: sqlite3.Connection, task: dict[str, Any]
+    ) -> list[str]:
+        blockers: list[str] = []
+        if task.get("disposition") != "trashed":
+            blockers.append("task is not in trash")
+        if task.get("preparation_status") != "draft":
+            blockers.append("only an unprepared draft can be purged")
+        evidence_fields = (
+            "prepared_revision",
+            "repository_context_digest",
+            "specification_digest",
+            "specification_confirmed_at",
+            "adopted_thread_id",
+            "adopted_harness",
+            "adopted_revision",
+            "adopted_at",
+            "previous_thread_id",
+            "previous_harness",
+            "initiative_id",
+            "completed_at",
+            "completed_revision",
+            "delivered_task_revision",
+            "delivery_revision",
+            "delivery_kind",
+            "delivered_at",
+            "stop_requested_at",
+            "cancelled_at",
+        )
+        if any(task.get(field) for field in evidence_fields):
+            blockers.append(
+                "task has preparation, ownership, initiative, completion, or delivery evidence"
+            )
+        relations = connection.execute(
+            """
+            SELECT
+                EXISTS(SELECT 1 FROM task_dependencies WHERE task_id = ? OR blocked_by_task_id = ?),
+                EXISTS(SELECT 1 FROM task_notes WHERE task_id = ?),
+                EXISTS(SELECT 1 FROM runs WHERE task_id = ?)
+            """,
+            (task["id"], task["id"], task["id"], task["id"]),
+        ).fetchone()
+        if relations[0]:
+            blockers.append("task has dependency evidence")
+        if relations[1]:
+            blockers.append("task has notes")
+        if relations[2]:
+            blockers.append("task has legacy run evidence")
+        return blockers
 
     def _initiative_payload(
         self, connection: sqlite3.Connection, initiative_id: str | None
@@ -442,6 +524,7 @@ class ControlService:
         )
         task["parallel_with"] = self._parallel_views(connection, task)
         task["dependency_blocked"] = any(not item["satisfied"] for item in task["blocked_by"])
+        task["capabilities"]["purge"] = not self._purge_blockers(connection, task)
         return task
 
     def _validate_decomposition_manifest(self, manifest: Any) -> dict[str, Any]:
@@ -824,13 +907,22 @@ class ControlService:
             result["legacy_latest_run"] = row_dict(latest) if latest is not None else None
             return self._decorate_relations(connection, result)
 
-    def list_tasks(self, include_archived: bool = False) -> list[dict[str, Any]]:
-        where = "" if include_archived else "WHERE disposition = 'open'"
+    def list_tasks(
+        self, include_archived: bool = False, include_trashed: bool = False
+    ) -> list[dict[str, Any]]:
+        dispositions = ["open"]
+        if include_archived:
+            dispositions.append("archived")
+        if include_trashed:
+            dispositions.append("trashed")
+        placeholders = ", ".join("?" for _ in dispositions)
         with self._connection() as connection:
             tasks = [
                 row_dict(row)
                 for row in connection.execute(
-                    f"SELECT * FROM tasks {where} ORDER BY rank, created_at, id"
+                    f"SELECT * FROM tasks WHERE disposition IN ({placeholders}) "
+                    "ORDER BY rank, created_at, id",
+                    dispositions,
                 ).fetchall()
             ]
             for task in tasks:
@@ -855,7 +947,10 @@ class ControlService:
         if not body or not idempotency_key.strip():
             raise ControlError("invalid", "note body and idempotency key are required")
         with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             task = self._task_row(connection, task_id)
+            if task["disposition"] == "trashed":
+                raise ControlError("invalid", "trashed task must be restored before adding notes")
             existing = connection.execute(
                 "SELECT * FROM task_notes WHERE idempotency_key = ?", (idempotency_key,)
             ).fetchone()
@@ -890,6 +985,43 @@ class ControlService:
                 connection.execute("SELECT * FROM task_notes WHERE id = ?", (note_id,)).fetchone()
             )
 
+    def update_draft(
+        self,
+        *,
+        task_ref: str,
+        title: str,
+        brief: str,
+        repository: str | None | object = REPOSITORY_UNSET,
+    ) -> dict[str, Any]:
+        title = compact(title, 160)
+        brief = bounded(brief, 8000)
+        if not title or not brief:
+            raise ControlError("invalid", "title and brief are required")
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["disposition"] != "open" or task["preparation_status"] != "draft":
+                raise ControlError("busy", "only an open draft task can be edited")
+            if task.get("initiative_id"):
+                raise ControlError("busy", "initiative cards have an immutable confirmed manifest")
+            if repository is REPOSITORY_UNSET:
+                canonical_repository = task.get("repository")
+            elif isinstance(repository, str) and repository.strip():
+                canonical_repository = str(Path(repository).expanduser().resolve())
+            else:
+                canonical_repository = None
+            connection.execute(
+                """
+                UPDATE tasks SET title = ?, brief = ?, repository = ?,
+                    brief_revision = brief_revision + 1, updated_at = ? WHERE id = ?
+                """,
+                (title, brief, canonical_repository, now(), task["id"]),
+            )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
     def prepare_task(
         self,
         *,
@@ -915,32 +1047,41 @@ class ControlService:
             else None
         )
         with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             task = row_dict(self._task_row(connection, task_ref))
             if task["disposition"] != "open":
                 raise ControlError("invalid", "archived task must be restored before preparation")
+            if task["preparation_status"] == "cancelled":
+                raise ControlError(
+                    "busy",
+                    "cancelled task must be reopened and resumed, not prepared again",
+                )
             if task["preparation_status"] in ("adopted", "completed"):
                 raise ControlError("busy", "adopted or completed task cannot be prepared again")
-        self._documents_directory(str(task["short_id"]), create=True)
-        documents = self._document_payload(task)
-        self._write_private(Path(documents["repository_context"]), context + "\n")
-        self._write_private(Path(documents["specification"]), spec + "\n")
-        timestamp = now()
-        context_digest = digest(context + "\n")
-        specification_digest = digest(spec + "\n")
-        marker = {
-            "id": task["id"],
-            "short_id": task["short_id"],
-            "prepared_revision": revision,
-            "repository_context_digest": context_digest,
-            "specification_digest": specification_digest,
-            "specification_confirmed_at": timestamp,
-        }
-        self._write_private(
-            Path(documents["marker"]),
-            json.dumps(marker, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
-        )
-        with self._connection() as connection:
-            task = row_dict(self._task_row(connection, task_ref))
+            if task.get("adopted_at") or task.get("previous_thread_id"):
+                raise ControlError(
+                    "busy",
+                    "task with execution history must resume its existing checkout and plan",
+                )
+            self._documents_directory(str(task["short_id"]), create=True)
+            documents = self._document_payload(task)
+            self._write_private(Path(documents["repository_context"]), context + "\n")
+            self._write_private(Path(documents["specification"]), spec + "\n")
+            timestamp = now()
+            context_digest = digest(context + "\n")
+            specification_digest = digest(spec + "\n")
+            marker = {
+                "id": task["id"],
+                "short_id": task["short_id"],
+                "prepared_revision": revision,
+                "repository_context_digest": context_digest,
+                "specification_digest": specification_digest,
+                "specification_confirmed_at": timestamp,
+            }
+            self._write_private(
+                Path(documents["marker"]),
+                json.dumps(marker, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            )
             connection.execute(
                 """
                 UPDATE tasks SET repository = ?, preparation_status = 'ready',
@@ -994,9 +1135,13 @@ class ControlService:
                 raise ControlError("invalid", "task is not ready; confirm its prepared specification first")
             if task["preparation_status"] == "completed":
                 raise ControlError("invalid", "completed task cannot be adopted")
+            if task["preparation_status"] == "cancelled":
+                raise ControlError("invalid", "cancelled task must be reopened before adoption")
+            if task["disposition"] != "open":
+                raise ControlError("invalid", "task must be restored before adoption")
             owner = owner_identity(task)
             previous_owner = owner_identity(task, "previous")
-            if not owner and previous_owner == identity:
+            if not owner and previous_owner == identity and not task.get("cancelled_at"):
                 raise ControlError(
                     "invalid",
                     "transferred task must be adopted from a different native host chat",
@@ -1016,6 +1161,7 @@ class ControlService:
                     UPDATE tasks SET preparation_status = 'adopted',
                         adopted_harness = ?, adopted_thread_id = ?,
                         adopted_revision = ?, adopted_at = ?,
+                        transfer_requested_at = NULL, cancelled_at = NULL,
                         updated_at = ? WHERE id = ?
                     """,
                     (identity[0], thread, revision, timestamp, timestamp, task["id"]),
@@ -1149,6 +1295,8 @@ class ControlService:
             task = row_dict(self._task_row(connection, task_ref))
             if task["preparation_status"] != "adopted" or owner_identity(task) != identity:
                 raise ControlError("invalid", "only the adopting chat can transfer an active task")
+            if task.get("stop_requested_at"):
+                raise ControlError("blocked", "task has a pending safe-stop request")
             connection.execute(
                 """
                 UPDATE tasks SET preparation_status = 'ready',
@@ -1190,6 +1338,8 @@ class ControlService:
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             task = row_dict(self._task_row(connection, task_ref))
+            if task.get("stop_requested_at"):
+                raise ControlError("blocked", "task has a pending safe-stop request")
             if task["preparation_status"] == "completed":
                 if owner_identity(task) != identity:
                     raise ControlError("busy", "task was completed by another chat")
@@ -1329,13 +1479,220 @@ class ControlService:
     def set_archived(self, task_ref: str, archived: bool) -> dict[str, Any]:
         disposition = "archived" if archived else "open"
         with self._connection() as connection:
-            task = self._task_row(connection, task_ref)
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["disposition"] == "trashed":
+                raise ControlError("invalid", "trashed task must be restored before archiving")
+            if not archived and task["disposition"] != "archived":
+                raise ControlError("invalid", "task is not archived")
             if archived and task["preparation_status"] == "adopted":
                 raise ControlError("busy", "adopted task must be finished or transferred first")
             connection.execute(
                 "UPDATE tasks SET disposition = ?, updated_at = ? WHERE id = ?",
                 (disposition, now(), task["id"]),
             )
-            return self._decorate(
-                row_dict(connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone())
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
             )
+            return self._decorate_relations(connection, updated)
+
+    def set_trashed(self, task_ref: str, trashed: bool) -> dict[str, Any]:
+        timestamp = now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if trashed:
+                if task["disposition"] == "trashed":
+                    return self._decorate_relations(connection, task)
+                if task["preparation_status"] == "adopted":
+                    raise ControlError("busy", "adopted task requires a safe stop before trashing")
+                connection.execute(
+                    """
+                    UPDATE tasks SET disposition_before_trash = disposition,
+                        disposition = 'trashed', trashed_at = ?, updated_at = ? WHERE id = ?
+                    """,
+                    (timestamp, timestamp, task["id"]),
+                )
+            else:
+                if task["disposition"] != "trashed":
+                    raise ControlError("invalid", "task is not in trash")
+                destination = task.get("disposition_before_trash") or "open"
+                connection.execute(
+                    """
+                    UPDATE tasks SET disposition = ?, disposition_before_trash = NULL,
+                        trashed_at = NULL, updated_at = ? WHERE id = ?
+                    """,
+                    (destination, timestamp, task["id"]),
+                )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
+    def request_stop(self, task_ref: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["disposition"] != "open" or task["preparation_status"] != "adopted":
+                raise ControlError("invalid", "only an open adopted task can request a safe stop")
+            if not task.get("stop_requested_at"):
+                timestamp = now()
+                connection.execute(
+                    "UPDATE tasks SET stop_requested_at = ?, updated_at = ? WHERE id = ?",
+                    (timestamp, timestamp, task["id"]),
+                )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
+    def withdraw_stop(self, task_ref: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["disposition"] != "open" or task["preparation_status"] != "adopted":
+                raise ControlError("invalid", "only an open adopted task has a stop request")
+            if not task.get("stop_requested_at"):
+                raise ControlError("invalid", "task has no pending stop request")
+            connection.execute(
+                "UPDATE tasks SET stop_requested_at = NULL, updated_at = ? WHERE id = ?",
+                (now(), task["id"]),
+            )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
+    def acknowledge_stop(
+        self,
+        task_ref: str,
+        thread_id: str | None,
+        source_harness: str | None = "codex",
+    ) -> dict[str, Any]:
+        thread = validate_thread_id(thread_id, source_harness)
+        identity = (str(source_harness), thread)
+        timestamp = now()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["preparation_status"] != "adopted" or owner_identity(task) != identity:
+                raise ControlError("invalid", "only the adopting chat can acknowledge a safe stop")
+            if not task.get("stop_requested_at"):
+                raise ControlError("invalid", "task has no pending stop request")
+            connection.execute(
+                """
+                UPDATE tasks SET preparation_status = 'cancelled',
+                    previous_harness = adopted_harness,
+                    previous_thread_id = adopted_thread_id,
+                    adopted_harness = NULL, adopted_thread_id = NULL,
+                    stop_requested_at = NULL, transfer_requested_at = NULL,
+                    cancelled_at = ?, updated_at = ? WHERE id = ?
+                """,
+                (timestamp, timestamp, task["id"]),
+            )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
+    def reopen_cancelled(self, task_ref: str) -> dict[str, Any]:
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if task["disposition"] != "open" or task["preparation_status"] != "cancelled":
+                raise ControlError("invalid", "only an open cancelled task can be reopened")
+            connection.execute(
+                "UPDATE tasks SET preparation_status = 'ready', updated_at = ? WHERE id = ?",
+                (now(), task["id"]),
+            )
+            updated = row_dict(
+                connection.execute("SELECT * FROM tasks WHERE id = ?", (task["id"],)).fetchone()
+            )
+            return self._decorate_relations(connection, updated)
+
+    def purge_task(self, task_ref: str, confirmation: str) -> dict[str, Any]:
+        quarantined: tuple[Path, Path] | None = None
+        try:
+            root = resolve_state_root(self.state_root)
+            connection = connect(self.state_root)
+        except StorageError as error:
+            raise ControlError("unavailable", str(error)) from error
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            task = row_dict(self._task_row(connection, task_ref))
+            if confirmation.strip().upper() != str(task.get("short_id") or "").upper():
+                raise ControlError("invalid", "purge confirmation must match the short task ID")
+            blockers = self._purge_blockers(connection, task)
+            if blockers:
+                raise ControlError("busy", "; ".join(blockers))
+            documents = self._documents_directory(str(task["short_id"]), create=False)
+            if documents.exists():
+                try:
+                    mode = os.lstat(documents).st_mode
+                except OSError as error:
+                    raise ControlError(
+                        "unavailable", f"cannot inspect task documents: {error}"
+                    ) from error
+                if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+                    raise ControlError(
+                        "unavailable", f"unsafe task documents directory: {documents}"
+                    )
+                quarantine_root = root / ".purge-quarantine"
+                try:
+                    quarantine_root.mkdir(mode=0o700, exist_ok=True)
+                    quarantine_mode = os.lstat(quarantine_root).st_mode
+                    if stat.S_ISLNK(quarantine_mode) or not stat.S_ISDIR(quarantine_mode):
+                        raise OSError("quarantine root is not a private directory")
+                    if stat.S_IMODE(quarantine_mode) != 0o700:
+                        os.chmod(quarantine_root, 0o700)
+                    quarantine = quarantine_root / uuid.uuid4().hex
+                    os.replace(documents, quarantine)
+                except OSError as error:
+                    raise ControlError(
+                        "unavailable", f"cannot quarantine task documents: {error}"
+                    ) from error
+                quarantined = (quarantine, documents)
+            connection.execute("DELETE FROM tasks WHERE id = ?", (task["id"],))
+            violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+            if violations:
+                raise ControlError("unavailable", "purge would leave invalid foreign keys")
+            connection.commit()
+        except ControlError as error:
+            connection.rollback()
+            if quarantined is not None and quarantined[0].exists():
+                try:
+                    os.replace(quarantined[0], quarantined[1])
+                except OSError as restore_error:
+                    raise ControlError(
+                        "unavailable",
+                        f"{error.reason}; task documents could not be restored: {restore_error}",
+                    ) from restore_error
+            raise
+        except (OSError, sqlite3.Error) as error:
+            connection.rollback()
+            if quarantined is not None and quarantined[0].exists():
+                try:
+                    os.replace(quarantined[0], quarantined[1])
+                except OSError as restore_error:
+                    raise ControlError(
+                        "unavailable",
+                        f"purge failed and task documents could not be restored: {restore_error}",
+                    ) from error
+            raise ControlError("unavailable", f"cannot purge task: {error}") from error
+        finally:
+            connection.close()
+        warning: str | None = None
+        if quarantined is not None:
+            try:
+                shutil.rmtree(quarantined[0])
+            except OSError as error:
+                warning = f"task was purged, but quarantined documents remain: {error}"
+            else:
+                try:
+                    quarantined[0].parent.rmdir()
+                except OSError:
+                    pass
+        result = {"id": task["id"], "short_id": task["short_id"], "purged": True}
+        if warning is not None:
+            result["warning"] = warning
+        return result

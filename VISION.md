@@ -127,6 +127,15 @@ release the card, an explicit user resume in a different native host chat
 reclaims ownership and resumes the same worktree and plan. Archiving never
 deletes Git, documents, plans, worktrees, or chat history.
 
+Task Control also owns recoverable trash and cooperative safe stops. A stop
+request is durable intent, never an interrupt: the owning root observes it at
+stable boundaries, closes only its owned resources, blocks the existing plan,
+and acknowledges the stop with its host-namespaced conversation identity. The
+cancelled card keeps its checkout and plan; reopening lets the same prior owner
+adopt it again and resume. Permanent purge is limited to a confirmed trashed
+draft with no preparation, ownership, notes, relationships, runs, completion,
+or delivery evidence, and its human ID is never reused.
+
 One card remains the normal unit and Orchestra's phases absorb ordinary
 complexity. A confirmed minimal initiative exists only for real independent
 execution, acceptance, repository, or delivery boundaries. Its cards keep

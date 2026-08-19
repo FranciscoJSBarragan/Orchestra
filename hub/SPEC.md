@@ -1,5 +1,9 @@
 # Orchestra Hub — MVP Specification
 
+> The Hub HTTP server remains a read-only observer. The local **Orchestra
+> Tasks** macOS app mutates cards only by invoking Task Control directly; no
+> write endpoint is added here. See `SPEC-CLIENTS.md`.
+
 Status: frozen. This document records the converged design. Implementation must
 not reopen decisions marked as frozen; deviations require explicit user
 approval first.
@@ -30,7 +34,8 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 - **Event table / ledger** — only if snapshot polling demonstrably misses
   needed transitions in real use.
 - **Hub-owned schema migrations or workflow tables** — never; the Hub remains
-  a pure consumer of Control schemas v3/v4/v5/v6 and Coordinator schema v1.
+  a pure consumer of Control schemas v3 through v7 (including both v5 column
+  shapes) and Coordinator schema v1.
 - **Controlled `status`/`stage` vocabulary** — only after real use shows the
   conservative attention feed is insufficient; it would be a workflow-docs
   contract, not SQL.
@@ -65,7 +70,7 @@ panel / menu bar / Hermes / laptop ──GET over loopback or Tailscale─┘
 
   ```python
   SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
-  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5, 6})
+  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5, 6, 7})
   ```
 
 - At runtime the Hub compares `PRAGMA user_version` against that set. It must
@@ -114,8 +119,10 @@ Hub serves the available source and degrades only when neither is available.
 ## 6. Material fingerprint contract
 
 - Computed **only by the Hub**. Clients store and compare opaque strings.
-- `material_fingerprint_version` is `2` and is returned alongside every
-  payload containing fingerprints. If the field set or canonicalization ever
+- `material_fingerprint_version` is `3` and is returned alongside every
+  payload containing fingerprints. Version 3 includes `stop_requested_at` so a
+  pending cooperative stop is observable without duplicating Task Control
+  action rules. If the field set or canonicalization ever
   changes, the version bumps and clients re-baseline silently instead of
   emitting a false "everything changed" storm.
 - Input: canonical JSON (sorted keys, `,`/`:` separators, UTF-8, non-ASCII
@@ -178,7 +185,7 @@ Degraded variant (still `200`; health reports, it does not fail):
 ```json
 {
   "status": "ok",
-  "material_fingerprint_version": 2,
+  "material_fingerprint_version": 3,
   "repositories": [
     {"path": "/abs/path", "name": "Repo", "pinned": false, "observed": true,
      "active_tasks": 2, "completed_tasks": 5}
@@ -219,7 +226,7 @@ Degraded variant (still `200`; health reports, it does not fail):
 ### `GET /v1/tasks[?status=<exact>]`
 
 ```json
-{"status": "ok", "material_fingerprint_version": 2, "tasks": [TaskSummary, …]}
+{"status": "ok", "material_fingerprint_version": 3, "tasks": [TaskSummary, …]}
 ```
 
 Optional exact-match `status` filter, mirroring `coordination.py task list`.
@@ -227,7 +234,7 @@ Optional exact-match `status` filter, mirroring `coordination.py task list`.
 ### `GET /v1/tasks/{id}`
 
 ```json
-{"status": "ok", "material_fingerprint_version": 2,
+{"status": "ok", "material_fingerprint_version": 3,
  "task": TaskSummary,
  "activities": [{"agent_id": "…", "capability": "…", "state": "…",
                  "summary": "…", "updated_at": "…"}],

@@ -11,7 +11,8 @@ from orchestra_hub.db import SUPPORTED_CONTROL_SCHEMA_VERSIONS, SUPPORTED_SCHEMA
 # renames any of them must fail here even when SCHEMA_VERSION is unchanged.
 REQUIRED_SHAPE = {
     "tasks": set(TASK_FIELDS) - {
-        "short_id", "initiative", "blocked_by", "parallel_with"
+        "short_id", "initiative", "blocked_by", "parallel_with",
+        "preparation_status", "disposition", "stop_requested_at",
     },
     "activities": set(ACTIVITY_FIELDS) | {"task_id"},
 }

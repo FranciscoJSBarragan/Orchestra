@@ -94,13 +94,17 @@ def insert_prepared_task(database: Path, **overrides) -> dict:
         "decomposition_reason": None, "repository_common_dir": None,
         "completed_revision": None, "delivered_task_revision": None,
         "delivery_revision": None, "delivery_kind": None, "delivered_at": None,
+        "stop_requested_at": None, "cancelled_at": None, "trashed_at": None,
+        "disposition_before_trash": None,
         "created_at": "2026-08-02T18:00:00Z",
         "updated_at": "2026-08-02T18:00:00Z",
     }
     row.update(overrides)
     connection = sqlite3.connect(database)
     try:
-        version = connection.execute("PRAGMA user_version").fetchone()[0]
+        table_columns = {
+            item[1] for item in connection.execute("PRAGMA table_info(tasks)").fetchall()
+        }
         columns = [
             "id", "short_id", "title", "brief", "brief_revision", "source_harness",
             "source_conversation", "source_message", "repository", "rank",
@@ -110,7 +114,7 @@ def insert_prepared_task(database: Path, **overrides) -> dict:
             "adopted_at", "previous_thread_id", "transfer_generation",
             "transfer_requested_at", "completed_at",
         ]
-        if version >= 4:
+        if "initiative_id" in table_columns:
             columns.extend(
                 [
                     "initiative_id", "decomposition_reason", "repository_common_dir",
@@ -118,8 +122,15 @@ def insert_prepared_task(database: Path, **overrides) -> dict:
                     "delivery_kind", "delivered_at",
                 ]
             )
-        if version >= 5:
+        if "adopted_harness" in table_columns:
             columns.extend(["adopted_harness", "previous_harness"])
+        if "stop_requested_at" in table_columns:
+            columns.extend(
+                [
+                    "stop_requested_at", "cancelled_at", "trashed_at",
+                    "disposition_before_trash",
+                ]
+            )
         columns.extend(["created_at", "updated_at"])
         connection.execute(
             f"INSERT INTO tasks ({', '.join(columns)}) VALUES "
@@ -141,6 +152,8 @@ def task_row(**overrides) -> dict:
         "stage": "implementation", "status": "active", "summary": "Working",
         "blocker": "", "next_action": "Continue",
         "initiative": None, "blocked_by": [], "parallel_with": [],
+        "preparation_status": "adopted", "disposition": "open",
+        "stop_requested_at": None,
         "created_at": "2026-08-02T18:00:00Z",
         "updated_at": "2026-08-02T18:00:00Z",
     }

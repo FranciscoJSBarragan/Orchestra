@@ -10,14 +10,17 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTROL_ROOT = ROOT / "codex/control"
 sys.path.insert(0, str(CONTROL_ROOT))
 
-from orchestra_control.db import SCHEMA_VERSION  # noqa: E402
+from orchestra_control.db import SCHEMA_VERSION, StorageError  # noqa: E402
 from orchestra_control.service import (  # noqa: E402
     ControlError,
     ControlService,
@@ -201,6 +204,66 @@ class TaskControlTests(unittest.TestCase):
         marker = json.loads(Path(ready["documents"]["marker"]).read_text())
         self.assertEqual(marker["id"], task["id"])
         self.assertEqual(marker["short_id"], "A1")
+
+    def test_state_check_and_mutation_are_serialized_against_adoption(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        archive_read = threading.Event()
+        release_archive = threading.Event()
+        adoption_started = threading.Event()
+        adoption_finished = threading.Event()
+        outcomes: dict[str, object] = {}
+        original_task_row = self.service._task_row
+
+        def gated_task_row(connection: sqlite3.Connection, task_ref: str) -> sqlite3.Row:
+            row = original_task_row(connection, task_ref)
+            if threading.current_thread().name == "archive-worker":
+                archive_read.set()
+                if not release_archive.wait(5):
+                    raise RuntimeError("archive test gate timed out")
+            return row
+
+        self.service._task_row = gated_task_row  # type: ignore[method-assign]
+
+        def archive() -> None:
+            try:
+                outcomes["archive"] = self.service.set_archived("A1", True)
+            except Exception as error:  # pragma: no cover - asserted below
+                outcomes["archive_error"] = error
+
+        def adopt() -> None:
+            adoption_started.set()
+            try:
+                outcomes["adopt"] = ControlService(self.state_root).adopt_task(
+                    task_ref="A1",
+                    thread_id=THREAD_ONE,
+                    repository=str(self.repository),
+                    current_revision=self.revision,
+                    repository_common_dir=self.common_dir,
+                )
+            except Exception as error:
+                outcomes["adopt_error"] = error
+            finally:
+                adoption_finished.set()
+
+        archive_thread = threading.Thread(target=archive, name="archive-worker")
+        adopt_thread = threading.Thread(target=adopt, name="adopt-worker")
+        archive_thread.start()
+        self.assertTrue(archive_read.wait(5))
+        adopt_thread.start()
+        self.assertTrue(adoption_started.wait(5))
+        time.sleep(0.1)
+        self.assertFalse(adoption_finished.is_set())
+        release_archive.set()
+        archive_thread.join(5)
+        adopt_thread.join(5)
+        self.assertFalse(archive_thread.is_alive())
+        self.assertFalse(adopt_thread.is_alive())
+        self.assertNotIn("archive_error", outcomes)
+        self.assertIsInstance(outcomes.get("adopt_error"), ControlError)
+        current = self.service.get_task("A1")
+        self.assertEqual(current["disposition"], "archived")
+        self.assertEqual(current["preparation_status"], "ready")
 
     def test_adoption_requires_native_thread_and_reports_context_delta(self) -> None:
         self.create_task()
@@ -560,6 +623,208 @@ class TaskControlTests(unittest.TestCase):
         self.assertEqual(completed["preparation_status"], "completed")
         self.assertEqual(self.service.set_archived("a1", True)["disposition"], "archived")
 
+    def test_draft_update_preserves_or_clears_repository_explicitly(self) -> None:
+        self.create_task()
+        preserved = self.service.update_draft(
+            task_ref="A1",
+            title="Edited task",
+            brief="A clearer bounded brief.",
+        )
+        self.assertEqual(preserved["repository"], str(self.repository.resolve()))
+        self.assertEqual(preserved["brief_revision"], 2)
+        result, payload = self.cli(
+            "task", "update", "--task", "A1", "--title", "CLI edit",
+            "--brief", "Keep the repository because the flag is omitted.",
+        )
+        self.assertEqual(result.returncode, 0, payload)
+        self.assertEqual(payload["task"]["repository"], str(self.repository.resolve()))
+        result, payload = self.cli(
+            "task", "update", "--task", "A1", "--title", "No repository",
+            "--brief", "Clear the repository explicitly.", "--repository", "",
+        )
+        self.assertEqual(result.returncode, 0, payload)
+        self.assertIsNone(payload["task"]["repository"])
+
+    def test_archive_trash_restore_and_strict_purge(self) -> None:
+        first = self.create_task()
+        archived = self.service.set_archived("A1", True)
+        self.assertEqual(archived["disposition"], "archived")
+        trashed = self.service.set_trashed("A1", True)
+        self.assertEqual(trashed["disposition_before_trash"], "archived")
+        self.assertNotIn("A1", [item["short_id"] for item in self.service.list_tasks(True)])
+        self.assertIn(
+            "A1",
+            [item["short_id"] for item in self.service.list_tasks(True, True)],
+        )
+        restored = self.service.set_trashed("A1", False)
+        self.assertEqual(restored["disposition"], "archived")
+        self.service.set_archived("A1", False)
+        self.service.set_trashed("A1", True)
+        with self.assertRaises(ControlError) as mismatch:
+            self.service.purge_task("A1", "A2")
+        self.assertEqual(mismatch.exception.status, "invalid")
+        purged = self.service.purge_task("A1", "a1")
+        self.assertTrue(purged["purged"])
+        with self.assertRaises(ControlError):
+            self.service.get_task("A1")
+        second = self.create_task("capture-2")
+        self.assertNotEqual(second["short_id"], first["short_id"])
+
+    def test_purge_reports_quarantined_document_cleanup_failure(self) -> None:
+        self.create_task()
+        documents = self.state_root / "tasks" / "A1"
+        documents.mkdir(parents=True, mode=0o700)
+        (documents / "stale.txt").write_text("stale private data\n", encoding="utf-8")
+        self.service.set_trashed("A1", True)
+        with mock.patch(
+            "orchestra_control.service.shutil.rmtree",
+            side_effect=OSError("simulated cleanup failure"),
+        ):
+            purged = self.service.purge_task("A1", "A1")
+        self.assertTrue(purged["purged"])
+        self.assertIn("quarantined documents remain", purged["warning"])
+        quarantine = self.state_root / ".purge-quarantine"
+        self.assertEqual(len(list(quarantine.iterdir())), 1)
+        with self.assertRaises(ControlError):
+            self.service.get_task("A1")
+
+    def test_purge_storage_failure_stays_inside_json_contract(self) -> None:
+        unsafe_root = self.root / "unsafe-state"
+        unsafe_root.write_text("not a directory\n", encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(HELPER),
+                "--state-root",
+                str(unsafe_root),
+                "task",
+                "purge",
+                "--task",
+                "A1",
+                "--confirm",
+                "A1",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stderr, "")
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "unavailable")
+
+    def test_purge_translates_storage_failure_during_document_resolution(self) -> None:
+        self.create_task()
+        self.service.set_trashed("A1", True)
+        with mock.patch(
+            "orchestra_control.service.resolve_state_root",
+            side_effect=[self.state_root, StorageError("simulated state-root race")],
+        ):
+            with self.assertRaises(ControlError) as unavailable:
+                self.service.purge_task("A1", "A1")
+        self.assertEqual(unavailable.exception.status, "unavailable")
+        self.assertIn("simulated state-root race", unavailable.exception.reason)
+        self.assertEqual(self.service.get_task("A1")["disposition"], "trashed")
+
+    def test_purge_rejects_evidence(self) -> None:
+        self.create_task()
+        self.service.add_note(
+            task_id="A1",
+            body="Keep this evidence.",
+            source_harness="test",
+            source_reference="",
+            idempotency_key="note-keep",
+        )
+        self.service.set_trashed("A1", True)
+        with self.assertRaises(ControlError) as evidence:
+            self.service.purge_task("A1", "A1")
+        self.assertEqual(evidence.exception.status, "busy")
+        self.assertIn("notes", evidence.exception.reason)
+
+    def test_safe_stop_matrix_is_owner_namespaced_and_reopen_resumes(self) -> None:
+        identities = (
+            ("codex", THREAD_ONE),
+            ("cursor", "cursor-conversation-abc"),
+            ("grok", THREAD_TWO),
+        )
+        for index, (harness, thread) in enumerate(identities, start=1):
+            task = self.create_task(f"safe-stop-{index}")
+            short_id = str(task["short_id"])
+            self.prepare(short_id)
+            self.service.adopt_task(
+                task_ref=short_id,
+                thread_id=thread,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness=harness,
+            )
+            requested = self.service.request_stop(short_id)
+            self.assertTrue(requested["stop_requested_at"])
+            with self.assertRaises(ControlError) as transfer:
+                self.service.transfer_task(
+                    task_ref=short_id,
+                    thread_id=thread,
+                    stable_checkpoint=True,
+                    source_harness=harness,
+                )
+            self.assertEqual(transfer.exception.status, "blocked")
+            with self.assertRaises(ControlError) as finish:
+                self.service.finish_task(
+                    task_ref=short_id,
+                    thread_id=thread,
+                    repository=str(self.repository),
+                    terminal_revision=self.revision,
+                    repository_common_dir=self.common_dir,
+                    source_harness=harness,
+                )
+            self.assertEqual(finish.exception.status, "blocked")
+            cancelled = self.service.acknowledge_stop(
+                short_id,
+                thread,
+                source_harness=harness,
+            )
+            self.assertEqual(cancelled["preparation_status"], "cancelled")
+            self.assertEqual(cancelled["previous_harness"], harness)
+            reopened = self.service.reopen_cancelled(short_id)
+            self.assertEqual(reopened["preparation_status"], "ready")
+            resumed = self.service.adopt_task(
+                task_ref=short_id,
+                thread_id=thread,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness=harness,
+            )
+            self.assertTrue(resumed["resume_existing_checkout"])
+            self.assertEqual(resumed["adopted_harness"], harness)
+
+    def test_cancelled_or_reopened_execution_history_cannot_be_reprepared(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.service.request_stop("A1")
+        self.service.acknowledge_stop("A1", THREAD_ONE)
+        with self.assertRaises(ControlError) as cancelled:
+            self.prepare("A1")
+        self.assertIn("reopened and resumed", cancelled.exception.reason)
+        self.service.reopen_cancelled("A1")
+        with self.assertRaises(ControlError) as reopened:
+            self.prepare("A1")
+        self.assertIn("existing checkout and plan", reopened.exception.reason)
+
+    def test_cli_sensitive_operations_are_not_exposed_by_mcp(self) -> None:
+        for forbidden in (
+            "task_update", "task_trash", "task_restore_trash", "task_purge",
+            "task_request_stop", "task_withdraw_stop", "task_acknowledge_stop",
+            "task_reopen", "task_adopt", "task_transfer", "task_reclaim",
+        ):
+            self.assertNotIn(forbidden, TOOLS)
+
     def manifest(self, condition: str | None = None) -> dict:
         dependencies = []
         if condition:
@@ -900,6 +1165,10 @@ class TaskControlTests(unittest.TestCase):
             connection.execute("DROP TABLE task_dependencies")
             connection.execute("DROP INDEX tasks_initiative")
             for column in (
+                "disposition_before_trash",
+                "trashed_at",
+                "cancelled_at",
+                "stop_requested_at",
                 "previous_harness",
                 "adopted_harness",
                 "delivered_at",
@@ -948,6 +1217,13 @@ class TaskControlTests(unittest.TestCase):
         database = self.state_root / "control.sqlite3"
         connection = sqlite3.connect(database)
         try:
+            for column in (
+                "disposition_before_trash",
+                "trashed_at",
+                "cancelled_at",
+                "stop_requested_at",
+            ):
+                connection.execute(f"ALTER TABLE tasks DROP COLUMN {column}")
             connection.execute("ALTER TABLE tasks DROP COLUMN previous_harness")
             connection.execute("ALTER TABLE tasks DROP COLUMN adopted_harness")
             connection.execute("PRAGMA user_version = 4")
@@ -1095,7 +1371,13 @@ class TaskControlTests(unittest.TestCase):
                 )
                 """
             )
-            connection.execute("INSERT INTO tasks SELECT * FROM tasks_old")
+            columns = [
+                row[1] for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
+            ]
+            quoted = ", ".join(f'"{column}"' for column in columns)
+            connection.execute(
+                f"INSERT INTO tasks ({quoted}) SELECT {quoted} FROM tasks_old"
+            )
             connection.execute("DROP TABLE tasks_old")
             connection.execute("PRAGMA user_version = 5")
             connection.commit()
@@ -1121,6 +1403,107 @@ class TaskControlTests(unittest.TestCase):
         finally:
             connection.close()
         self.assertIn("'grok'", sql)
+
+    def test_schema_v5_o1_migration_preserves_lifecycle_and_backfills_owner(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+        )
+        self.service.request_stop("A1")
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute("ALTER TABLE tasks DROP COLUMN previous_harness")
+            connection.execute("ALTER TABLE tasks DROP COLUMN adopted_harness")
+            connection.execute("PRAGMA user_version = 5")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["adopted_harness"], "codex")
+        self.assertEqual(migrated["adopted_thread_id"], THREAD_ONE)
+        self.assertTrue(migrated["stop_requested_at"])
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(connection.execute("PRAGMA foreign_key_check").fetchall(), [])
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
+        finally:
+            connection.close()
+
+    def test_schema_v6_migration_preserves_grok_owner(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="grok",
+        )
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            for column in (
+                "disposition_before_trash",
+                "trashed_at",
+                "cancelled_at",
+                "stop_requested_at",
+            ):
+                connection.execute(f"ALTER TABLE tasks DROP COLUMN {column}")
+            connection.execute("PRAGMA user_version = 6")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["adopted_harness"], "grok")
+        self.assertIsNone(migrated["stop_requested_at"])
+
+    def test_unknown_v5_shape_rolls_back_without_changes(self) -> None:
+        self.create_task()
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            for column in (
+                "disposition_before_trash",
+                "trashed_at",
+                "cancelled_at",
+                "stop_requested_at",
+            ):
+                connection.execute(f"ALTER TABLE tasks DROP COLUMN {column}")
+            connection.execute("ALTER TABLE tasks ADD COLUMN unknown_future_field TEXT")
+            connection.execute("PRAGMA user_version = 5")
+            connection.commit()
+            before_sql = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+            ).fetchone()[0]
+            before_row = connection.execute(
+                "SELECT id, short_id, title FROM tasks"
+            ).fetchall()
+        finally:
+            connection.close()
+        with self.assertRaises(ControlError) as error:
+            self.service.get_task("A1")
+        self.assertIn("unsupported control schema v5 shape", error.exception.reason)
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 5)
+            self.assertEqual(
+                connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+                ).fetchone()[0],
+                before_sql,
+            )
+            self.assertEqual(
+                connection.execute("SELECT id, short_id, title FROM tasks").fetchall(),
+                before_row,
+            )
+        finally:
+            connection.close()
 
 
 if __name__ == "__main__":

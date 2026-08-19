@@ -215,17 +215,52 @@ helper pulls automatically. Opening a PR or choosing hold never satisfies
 delivery.
 
 The prepared specification is an already satisfied final-specification
-checkpoint. A checkout at the prepared revision proceeds to formal planning
+checkpoint. It may be replaced only before the card has any execution-owner
+history. After first adoption, transfer and safe-stop reopening preserve and
+resume the existing checkout and plan rather than rewriting the prepared
+documents. A checkout at the prepared revision proceeds to formal planning
 after the ordinary tier choice. A changed revision requests only a focused
 context delta; only a material specification change requires confirmation
 again.
 
 The public stdio MCP exposes capture, query, notes, preparation, confirmed
 decomposition, archive, and restore only. It cannot adopt, transfer, reclaim,
-finish, record delivery, start an execution host, or mutate a
-checkout. Hub and menu-bar surfaces remain GET-only. Git, the approved
+finish, record delivery, start an execution host, or mutate a checkout. The Hub
+remains GET-only. The native macOS app invokes the local JSON CLI for its
+bounded card actions and never mutates through Hub HTTP. Git, the approved
 `plan.md`, the native conversation, and explicit user authority remain
 authoritative for formal work.
+
+### Cooperative safe stop and card lifecycle
+
+`task request-stop` records a cooperative request and never interrupts a tool,
+agent, process, or mutable implementation owner. For every adopted card, the
+root queries current Task Control state before a new capability dispatch, a
+phase commit, terminal completion, PR or local delivery, and at every stable
+handoff. A pending request prevents new work at those boundaries. `task
+transfer` and `task finish` reject it; `task reclaim --authorized` preserves it.
+
+After the current owner reaches a stable handoff, it closes its exact owned
+resources using the normal cleanup contract, writes the existing approved plan
+as `blocked` with the safe stop as blocker and resume as next action, then runs
+`task acknowledge-stop` with the adapter-provided owner identity. Codex uses
+`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, and Grok uses
+`GROK_SESSION_ID`. Acknowledgement changes the card to `cancelled`, releases
+current ownership to the matching previous owner fields, and preserves the
+checkout and plan. `task reopen` returns it to `ready`; the same previous owner
+may adopt it and must resume the exact checkout and blocked plan instead of
+creating a second task. A withdrawn request resumes normal boundary checks.
+
+Archive remains metadata-only. Trash is recoverable and hidden from Hub
+results. Permanent purge requires the caller to type the exact short ID and is
+allowed only for a trashed, unprepared draft with no owner, notes,
+dependencies, initiative, legacy runs, completion, or delivery evidence. Task
+Control quarantines only that card's exact documents directory inside the
+database transaction, restores it on rollback, and never reuses the consumed
+short ID. If post-commit removal of that quarantine fails, the purge result
+reports the residual private documents explicitly and native clients surface
+the warning instead of claiming a clean deletion. The stdio MCP exposes none
+of purge, owner mutation, or safe-stop commands.
 
 ## Tier flows and models
 

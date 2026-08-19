@@ -26,7 +26,7 @@ IMMUTABLE_OR_TIMESTAMP_FIELDS = (
 
 class MaterialFingerprintTests(unittest.TestCase):
     def test_version_and_format(self) -> None:
-        self.assertEqual(MATERIAL_FINGERPRINT_VERSION, 2)
+        self.assertEqual(MATERIAL_FINGERPRINT_VERSION, 3)
         fingerprint = material_fingerprint(support.task_row())
         self.assertRegex(fingerprint, FINGERPRINT_RE)
 
@@ -46,7 +46,7 @@ class MaterialFingerprintTests(unittest.TestCase):
         )
 
     def test_material_fields_include_task_relations(self) -> None:
-        self.assertEqual(len(MATERIAL_FIELDS), 12)
+        self.assertEqual(len(MATERIAL_FIELDS), 13)
         self.assertEqual(
             set(MATERIAL_FIELDS),
             {
@@ -62,6 +62,7 @@ class MaterialFingerprintTests(unittest.TestCase):
                 "initiative",
                 "blocked_by",
                 "parallel_with",
+                "stop_requested_at",
             },
         )
 

@@ -17,10 +17,11 @@ TASK_FIELDS = (
     "id", "short_id", "label", "repository", "worktree", "branch",
     "base_revision", "head_revision", "tier", "stage", "status", "summary",
     "blocker", "next_action", "initiative", "blocked_by", "parallel_with",
+    "preparation_status", "disposition", "stop_requested_at",
     "created_at", "updated_at",
 )
 ACTIVITY_FIELDS = ("agent_id", "capability", "state", "summary", "updated_at")
-INACTIVE_STATUSES = frozenset({"archived", "completed"})
+INACTIVE_STATUSES = frozenset({"archived", "cancelled", "completed"})
 
 __all__ = [
     "ACTIVITY_FIELDS",
@@ -66,6 +67,8 @@ def attention_entries(tasks: list[dict]) -> list[dict]:
         reasons: list[str] = []
         if task["blocker"]:
             reasons.append("blocker")
+        if task["stop_requested_at"]:
+            reasons.append("stop-requested")
         if task["stale"]:
             reasons.append("stale")
         if not reasons:
@@ -130,16 +133,24 @@ def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
     if connection is None:
         return []
     version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    task_columns = {
+        str(item[1]) for item in connection.execute("PRAGMA table_info(tasks)").fetchall()
+    }
+    stop_projection = (
+        "t.stop_requested_at" if "stop_requested_at" in task_columns
+        else "NULL AS stop_requested_at"
+    )
     if version >= 4:
         rows = connection.execute(
-            """
+            f"""
             SELECT t.id, t.short_id, t.title, t.repository, t.preparation_status,
                    t.disposition, t.prepared_revision, t.adopted_revision,
                    t.initiative_id, i.title AS initiative_title, i.brief AS initiative_brief,
+                   {stop_projection},
                    t.created_at, t.updated_at
             FROM tasks AS t
             LEFT JOIN task_initiatives AS i ON i.id = t.initiative_id
-            WHERE t.short_id IS NOT NULL
+            WHERE t.short_id IS NOT NULL AND t.disposition != 'trashed'
             ORDER BY t.updated_at DESC, t.id
             """
         ).fetchall()
@@ -147,9 +158,10 @@ def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
         rows = connection.execute(
             """
             SELECT id, short_id, title, repository, preparation_status, disposition,
-                   prepared_revision, adopted_revision, created_at, updated_at
+                   prepared_revision, adopted_revision, NULL AS stop_requested_at,
+                   created_at, updated_at
             FROM tasks
-            WHERE short_id IS NOT NULL
+            WHERE short_id IS NOT NULL AND disposition != 'trashed'
             ORDER BY updated_at DESC, id
             """
         ).fetchall()
@@ -231,11 +243,13 @@ def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
     result = []
     for row in rows:
         status = str(row["preparation_status"])
-        visible_status = "archived" if row["disposition"] == "archived" else status
+        disposition = str(row["disposition"])
+        visible_status = "archived" if disposition == "archived" else status
         next_action = {
             "draft": "Complete repository context and confirm the specification",
             "ready": f"Open a native host chat and ask it to start {row['short_id']} with Orchestra",
             "adopted": "Continue in the adopting native host chat",
+            "cancelled": "Reopen the task when you are ready to continue",
             "completed": "",
         }.get(status, "")
         blocked_by = dependency_views.get(str(row["id"]), [])
@@ -272,6 +286,9 @@ def _control_rows(connection: sqlite3.Connection | None) -> list[dict]:
                 "initiative": initiative,
                 "blocked_by": blocked_by,
                 "parallel_with": parallel_views.get(str(row["id"]), []),
+                "preparation_status": status,
+                "disposition": disposition,
+                "stop_requested_at": row["stop_requested_at"],
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
                 "current_activity": [],
@@ -318,6 +335,12 @@ def _merged_rows(
         active["initiative"] = prepared["initiative"]
         active["blocked_by"] = prepared["blocked_by"]
         active["parallel_with"] = prepared["parallel_with"]
+        active["preparation_status"] = prepared["preparation_status"]
+        active["disposition"] = prepared["disposition"]
+        active["stop_requested_at"] = prepared["stop_requested_at"]
+        if prepared["status"] in INACTIVE_STATUSES:
+            active["status"] = prepared["status"]
+            active["stage"] = prepared["stage"]
         if prepared["blocker"]:
             active["blocker"] = prepared["blocker"]
             active["next_action"] = prepared["next_action"]
@@ -327,6 +350,9 @@ def _merged_rows(
         active["initiative"] = None
         active["blocked_by"] = []
         active["parallel_with"] = []
+        active["preparation_status"] = active.get("status", "")
+        active["disposition"] = "open"
+        active["stop_requested_at"] = None
         rows[task_id] = active
     return sorted(rows.values(), key=lambda row: (str(row["updated_at"]), str(row["id"])), reverse=True)
 

@@ -220,6 +220,9 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.orchestra_root.joinpath("scripts/coordination.py").is_file()
         )
+        self.assertTrue(
+            self.orchestra_root.joinpath("control/orchestra_control/service.py").is_file()
+        )
         self.assertEqual(
             self.orchestra_root.joinpath("checkout-mode").read_text(),
             "managed\n",
@@ -1941,6 +1944,9 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
         self.assertTrue(
+            self.orchestra_root.joinpath("control/orchestra_control/cli.py").is_file()
+        )
+        self.assertTrue(
             self.orchestra_root.joinpath("hosts/cursor/roles.toml").is_file()
         )
         self.assertTrue(
@@ -2003,6 +2009,9 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.manifest()["installed_hosts"], ["codex"])
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
+        self.assertTrue(
+            self.orchestra_root.joinpath("control/orchestra_control/db.py").is_file()
+        )
         self.assertFalse(
             self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").exists()
         )
@@ -2031,6 +2040,9 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(applied["status"], "ok", applied.get("detail"))
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertTrue(
+            self.orchestra_root.joinpath("control/orchestra_control/mcp.py").is_file()
+        )
         self.assertTrue(
             self.orchestra_root.joinpath("hosts/grok/roles.toml").is_file()
         )

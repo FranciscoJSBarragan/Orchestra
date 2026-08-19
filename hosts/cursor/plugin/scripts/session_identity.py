@@ -14,6 +14,7 @@ OWNER_COMMANDS = (
     "task adopt",
     "task transfer",
     "task reclaim",
+    "task acknowledge-stop",
     "task finish",
     "task record-delivery",
 )

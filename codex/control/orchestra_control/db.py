@@ -8,8 +8,15 @@ import sqlite3
 import stat
 
 
-SCHEMA_VERSION = 6
-PREPARATION_STATES = ("legacy", "draft", "ready", "adopted", "completed")
+SCHEMA_VERSION = 7
+PREPARATION_STATES = (
+    "legacy",
+    "draft",
+    "ready",
+    "adopted",
+    "cancelled",
+    "completed",
+)
 OWNER_HARNESSES = ("codex", "cursor", "grok")
 TASKS_TABLE_SQL = """
     CREATE TABLE tasks (
@@ -23,10 +30,10 @@ TASKS_TABLE_SQL = """
         source_message TEXT NOT NULL,
         repository TEXT,
         rank INTEGER NOT NULL,
-        disposition TEXT NOT NULL CHECK (disposition IN ('open', 'archived')),
+        disposition TEXT NOT NULL CHECK (disposition IN ('open', 'archived', 'trashed')),
         idempotency_key TEXT NOT NULL UNIQUE,
         preparation_status TEXT NOT NULL DEFAULT 'draft'
-            CHECK (preparation_status IN ('legacy', 'draft', 'ready', 'adopted', 'completed')),
+            CHECK (preparation_status IN ('legacy', 'draft', 'ready', 'adopted', 'cancelled', 'completed')),
         prepared_revision TEXT,
         repository_context_digest TEXT,
         specification_digest TEXT,
@@ -54,6 +61,12 @@ TASKS_TABLE_SQL = """
             delivery_kind IS NULL OR delivery_kind IN ('local-integration', 'pr-merge')
         ),
         delivered_at TEXT,
+        stop_requested_at TEXT,
+        cancelled_at TEXT,
+        trashed_at TEXT,
+        disposition_before_trash TEXT CHECK (
+            disposition_before_trash IS NULL OR disposition_before_trash IN ('open', 'archived')
+        ),
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     )
@@ -163,6 +176,32 @@ SCHEMA = (
     "CREATE INDEX interactions_run_id ON interactions(run_id, created_at)",
 )
 
+V2_TASK_COLUMNS = {
+    "id", "title", "brief", "brief_revision", "source_harness",
+    "source_conversation", "source_message", "repository", "rank",
+    "disposition", "idempotency_key", "created_at", "updated_at",
+}
+V3_TASK_COLUMNS = V2_TASK_COLUMNS | {
+    "short_id", "preparation_status", "prepared_revision",
+    "repository_context_digest", "specification_digest",
+    "specification_confirmed_at", "adopted_thread_id", "adopted_revision",
+    "adopted_at", "previous_thread_id", "transfer_generation",
+    "transfer_requested_at", "completed_at",
+}
+V4_TASK_COLUMNS = V3_TASK_COLUMNS | {
+    "initiative_id", "decomposition_reason", "repository_common_dir",
+    "completed_revision", "delivered_task_revision", "delivery_revision",
+    "delivery_kind", "delivered_at",
+}
+OWNER_COLUMNS = {"adopted_harness", "previous_harness"}
+LIFECYCLE_COLUMNS = {
+    "stop_requested_at", "cancelled_at", "trashed_at",
+    "disposition_before_trash",
+}
+V5_MAIN_TASK_COLUMNS = V4_TASK_COLUMNS | OWNER_COLUMNS
+V5_O1_TASK_COLUMNS = V4_TASK_COLUMNS | LIFECYCLE_COLUMNS
+V7_TASK_COLUMNS = V4_TASK_COLUMNS | OWNER_COLUMNS | LIFECYCLE_COLUMNS
+
 
 class StorageError(Exception):
     """Storage is unsafe, unavailable, or incompatible."""
@@ -251,41 +290,74 @@ def _migrate_v3(connection: sqlite3.Connection) -> None:
         connection.execute(statement)
 
 
-def _migrate_v5(connection: sqlite3.Connection) -> None:
-    """Namespace historical owner identities by execution harness."""
-    statements = (
-        "ALTER TABLE tasks ADD COLUMN adopted_harness TEXT CHECK (adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor'))",
-        "ALTER TABLE tasks ADD COLUMN previous_harness TEXT CHECK (previous_harness IS NULL OR previous_harness IN ('codex', 'cursor'))",
-        "UPDATE tasks SET adopted_harness = 'codex' WHERE adopted_thread_id IS NOT NULL",
-        "UPDATE tasks SET previous_harness = 'codex' WHERE previous_thread_id IS NOT NULL",
+def _task_columns(connection: sqlite3.Connection) -> set[str]:
+    return {
+        str(info[1]) for info in connection.execute("PRAGMA table_info(tasks)").fetchall()
+    }
+
+
+def _validate_schema_shape(connection: sqlite3.Connection, version: int) -> None:
+    """Identify every supported historical shape before making any changes."""
+    columns = _task_columns(connection)
+    expected: dict[int, set[str]] = {
+        2: V2_TASK_COLUMNS,
+        3: V3_TASK_COLUMNS,
+        4: V4_TASK_COLUMNS,
+        6: V5_MAIN_TASK_COLUMNS,
+        7: V7_TASK_COLUMNS,
+    }
+    if version == 5:
+        if columns == V5_MAIN_TASK_COLUMNS:
+            return
+        if columns == V5_O1_TASK_COLUMNS:
+            return
+        raise StorageError("unsupported control schema v5 shape")
+    if version not in expected:
+        raise StorageError(f"unsupported control schema version: {version}")
+    if columns != expected[version]:
+        raise StorageError(f"unsupported control schema v{version} shape")
+
+
+def _rebuild_tasks_v7(connection: sqlite3.Connection) -> None:
+    """Rebuild tasks with the v7 constraints, copying only recognized fields."""
+    source_columns = _task_columns(connection)
+    connection.execute(
+        TASKS_TABLE_SQL.replace("CREATE TABLE tasks", "CREATE TABLE tasks_v7", 1)
     )
-    for statement in statements:
-        connection.execute(statement)
-
-
-def _migrate_v6(connection: sqlite3.Connection) -> None:
-    """Widen owner harness CHECK constraints to include grok."""
-    row = connection.execute(
-        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
-    ).fetchone()
-    if row is not None and row[0] is not None and "'grok'" in row[0]:
-        return
-    columns = [
-        info[1] for info in connection.execute("PRAGMA table_info(tasks)").fetchall()
+    target_columns = [
+        str(info[1])
+        for info in connection.execute("PRAGMA table_info(tasks_v7)").fetchall()
     ]
-    quoted = ", ".join(f'"{name}"' for name in columns)
-    connection.execute(TASKS_TABLE_SQL.replace("CREATE TABLE tasks", "CREATE TABLE tasks_v6", 1))
-    connection.execute(f"INSERT INTO tasks_v6 ({quoted}) SELECT {quoted} FROM tasks")
+    insert_columns: list[str] = []
+    select_values: list[str] = []
+    for name in target_columns:
+        if name in source_columns:
+            insert_columns.append(f'"{name}"')
+            select_values.append(f'"{name}"')
+        elif name == "adopted_harness":
+            insert_columns.append(f'"{name}"')
+            select_values.append(
+                "CASE WHEN adopted_thread_id IS NOT NULL THEN 'codex' ELSE NULL END"
+            )
+        elif name == "previous_harness":
+            insert_columns.append(f'"{name}"')
+            select_values.append(
+                "CASE WHEN previous_thread_id IS NOT NULL THEN 'codex' ELSE NULL END"
+            )
+    connection.execute(
+        f"INSERT INTO tasks_v7 ({', '.join(insert_columns)}) "
+        f"SELECT {', '.join(select_values)} FROM tasks"
+    )
     connection.execute("DROP TABLE tasks")
-    connection.execute("ALTER TABLE tasks_v6 RENAME TO tasks")
+    connection.execute("ALTER TABLE tasks_v7 RENAME TO tasks")
     connection.execute(
-        "CREATE INDEX IF NOT EXISTS tasks_disposition_rank ON tasks(disposition, rank, created_at)"
+        "CREATE INDEX tasks_disposition_rank ON tasks(disposition, rank, created_at)"
     )
     connection.execute(
-        "CREATE INDEX IF NOT EXISTS tasks_initiative ON tasks(initiative_id, rank, created_at)"
+        "CREATE INDEX tasks_initiative ON tasks(initiative_id, rank, created_at)"
     )
     connection.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS tasks_short_id ON tasks(short_id COLLATE NOCASE) "
+        "CREATE UNIQUE INDEX tasks_short_id ON tasks(short_id COLLATE NOCASE) "
         "WHERE short_id IS NOT NULL"
     )
 
@@ -310,7 +382,10 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
         connection = sqlite3.connect(database, timeout=5)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout = 5000")
-        connection.execute("PRAGMA foreign_keys = ON")
+        # The complete shape is validated under the same write lock before any
+        # DDL. Foreign keys stay disabled only for the atomic parent-table
+        # rebuild and are checked explicitly before commit.
+        connection.execute("PRAGMA foreign_keys = OFF")
         connection.execute("BEGIN IMMEDIATE")
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         objects = connection.execute(
@@ -320,25 +395,20 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
             for statement in SCHEMA:
                 connection.execute(statement)
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version in {2, 3, 4, 5}:
+        else:
+            _validate_schema_shape(connection, version)
             if version == 2:
                 _migrate_v2(connection)
             if version in {2, 3}:
                 _migrate_v3(connection)
-            if version in {2, 3, 4}:
-                _migrate_v5(connection)
-            connection.commit()
-            connection.execute("PRAGMA foreign_keys = OFF")
-            connection.execute("BEGIN IMMEDIATE")
-            _migrate_v6(connection)
-            connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-            connection.commit()
-            connection.execute("PRAGMA foreign_keys = ON")
-            connection.execute("BEGIN IMMEDIATE")
-        elif version != SCHEMA_VERSION:
-            connection.rollback()
-            raise StorageError(f"unsupported control schema version: {version}")
+            if version != SCHEMA_VERSION:
+                _rebuild_tasks_v7(connection)
+                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+        if violations:
+            raise StorageError("control schema migration left invalid foreign keys")
         connection.commit()
+        connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA journal_mode = WAL")
         _restrict(database)
         return connection

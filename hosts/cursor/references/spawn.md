@@ -79,3 +79,9 @@ available. An explicit user route is never vetoed or substituted.
 
 Observe the Cursor host permission choice. Do not write `settings.json` or
 Codex `config.toml`.
+
+## Identity
+
+Task Control owner commands, including `task acknowledge-stop`, use the
+plugin-provided `ORCHESTRA_HOST_THREAD_ID`. Never substitute generated content;
+if it is unavailable, stop because ownership cannot be proven.

@@ -544,6 +544,117 @@ class ApiTests(unittest.TestCase):
         self.assertFalse(task["stale"])
         self.assertNotIn(prepared["id"], {item["task_id"] for item in payload["attention"]})
 
+    def test_v7_hides_trash_and_marks_safe_stop_attention(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        adopted = support.insert_prepared_task(
+            control_database,
+            id="33333333-3333-4333-8333-333333333333",
+            short_id="A3",
+            preparation_status="adopted",
+            adopted_thread_id="11111111-1111-4111-8111-111111111111",
+            adopted_harness="codex",
+            adopted_at="2026-08-02T18:01:00Z",
+            stop_requested_at="2026-08-02T18:02:00Z",
+        )
+        support.insert_prepared_task(
+            control_database,
+            id="44444444-4444-4444-8444-444444444444",
+            short_id="A4",
+            rank=2,
+            idempotency_key="trashed-a4",
+            disposition="trashed",
+            trashed_at="2026-08-02T18:03:00Z",
+            disposition_before_trash="open",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination, self.config, NOW, control_connection=control
+            )
+        finally:
+            coordination.close()
+            control.close()
+        self.assertEqual([task["id"] for task in payload["tasks"]], [adopted["id"]])
+        self.assertTrue(payload["tasks"][0]["stop_requested_at"])
+        self.assertEqual(payload["attention"][0]["reasons"], ["stop-requested"])
+
+    def test_cancelled_card_overrides_stale_coordinator_progress_as_inactive(self) -> None:
+        control_database = support.create_control_db(self.state_root)
+        cancelled = support.insert_prepared_task(
+            control_database,
+            id="55555555-5555-4555-8555-555555555555",
+            short_id="A5",
+            preparation_status="cancelled",
+            previous_thread_id="11111111-1111-4111-8111-111111111111",
+            previous_harness="codex",
+            cancelled_at="2026-08-02T17:00:00Z",
+            updated_at="2026-08-02T10:00:00Z",
+        )
+        support.insert_task(
+            self.database,
+            id=cancelled["id"],
+            status="active",
+            stage="implementation",
+            updated_at="2026-08-02T10:00:00Z",
+        )
+        coordination = self._connect()
+        control = __import__("sqlite3").connect(control_database)
+        control.row_factory = __import__("sqlite3").Row
+        try:
+            payload = summary_payload(
+                coordination, self.config, NOW, control_connection=control
+            )
+        finally:
+            coordination.close()
+            control.close()
+        task = payload["tasks"][0]
+        self.assertEqual(task["status"], "cancelled")
+        self.assertFalse(task["stale"])
+        self.assertEqual(payload["attention"], [])
+
+    def test_both_v5_shapes_are_read_by_columns(self) -> None:
+        for shape in ("main", "o1"):
+            state_root = self.state_root / shape
+            state_root.mkdir()
+            control_database = support.create_control_db(state_root)
+            connection = __import__("sqlite3").connect(control_database)
+            try:
+                drop = (
+                    ("disposition_before_trash", "trashed_at", "cancelled_at", "stop_requested_at")
+                    if shape == "main"
+                    else ("previous_harness", "adopted_harness")
+                )
+                for column in drop:
+                    connection.execute(f"ALTER TABLE tasks DROP COLUMN {column}")
+                connection.execute("PRAGMA user_version = 5")
+                connection.commit()
+            finally:
+                connection.close()
+            inserted = support.insert_prepared_task(
+                control_database,
+                short_id="A1",
+                stop_requested_at=(
+                    "2026-08-02T18:02:00Z" if shape == "o1" else None
+                ),
+            )
+            coordination = self._connect()
+            control = __import__("sqlite3").connect(control_database)
+            control.row_factory = __import__("sqlite3").Row
+            try:
+                payload = summary_payload(
+                    coordination, self.config, NOW, control_connection=control
+                )
+            finally:
+                coordination.close()
+                control.close()
+            self.assertEqual(payload["tasks"][0]["id"], inserted["id"])
+            self.assertEqual(
+                bool(payload["tasks"][0]["stop_requested_at"]),
+                shape == "o1",
+            )
+
     def test_task_detail_without_artifacts_directory(self) -> None:
         task = support.insert_task(
             self.database, repository=OBS_PATH, worktree="/absent/worktree"

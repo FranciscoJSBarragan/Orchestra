@@ -1,8 +1,23 @@
 # Orchestra Hub — Clients v2 Specification (Iteration 1)
 
-Status: frozen. This document records the converged design for the second
-client generation of Orchestra Hub. Implementation must not reopen decisions
-marked as frozen; deviations require explicit user approval first.
+Status: superseded in part by the authorized Orchestra Tasks macOS application.
+The Hub HTTP and database-read contracts below remain frozen and GET-only. The
+former read-only menu client has been replaced by a local app that performs
+card mutations through Task Control, never through Hub HTTP.
+
+## Native application amendment
+
+`hub/menubar/` builds **Orchestra Tasks**, a SwiftUI/AppKit `LSUIElement` app
+with a menu-bar surface and full window. It obtains cards and capabilities from
+the shared Task Control CLI, merges only Hub progress by exact UUID, and
+remains usable when the Hub is unavailable. It supports card capture, draft
+editing, notes, archive/restore, recoverable trash, restricted permanent purge,
+safe-stop request/withdraw, and reopening a cancelled task. Its neutral start
+action copies an instruction for Codex, Cursor, or Grok; it never adopts,
+acknowledges a stop, finishes work, controls a host, or mutates Git resources.
+The app installer owns only the app and its RunAtLoad LaunchAgent, with no
+KeepAlive; sync remains the sole owner of the shared runtime. The detailed
+legacy menu-only layout below is historical context, not the current contract.
 
 ## 1. Purpose and motivation
 
@@ -133,9 +148,10 @@ a minimal `OrchestraHubMenu.app` bundle (`Info.plist` with
   (aggregated "needs you" only if blockers already exist); afterwards one
   aggregated notification when blockers appear and one when they clear.
   Unreachable polls never reset the baseline.
-- Autostart: user LaunchAgent `com.orchestra.hub.menubar` (`RunAtLoad`,
-  `KeepAlive`), template in `hub/menubar/launchd/`, pointing at the built
-  `.app` binary.
+- Current autostart: user LaunchAgent `com.orchestra.tasks` with `RunAtLoad`
+  and no `KeepAlive`, pointing at the installed app binary. Installation
+  replaces app and plist atomically and restores their previous versions when
+  launchd cannot start the replacement.
 - Config: reads `port` from `~/.orchestra/hub.toml` with a tolerant
   line-based parse (`port = N` top-level); malformed or missing → 7343.
   The menu bar app must not gain a TOML library for this.

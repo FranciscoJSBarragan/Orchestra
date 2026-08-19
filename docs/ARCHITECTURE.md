@@ -56,9 +56,10 @@ one private prepared-task Kanban. Their direct consumers are
 the JSON CLI. Capture and preparation are inert. They never launch an execution
 host, create a checkout, select permissions, or own an implementation process.
 
-`control.sqlite3` owns UUID and immutable human ID, briefs, origin references,
-notes, preparation state, revision and document digests, native-chat ownership,
-and transfer generation. Complete private context, specification, and marker
+`control.sqlite3` schema v7 owns UUID and immutable human ID, briefs, origin
+references, notes, preparation state, revision and document digests,
+host-namespaced native-chat ownership, transfer generation, recoverable trash,
+and safe-stop/cancellation timestamps. Complete private context, specification, and marker
 documents live under `$HOME/.orchestra/tasks/<short-id>/`. The v3 migration
 leaves preexisting tasks without human IDs and retains the old run, turn, and
 interaction tables as read-only legacy history. New public code exposes no App
@@ -68,9 +69,30 @@ verifies `session_id == conversation_id` and exports that value as
 `ORCHESTRA_HOST_THREAD_ID`; on Grok Build, `GROK_SESSION_ID`). The
 chat then invokes normal Orchestra. Coordinator receives the same UUID only
 after checkout creation. Hub joins both stores by UUID and remains GET-only.
+The macOS app obtains bounded mutation authority only through the same local
+Task Control JSON CLI; it never adds a Hub write endpoint. Prepared documents
+may be replaced before first adoption, while any card with execution-owner
+history must resume its existing checkout and plan.
 Cooperative transfer remains owning-chat plus stable checkpoint. When that
 chat cannot release the card, explicit reclaim from another native host chat
 swaps ownership without passing through `ready`.
+
+Schema v7 atomically reconstructs the task table after recognizing the exact
+column shape of v2 through v6, including the incompatible ownership and
+safe-stop/trash variants that both used `user_version = 5`. Historical
+un-namespaced owners become `codex`; unknown shapes roll back without changes,
+and every migration must pass `foreign_key_check` before commit.
+
+Task Control alone computes card action capabilities. The Hub reads compatible
+control schemas and projects observational state only; the macOS app obtains
+cards and capabilities from Task Control and joins only Hub progress by exact
+UUID. State-check-plus-mutation operations serialize with an immediate SQLite
+write transaction so lifecycle decisions cannot race adoption or completion.
+A safe-stop request never interrupts an active owner. Transfer and finish
+are blocked while it is pending; reclaim preserves it. At a stable boundary the
+owner cleans resources, marks the existing plan blocked, and acknowledges with
+its Codex, Cursor, or Grok identity. Cancellation preserves the checkout and
+plan so reopening may return ownership to the same prior conversation.
 
 The short-ID namespace has one allocator: the transaction in Task Control.
 Coordinator stores no short ID, direct tasks have none, and clients may expose

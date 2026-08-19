@@ -5,10 +5,11 @@ import hashlib
 import json
 from typing import Mapping
 
-MATERIAL_FINGERPRINT_VERSION = 2
+MATERIAL_FINGERPRINT_VERSION = 3
 MATERIAL_FIELDS = (
     "blocker", "head_revision", "id", "label", "next_action",
     "stage", "status", "summary", "tier", "initiative", "blocked_by", "parallel_with",
+    "stop_requested_at",
 )
 
 

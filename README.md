@@ -293,8 +293,24 @@ say `Arranca A1 con Orchestra`; that chat adopts the UUID, activates normal
 Orchestra, and Coordinator registers the same UUID after checkout creation.
 The store never substitutes for the native conversation, approved `plan.md`,
 Git, or user authority.
-The Hub and menu bar observe prepared and active cards through GET-only
-surfaces. There is no daemon, remote MCP transport, or mutable web console.
+The Hub remains GET-only. The native menu-bar app reads cards and capabilities
+from Task Control and invokes that same local JSON CLI for its bounded card
+actions. There is no daemon, remote MCP transport, or mutable web console.
+
+The CLI additionally supports draft editing, recoverable trash, restricted
+purge, cooperative safe-stop requests, and reopening cancelled cards. A safe
+stop never interrupts active work: the owning root handles it at a stable
+handoff, cleans resources, blocks the existing plan, and acknowledges with its
+Codex, Cursor, or Grok identity. The same prior owner can resume the preserved
+checkout and plan after reopening. Purge requires the exact short ID and is
+limited to an evidence-free trashed draft; short IDs are never reused. These
+sensitive lifecycle and ownership commands are not exposed through MCP.
+
+The native `hub/menubar` app gets cards and action capabilities from the shared
+Task Control runtime, merges only Hub progress by exact UUID, and remains
+usable when Hub is down. Its neutral start action copies an instruction for any
+supported host. The app installer owns only the app and its RunAtLoad
+LaunchAgent; `sync.py` alone owns the shared runtime.
 
 Artifacts are the semantic handoff channel across context, planning,
 implementation, verification, debugging, and review. Formal planning publishes

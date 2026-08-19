@@ -176,6 +176,8 @@ unprivileged. Report lost observability compactly, omit the coordination task
 identifier from every later agent packet, and continue without another
 coordination attempt, reduced authority, or a workflow blocker.
 
+For an adopted card, read `task get` before every dispatch, phase commit, terminal completion, PR/local delivery action, and stable handoff. A pending `stop_requested_at` is cooperative intent, never an interrupt: start no new work, reach a stable handoff, consume cleanup, close exact owned resources, write the existing plan as `blocked` with resume as next action, then run `task acknowledge-stop` with `CODEX_THREAD_ID`, Cursor's `ORCHESTRA_HOST_THREAD_ID`, or `GROK_SESSION_ID` as appropriate. Do not transfer, finish, commit, or deliver while it is pending; reclaim preserves it. Cursor includes acknowledgement among its owner commands. After `task reopen`, allow the same previous owner to adopt and resume the exact checkout and blocked plan.
+
 Reuse is limited to the same live preapproval task or to a resumed task whose
 approved plan, objective, checkout mode/path, starting identity, task branch,
 base, and HEAD all match Git.

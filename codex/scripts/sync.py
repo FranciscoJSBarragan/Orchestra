@@ -576,6 +576,17 @@ def _inventory(
         entries[("orchestra_home", destination)] = _entry(
             "orchestra_home", destination, "file", _read_file(source, str(source))
         )
+    control_root = source_root / "codex" / "control"
+    if control_root.is_symlink() or not control_root.is_dir():
+        raise SyncError(f"expected a source directory: {control_root}")
+    for source in _walk_files(control_root):
+        relative = source.relative_to(control_root).as_posix()
+        if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
+            continue
+        destination = f"control/{relative}"
+        entries[("orchestra_home", destination)] = _entry(
+            "orchestra_home", destination, "file", _read_file(source, str(source))
+        )
     entries[("orchestra_home", ORCHESTRA_WORKTREE_ROOT_PATH)] = _entry(
         "orchestra_home",
         ORCHESTRA_WORKTREE_ROOT_PATH,
@@ -622,9 +633,6 @@ def _inventory(
             entries[("codex_home", destination)] = _entry(
                 "codex_home", destination, "file", _read_file(source, str(source))
             )
-        control_root = source_root / "codex" / "control"
-        if control_root.is_symlink() or not control_root.is_dir():
-            raise SyncError(f"expected a source directory: {control_root}")
         for source in _walk_files(control_root):
             relative = source.relative_to(control_root).as_posix()
             if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
@@ -710,7 +718,9 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             "hosts/cursor/spawn.md",
             "hosts/grok/roles.toml",
             "hosts/grok/spawn.md",
-        } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)}
+        } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)} or (
+            len(parts) >= 2 and parts[0] == "control"
+        )
     if root != "codex_home":
         return False
     if kind == "managed_block":
