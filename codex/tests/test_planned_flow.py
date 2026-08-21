@@ -1591,6 +1591,22 @@ class PlannedFlowContractTests(unittest.TestCase):
             "separate from independent acceptance",
         ):
             self.assertIn(contract, normalized_frontend)
+        self.assertIn("Browser Use", browser)
+        self.assertIn("verification-report-shot-", browser)
+        self.assertIn(
+            "Missing cited screenshots after a visible page mean the acceptance evidence is incomplete",
+            browser,
+        )
+        self.assertIn("reached a visible page", browser)
+        self.assertIn("reached a visible page", self.skill)
+        self.assertNotIn(
+            "Cursor and Grok Build map `auto` to Playwright",
+            browser,
+        )
+        self.assertIn("Browser Use", normalized_frontend)
+        self.assertIn("implementation-report-shot-", normalized_frontend)
+        self.assertNotIn("On Cursor, `auto` maps to Playwright", frontend)
+        self.assertIn("open the cited screenshot paths", self.skill)
         for retired in (
             "Computer Use with Chrome",
             "Chrome browser plugin",

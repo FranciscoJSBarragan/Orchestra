@@ -1281,16 +1281,15 @@ CURSOR_LUNA_CAPABILITIES = {
     "runtime_verification",
     "browser_acceptance",
 }
-CURSOR_STANDARD_MEDIUM_CAPABILITIES = set(CURSOR_LUNA_CAPABILITIES)
-CURSOR_STANDARD_HIGH_CAPABILITIES = {
-    "general_implementation",
-    "frontend_implementation",
+CURSOR_STANDARD_OPUS_MEDIUM_CAPABILITIES = {
+    "independent_review",
 }
 CURSOR_STANDARD_XHIGH_CAPABILITIES = {
+    "general_implementation",
+    "frontend_implementation",
     "technical_planning",
     "architecture_analysis",
     "difficult_debugging",
-    "independent_review",
 }
 ASSIGNMENT_FIELDS = {"profile", "subagent_type", "model", "effort"}
 
@@ -1356,11 +1355,13 @@ def check_cursor_host(root: Path) -> list[str]:
         return "cursor-grok-4.6", "medium", "grok-worker"
 
     def standard_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_STANDARD_MEDIUM_CAPABILITIES:
-            return "cursor-grok-4.6", "medium", "grok-worker"
-        if capability in CURSOR_STANDARD_HIGH_CAPABILITIES:
-            return "cursor-grok-4.6", "high", "grok-worker"
-        return "cursor-grok-4.6", "xhigh", "grok-worker"
+        if capability in CURSOR_LUNA_CAPABILITIES:
+            return "gpt-5.6-luna", "xhigh", "luna-worker"
+        if capability in CURSOR_STANDARD_OPUS_MEDIUM_CAPABILITIES:
+            return "claude-opus-5", "medium", "generalPurpose"
+        if capability in CURSOR_STANDARD_XHIGH_CAPABILITIES:
+            return "cursor-grok-4.6", "xhigh", "grok-worker"
+        return "", "", ""
 
     failures.extend(_cursor_assignment_failures("minimal", tiers.get("minimal"), minimal_contract))
     failures.extend(
@@ -1378,12 +1379,22 @@ def check_cursor_host(root: Path) -> list[str]:
         "isolated",
         "matrix row is not assigned",
         "cursor-grok-4.6-xhigh",
+        "gpt-5.6-luna-xhigh",
+        "claude-opus-5-thinking-medium",
+        "generalPurpose",
+        "*-fast",
         "Independent verification gate",
         "do not create a verifier Task",
         "matrix entries describe available capabilities",
+        "plugin-browser-use-browser-use",
+        "`auto` and `chrome` map to Browser Use",
     ):
         if required not in spawn:
             failures.append(f"cursor-contract: spawn.md must name {required}")
+    if "map to Playwright" in spawn or "maps to Playwright" in spawn:
+        failures.append(
+            "cursor-contract: spawn.md must not map Cursor routes to Playwright"
+        )
     try:
         hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeError) as error:

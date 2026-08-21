@@ -451,20 +451,23 @@ product names.
 
 ### Cursor standard configuration
 
-Product contract for `standard`. All rows are Grok 4.6; effort varies:
+Product contract for `standard`. Context, research, runtime, and browser
+acceptance are Luna xhigh; implementation, planning, architecture, and
+debugging are Grok 4.6 xhigh; independent review is Opus 5 medium. Never use
+Fast variants:
 
 | Tier | Capability | Base profile | Product model |
 | --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | Grok 4.6 medium |
-| Standard | `web_research` | `orchestra_analyst` | Grok 4.6 medium |
-| Standard | `runtime_verification` | `orchestra_verifier` | Grok 4.6 medium |
-| Standard | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 medium |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 high |
-| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 high |
+| Standard | `repository_context` | `orchestra_analyst` | Luna xhigh |
+| Standard | `web_research` | `orchestra_analyst` | Luna xhigh |
+| Standard | `runtime_verification` | `orchestra_verifier` | Luna xhigh |
+| Standard | `browser_acceptance` | `orchestra_verifier` | Luna xhigh |
+| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 xhigh |
+| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 xhigh |
 | Standard | `technical_planning` | `orchestra_analyst` | Grok 4.6 xhigh |
 | Standard | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 xhigh |
 | Standard | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 xhigh |
-| Standard | `independent_review` | `orchestra_reviewer` | Grok 4.6 xhigh |
+| Standard | `independent_review` | `orchestra_reviewer` | Opus 5 medium |
 
 Cursor `critical` remains unassigned; selecting it blocks.
 
@@ -1119,12 +1122,12 @@ carry `browser_route: auto | in_app | chrome`:
 - `auto` on Codex explicitly selects the dedicated Chrome connector first. After
   supported connection recovery, it may fall back to Codex's in-app Browser
   only when Chrome is unavailable or has a technical capability gap that the
-  in-app Browser can satisfy. On Cursor and Grok Build, `auto` maps to
-  Playwright.
+  in-app Browser can satisfy. On Cursor, `auto` and `chrome` map to Browser Use.
+  On Grok Build, `auto` maps to Playwright.
 - `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor
   and Grok.
-- `chrome` selects only the dedicated Chrome connector and is `blocked` on
-  Grok.
+- `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
+  Use on Cursor, and is `blocked` on Grok.
 
 An explicit route from the user, relayed by the root or given directly in the
 agent conversation, must be attempted even when the scenario is a canary for a
@@ -1136,7 +1139,11 @@ the Chrome blocker, close any task-owned Chrome tab already created, open a new
 in-app Browser task tab, and repeat the complete scenario so evidence from
 different browser surfaces is never combined into one pass. If both surfaces
 are unavailable, return `blocked`. Computer Use and standalone browser
-automation are not substitutes for either route.
+automation are not substitutes for either route, except the host-mapped
+surfaces: Cursor `auto` and `chrome` use Browser Use, and Grok `auto` uses
+Playwright. The Cursor IDE browser and the Browser Use CLI are not substitutes.
+If Browser Use MCP is unavailable or Chrome remote-debugging permission is
+missing, return `blocked`.
 
 Every visual interaction or acceptance run creates a fresh task-owned tab on
 its selected surface. It never claims or reuses a user tab or a tab from an
@@ -1147,6 +1154,19 @@ supporting processes and report `retained_resources: none`. Frontend iteration
 and independent browser acceptance use separate tabs and evidence. Orchestra
 preserves unrelated tabs, authenticated sessions, windows, and browser state
 and never closes the Chrome application or a shared window.
+
+Every `browser_acceptance` run that reached a visible page writes PNG
+screenshot files into the exact task-private artifacts directory as
+`<NN>-verification-report-shot-<k>.png` and cites those filenames in the
+`verification-report`. A passed, failed, or blocked run still cites the last
+useful shot. Missing cited screenshots after a visible page mean the
+acceptance evidence is incomplete. A
+`frontend_implementation` run that used the browser for visual iteration writes
+`<NN>-implementation-report-shot-<k>.png` the same way and cites them in the
+`implementation-report`; a frontend phase that never opened the browser does
+not invent screenshots. These files are evidence referenced by the Markdown
+report, not a new artifact kind. The root opens the cited paths when consuming
+the report.
 
 ## Review policy
 

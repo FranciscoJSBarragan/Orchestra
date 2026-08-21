@@ -43,20 +43,25 @@ is assigned later.
 
 ## Product contract vs live Task slugs
 
-`roles.cursor.toml` records Luna high and Grok 4.6 medium/high/xhigh as the
-product contract. Pass those names in the packet. The live Task schema may only
-expose nearby workers. Use the closest worker without rewriting the product
-contract or inventing a Codex `reasoning_effort` field:
+`roles.cursor.toml` records Luna high/xhigh, Grok 4.6 medium/xhigh, and
+Opus 5 medium as the product contract. Pass those names in the packet. Never
+pass a `*-fast` slug. The live Task schema may only expose nearby workers. Use
+the closest non-fast worker without rewriting the product contract or inventing
+a Codex `reasoning_effort` field:
 
 | Product model | Product effort | Task worker actually passed |
 | --- | --- | --- |
-| `gpt-5.6-luna` | `high` | `luna-worker` (`model` inherit unless a Luna-high slug exists) |
-| `cursor-grok-4.6` | `medium` | `grok-worker` (`model` inherit unless a Grok-4.6-medium slug exists) |
-| `cursor-grok-4.6` | `high` | `grok-worker` (`model` inherit; the live worker is high-effort) |
+| `gpt-5.6-luna` | `high` | `luna-worker` (`model` inherit unless a Luna-high slug exists; never Fast) |
+| `gpt-5.6-luna` | `xhigh` | `luna-worker` with `model` `gpt-5.6-luna-xhigh` |
+| `cursor-grok-4.6` | `medium` | `grok-worker` (`model` inherit unless a Grok-4.6-medium slug exists; never Fast) |
 | `cursor-grok-4.6` | `xhigh` | `grok-worker` with `model` `cursor-grok-4.6-xhigh` |
+| `claude-opus-5` | `medium` | `generalPurpose` with `model` `claude-opus-5-thinking-medium` |
 
-If a later Task schema exposes exact slugs, prefer them and document the change
-here. Do not silently substitute Sol or Terra.
+If inherit would select a Fast variant, pass the exact non-fast effort slug
+instead of inherit. If a later Task schema exposes exact slugs, prefer them and
+document the change here. Do not silently substitute Sol or Terra. Never
+substitute `gpt-5.6-luna-low` for Luna xhigh. Never substitute
+`claude-opus-5-thinking-high` for Opus 5 medium.
 
 ## Wait and cleanup
 
@@ -71,9 +76,20 @@ Codex V2 completed-state evidence.
 
 ## Browser
 
-`browser_route: auto | in_app | chrome`. `auto` maps to Playwright. `in_app` is
-`blocked` on Cursor. `chrome` remains the dedicated Chrome connector when
-available. An explicit user route is never vetoed or substituted.
+`browser_route: auto | in_app | chrome`. `auto` and `chrome` map to Browser Use
+MCP (`plugin-browser-use-browser-use`). `in_app` is `blocked` on Cursor. An
+explicit user route is never vetoed or substituted.
+
+Open the scenario with `new_tab` then `wait_for_load`. Never claim or reuse a
+user tab. If CallMcpTool fails because the MCP process client is not
+registered, call `mcp_auth` once and retry; if it still fails, or Chrome lacks
+remote-debugging Allow, return `blocked`. Do not substitute Playwright, the
+Cursor IDE browser, Computer Use, or the Browser Use CLI.
+
+Close only the task tab before every handoff. After a browser run, the producer
+cites screenshot PNG files in the report; the root opens those exact paths when
+consuming the report. Frontend iteration and independent acceptance use
+separate tabs and evidence.
 
 ## Permissions
 

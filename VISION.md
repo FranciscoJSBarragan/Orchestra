@@ -328,13 +328,16 @@ transient and never become a registry.
 Browser work uses a host-mapped `browser_route` in a fresh task-owned tab. On
 Codex, `auto` falls back to the isolated in-app Browser only when Chrome is
 technically unavailable or lacks a capability that the in-app Browser can
-provide. On Cursor, `auto` maps to Playwright and `in_app` is blocked. An
+provide. On Cursor, `auto` and `chrome` map to Browser Use and `in_app` is
+blocked. On Grok, `auto` maps to Playwright and `in_app` is blocked. An
 explicit `chrome` or, on Codex, `in_app` route remains fixed, is attempted even
 as a tool canary, and is never vetoed or substituted.
 Each browser run closes its exact task tab before any handoff and a rerun opens
 a new one; Orchestra never claims a user's existing tab or closes the Chrome
 application, a shared window, or unrelated browser state. A product failure
-never triggers a browser switch.
+never triggers a browser switch. Browser acceptance cites PNG screenshot files
+next to its report when the run reached a visible page; frontend visual
+iteration cites them when the browser was used.
 
 ### Idea-to-project continuity
 

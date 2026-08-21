@@ -11,11 +11,17 @@ Use this internal playbook only with the `orchestra_implementation_worker` profi
   chrome`. Explicit user selection must be attempted, including a canary of a
   previously failing tool, and remains fixed without fallback. Do
   not veto or substitute it. Follow the host spawn reference for `auto`,
-  `in_app`, and `chrome`. On Cursor, `auto` maps to Playwright and `in_app` is
-  blocked. On Codex, `auto` explicitly selects the dedicated Chrome connector first
-  and may fall back to Codex's in-app Browser only for a technical gap.
+  `in_app`, and `chrome`. On Cursor, `auto` and `chrome` map to Browser Use and
+  `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
+  connector first and may fall back to Codex's in-app Browser only for a
+  technical gap. On Grok, `auto` maps to Playwright.
+- On Cursor, drive Browser Use MCP with `new_tab` then `wait_for_load`. If the
+  MCP process client is not registered, authenticate once and retry; if it still
+  cannot run, or Chrome remote-debugging Allow is missing, return `blocked`. Do
+  not substitute the Cursor IDE browser or the Browser Use CLI.
 - A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the Chrome blocker, close any implementation-owned Chrome tab already created, and repeat the complete visual scenario in a new in-app Browser task tab. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
 - For every visual interaction run, create a fresh implementation-owned task tab, keep it separate from independent acceptance, and never claim or reuse a user tab or a tab from an earlier run. Preserve unrelated tabs, authenticated sessions, windows, and browser state, and never close the Chrome application or a shared window. Follow shared resource hygiene: close the implementation tab and owned temporary processes before every handoff, whether successful, failed, or blocked, then create a fresh tab and recreate any needed process for a later accepted fix. Retain no task tab or supporting process across the handoff and return `retained_resources: none`. Browser control for the run ends when its task tab is closed; never close the browser application or a shared window to end it.
+- When visual iteration used the browser, write PNG screenshot files into the exact task-private artifacts directory as `<NN>-implementation-report-shot-<k>.png` and cite those exact filenames in the `implementation-report`. A frontend phase that never opened the browser does not invent screenshots.
 - Visual iteration is implementation evidence, not independent acceptance. Never claim acceptance of your own work; the root dispatches `browser_acceptance` separately when required.
 
 Return `blocked` when the UI or product decision is unresolved, approved paths are insufficient, unrelated work would be overwritten, or the selected browser route and, for `auto`, its defined fallback are unavailable when visual iteration is necessary.

@@ -494,8 +494,11 @@ Cursor reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. It offers
 `minimal`, `standard`, and `critical` with no mode split. This cut assigns
 `minimal` (Luna high for low-analysis capabilities, Grok 4.6 medium for
-implementation and remaining judgment) and `standard` (Grok 4.6 medium / high /
-xhigh). Selecting `critical` on Cursor blocks until those rows are assigned.
+implementation and remaining judgment) and `standard` (Luna xhigh for context,
+research, runtime, and browser acceptance; Grok 4.6 xhigh for implementation,
+planning, architecture, and debugging; Opus 5 medium for independent review).
+Selecting `critical` on Cursor
+blocks until those rows are assigned.
 
 Grok Build reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers
@@ -577,11 +580,14 @@ fixed without fallback; an agent may report its technical blocker but may not
 veto or substitute it. On Codex, without an explicit route, `auto` selects the
 dedicated Chrome connector first and uses Codex's in-app Browser only for a
 technical availability or capability gap that the in-app Browser can satisfy.
-On Cursor and Grok, `auto` maps to Playwright and `in_app` is blocked. `chrome`
-selects only the dedicated Chrome connector on Codex and Cursor and is blocked
-on Grok. Computer Use and standalone browser automation are not browser route
-substitutes, except that Cursor and Grok `auto` use Playwright as the
-host-mapped surface.
+On Cursor, `auto` and `chrome` map to Browser Use and `in_app` is blocked. On
+Grok, `auto` maps to Playwright and `in_app` is blocked. `chrome` selects only
+the dedicated Chrome connector on Codex, maps to Browser Use on Cursor, and is
+blocked on Grok. Computer Use and standalone browser automation are not browser
+route substitutes, except that Cursor `auto` and `chrome` use Browser Use and
+Grok `auto` uses Playwright as the host-mapped surface. The Cursor IDE browser
+and the Browser Use CLI are not substitutes. If Browser Use MCP is unavailable
+or Chrome remote-debugging permission is missing, return `blocked`.
 
 Every browser run creates a new task-owned tab rather than claiming or reusing a
 user tab or a prior run's tab. Frontend iteration and independent browser
@@ -594,7 +600,12 @@ blocked handoff and a rerun opens another new tab; browser tabs cannot be
 retained for phase reuse. Browser-work handoffs stop their owned supporting
 processes and report `retained_resources: none`. Unrelated tabs, windows,
 authenticated sessions, processes, and user state are preserved, and Orchestra
-never closes the Chrome application or a shared window.
+never closes the Chrome application or a shared window. Every
+`browser_acceptance` report that reached a visible page cites PNG screenshot
+files in the task-private artifacts directory; a frontend run that used the
+browser cites the same kind of files from the `implementation-report`. The
+root opens the cited paths. These files are report evidence, not a new artifact
+kind.
 
 ## Phase resource lifecycle
 
@@ -755,8 +766,9 @@ Tests protect the few important invariants:
   transition preserves unchanged work and evidence;
 - browser routing honors explicit selection; Codex otherwise prefers the Chrome
   connector with capability-based in-app Browser fallback, while Cursor maps
-  `auto` to Playwright and blocks `in_app`, using a fresh task-owned tab per
-  run and closing it before every handoff;
+  `auto` and `chrome` to Browser Use and blocks `in_app`, using a fresh
+  task-owned tab per run and closing it before every handoff; Grok maps `auto`
+  to Playwright and blocks `in_app` and `chrome`;
 - the first review covers the bounded target while delta reviews stay focused;
 - the implicit greenfield skill never silently activates Orchestra;
 - PR-open authority includes the review/fix/push loop but not implicit merge;

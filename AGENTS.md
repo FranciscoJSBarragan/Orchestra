@@ -193,8 +193,9 @@ observe the host permission choice and never write permission configuration.
 The active permission choice for the task, host, or launcher stays
 authoritative and Orchestra never changes it (full rules in `docs/WORKFLOW.md`,
 "Test permissions and browser routing"). Browser packets carry `browser_route`;
-an explicit user route wins and is never vetoed or substituted. Cursor and Grok
-map `auto` to Playwright and block `in_app`. Grok also blocks `chrome`.
+an explicit user route wins and is never vetoed or substituted. Cursor maps
+`auto` and `chrome` to Browser Use and blocks `in_app`. Grok maps `auto` to
+Playwright and blocks `in_app` and `chrome`.
 
 ## User-facing progress
 

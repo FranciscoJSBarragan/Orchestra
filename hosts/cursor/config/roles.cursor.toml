@@ -69,39 +69,39 @@ effort = "medium"
 
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
-subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "medium"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "xhigh"
 
 [tiers.standard.web_research]
 profile = "orchestra_analyst"
-subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "medium"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "xhigh"
 
 [tiers.standard.runtime_verification]
 profile = "orchestra_verifier"
-subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "medium"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "xhigh"
 
 [tiers.standard.browser_acceptance]
 profile = "orchestra_verifier"
-subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "medium"
+subagent_type = "luna-worker"
+model = "gpt-5.6-luna"
+effort = "xhigh"
 
 [tiers.standard.general_implementation]
 profile = "orchestra_implementation_worker"
 subagent_type = "grok-worker"
 model = "cursor-grok-4.6"
-effort = "high"
+effort = "xhigh"
 
 [tiers.standard.frontend_implementation]
 profile = "orchestra_implementation_worker"
 subagent_type = "grok-worker"
 model = "cursor-grok-4.6"
-effort = "high"
+effort = "xhigh"
 
 [tiers.standard.technical_planning]
 profile = "orchestra_analyst"
@@ -123,6 +123,6 @@ effort = "xhigh"
 
 [tiers.standard.independent_review]
 profile = "orchestra_reviewer"
-subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "xhigh"
+subagent_type = "generalPurpose"
+model = "claude-opus-5"
+effort = "medium"
