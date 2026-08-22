@@ -30,6 +30,9 @@ Orchestra/
 ├── README.md
 ├── VISION.md
 ├── AGENTS.md
+├── orchestra.toml
+├── .agent/
+│   └── backend-testing.md
 ├── docs/
 │   ├── WORKFLOW.md
 │   ├── ARCHITECTURE.md
@@ -188,7 +191,13 @@ targeted `repository_context` delta, replace an affected phase, persist durable
 knowledge through an already-authorized source-documentation edit, or explicitly
 defer or discard the candidate. This judgment never runs concurrently with an
 active mutable implementation owner and never lets a discovery expand its
-producer's authority.
+producer's authority. Product-documentation `persist` still returns to the same
+implementation owner at a phase-listed path. The root may edit only `.agent/**`
+at an approved-phase stable handoff. An initial seed then follows its normal
+gate and initial review. A later `.agent/**` `persist` receives post-edit
+repository-context revalidation, replacement checks from the same owner, any
+applicable verifier rerun, and delta review by the same reviewer; ordinary
+convention-doc commits still need no independent verifier.
 
 Approved plans expose context without creating a context store: the overview
 contains a provenance-preserving `Review context` index and each phase names its
@@ -638,12 +647,18 @@ After 30 accumulated minutes, only concrete blocker evidence justifies
 intervention.
 
 The implementation owner runs every required local deterministic check,
-including the canonical full suite when one exists. A required user preview
+including the canonical full suite when one exists. The owner does not edit
+`.agent/`; seed files are root-authored at a stable handoff before their initial
+review. For a later `.agent/**` `persist`, the owner reruns affected checks
+after the root write and independent context revalidation, including the new
+literal hard gate when changed, and publishes replacement evidence before
+delta review. A required user preview
 pauses after that handoff with no retained Orchestra process; verification
 and review of that phase use the post-absorption frozen revision. A verifier is created only
 for browser interaction, owned services or processes, mutable or stateful data,
 credentials, network or external environments, explicit repository policy, or
-a critical phase. Critical phases independently repeat the applicable owner-run
+a critical phase. Ordinary deterministic non-critical phases have no verifier.
+Critical phases independently repeat the applicable owner-run
 gate. Reviewers inspect evidence rather than routinely repeating checks and may
 run only a minimal diagnostic check for a concrete defect hypothesis.
 

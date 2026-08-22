@@ -87,7 +87,8 @@ current-task consumer, and omit the section when nothing qualifies. Do not
 repeat unchanged context, create a separate artifact, edit an earlier artifact,
 present a candidate as canonical, or infer new authority. The root alone
 assigns its disposition and decides whether another capability or an authorized
-versioned source change consumes it.
+versioned source change consumes it. A convention suggestion is a discovery
+whose named consumer is an exact `.agent/` path; it is not a new artifact kind.
 
 ## Report discipline
 

@@ -79,4 +79,6 @@ Return:
 Then offer planned continuation through Orchestra in plain language. Do not
 activate `$orchestra` automatically. If the user explicitly accepts, that
 instruction activates Orchestra, which reuses this brief, decisions, readiness,
-acceptance, and fresh evidence instead of restarting discovery.
+acceptance, and fresh evidence instead of restarting discovery. The first
+Orchestra plan includes the seed Decision from these verified commands; do not
+write `.agent/` during greenfield-only work or before plan approval.

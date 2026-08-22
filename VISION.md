@@ -235,7 +235,8 @@ versioned source documentation, or explicitly defer or discard it. Discovery
 does not grant authority, make the claim canonical, or permit an agent to edit
 an earlier artifact. Task-private reports support the current task; knowledge
 that must survive task cleanup becomes durable only through an authorized
-source change. This uses the existing report kinds and creates no shared
+source change, including tracked `.agent/` convention files when that store is
+in use. This uses the existing report kinds and creates no shared
 mutable context document, artifact kind, registry, or memory system.
 
 The approved overview exposes a bounded, provenance-preserving `Review context`,
@@ -245,9 +246,13 @@ conditionally authorized for maintenance. Independent implementation review
 consumes that evidence directly, records `Context basis`, and remains read-only. When review
 finds stale project information, the root validates the claim independently;
 only a confirmed descriptive fact may return to the same implementation owner
-for an authorized documentation correction. The corrected source receives a
-fresh repository-context revalidation delta, affected verification, and delta
-review before commit.
+for an authorized documentation correction, except that a `persist` destination
+under `.agent/**` is a root write at an approved-phase stable handoff before
+delta review. That root-write exception changes edit ownership, not proof: the
+corrected source still receives a fresh repository-context revalidation delta,
+replacement checks from the same implementation owner (including a new literal
+hard gate when changed), any applicable independent verification, and delta
+review by the same reviewer before commit.
 Normative sources express intent or constraints and never follow current code
 automatically merely because the two conflict.
 

@@ -25,7 +25,12 @@ class ValidateSuiteTests(unittest.TestCase):
             ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
         )
 
-    def run_validator(self, mode: str = "--quick") -> subprocess.CompletedProcess[str]:
+    def run_validator(
+        self,
+        mode: str = "--quick",
+        *,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -36,6 +41,7 @@ class ValidateSuiteTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            env=env,
         )
 
     def test_quick_succeeds_for_conforming_fixture(self) -> None:
@@ -78,6 +84,95 @@ class ValidateSuiteTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("retains verifier-only semantics", result.stdout)
+
+    def test_repository_conventions_contract_requires_missing_store_checkpoint(
+        self,
+    ) -> None:
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            workflow.read_text(encoding="utf-8").replace(
+                "missing-store checkpoint",
+                "optional store reminder",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "docs/WORKFLOW.md must name missing-store checkpoint",
+            result.stdout,
+        )
+
+    def test_repository_conventions_contract_requires_agent_hard_gate(self) -> None:
+        conventions = self.root / ".agent/backend-testing.md"
+        conventions.write_text(
+            conventions.read_text(encoding="utf-8").replace(
+                "python3 codex/scripts/validate_suite.py --full",
+                "python3 -m pytest",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            ".agent/backend-testing.md must name python3 "
+            "codex/scripts/validate_suite.py --full",
+            result.stdout,
+        )
+
+    def test_untracked_required_path_is_actionable(self) -> None:
+        subprocess.run(
+            ["git", "init"],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "add", "-A"],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "rm", "--cached", ".agent/backend-testing.md"],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "required-path: untracked .agent/backend-testing.md",
+            result.stdout,
+        )
+
+    def test_git_tracking_command_failure_is_actionable(self) -> None:
+        (self.root / ".git").write_text(
+            "gitdir: missing-git-directory\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "required-path: unable to verify tracked paths via git ls-files "
+            "(exit ",
+            result.stdout,
+        )
+
+    def test_missing_git_executable_is_actionable(self) -> None:
+        (self.root / ".git").mkdir()
+        env = os.environ.copy()
+        env["PATH"] = ""
+        result = self.run_validator(env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "required-path: unable to verify tracked paths via git ls-files "
+            "(FileNotFoundError)",
+            result.stdout,
+        )
 
     def test_user_preview_contract_requires_named_blocker(self) -> None:
         workflow = self.root / "docs/WORKFLOW.md"

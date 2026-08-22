@@ -596,7 +596,9 @@ After explicit activation in an execution-capable mode:
 8. The root confirms the final specification with Objective, User-visible
    behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
    then recommends any justified tier change. The user chooses whether to change
-   it. Request only the context delta tied to a newly discovered risk.
+   it. Request only the context delta tied to a newly discovered risk. If the
+   worktree has no `.agent/` directory, include the missing-store checkpoint in
+   that same consolidated request rather than a later turn.
 9. Final specification confirmation starts formal planning. The task-level
    User preview Decision must already be recorded from tier selection; do not
    introduce it at plan approval. A planner reads the
@@ -863,16 +865,20 @@ dispositions:
   affected phase becomes a complete replacement artifact and the root updates
   the manifest; material scope, public-contract, or user-visible behavior
   changes still require renewed approval;
-- `persist`: knowledge needs to survive task-artifact cleanup, so the current
-  responsible implementation owner may update the repository's canonical
+- `persist`: knowledge needs to survive task-artifact cleanup. `persist` forks
+  by destination. Product documentation still goes through the current
+  responsible implementation owner, who may update the repository's canonical
   versioned human-readable documentation only for a validated `descriptive`
   claim and an exact path already listed under the phase's `Context maintenance
   paths`; if no such phase exists, the root uses `replan` when the change
   remains within approved authority, and otherwise uses `defer` or requests the
-  newly required authority. A `normative` or `uncertain` conflict is never
-  rewritten to match current code automatically; executable configuration,
-  databases, generated data, and operational data remain normal implementation
-  scope;
+  newly required authority. An `.agent/**` destination is a root write at the
+  next approved-phase stable handoff and then follows the mandatory post-edit
+  proof below before delta review; do not list `.agent/` under `Context
+  maintenance paths`. A `normative` or `uncertain`
+  conflict is never rewritten to match current code automatically; executable
+  configuration, databases, generated data, and operational data remain normal
+  implementation scope;
 - `defer`: a useful out-of-scope candidate is reported as an explicit follow-up
   without silently expanding the current task; or
 - `discard`: the candidate is duplicate, immaterial, disproven, or unsupported.
@@ -890,13 +896,18 @@ without validation or another agent dispatch.
 A stale-context claim that names the exact material review judgment it makes
 unreliable cannot be deferred into an `accepted` phase; an incidental
 discrepancy neither creates a discovery nor blocks. After an authorized
-documentation correction, the root always dispatches one bounded
-`repository_context` revalidation against the exact changed paths and dirty
-revision, reruns affected documentation or project verification, and returns
-only the fresh context delta and replacement verification evidence to the same
-reviewer for delta review. This post-edit proof is not pruned by the earlier
-relevance gate. A material unresolved, stale, or conflicting context basis
-blocks phase commit only with its affected judgment named.
+documentation correction, including a root-authored `.agent/**` `persist`, the
+root always dispatches one bounded post-edit `repository_context` revalidation
+against the exact changed paths and dirty revision. The same implementation
+owner then reruns affected deterministic handoff checks and publishes a
+replacement `implementation-report`; when `.agent/` adds or changes a hard
+gate, that evidence includes the new literal hard-gate command. Any applicable
+independent gate reruns with the same verifier. Only the fresh context delta,
+replacement implementation and verification evidence, and meaningful delta go
+to the same reviewer for delta review. A rejected revalidation, stale evidence,
+or unresolved material context basis blocks phase commit with its affected
+judgment named. This post-edit proof is not pruned by the earlier relevance
+gate.
 
 All coordination operations are fail-soft after their correctly authorized
 first attempt. `invalid` or `unavailable` status
@@ -919,7 +930,7 @@ The phase's existing `Verification` section distinguishes `Implementation
 handoff checks` from the `Independent verification gate`. The implementation
 owner runs every required local deterministic check: affected tests, lint, type
 checks, builds, validation commands, and the canonical full suite when one
-exists. The owner diagnoses and corrects failures within approved scope before
+exists; the suite is the `.agent/` hard gate when that store exists. The owner diagnoses and corrects failures within approved scope before
 handoff. An ordinary deterministic non-critical phase sets the independent
 gate to `none`. A verifier is required only for browser interaction, owned
 services or processes, mutable or stateful data, credentials, network or
@@ -1043,7 +1054,14 @@ The loop is:
    generated effects and cleanup, and residual risk.
    The root performs at most one bounded check of exact
    Git identity, status, allowed-path scope, `git diff --check`, and the declared
-   evidence inventory. If it investigates a possible correctness defect
+   evidence inventory. That check exempts root-authored `.agent/**` deltas.
+   When the approved plan records a seed Decision in `plan.md`, the root writes
+   only the approved `.agent/**` seed paths at the first phase's stable
+   handoff, before dispatching review. Seed handoff order is owner delivers,
+   then that root write, then the independent gate, then initial review, then
+   commit. A later `.agent/**` `persist` follows steps 5–7 instead of this seed
+   path.
+   If it investigates a possible correctness defect
    directly, it completes and confirms that investigation against the current
    source and diff before contacting the owner or pausing the phase cohort. It
    sends one consolidated finding packet containing evidence, impact, and
@@ -1078,7 +1096,10 @@ The loop is:
    explicitly accepted does one reviewer receive exact overview, phase,
    implementation, and any required verification IDs, plus every exact
    repository-context artifact or inline fallback required by the approved
-   overview and current phase. It independently inspects source and diff,
+   overview and current phase. When the phase commit will include root-authored
+   `.agent/` files, that packet must cite the exact `.agent/` seed paths as
+   additional evidence; a commit containing those files cannot close without
+   that citation and inspection. It independently inspects source and diff,
    evaluates approved intent before project guardrails and current
    implementation evidence, publishes a complete initial
    `implementation-review` with `Context basis`, and later publishes meaningful
@@ -1104,17 +1125,24 @@ The loop is:
    change acceptance, a finding disposition, replanning, or a `persist` needed
    by the named consumer; otherwise it uses `discard` without dispatch. Only a
    confirmed `descriptive` claim at an exact authorized versioned
-   documentation path receives `persist` and returns to that same owner;
+   documentation path receives `persist`. Product documentation returns to the
+   same owner; an `.agent/**` destination remains root-authored at this stable
+   handoff.
    `normative` or `uncertain` conflicts are corrected as implementation defects,
    replanned, deferred, or taken to the applicable authority boundary rather
    than rewritten to follow code automatically.
-6. Have the same implementation owner rerun affected deterministic handoff
-   checks, and rerun an applicable independent gate with the same verifier.
-   After context documentation changes, also run one targeted
-   repository-context revalidation against the exact changed paths and current
-   dirty revision. Send only its fresh context delta, any exact replacement
-   verification reports, and the meaningful implementation delta to the same
-   reviewer.
+6. After the owner edits product documentation or the root writes an authorized
+   `.agent/**` `persist`, first run one targeted post-edit repository-context
+   revalidation against the exact changed paths and current dirty revision. On
+   confirmation, have the same implementation owner rerun affected
+   deterministic handoff checks and publish a replacement
+   `implementation-report` for that dirty revision. If the `.agent/` change
+   adds or changes a hard gate, the owner must run the new literal hard-gate
+   command; prior evidence is stale. Then rerun an applicable independent gate
+   with the same verifier. Send only the fresh context delta, replacement
+   implementation and verification reports, and meaningful delta to the same
+   reviewer for delta review. A rejected revalidation or stale required
+   evidence blocks this path.
 7. After final evidence is consumed and every material context discovery has an
    explicit disposition, require the reviewer to have an unblocked current
    context basis. A material unresolved, stale, or conflicting context basis
@@ -1430,6 +1458,51 @@ validation.
 
 Phase-agent and temporary-resource teardown is complete before this path starts;
 it is not part of direct Git or `commit_phase.py`.
+
+## Repository conventions
+
+A consumer repository may store durable agent operating conventions in tracked
+`.agent/` topic files. That store is not task-private `.orchestra/` state, not
+host-injected `AGENTS.md`, and not `orchestra.toml` delivery argv. Files use a
+fixed taxonomy when present: scope, hard gate with exact argv and cwd,
+diagnostic-only commands, forbidden substitutions, opt-in gates, and
+prerequisites. There is no closed file enum and no empty stub.
+
+Lookup reads `.agent/` first, then applicable `AGENTS.md` files if present, then
+Makefile, CI, package manifests, and `orchestra.toml` as evidence. Packets name
+exact `.agent/` paths and do not paste file bodies. The plan copies literal
+hard-gate commands into `Implementation handoff checks`. If `.agent/` disagrees
+with `AGENTS.md` or delivery checks, block and do not guess. Resolve that with
+the existing canonical-source rule: a `normative` or `uncertain` conflict is an
+authority boundary and is never rewritten to match current code automatically.
+
+After first `repository_context` and before the product plan, a missing `.agent/`
+directory is a missing-store checkpoint batched into the same consolidated user
+request as spec confirmation. Recommend creating conventions from verified
+analysis. Explicit "not now" infers commands for this task only; the next
+`$orchestra` on the same repo asks again until `.agent/` exists. Never create
+the store in silence. A new project skips that checkpoint: the first Orchestra
+plan automatically includes the seed Decision in `plan.md`, and the first phase
+names the exact `.agent/` paths in its scope and outputs.
+
+The checkpoint or greenfield auto-include is only that decision, not a disk
+write. For that seed, the root writes only `.agent/**` at the first approved
+phase's stable handoff, before dispatching review, never before plan approval
+and never as a setup mutation analogous to `plan.md`. Abort or reject of the
+plan therefore leaves no versioned `.agent/` orphans. Seed handoff order is
+owner delivers, then the root writes `.agent/`, then the independent gate
+(`none` for ordinary convention docs), then initial review that must cite the
+exact `.agent/` seed paths, then commit. Subagents suggest later convention
+updates only as `Context discoveries` whose named consumer is an exact
+`.agent/` path. Evidenced descriptive corrections may persist after validation
+without a second ask; after the root write they require post-edit
+repository-context revalidation, a replacement owner report with affected
+checks (including any new literal hard gate), any applicable verifier rerun,
+and delta review by the same reviewer. New normative policy waits for user
+confirmation; a task shortcut is `discard`. `persist` forks by destination as
+specified above. The allowed-path check exempts root-authored `.agent/**`
+deltas; implementer allowed paths exclude `.agent/`. Delivery checks remain in
+`orchestra.toml`.
 
 ## Delivery policy
 

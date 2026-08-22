@@ -161,7 +161,8 @@ Any role records newly discovered material context only in its existing report.
 At a stable handoff the root assigns its explicit disposition and routes exact
 identifiers; only authorized versioned source changes make knowledge durable
 across tasks. Discovery never expands agent authority or creates a new context
-store or artifact kind. Executable configuration, databases, generated data,
+store or artifact kind. Repository conventions live in `.agent/` when present;
+missing-store and update rules are in `docs/WORKFLOW.md`. Executable configuration, databases, generated data,
 and operational data are not context-maintenance paths.
 
 ## Execution and commits

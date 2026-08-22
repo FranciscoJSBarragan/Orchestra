@@ -30,7 +30,13 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   `Implementation handoff checks` from the `Independent verification gate`.
   Assign every required local deterministic check to the implementation owner,
   including affected tests, lint, type checks, builds, validation commands,
-  and the canonical full suite when one exists. Set
+  and the canonical full suite when one exists. Copy literal `.agent/` hard-gate
+  commands into `Implementation handoff checks` and cite those `.agent/` paths
+  in `Review context`. Never put `.agent/` in `Context maintenance paths`. A
+  greenfield first plan records the seed Decision in `plan.md`; the first phase
+  names those exact `.agent/` paths in its scope and outputs; the first-phase
+  review packet must cite the exact `.agent/` seed paths. Do not write `.agent/`
+  before plan approval. Set
   the independent gate to `none` for an ordinary deterministic non-critical
   phase. Assign a verifier only for browser interaction, owned services or
   processes, mutable or stateful data, credentials, network or another external

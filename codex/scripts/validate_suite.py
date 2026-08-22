@@ -38,6 +38,7 @@ REQUIRED_PATHS = (
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
     "orchestra.toml",
+    ".agent/backend-testing.md",
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
     "codex/scripts/sync.py",
@@ -276,12 +277,40 @@ DUAL_MODEL_ALIASES = {
 
 
 def check_required_paths(root: Path) -> list[str]:
-    """Ensure every current conformance consumer is present."""
-    return [
+    """Ensure every current conformance consumer is present and tracked."""
+    failures = [
         f"required-path: missing {relative}"
         for relative in REQUIRED_PATHS
         if not (root / relative).is_file()
     ]
+    git_dir = root / ".git"
+    if not git_dir.exists():
+        return failures
+    try:
+        listed = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z"],
+            check=True,
+            capture_output=True,
+        ).stdout
+    except OSError as exc:
+        failures.append(
+            "required-path: unable to verify tracked paths via git ls-files "
+            f"({type(exc).__name__})"
+        )
+        return failures
+    except subprocess.CalledProcessError as exc:
+        failures.append(
+            "required-path: unable to verify tracked paths via git ls-files "
+            f"(exit {exc.returncode})"
+        )
+        return failures
+    tracked = set(listed.decode().split("\0")) - {""}
+    failures.extend(
+        f"required-path: untracked {relative}"
+        for relative in REQUIRED_PATHS
+        if (root / relative).is_file() and relative not in tracked
+    )
+    return failures
 
 
 _ASSIGNMENT_TABLE_HEADERS = {
@@ -897,6 +926,7 @@ def check_verification_ownership(root: Path) -> list[str]:
         "docs/WORKFLOW.md": (
             "implementation owner runs every required local deterministic check",
             "canonical full suite when one exists",
+            "the suite is the `.agent/` hard gate when that store exists",
             "independent gate to `none`",
             "any critical phase",
             "same implementation owner applies accepted fixes",
@@ -1582,6 +1612,73 @@ def check_grok_host(root: Path) -> list[str]:
     return failures
 
 
+def check_repository_conventions(root: Path) -> list[str]:
+    """Keep `.agent/` lookup, seed, persist fork, and root-only writes explicit."""
+    failures: list[str] = []
+    required_by_path = {
+        "docs/WORKFLOW.md": (
+            "`.agent/` first",
+            "missing-store checkpoint",
+            "seed Decision in `plan.md`",
+            "seed handoff order",
+            "before dispatching review",
+            "`persist` forks by destination",
+            "root writes only `.agent/**`",
+            "the first approved phase's stable handoff",
+            "exempts root-authored `.agent/**` deltas",
+            "cite the exact `.agent/` seed paths",
+            "post-edit repository-context revalidation",
+            "replacement `implementation-report`",
+            "new literal hard-gate command",
+            "same reviewer for delta review",
+        ),
+        "codex/skills/orchestra/SKILL.md": (
+            "missing-store checkpoint",
+            "seed handoff order",
+            "the first approved phase's stable handoff",
+            "before dispatching review",
+            "`persist` forks by destination",
+            "exempts root-authored `.agent/**` deltas",
+            "cite the exact `.agent/` seed paths",
+            "post-edit repository-context revalidation",
+            "replacement `implementation-report`",
+            "new literal hard-gate command",
+            "same reviewer for delta review",
+        ),
+        "codex/skills/orchestra-role-implementer/SKILL.md": (
+            "do not edit `.agent/`",
+            "fresh post-edit `context-delta`",
+            "new literal `.agent/` hard-gate command",
+        ),
+        "codex/skills/orchestra-role-reviewer/SKILL.md": (
+            "inspect packet-cited seed paths",
+            "fresh post-edit `context-delta`",
+            "replacement `implementation-report`",
+        ),
+        "codex/skills/orchestra/references/repository_context.md": (
+            "`.agent/` first",
+            "applicable `AGENTS.md`",
+        ),
+        ".agent/backend-testing.md": (
+            "python3 codex/scripts/validate_suite.py --full",
+            "python3 codex/scripts/validate_suite.py --quick",
+            "Do not treat an ad-hoc `pytest`",
+        ),
+    }
+    for relative, required in required_by_path.items():
+        path = root / relative
+        if not path.is_file():
+            failures.append(f"repository-conventions: missing {relative}")
+            continue
+        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
+        for contract in required:
+            if " ".join(contract.lower().split()) not in normalized:
+                failures.append(
+                    f"repository-conventions: {relative} must name {contract}"
+                )
+    return failures
+
+
 Check = Callable[[Path], list[str]]
 QUICK_CHECKS: tuple[Check, ...] = (
     check_required_paths,
@@ -1592,6 +1689,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_roles_and_profiles,
     check_skills_and_runtime,
     check_verification_ownership,
+    check_repository_conventions,
     check_user_preview,
     check_direct_sync,
     check_cursor_host,

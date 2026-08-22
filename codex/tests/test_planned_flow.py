@@ -410,6 +410,82 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertNotIn("<NN>-context-discovery", combined)
         self.assertNotIn("context-discovery-report", combined)
 
+    def test_repository_conventions_are_named_in_workflow_and_roles(self) -> None:
+        workflow = " ".join((ROOT / "docs/WORKFLOW.md").read_text().lower().split())
+        skill = " ".join(self.skill.lower().split())
+        implementer = " ".join(
+            self.instructions("orchestra_implementation_worker").lower().split()
+        )
+        reviewer = " ".join(
+            self.instructions("orchestra_reviewer").lower().split()
+        )
+        context = " ".join(
+            (self.references / "repository_context.md").read_text().lower().split()
+        )
+        planning = " ".join(
+            (self.references / "technical_planning.md").read_text().lower().split()
+        )
+        runtime = " ".join(
+            (ROOT / "codex/runtime/AGENTS.orchestra.md")
+            .read_text()
+            .lower()
+            .split()
+        )
+        vision = " ".join((ROOT / "VISION.md").read_text().lower().split())
+        architecture = " ".join(
+            (ROOT / "docs/ARCHITECTURE.md").read_text().lower().split()
+        )
+        for contract in (
+            "`.agent/` first",
+            "missing-store checkpoint",
+            "seed decision in `plan.md`",
+            "seed handoff order",
+            "before dispatching review",
+            "`persist` forks by destination",
+            "root writes only `.agent/**`",
+            "the first approved phase's stable handoff",
+            "exempts root-authored `.agent/**` deltas",
+            "cite the exact `.agent/` seed paths",
+            "post-edit repository-context revalidation",
+            "replacement `implementation-report`",
+            "new literal hard-gate command",
+            "same reviewer for delta review",
+        ):
+            self.assertIn(contract, workflow, contract)
+        for contract in (
+            "missing-store checkpoint",
+            "seed handoff order",
+            "the first approved phase's stable handoff",
+            "before dispatching review",
+            "`persist` forks by destination",
+            "exempts root-authored `.agent/**` deltas",
+            "cite the exact `.agent/` seed paths",
+            "post-edit repository-context revalidation",
+            "replacement `implementation-report`",
+            "new literal hard-gate command",
+            "same reviewer for delta review",
+        ):
+            self.assertIn(contract, skill, contract)
+        self.assertIn("do not edit `.agent/`", implementer)
+        self.assertIn("root packet supplies an explicit `persist` disposition", implementer)
+        self.assertIn("fresh post-edit `context-delta`", implementer)
+        self.assertIn("new literal `.agent/` hard-gate command", implementer)
+        self.assertIn("inspect packet-cited seed paths", reviewer)
+        self.assertIn("fresh post-edit `context-delta`", reviewer)
+        self.assertIn("replacement `implementation-report`", reviewer)
+        self.assertIn("root alone writes an authorized `.agent/**` `persist`", runtime)
+        self.assertIn("root-write exception changes edit ownership, not proof", vision)
+        self.assertIn("later `.agent/**` `persist` receives post-edit", architecture)
+        self.assertIn("`.agent/` first", context)
+        self.assertIn("applicable `agents.md`", context)
+        conventions = " ".join(
+            (ROOT / ".agent/backend-testing.md").read_text().lower().split()
+        )
+        self.assertIn("python3 codex/scripts/validate_suite.py --full", conventions)
+        self.assertNotIn("## delivery", conventions)
+        self.assertIn("cite the exact `.agent/` seed paths", planning)
+        self.assertIn("never put `.agent/` in `context maintenance paths`", planning)
+
     def test_phase_review_context_is_traced_and_corrected_without_self_review(
         self,
     ) -> None:
