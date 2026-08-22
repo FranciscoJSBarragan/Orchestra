@@ -1013,6 +1013,85 @@ def check_verification_ownership(root: Path) -> list[str]:
     return failures
 
 
+def check_user_preview(root: Path) -> list[str]:
+    """Keep user preview a Decision and phase line, not a tier or kind."""
+    failures: list[str] = []
+    required_by_path = {
+        "VISION.md": (
+            "optional user preview",
+            "not a tier, profile, or plan status",
+            "no Orchestra-owned process survives the pause",
+            "post-absorption",
+        ),
+        "docs/WORKFLOW.md": (
+            "blocker `user_preview`",
+            "bare tier choice or silence is `none`",
+            "Decision before dispatching",
+            "frozen revision is that post-absorption",
+            "`<NN>-preview-brief.md`",
+            "not a semantic artifact kind",
+            "`blocked` to `active` resume",
+        ),
+        "docs/ARCHITECTURE.md": (
+            "no process is retained across the pause",
+            "User preview: required | none",
+        ),
+        "AGENTS.md": (
+            "user preview",
+            "fresh owner absorbs",
+        ),
+        "codex/runtime/AGENTS.orchestra.md": (
+            "blocker `user_preview`",
+            "User preview: required | none",
+        ),
+        "codex/skills/orchestra/SKILL.md": (
+            "User preview Decision must already be recorded",
+            "blocker `user_preview`",
+            "fresh owner absorbs",
+        ),
+        "codex/skills/orchestra/references/technical_planning.md": (
+            "User preview: required | none",
+            "split mixed API and UI work",
+        ),
+        "codex/skills/orchestra/references/frontend_implementation.md": (
+            "not user preview",
+        ),
+        "codex/skills/orchestra-role-implementer/SKILL.md": (
+            "user-preview absorption",
+        ),
+        "codex/skills/orchestra-role-reviewer/SKILL.md": (
+            "frozen user-preview revision",
+        ),
+    }
+    for relative, required in required_by_path.items():
+        path = root / relative
+        if not path.is_file():
+            failures.append(f"user-preview: missing {relative}")
+            continue
+        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
+        for contract in required:
+            if " ".join(contract.lower().split()) not in normalized:
+                failures.append(
+                    f"user-preview: {relative} must name {contract}"
+                )
+    workflow = root / "docs/WORKFLOW.md"
+    if workflow.is_file():
+        kinds = workflow.read_text(encoding="utf-8")
+        start = kinds.find("Conventional artifact kinds are")
+        end = kinds.find("Corrected", start) if start >= 0 else -1
+        if start < 0 or end < 0:
+            failures.append(
+                "user-preview: docs/WORKFLOW.md must keep the conventional "
+                "artifact kinds sentence"
+            )
+        elif "preview-brief" in kinds[start:end].lower():
+            failures.append(
+                "user-preview: preview-brief must not join conventional "
+                "artifact kinds"
+            )
+    return failures
+
+
 def check_direct_sync(root: Path) -> list[str]:
     """Validate the bounded source inventory and direct-sync public contract."""
     failures: list[str] = []
@@ -1513,6 +1592,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_roles_and_profiles,
     check_skills_and_runtime,
     check_verification_ownership,
+    check_user_preview,
     check_direct_sync,
     check_cursor_host,
     check_grok_host,

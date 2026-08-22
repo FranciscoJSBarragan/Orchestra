@@ -189,6 +189,11 @@ production, alter an unagreed product behavior, change a public contract,
 affect security or privacy policy, create material external cost, expand scope
 substantially, or be difficult to reverse.
 
+When the approved work has a user-visible surface whose look or operable feel
+the user should judge, Orchestra may pause after that phase's implementation
+handoff for an optional user preview. Preview is not a tier, profile, or plan
+status. Taste belongs there, not in independent review.
+
 ### Evidence before claims
 
 Completion means the relevant verification actually ran and its result was
@@ -255,7 +260,12 @@ Implementation ownership is also a stable observation boundary. While the
 owner is active, the root does not inspect or exercise the evolving
 implementation. At each owner handoff, it may perform one bounded identity,
 scope, and evidence check, then completes any root-originated investigation
-before returning one consolidated, confirmed finding packet. Once verification
+before returning one consolidated, confirmed finding packet. A required user
+preview starts only at that stable handoff, after the owner has closed every
+owned resource; no Orchestra-owned process survives the pause. Independent
+verification and review of that phase wait until a fresh owner has absorbed any
+in-scope user delta and handoff checks are green; that post-absorption
+revision is the frozen revision for the rest of the phase. Once verification
 starts against a stable revision, speculative root review stops; required
 verification finishes before independent review begins.
 
@@ -337,7 +347,8 @@ a new one; Orchestra never claims a user's existing tab or closes the Chrome
 application, a shared window, or unrelated browser state. A product failure
 never triggers a browser switch. Browser acceptance cites PNG screenshot files
 next to its report when the run reached a visible page; frontend visual
-iteration cites them when the browser was used.
+iteration cites them when the browser was used. Agent-internal visual
+iteration is implementation evidence, not user preview.
 
 ### Idea-to-project continuity
 

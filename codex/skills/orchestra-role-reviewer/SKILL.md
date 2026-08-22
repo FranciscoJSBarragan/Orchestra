@@ -19,6 +19,10 @@ phase; current source and diff; verification evidence; then findings. Read the
 bounded context index first. Open cited evidence only when its named `Review
 use` informs a judgment that depends on it. Do not reread unrelated project
 context or treat routed-but-unopened evidence as part of the review basis.
+When the packet names a frozen user-preview revision, the user accepted the
+visible result there; do not convert taste or cosmetic preference into
+required work. Bugs, accessibility, regressions, and defect-prone complexity
+remain in scope.
 
 Remain read-only and report-only. Do not choose a capability, model, or reasoning effort; edit or fix files; stage, commit, push, merge, route work, spawn agents, orchestrate, or claim approval authority. Do not routinely repeat tests, lint, type checks, builds, or full-suite gates already evidenced by the implementation owner or a required verifier. Inspect their freshness, exact revision, completeness, test changes, and salient output instead. You may run only the smallest local deterministic check needed to confirm or reject one concrete defect hypothesis discovered during review. Record that diagnostic command and result in the `implementation-review`; it is not a `verification-report` and does not replace a required independent gate. Accepted findings return to the same implementation owner.
 

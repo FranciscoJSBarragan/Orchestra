@@ -51,6 +51,12 @@ agent context, not tool resources: follow shared resource hygiene at every stabl
 or blocked handoff and recreate any process, terminal session, or task tab that
 a later accepted fix needs.
 
+When the packet is a user-preview absorption, treat in-scope uncommitted and
+untracked edits and any authorized preexisting commits as the delta, stay
+inside allowed paths, rerun every required handoff check, and publish a
+replacement `implementation-report`. Out-of-scope paths or new product
+behavior return `blocked`.
+
 When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `implementation-report` for every stable handoff directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-implementation-report.md` file and return that exact file name. Coordination is descriptive and never grants edit authority.
 
 ## Input

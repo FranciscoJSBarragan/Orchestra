@@ -512,6 +512,42 @@ class PlannedFlowContractTests(unittest.TestCase):
         self.assertNotIn("<NN>-review-context", "\n".join(routing_sources.values()))
         self.assertNotIn("<NN>-context-basis", "\n".join(routing_sources.values()))
 
+    def test_user_preview_is_decision_and_phase_line_not_schema(self) -> None:
+        workflow = (ROOT / "docs/WORKFLOW.md").read_text()
+        skill = self.skill
+        runtime = (ROOT / "codex/runtime/AGENTS.orchestra.md").read_text()
+        planning = (self.references / "technical_planning.md").read_text()
+        implementer = self.instructions("orchestra_implementation_worker")
+        reviewer = self.instructions("orchestra_reviewer")
+        frontend = (self.references / "frontend_implementation.md").read_text()
+
+        for source in (workflow, skill, runtime, planning):
+            self.assertIn("User preview: required | none", source)
+        self.assertIn("blocker `user_preview`", workflow)
+        self.assertIn("`user_preview` pause uses that existing", workflow)
+        self.assertIn("blocker `user_preview`", skill)
+        self.assertIn("User preview Decision must already be recorded", skill)
+        self.assertIn("user-preview absorption", implementer)
+        self.assertIn("frozen user-preview revision", reviewer)
+        self.assertIn("not user preview", frontend)
+        self.assertIn("Do not persist `standard-interactive`", skill)
+        self.assertIn(
+            "Do not persist an internal label `standard-interactive`",
+            workflow,
+        )
+        self.assertRegex(
+            skill,
+            r"Use only these statuses:\n\n"
+            r"- `active`:.*\n"
+            r"- `blocked`:.*\n"
+            r"- `completed`:",
+        )
+
+        kinds_start = workflow.index("Conventional artifact kinds are")
+        kinds = workflow[kinds_start : workflow.index("Corrected", kinds_start)]
+        self.assertTrue(kinds)
+        self.assertNotIn("preview-brief", kinds)
+
     def test_phase_review_context_requires_demonstrable_relevance(self) -> None:
         planning = " ".join(
             (self.references / "technical_planning.md")

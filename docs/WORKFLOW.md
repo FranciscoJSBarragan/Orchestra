@@ -29,7 +29,11 @@ flowchart TD
     PJ -->|"Ready"| A
     A["User approves exact bundle"] --> W["Write overview and phase manifest as active"]
     W --> F["Execute the next phase"]
-    F --> R["Review and verify"]
+    F --> PV{"User preview?"}
+    PV -->|"none"| R["Review and verify"]
+    PV -->|"required"| UP["blocked user_preview"]
+    UP --> AB["Absorb and freeze"]
+    AB --> R
     R -->|"Material finding"| F
     R -->|"Accepted"| X["Confirm cleanup and retire phase agents"]
     X --> M["Root commits the phase"]
@@ -525,7 +529,9 @@ After explicit activation in an execution-capable mode:
    blocks `critical` until those rows are assigned. Grok recommends `standard`
    and offers `critical` for matching high-impact risk; it blocks `minimal`.
    The user
-   explicitly chooses the active assigned tier. A user-selected `luna`,
+   explicitly chooses the active assigned tier. In that same message, offer
+   user preview when the [User preview](#user-preview) detection rule matches;
+   a bare tier choice is preview `none`. A user-selected `luna`,
    `minimal`, or `standard` tier does not waive separate authority gates for
    production, migrations, data, security, payments, destructive actions, or
    delivery.
@@ -591,7 +597,9 @@ After explicit activation in an execution-capable mode:
    behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
    then recommends any justified tier change. The user chooses whether to change
    it. Request only the context delta tied to a newly discovered risk.
-9. Final specification confirmation starts formal planning. A planner reads the
+9. Final specification confirmation starts formal planning. The task-level
+   User preview Decision must already be recorded from tier selection; do not
+   introduce it at plan approval. A planner reads the
    exact context artifacts and publishes one complete `plan-overview` plus one
    complete `plan-phase` per phase. It returns an explicit candidate bundle;
    neither root nor downstream agents reconstruct it from a summary or choose
@@ -607,7 +615,8 @@ After explicit activation in an execution-capable mode:
    its exact context dependencies and declares `Context maintenance paths` as
    `none`, unless an exact repository-relative versioned documentation path
    is already a named current-phase or identified later-phase consumer. Globs
-   and directory-wide authority are forbidden.
+   and directory-wide authority are forbidden. Every phase also declares
+   `User preview: required | none`.
 10. After the complete bundle exists, the root reads the overview, phase index,
    named risks, and only the detail needed for judgment. It may skip review for
    a trivial single-phase `luna` or `standard` plan. A non-trivial multi-phase
@@ -680,7 +689,8 @@ Its statuses are:
   authority remains separate.
 
 The normal lifecycle is `active` to `completed`, with `active` to `blocked` to
-`active` when needed. The root owns every update; plan state never grants
+`active` when needed. A `user_preview` pause uses that existing `blocked` to
+`active` resume; it is not a fourth status. The root owns every update; plan state never grants
 authority beyond the user's instruction.
 
 On resume, the root resolves the path again and requires checkout, initial
@@ -713,9 +723,9 @@ Before PR or local delivery, the root reads the terminal commit from the
 completed manifest and requires the effective task head to match it exactly.
 An unexplained mismatch blocks continuation and delivery under that plan.
 
-`Review context` and `Context maintenance paths` are semantic sections of the
-approved overview and phase artifacts; they add no `plan.md` status, manifest
-field, coordination state, or new artifact kind. A later validated context
+`Review context`, `Context maintenance paths`, and `User preview` are
+semantic sections of the approved overview and phase artifacts; they add no
+`plan.md` status, manifest field, coordination state, or new artifact kind. A later validated context
 delta that changes a future dependency produces a complete replacement for the
 affected phase. Widening a maintenance path follows the same replacement and
 authority rules.
@@ -926,11 +936,90 @@ coupled to implementation details unless those details are an approved
 contract. Each implementation handoff states the behavior or regression risk
 demonstrated by every changed test.
 
+### User preview
+
+User preview is an optional inspection of a user-visible surface after that
+phase's implementation handoff and before its independent verification and
+review. It is not a tier, matrix row, profile, `plan.md` status, or semantic
+artifact kind.
+
+In the same message as the initial tier recommendation, offer preview when all
+three hold from the minimum brief, with no extra research pass: the visible
+result is a surface the user operates or looks at; the change is material
+(new or substantially changed screen or flow, not a string or minor CSS
+tweak); and a local run recipe is known or trivially inferable. The offer is
+one clause, answerable as the chosen tier with preview or the chosen tier
+alone. Bare tier choice or silence is `none`. A conversational
+`interactive` / `interactivo` (or equivalent in the chat language) that
+clearly means this pause is `required`; if it might mean the product is
+interactive, disambiguate once in that same message. Do not re-ask when
+already chosen. Do not offer on API, schema, worker, CI, migration, or
+library-only work. Do not persist an internal label `standard-interactive`.
+
+Record the task-level choice as a Decision before dispatching
+`technical_planning`. Plan approval confirms only the per-phase mapping the
+planner recommends. Changing preview on a not-yet-started phase uses a
+complete replacement phase artifact. During any pause the user may skip
+remaining previews; unstarted `required` phases become `none` the same way.
+
+Each `plan-phase` contains `User preview: required | none`. Mark `required`
+only when the task-level Decision is `required`, the phase has a user-visible
+surface, and the phase names an executable local preview recipe. When preview
+is required, split mixed API and UI work so non-visible work commits before
+the inspectable phase. Prefer fewer UI phases when preview is on.
+
+After an `implemented` handoff whose required deterministic checks are green,
+if the current phase line is `required`:
+
+1. Close every Orchestra-owned resource with no retention exception. The user
+   starts any preview process themselves.
+2. Set `plan.md` to `blocked` with named blocker `user_preview` and next
+   action user inspection. This is distinct from a safe-stop blocker.
+3. Give the user a preview pack: worktree cwd, task branch, how to run the
+   surface, allowed paths, a short visible-result summary, cited existing
+   implementation screenshot paths, stay on the task branch, edit and do not
+   commit, and do not invoke Orchestra in the iteration chat. The root may
+   also write an advisory `<NN>-preview-brief.md` in the task-private
+   artifacts directory that cites those shots without copying them. Git and
+   the `implementation-report` remain truth; the brief is not a semantic
+   artifact kind and no later Orchestra agent consumes it as authority.
+4. Wait with `request_user_input` for iterate, freeze as-is, or skip this
+   phase. The user iterates in a native chat they open, as direct work
+   outside Orchestra, without adopting or transferring the card. On Cursor
+   hybrid the current checkout is the worktree; on managed the pack names
+   that worktree path; on Grok or Codex the user opens another session on
+   that cwd. The root cannot open a user thread.
+
+Do not auto-continue if the user never returns. Hybrid preview can occupy the
+primary checkout for a long time; mention that when recommending preview.
+
+Resume in the owning chat, or reclaim at this stable checkpoint meaning the
+user finished iterating and Orchestra continues here, never that iteration
+moves inside Orchestra. Reclaim abandons the previous chat. Spawn a fresh
+implementation owner for the remainder of the phase. Git is authoritative.
+Treat in-scope uncommitted and untracked edits as the delta. Recommend
+against user commits; if the task branch gained commits, record them as
+authorized preexisting changes and include them in absorption. Out-of-scope
+paths or new product behavior block or replan. The absorbing owner reruns
+handoff checks and publishes a replacement `implementation-report`. The
+frozen revision is that post-absorption revision with green checks. Then
+dispatch any required independent gate and review against it.
+
+The review packet states that the user accepted the visible result at that
+frozen revision; taste findings are out of scope; bugs, accessibility,
+regressions, and defect-prone complexity remain in scope; a defect that
+forces a constrained visual change enables a short re-inspection. Preview
+does not replace `browser_acceptance`, lower the tier, or waive hard gates.
+After `completed`, further taste work is a PR-fix inside approved intent or a
+new task.
+
 The loop is:
 
 1. The root selects one `orchestra_implementation_worker` with
    `general_implementation` or `frontend_implementation` and keeps that owner
-   for the whole phase. Its packet contains edit authority, worktree,
+   for the whole phase unless a user-preview pause retires it. After that
+   pause a fresh owner absorbs the delta and owns the remainder of the phase.
+   Its packet contains edit authority, worktree,
    `plan.md` path, exact overview and current phase IDs, revision, accepted
    finding IDs, stop conditions, and only new context. The worker reads scope,
    acceptance, verification, and dependencies from those documents and reads
@@ -966,6 +1055,9 @@ The loop is:
    source-read-only task tab or window, and `blocked` prevents downstream
    dispatch. A blocked cleanup receives one cleanup-only follow-up to the same
    owner; failure to clear it blocks the phase without a retry loop.
+   When the current phase's `User preview` line is `required`, complete that
+   pause and absorption before the next step. Do not dispatch verification or
+   review against the pre-pause revision.
 3. The root first validates the owner's evidence inventory. When the phase's
    independent gate is `none`, it creates no verifier. Otherwise it creates at
    most one verifier for each applicable capability and passes the exact
@@ -1199,6 +1291,12 @@ Do not cycle on:
 - unrelated cleanup;
 - scope expansion disguised as review;
 - repeated restatements of an already rejected suggestion.
+
+When the review packet names a frozen user-preview revision, do not treat
+taste or cosmetic preference as a required finding. Bugs, accessibility,
+regressions, and defect-prone complexity remain in scope. A defect that
+forces a constrained visual change enables a short re-inspection rather than
+reopening taste.
 
 ## Task checkout and branch
 

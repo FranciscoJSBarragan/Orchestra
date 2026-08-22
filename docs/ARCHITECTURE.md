@@ -173,7 +173,11 @@ that owner returns an outcome or blocker, the root coordinates without reading
 the evolving implementation diff, exercising it with speculative canaries, or
 sending design corrections. At each handoff the root may perform one bounded
 Git identity, status, allowed-scope, `diff --check`, and evidence-inventory
-check. A root-originated correctness investigation completes against the
+check. A required user preview starts only at that handoff after every
+Orchestra-owned resource is closed; no process is retained across the pause.
+A fresh owner absorbs any in-scope user delta after resume. The frozen
+revision is that post-absorption revision with green handoff checks.
+A root-originated correctness investigation completes against the
 current source and diff before it produces one consolidated finding packet with
 evidence, impact, and acceptance.
 
@@ -236,7 +240,8 @@ root approves or rejects.
 
 The implementation owner, reviewer, and each required capability verifier form
 a bounded phase cohort. Ordinary deterministic non-critical phases have no
-verifier. One-shot analysts close after their result is consumed. The cohort
+verifier. A required user preview closes the first owner before the pause;
+after resume a fresh owner joins the remainder of the phase. One-shot analysts close after their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
 without carrying implementation state across phases. Analysis agents are
 one-shot except that a technical planner remains open through a dispatched
@@ -378,7 +383,8 @@ them.
 
 Every overview includes the semantic `Review context` section, and every phase
 includes semantic context dependencies plus `Context maintenance paths` set to
-exact versioned human-readable documentation paths or `none`. These sections
+exact versioned human-readable documentation paths or `none`, and
+`User preview: required | none`. These sections
 add no `plan.md` manifest field, coordination column, or workflow state.
 
 Branches and worktrees are Git resources, not a new Orchestra state store.
@@ -632,7 +638,9 @@ After 30 accumulated minutes, only concrete blocker evidence justifies
 intervention.
 
 The implementation owner runs every required local deterministic check,
-including the canonical full suite when one exists. A verifier is created only
+including the canonical full suite when one exists. A required user preview
+pauses after that handoff with no retained Orchestra process; verification
+and review of that phase use the post-absorption frozen revision. A verifier is created only
 for browser interaction, owned services or processes, mutable or stateful data,
 credentials, network or external environments, explicit repository policy, or
 a critical phase. Critical phases independently repeat the applicable owner-run

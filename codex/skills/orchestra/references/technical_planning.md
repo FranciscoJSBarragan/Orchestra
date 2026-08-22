@@ -53,7 +53,8 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   an explicit root `persist` disposition. Executable configuration,
   databases, generated data, and operational data remain normal implementation
   scope.
-- Preserve cross-phase invariants and assign one implementation owner per phase. Split frontend and non-frontend work only when ownership cannot remain safely bounded.
+- Preserve cross-phase invariants and assign one implementation owner per phase. Split frontend and non-frontend work only when ownership cannot remain safely bounded. When the task-level User preview Decision is `required`, split mixed API and UI work so non-visible work commits before the inspectable phase, and prefer fewer UI phases.
+- Each phase declares `User preview: required | none`. Mark `required` only when that Decision is `required`, the phase has a user-visible surface, and the phase names an executable local preview recipe.
 - Identify assumptions and unresolved authority decisions explicitly. Do not
   silently convert them into implementation choices. A persisted type, schema
   version, API contract, signature, transaction or invariant, downstream

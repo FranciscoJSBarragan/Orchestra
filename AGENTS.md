@@ -131,8 +131,10 @@ and the shared conduct reference itself; packets carry only the assignment.
 Semantic handoffs are complete revision-identified Markdown artifacts in the
 task-private artifacts directory. Accepted findings return to the same
 implementation owner; the phase cohort (owner, reviewer, verifiers) stays open
-through the phase and closes before the phase commit. Waiting, observation
-boundaries, verification ordering, and review policy are specified in
+through the phase and closes before the phase commit, except that a required
+user preview closes the first owner before the pause and a fresh owner absorbs
+the remainder. Waiting, observation
+boundaries, verification ordering, user preview, and review policy are specified in
 `docs/WORKFLOW.md`.
 
 Phase plans distinguish implementation handoff checks from the independent

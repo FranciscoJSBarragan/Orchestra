@@ -79,6 +79,22 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("retains verifier-only semantics", result.stdout)
 
+    def test_user_preview_contract_requires_named_blocker(self) -> None:
+        workflow = self.root / "docs/WORKFLOW.md"
+        workflow.write_text(
+            workflow.read_text(encoding="utf-8").replace(
+                "blocker `user_preview`",
+                "blocker `preview_pause`",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "docs/WORKFLOW.md must name blocker `user_preview`",
+            result.stdout,
+        )
+
     def test_verification_owner_contract_requires_runtime_gate_reason(self) -> None:
         runtime = (
             self.root
