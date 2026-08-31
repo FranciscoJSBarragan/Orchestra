@@ -137,10 +137,29 @@ class PlannedFlowContractTests(unittest.TestCase):
                     self.assertNotIn(
                         assignment["profile"], {"root", "orchestrator"}
                     )
-        self.assertEqual(
-            self.role_matrices["native"]["critical"],
-            self.role_matrices["external"]["critical"],
-        )
+        native_critical = self.role_matrices["native"]["critical"]
+        external_critical = self.role_matrices["external"]["critical"]
+        for capability in (
+            "repository_context",
+            "web_research",
+            "browser_acceptance",
+            "runtime_verification",
+        ):
+            self.assertEqual(
+                (
+                    native_critical[capability]["model"],
+                    native_critical[capability]["reasoning_effort"],
+                ),
+                ("gpt-5.6-luna", "xhigh"),
+            )
+            self.assertEqual(
+                (
+                    external_critical[capability]["model"],
+                    external_critical[capability]["reasoning_effort"],
+                ),
+                ("gpt-5.6-sol", "medium"),
+            )
+        self.assertNotEqual(native_critical, external_critical)
         luna = self.role_matrices["external"]["luna"]
         self.assertEqual(
             {assignment["model"] for assignment in luna.values()},

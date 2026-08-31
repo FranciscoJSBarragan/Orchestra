@@ -405,7 +405,22 @@ In the dual matrix, every native model named by the external configuration is
 resolved through its `orchestra-v1/` compatibility alias. Cursor, OpenCode, and
 Antigravity assignments remain unchanged.
 
-### Shared critical configuration
+### Native critical configuration
+
+| Tier | Capability | Base profile | Model | Reasoning |
+| --- | --- | --- | --- | --- |
+| Critical | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
+| Critical | `web_research` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
+| Critical | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
+| Critical | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
+| Critical | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
+| Critical | `independent_review` | `orchestra_reviewer` | `gpt-5.6-sol` | `high` |
+| Critical | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
+| Critical | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
+
+### External critical configuration
 
 | Tier | Capability | Base profile | Model | Reasoning |
 | --- | --- | --- | --- | --- |
@@ -420,13 +435,19 @@ Antigravity assignments remain unchanged.
 | Critical | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-sol` | `medium` |
 | Critical | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-sol` | `medium` |
 
-A second critical review reuses `independent_review`
-with Sol high only for a named measurable risk and independently detectable
-defect class. No Orchestra assignment uses Sol xhigh.
+External critical keeps the same capabilities and profiles, but uses
+`gpt-5.6-sol` with `medium` for `repository_context`, `web_research`,
+`browser_acceptance`, and `runtime_verification`, and `high` for the remaining
+capabilities. A second critical review reuses `independent_review` with Sol
+high only for a named measurable risk and independently detectable defect
+class. Native critical's second review also uses Sol high; the Luna assignment
+applies only to the four capabilities listed above. No Orchestra assignment
+uses Sol xhigh.
 
-The critical capability, profile, and reasoning matrix remains logically
-shared. Dual native uses Sol V2; dual external uses the Sol V1 compatibility
-alias so a tier transition never crosses protocol versions.
+The critical capability and profile structure remains shared. Dual native uses
+the native Luna or Sol V2 assignments; dual external uses the corresponding
+Sol V1 compatibility aliases so a tier transition never crosses protocol
+versions.
 
 Frontend implementation composes `orchestra_implementation_worker`; browser acceptance
 composes `orchestra_verifier`. They remain independent and never run as one combined

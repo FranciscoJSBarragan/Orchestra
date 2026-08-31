@@ -540,8 +540,10 @@ catalog mode, marks them V1, rewrites them to their native target before
 forwarding, and never sends them through CLIProxyAPI.
 
 The two logical modes differ in their standard assignments, and external alone
-adds the cost-focused `luna` tier. They share one critical
-capability/profile/reasoning matrix; external critical uses the V1 Sol alias so
+adds the cost-focused `luna` tier. They share the critical capability and
+profile structure, while native critical uses Luna xhigh for repository
+context, web research, browser acceptance, and runtime verification; external
+critical retains its Sol assignments. External critical uses V1 Sol aliases so
 it never crosses protocol versions. The external Luna source assignments use
 the native Luna slug, while dual composition rewrites them to the Orchestra V1
 Luna alias. Skills pass the selected explicit overrides when spawning a

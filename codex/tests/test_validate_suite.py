@@ -606,7 +606,12 @@ class FullModeFixtureTest(unittest.TestCase):
             self.assertEqual(len(assignments["critical"]), 10)
         self.assertEqual(len(matrices["external"]["luna"]), 10)
         self.assertEqual(
-            matrices["native"]["critical"], matrices["external"]["critical"]
+            matrices["native"]["critical"]["repository_context"],
+            ("orchestra_analyst", "gpt-5.6-luna", "xhigh"),
+        )
+        self.assertEqual(
+            matrices["external"]["critical"]["repository_context"],
+            ("orchestra_analyst", "gpt-5.6-sol", "medium"),
         )
 
     def test_mutated_luna_reasoning_cell_is_rejected_against_roles(self) -> None:
@@ -690,7 +695,7 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("role-contract:", result.stdout)
 
-    def test_native_and_external_critical_matrices_must_match(self) -> None:
+    def test_external_critical_matrix_must_match_its_documented_rows(self) -> None:
         roles = self.root / "codex/config/roles.external.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
@@ -704,7 +709,10 @@ class FullModeFixtureTest(unittest.TestCase):
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("must share the critical matrix", result.stdout)
+        self.assertIn(
+            "external.critical.repository_context does not match the approved assignment matrix",
+            result.stdout,
+        )
 
 
 if __name__ == "__main__":

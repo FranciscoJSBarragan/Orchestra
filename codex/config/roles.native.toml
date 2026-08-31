@@ -53,13 +53,13 @@ reasoning_effort = "high"
 
 [tiers.critical.repository_context]
 profile = "orchestra_analyst"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.critical.web_research]
 profile = "orchestra_analyst"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.critical.technical_planning]
 profile = "orchestra_analyst"
@@ -93,10 +93,10 @@ reasoning_effort = "high"
 
 [tiers.critical.browser_acceptance]
 profile = "orchestra_verifier"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.critical.runtime_verification]
 profile = "orchestra_verifier"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"

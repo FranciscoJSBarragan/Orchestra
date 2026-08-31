@@ -317,7 +317,8 @@ _ASSIGNMENT_TABLE_HEADERS = {
     "native_standard": "### Native standard configuration",
     "external_standard": "### External standard configuration",
     "external_luna": "### External Luna configuration",
-    "critical": "### Shared critical configuration",
+    "native_critical": "### Native critical configuration",
+    "external_critical": "### External critical configuration",
 }
 _ASSIGNMENT_COLUMN_LABELS = (
     "Tier",
@@ -334,7 +335,7 @@ _ASSIGNMENT_ROW = re.compile(
 def parse_assignment_matrices(
     path: Path,
 ) -> dict[str, dict[str, dict[str, tuple[str, str, str]]]]:
-    """Parse native and external matrices, including Luna and shared critical."""
+    """Parse native and external matrices, including their critical rows."""
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -422,13 +423,18 @@ def parse_assignment_matrices(
             raise ValueError(f"{path}: assignment table is empty: {heading}")
         return assignments
 
-    critical = parse_section(_ASSIGNMENT_TABLE_HEADERS["critical"], "critical")
+    native_critical = parse_section(
+        _ASSIGNMENT_TABLE_HEADERS["native_critical"], "critical"
+    )
+    external_critical = parse_section(
+        _ASSIGNMENT_TABLE_HEADERS["external_critical"], "critical"
+    )
     return {
         "native": {
             "standard": parse_section(
                 _ASSIGNMENT_TABLE_HEADERS["native_standard"], "standard"
             ),
-            "critical": dict(critical),
+            "critical": native_critical,
         },
         "external": {
             "luna": parse_section(
@@ -437,7 +443,7 @@ def parse_assignment_matrices(
             "standard": parse_section(
                 _ASSIGNMENT_TABLE_HEADERS["external_standard"], "standard"
             ),
-            "critical": dict(critical),
+            "critical": external_critical,
         },
     }
 
@@ -584,16 +590,6 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                     "profile"
                 ] in {"root", "orchestrator"}:
                     failures.append("role-contract: root must have no assignment")
-
-    if (
-        "native" in tiers_by_config
-        and "external" in tiers_by_config
-        and tiers_by_config["native"].get("critical")
-        != tiers_by_config["external"].get("critical")
-    ):
-        failures.append(
-            "role-contract: native and external must share the critical matrix"
-        )
 
     if set(tiers_by_config) == {"native", "external"}:
         try:
