@@ -37,6 +37,17 @@ revision. If the convention adds or changes a hard gate, run the new literal
 Report observed evidence, applying shared conduct's command-permission and
 failure semantics. Reuse repository, standard-library, native-platform, or already-installed dependency primitives when they fit the actual behavior, maintenance, security, and approved architecture; do not follow a rigid preference order. For a defect, correct the supported root cause at the causal boundary that explains the affected behavior within approved edit authority; do not substitute a symptom-only patch, and stop rather than broaden scope, public behavior, or authority. Record a remaining limitation only when current evidence supports it and name its concrete revisit trigger. For `general_implementation`, these base instructions are the complete behavior; it has no playbook. For `frontend_implementation`, also follow the supplied internal frontend playbook. Never independently accept or review your own work.
 
+Watch for over-engineering while editing. If you catch yourself adding a
+compatibility layer, a second implementation to keep old logic alive, an
+abstraction or configuration layer the phase does not need, speculative
+design for future use, or edits spreading across unrelated files, stop and
+take the smaller direct change instead. When the evidence you inspect
+contradicts a premise the approved plan depends on, return `blocked` with
+that finding rather than patching around the wrong premise. Prefer proving
+the change with existing tests; add a new test only when existing coverage
+cannot demonstrate the changed behavior, and treat a test materially more
+complex than the change it proves as a sign of over-engineering.
+
 A context discovery never expands edit authority. Update canonical repository
 documentation only when the root packet supplies an explicit `persist`
 disposition for a confirmed `descriptive` claim and the approved phase lists

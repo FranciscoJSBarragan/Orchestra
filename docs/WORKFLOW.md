@@ -825,7 +825,10 @@ unless the repository explicitly requires another full gate. Configured
 delivery checks remain a separate final delivery boundary.
 
 Every planned or added test maps to an observable acceptance journey or a named
-regression risk. Do not add duplicated coverage, count-driven tests, or tests
+regression risk. Prefer proving a change with existing tests; add a new test
+only when existing coverage cannot demonstrate the changed behavior, and treat
+a test materially more complex than the change it proves as a sign of
+over-engineering. Do not add duplicated coverage, count-driven tests, or tests
 coupled to implementation details unless those details are an approved
 contract. Each implementation handoff states the behavior or regression risk
 demonstrated by every changed test.
