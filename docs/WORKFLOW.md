@@ -16,13 +16,13 @@ flowchart TD
     MC --> TR["Root recommends the available tier with risk and cost-benefit"]
     TR --> T{"User chooses active tier"}
     T --> E["Read-only Git and readiness preflight"]
-    E --> CM{"Managed or hybrid checkout"}
+    E --> RC["Focused repository context: root-direct or analyst"]
+    RC --> C["Evidence-grounded final specification and tier recommendation"]
+    C --> CM{"Managed or hybrid checkout"}
     CM -->|"Managed"| OW["Create task branch and portable worktree"]
     CM -->|"Hybrid"| HB["Create task branch in current clean checkout"]
-    HB --> RC
-    OW --> RC["Focused repository context"]
-    RC --> C["Evidence-grounded final specification and tier recommendation"]
-    C --> P["Plan overview plus one document per phase"]
+    HB --> P
+    OW --> P["Plan overview plus one document per phase"]
     P --> PJ{"Root decides whether plan review is proportionate"}
     PJ -->|"Review"| PRV["Reviewer reads exact bundle; planner replaces affected documents"]
     PRV --> P
@@ -556,108 +556,110 @@ After explicit activation in an execution-capable mode:
    `minimal`, or `standard` tier does not waive separate authority gates for
    production, migrations, data, security, payments, destructive actions, or
    delivery.
-4. The root resolves the intended base branch and revision and performs a short
-   read-only Git preflight. For a fresh task on the repository's canonical base
-   branch, it resolves that branch's configured upstream before fixing the base
-   revision and fetches only the corresponding remote branch. A configured
-   upstream whose fetch fails blocks task setup. A repository without a remote
-   or upstream may use the local canonical branch only when the root identifies
-   it explicitly as not remotely verified. An explicitly selected noncanonical
-   base, including stacked work, remains unchanged. It also reads repository
-   policy and identifies the
-   canonical runtime, dependency setup, services, permissions, credential
-   categories without reading secrets, verification commands, test-data
-   provenance, and generated paths relevant to the task. It then resolves the
-   installed checkout mode. Managed mode verifies a write canary below the
-   portable worktree root, chooses the first matching branch/path pair, and
-   creates the task worktree with direct `git worktree add` against the fetched
-   upstream's verified full commit when the canonical base has an upstream, or
-   against the explicitly unverified local base otherwise. It never updates the
-   managed base checkout. Hybrid mode verifies the current primary checkout or
-   linked worktree. A clean canonical base that equals its fetched upstream
-   proceeds directly; one strictly behind is fast-forwarded with
-   `git merge --ff-only <upstream>` before the root captures its exact HEAD and
-   creates the first matching `orchestra/*` branch. A canonical base that is
-   ahead or diverged blocks for one consolidated user decision. Orchestra never
-   runs `git pull`, creates an implicit merge, or rebases the base. A clean
-   canonical base needs no extra prompt when equal or strictly behind because
-   implementation begins only after branch creation.
-   Dirty, detached, conflicted, active-operation, or identity-ambiguous state
-   requires one consolidated decision before mutation.
-5. The root records the exact task-worktree identity in memory before capability
-   dispatch, as described in
-   [Task checkout and branch](#task-checkout-and-branch). It runs one idempotent
-   `task_state.py init --worktree <task-worktree>` inside the writable checkout,
-   keeps the returned state, plan, and artifacts paths in memory, and passes the
-   exact artifacts path to every producer. Initialization creates the reserved
-   ignored `.orchestra/` directory, leaves Git status unchanged, and blocks on
-   a tracked, ambiguous, or unsafe collision. A detected legacy task continues
-   on its legacy paths without copy or dual write. The root then attempts one
-   idempotent `coordination.py task create`. For an adopted Kanban card it passes
-   the exact Control UUID with `--task-id`, so both stores expose one technical
-   identity. When the state database is outside
-   the active workspace, this first attempt uses one exact, narrow host
-   permission escalation (Guardian on Codex) instead of first running the
-   known-protected operation
+4. The root performs a short read-only Git and execution-readiness preflight:
+   it resolves the intended base branch and revision, reads repository policy,
+   and identifies the canonical runtime, dependency setup, services,
+   permissions, credential categories without reading secrets, verification
+   commands, test-data provenance, and generated paths relevant to the task.
+   It also resolves the installed checkout mode. No branch, worktree, plan, or
+   fetch mutation happens yet.
+5. The root answers the brief's bounded factual questions itself when its
+   read-only preflight already covers them; the criterion is the volume of
+   evidence still needed, never the root's familiarity with the repository.
+   When the remaining questions require reading a material amount of source,
+   dispatch an `orchestra_analyst` with `repository_context` and those bounded
+   questions. Before the task checkout exists, that analyst works read-only in
+   the current repository checkout and returns the complete inline report with
+   a stable label; after checkout creation it publishes a revision-identified
+   context artifact to the task-private artifacts path. Consume the result and
+   close each one-shot analyst. Additional dispatches are allowed only for
+   newly material factual questions and request only the targeted context
+   delta.
+6. The orchestrator continues the user dialogue using that evidence and
+   confirms the final specification with Objective, User-visible behavior,
+   Constraints, Acceptance, Exclusions, Decisions, and Open questions, then
+   recommends any justified tier change; the user chooses whether to change
+   it. If the worktree has no `.agent/` directory, include the missing-store
+   checkpoint in that same consolidated request rather than a later turn.
+7. For a task the root judges single-phase on a non-critical tier, it may
+   present the specification and the candidate plan in the same message,
+   visually separated as what it understood and what it will do; one explicit
+   user approval then covers both, and any specification correction
+   invalidates the plan candidate with it. Critical and multi-phase tasks keep
+   two stops: specification confirmation, then plan approval.
+8. Immediately after specification confirmation, the root creates the task
+   checkout per [Task checkout and branch](#task-checkout-and-branch): it
+   fetches the configured upstream for a fresh canonical-base task (a failed
+   fetch blocks; no remote or upstream permits only an explicitly identified
+   locally unverified base), creates the collision-free `orchestra/*` branch
+   in the managed worktree or verified clean hybrid checkout, and never runs
+   `git pull`, creates an implicit merge, or rebases the base. Dirty,
+   detached, conflicted, active-operation, or identity-ambiguous state
+   requires one consolidated decision before mutation. For an adopted prepared
+   card, the root revalidates that the inspected specification revision still
+   matches the fetched base; a changed revision triggers only a focused
+   context delta and reopens confirmation only for a material change. It then
+   runs one idempotent `task_state.py init --worktree <task-worktree>`, keeps
+   the returned state, plan, and artifacts paths in memory, passes the exact
+   artifacts path to every producer, and attempts one idempotent
+   `coordination.py task create` (passing an adopted card's exact Control UUID
+   with `--task-id`). When the state database is outside the active workspace,
+   that first attempt uses one exact, narrow host permission escalation
+   (Guardian on Codex) instead of first running the known-protected operation
    unprivileged. An `invalid` or `unavailable` result after that correctly
    authorized attempt is reported as lost observability; the root omits the
-   task identifier from every later agent packet and the normal workflow
-   continues without another coordination attempt or reduced authority.
-6. An `orchestra_analyst` with `repository_context` answers the brief's bounded factual
-   questions from the exact task worktree. The root may skip or reduce this
-   dispatch only when it cites the specific prior evidence it reuses (artifact
-   and revision); otherwise dispatch. The analyst publishes a revision-identified
-   context artifact to the exact task-private artifacts path and returns its identifier.
-   Publication failure returns the full inline report instead. Consume the
-   result and close the one-shot analyst.
-7. The orchestrator continues the user dialogue using that evidence. Additional
-   `repository_context` dispatches are allowed only for newly material factual
-   questions and request only the targeted context delta; consume and close each
-   one-shot analyst before continuing.
-8. The root confirms the final specification with Objective, User-visible
-   behavior, Constraints, Acceptance, Exclusions, Decisions, and Open questions,
-   then recommends any justified tier change. The user chooses whether to change
-   it. Request only the context delta tied to a newly discovered risk. If the
-   worktree has no `.agent/` directory, include the missing-store checkpoint in
-   that same consolidated request rather than a later turn.
+   task identifier from later packets and continues with full authority.
 9. Final specification confirmation starts formal planning. The task-level
    User preview Decision must already be recorded from tier selection; do not
-   introduce it at plan approval. A planner reads the
-   exact context artifacts and publishes one complete `plan-overview` plus one
-   complete `plan-phase` per phase. It returns an explicit candidate bundle;
-   neither root nor downstream agents reconstruct it from a summary or choose
-   members by timestamp. A genuinely trivial single-phase `luna` or `standard`
-   task may be authored directly by the root, but uses the same two-document
-   shape. Every overview contains `Review context`: exact context artifact IDs
-   and revisions or stable inline-fallback labels, canonical source paths, and
-   only the material architecture, runtime, exposure, persistence,
-   user-visible surface, risks, invariants, and exclusions. Each included fact
-   or group states `Review use`, naming the exact acceptance, risk, invariant,
-   exclusion, or phase dependency it informs; omit facts with no current-task
-   use and never copy cited evidence bodies into the overview. Every phase names
-   its exact context dependencies and declares `Context maintenance paths` as
-   `none`, unless an exact repository-relative versioned documentation path
-   is already a named current-phase or identified later-phase consumer. Globs
-   and directory-wide authority are forbidden. Every phase also declares
-   `User preview: required | none`.
-10. After the complete bundle exists, the root reads the overview, phase index,
-   named risks, and only the detail needed for judgment. It may skip review for
-   a trivial single-phase `luna` or `standard` plan. A non-trivial multi-phase
-   or cross-component plan receives one independent review. A critical plan
+   introduce it at plan approval. The root authors the plan directly whenever
+   the work fits one phase, using the same two-document shape; it dispatches
+   `technical_planning` only when the work does not fit one phase or carries
+   cross-component or critical risk. Either author reads the exact context
+   evidence and produces one complete `plan-overview` plus one complete
+   `plan-phase` per phase, returned as an explicit candidate bundle; no
+   consumer reconstructs the bundle from a summary or chooses members by
+   timestamp. The mandatory core of each phase is small: outcome, exact
+   allowed scope, acceptance, `Implementation handoff checks` versus the
+   `Independent verification gate`, and stop conditions, plus the structural
+   declarations below. Every other section (risks, exclusions, dependencies,
+   execution readiness) appears only when it carries material content; an
+   empty risks section is a sign of a well-bounded plan, and no author ever
+   invents content to satisfy a format. Every overview contains
+   `Review context`: exact context artifact IDs and revisions or stable
+   inline-fallback labels, canonical source paths, and only the material
+   facts, each with a `Review use` naming the exact acceptance, risk,
+   invariant, exclusion, or phase dependency it informs. Every phase names its
+   exact context dependencies, declares `Context maintenance paths` as `none`
+   unless an exact repository-relative versioned documentation path is already
+   a named consumer (globs and directory-wide authority are forbidden), and
+   declares `User preview: required | none`.
+10. Default to one phase for ordinary work and two to three for a large task.
+   Every additional phase must name the independent review boundary it buys;
+   phase splits without one are format inflation. An unverified assumption
+   that does not determine feasibility may be checked at the start of the
+   phase that consumes it instead of creating a preparation phase or blocking
+   planning; feasibility-determining facts still require direct evidence.
+11. After the complete bundle exists, the root reads the overview, phase
+   index, named risks, and only the detail needed for judgment. It may skip
+   independent plan review for a single-phase non-critical plan. A non-trivial
+   multi-phase or cross-component plan receives one review. A critical plan
    receives a focused review naming its measurable risk, supporting evidence,
-   affected area, and detectable defect class.
-11. A dispatched reviewer reads the exact bundle and publishes `plan-review`
-    with stable finding identifiers. Accepted IDs and the review artifact return
-    to the same planner, which remains open and publishes complete replacement
-    documents only for affected members. The next candidate bundle explicitly
-    names all current members.
-12. The root observes convergence after a second material plan review. Before a
-    third correction, or immediately for marginal, contradictory, or
+   affected area, and detectable defect class. Every plan-review mandate asks
+   first whether fewer phases or a smaller mechanism preserves the approved
+   result — the same anti-overengineering judgment the code reviewer applies —
+   before defect hunting.
+12. A dispatched reviewer reads the exact bundle and publishes `plan-review`
+    with stable finding identifiers. Accepted IDs and the review artifact
+    return to the same author, which publishes complete replacement documents
+    only for affected members and names all current members in the next
+    bundle. The root observes convergence after a second material plan review.
+    Before a third correction, or immediately for marginal, contradictory, or
     out-of-scope findings, it reads the exact bundle and review artifacts,
     accepts or rejects findings by identifier, and corrects direction. No
     persisted review counter or mechanical limit is introduced.
 13. The root presents the exact accepted bundle at the user's altitude and
-    requests implementation approval.
+    requests implementation approval, unless step 7 already combined that
+    request with specification confirmation.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact selected task checkout. Managed mode leaves the base checkout
@@ -1395,7 +1397,9 @@ Git metadata remains outside the workspace boundary, so the root issues the
 exact direct Git operation once with a narrow escalation for automatic review.
 A denial is not bypassed or converted to Full Access.
 
-Before `repository_context` or another capability dispatch, the root writes and
+Checkout creation happens immediately after specification confirmation; only
+read-only preflight and read-only pre-checkout context work precede it. Before
+the first capability dispatch into the task checkout, the root writes and
 removes one temporary canary in the selected checkout location (creating the
 managed repository directory first when applicable). A failure blocks the task
 with exact path and environment evidence. Existing

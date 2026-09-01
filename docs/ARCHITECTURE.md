@@ -133,20 +133,16 @@ user-facing visualization.
 
 After obtaining a bounded minimum brief, the orchestrator recommends an initial
 tier with concise risk and cost-benefit evidence, and the user chooses the
-active tier. It performs a short read-only Git and execution-readiness preflight.
-The root uses Git directly to create a collision-free task branch in either a
-managed Orchestra-root worktree or the current clean hybrid checkout before
-dispatching repository analysis. It keeps that
-task-checkout identity in transient context before plan approval, registers a
-best-effort local coordination snapshot, and passes the exact checkout to every
+active tier. It performs a short read-only Git and execution-readiness
+preflight, grounds the specification dialogue in focused repository context
+(gathered directly or by a dispatched analyst), and confirms the complete
+specification. Immediately after that confirmation the root uses Git directly
+to create a collision-free task branch in either a managed Orchestra-root
+worktree or the current clean hybrid checkout, keeps that task-checkout
+identity in transient context before plan approval, registers a best-effort
+local coordination snapshot, and passes the exact checkout to every
 capability. Coordination failure is reported but never changes authority or
 prevents the existing inline-packet path.
-
-The first repository-context pass grounds the continuing specification dialogue
-and feasibility-determining facts. Later passes answer only newly material
-factual questions through targeted deltas. The root confirms the complete
-specification and recommends any justified tier change after consuming that
-evidence, before formal planning; the user chooses.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, only verifiers required by the independent

@@ -45,11 +45,16 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   independent verifier to repeat the applicable gate. After fixes, require only
   affected reruns unless repository policy explicitly requires another full
   gate; configured delivery checks remain a separate final boundary.
-- Define the fewest independently reviewable phases. Each phase document must
-  be independently executable and state one outcome, its relationship to the
-  overview, preconditions and dependencies, exact allowed scope, required
-  behavior, acceptance criteria, verification, outputs consumed by later
-  phases, material risks, exclusions, and stop conditions.
+- Define the fewest independently reviewable phases: default to one phase for
+  ordinary work and two to three for a large task. Every additional phase must
+  name the independent review boundary it buys; a split without one is format
+  inflation. Each phase document is independently executable with a small
+  mandatory core — one outcome, exact allowed scope, acceptance criteria,
+  verification, and stop conditions — plus the structural declarations below.
+  Preconditions, dependencies, later-phase outputs, risks, and exclusions
+  appear only when they carry material content: an empty risks section is a
+  sign of a well-bounded plan, and no section is ever filled with invented
+  content to satisfy a format.
 - Each phase names the exact review-context evidence it consumes and contains
   `Context maintenance paths`. Use `none` unless an exact versioned
   human-readable documentation path is already a named current-phase or
@@ -66,15 +71,19 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   version, API contract, signature, transaction or invariant, downstream
   consumer, migration requirement, fixture, or canonical verification command
   that determines feasibility must be direct evidence, not an executable-plan
-  assumption.
+  assumption. An assumption that does not determine feasibility may instead be
+  verified by a named check at the start of the phase that consumes it; do not
+  create a preparation phase or block planning for it.
 - Include execution readiness in the phase that consumes it: runtime,
   dependencies, services, permissions, credential categories, test-data source
   and reset, commands, and generated paths. Add a preparation phase only when
   current evidence demonstrates that the task needs one.
 - Expect the root to decide whether the complete candidate bundle needs
-  independent review. A trivial single-phase Luna or standard bundle may skip it;
+  independent review. A single-phase non-critical bundle may skip it;
   non-trivial multi-phase or cross-component bundles require one review, and a
-  critical bundle requires a review focused on its named measurable risk.
+  critical bundle requires a review focused on its named measurable risk. A
+  plan-review mandate asks first whether fewer phases or a smaller mechanism
+  preserves the approved result.
 - Remain available while a dispatched plan review is active. Read the exact
   `plan-review` artifact and accepted finding identifiers, then publish complete
   replacement overview or phase documents only for affected members. Return a

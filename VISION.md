@@ -328,9 +328,9 @@ Git remains the transaction and history system. Orchestra adds scope checks,
 structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
-Each formal task creates one collision-free `orchestra/*` task branch before
-repository analysis, in a managed Orchestra-owned worktree or the opt-in
-hybrid clean primary checkout. Orchestra never pulls, implicitly merges, or
+Each formal task creates one collision-free `orchestra/*` task branch
+immediately after specification confirmation, in a managed Orchestra-owned
+worktree or the opt-in hybrid clean primary checkout. Orchestra never pulls, implicitly merges, or
 rebases setup work; existing work is never cleaned, stashed, or rewritten
 implicitly; and completed resources are removed only when exact Git and
 integration evidence make cleanup safe. The complete checkout, sync, and

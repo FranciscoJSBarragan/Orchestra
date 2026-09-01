@@ -98,8 +98,8 @@ waives the hard authority gates. Never change tier unilaterally.
 
 ## Select the task checkout and create its branch
 
-After the tier choice and before any capability dispatch, perform the
-read-only Git and execution-readiness preflight, then create the fresh
+After the tier choice, perform the read-only Git and execution-readiness
+preflight. Immediately after specification confirmation, create the fresh
 collision-free `orchestra/*` task branch per WORKFLOW "Task checkout and
 branch" (managed worktree or opt-in hybrid, canonical-base upstream sync,
 blocked dirty/diverged states, no pull/merge/rebase). Never implement on the
@@ -154,17 +154,21 @@ Execute the stages below by their WORKFLOW sections; this list is a router,
 not a restatement.
 
 1. **Initial context and specification** — WORKFLOW "Context and planning".
-   Dispatch `repository_context` with bounded factual questions (skip only by
-   citing the exact prior evidence reused), then confirm the specification:
-   Objective, User-visible behavior, Constraints, Acceptance, Exclusions,
-   Decisions, Open questions. Final specification confirmation authorizes plan
-   drafting, not implementation.
+   Answer the brief's bounded questions from the read-only preflight when the
+   remaining evidence is small; dispatch `repository_context` when it is not
+   (the criterion is evidence volume, not familiarity). Then confirm the
+   specification: Objective, User-visible behavior, Constraints, Acceptance,
+   Exclusions, Decisions, Open questions. Final specification confirmation
+   authorizes plan drafting, not implementation; a single-phase non-critical
+   task may combine specification and candidate plan in one message per the
+   WORKFLOW rule, and checkout creation follows the confirmation immediately.
 2. **Formal planning** — WORKFLOW "Context and planning" and the
-   [technical planning](references/technical_planning.md) playbook. Produce
-   one complete `plan-overview` plus one complete `plan-phase` per phase (planner
-   dispatch or direct root authoring per the WORKFLOW proportionality rule),
-   then apply the conditional plan-review policy and adjudicate findings by
-   stable identifier.
+   [technical planning](references/technical_planning.md) playbook. The root
+   authors directly whatever fits one phase; dispatch `technical_planning`
+   only for multi-phase, cross-component, or critical work. Produce
+   one complete `plan-overview` plus one complete `plan-phase` per phase with
+   the proportional format, then apply the conditional plan-review policy and
+   adjudicate findings by stable identifier.
 3. **Approval and the local plan** — present the exact accepted bundle and
    request explicit approval; stop before implementation, and
    no approved `plan.md` is persisted before approval. On approval write
