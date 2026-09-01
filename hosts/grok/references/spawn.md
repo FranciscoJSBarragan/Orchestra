@@ -1,9 +1,9 @@
 # Grok Build spawn adapter
 
-Use this reference only when the execution host is Grok Build
-(`spawn_subagent` exists and `spawn_agent` does not). Never mix Grok
-`spawn_subagent` with Codex `spawn_agent` / `wait_agent` / `close_agent` or
-Cursor `Task`.
+Use this reference only when the execution host is Grok Build (the Grok TUI
+session, where Codex `spawn_agent` and Cursor `Task` do not exist). Never mix
+the Grok spawn mechanisms below with Codex `spawn_agent` / `wait_agent` /
+`close_agent` or Cursor `Task`.
 
 ## Host matrix
 
@@ -29,10 +29,14 @@ For each capability:
 
 1. Resolve `profile`, `subagent_type`, product `model`, and `effort` from
    `tiers.<selected-tier>.<capability>`.
-2. Launch a **fresh** `spawn_subagent` with that `subagent_type`. Pass
-   `background: true`, `isolation: none`, and `cwd` set to the exact Orchestra
-   task checkout. Never pass `isolation: worktree`; Orchestra already owns the
-   checkout.
+2. Launch a **fresh** subagent with that `subagent_type`. Use
+   `spawn_subagent` when the live session schema offers it. Current Grok
+   builds omit it (and it is not reachable through `use_tool`); there,
+   dispatch through the host `workflow` script tool with an `agent()` call
+   carrying the same fields. Either way pass `background: true`,
+   `isolation: none`, and `cwd` set to the exact Orchestra task checkout.
+   Never pass `isolation: worktree` (or `isolation_worktree: true`);
+   Orchestra already owns the checkout.
 3. Pass `model` `grok-4.6` when the live schema accepts it; inheriting the
    parent `grok-4.6` session also satisfies the contract. `effort: inherit`
    means do not invent a Grok `reasoning_effort` field. Do not treat a child's
@@ -58,9 +62,10 @@ network/external, repository-policy, or critical-tier gate. Critical phases
 independently repeat the applicable deterministic gate already evidenced by
 the implementation owner.
 
-Do not use the host `workflow` tool, personas, or a planning-only host mode as
-the Orchestra control plane. Children cannot spawn children; do not ask them
-to.
+The host `workflow` tool is only a spawn transport: one `agent()` call per
+dispatch. Do not use workflow scripts, personas, or a planning-only host mode
+as the Orchestra control plane, and do not encode phases, retries, or gates in
+a workflow script. Children cannot spawn children; do not ask them to.
 
 ## Wait and cleanup
 

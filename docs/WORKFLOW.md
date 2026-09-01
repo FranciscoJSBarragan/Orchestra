@@ -68,10 +68,11 @@ available tools and reads that host's spawn reference. Codex: `spawn_agent`
 and `wait_agent` exist; under multi-agent V2 pass `fork_turns: none` explicitly
 on every spawn (the V2 default forks the full root history, which multiplies
 token cost and destroys reviewer independence); under V1 never set
-`fork_context: true`. Grok Build: `spawn_subagent` exists and `spawn_agent`
-does not; use a fresh isolated subagent per dispatch, `isolation: none`,
-`cwd` equal to the task checkout, and resume only the same phase-cohort agent
-with `resume_from`. Cursor: `Task` exists; use a fresh isolated Task per
+`fork_context: true`. Grok Build: use `spawn_subagent` when the session
+schema offers it, otherwise the host `workflow` `agent()` transport per the
+Grok spawn reference; use a fresh isolated subagent per dispatch,
+`isolation: none`, `cwd` equal to the task checkout, and resume only the same
+phase-cohort agent with `resume_from`. Cursor: `Task` exists; use a fresh isolated Task per
 dispatch, resume only the same phase-cohort agent id, and never `resume: self`
 for a reviewer. On both hosts a reviewer's first review is a fresh spawn and
 delta reviews within the same phase resume that same reviewer, matching the
