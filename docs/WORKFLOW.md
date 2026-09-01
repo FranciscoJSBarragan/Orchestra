@@ -898,9 +898,13 @@ Treat in-scope uncommitted and untracked edits as the delta. Recommend
 against user commits; if the task branch gained commits, record them as
 authorized preexisting changes and include them in absorption. Out-of-scope
 paths or new product behavior block or replan. The absorbing owner reruns
-handoff checks and publishes a replacement `implementation-report`. The
-frozen revision is that post-absorption revision with green checks. Then
-dispatch any required independent gate and review against it.
+handoff checks and publishes a replacement `implementation-report`. Then
+offer another preview round on the absorbed result: the pause repeats with
+the same owner and the same mechanics until the user confirms the visible
+result, freezes as-is, or skips remaining rounds. Iteration exits only on
+that explicit user signal, never by root inference. The frozen revision is
+the final post-absorption revision with green checks; dispatch any required
+independent gate and review once against it, not per round.
 
 The review packet states that the user accepted the visible result at that
 frozen revision; taste findings are out of scope; bugs, accessibility,
@@ -941,6 +945,14 @@ The loop is:
    The root performs at most one bounded check of exact
    Git identity, status, allowed-path scope, `git diff --check`, and the declared
    evidence inventory. That check exempts root-authored `.agent/**` deltas.
+   When a `frontend_implementation` phase changed a user-visible surface and
+   its preview line is `none`, the root also opens the cited screenshots
+   where the host renders images and judges basic visual quality — layout,
+   states, coherence with the existing design — as part of that same bounded
+   check; a material aesthetic defect becomes a consolidated finding packet
+   like any other root-observed defect, and missing screenshots for such a
+   phase are a missing-evidence blocker unless the report records why no
+   runnable surface existed.
    When the approved plan records a seed Decision in `plan.md`, the root writes
    only the approved `.agent/**` seed paths at the first phase's stable
    handoff, before dispatching review. Seed handoff order is owner delivers,
@@ -981,7 +993,9 @@ The loop is:
    disposition before downstream use.
 4. One reviewer receives exact overview, phase, implementation, and
    verification IDs, plus every exact repository-context artifact or inline
-   fallback required by the approved overview and current phase. When the
+   fallback required by the approved overview and current phase. For a phase
+   that changed a user-visible surface, the packet also names the cited
+   screenshot files as review evidence. When the
    independent gate is not `none`, the root may dispatch this source review in
    parallel with verification; the reviewer then receives each required
    `verification-report` (or an explicitly accepted blocker) as a delta and
