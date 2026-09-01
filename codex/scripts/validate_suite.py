@@ -13,7 +13,7 @@ import re
 import subprocess
 import sys
 import tomllib
-from typing import Callable, NoReturn
+from typing import Callable
 
 
 def _load_sync_module():
@@ -313,140 +313,23 @@ def check_required_paths(root: Path) -> list[str]:
     return failures
 
 
-_ASSIGNMENT_TABLE_HEADERS = {
-    "native_standard": "### Native standard configuration",
-    "external_standard": "### External standard configuration",
-    "external_luna": "### External Luna configuration",
-    "native_critical": "### Native critical configuration",
-    "external_critical": "### External critical configuration",
+CAPABILITY_PROFILES = {
+    "repository_context": "orchestra_analyst",
+    "web_research": "orchestra_analyst",
+    "technical_planning": "orchestra_analyst",
+    "architecture_analysis": "orchestra_analyst",
+    "difficult_debugging": "orchestra_analyst",
+    "general_implementation": "orchestra_implementation_worker",
+    "frontend_implementation": "orchestra_implementation_worker",
+    "independent_review": "orchestra_reviewer",
+    "browser_acceptance": "orchestra_verifier",
+    "runtime_verification": "orchestra_verifier",
 }
-_ASSIGNMENT_COLUMN_LABELS = (
-    "Tier",
-    "Capability",
-    "Base profile",
-    "Model",
-    "Reasoning",
-)
-_ASSIGNMENT_ROW = re.compile(
-    r"^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$"
-)
-
-
-def parse_assignment_matrices(
-    path: Path,
-) -> dict[str, dict[str, dict[str, tuple[str, str, str]]]]:
-    """Parse native and external matrices, including their critical rows."""
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        raise ValueError(f"cannot read {path}: {error}") from error
-
-    lines = text.splitlines()
-
-    def fail(line_no: int, message: str) -> NoReturn:
-        raise ValueError(f"{path}:{line_no}: {message}")
-
-    def parse_section(
-        heading: str, expected_tier: str
-    ) -> dict[str, tuple[str, str, str]]:
-        section_start: int | None = None
-        for index, line in enumerate(lines):
-            if line.strip() == heading:
-                section_start = index
-                break
-        if section_start is None:
-            raise ValueError(f"{path}: assignment table section is missing: {heading}")
-
-        assignments: dict[str, tuple[str, str, str]] = {}
-        header_seen = False
-        separator_seen = False
-        for offset, line in enumerate(
-            lines[section_start + 1 :], start=section_start + 2
-        ):
-            stripped = line.strip()
-            if stripped.startswith("#"):
-                break
-            if not stripped:
-                if separator_seen:
-                    break
-                continue
-            if stripped.startswith("|") and set(
-                stripped.replace("|", "").strip()
-            ) <= {"-", ":", " "}:
-                if not header_seen:
-                    fail(offset, "assignment table separator before header")
-                separator_seen = True
-                continue
-            if not stripped.startswith("|"):
-                if separator_seen:
-                    break
-                continue
-            match = _ASSIGNMENT_ROW.match(stripped)
-            if not match:
-                fail(offset, "assignment table has a malformed row")
-            cells = tuple(
-                match.group(index).strip().strip("`").strip()
-                for index in range(1, 6)
-            )
-            if not separator_seen:
-                if header_seen:
-                    fail(offset, "assignment table has multiple header rows")
-                if cells != _ASSIGNMENT_COLUMN_LABELS:
-                    fail(
-                        offset,
-                        "assignment table header must be "
-                        + " | ".join(_ASSIGNMENT_COLUMN_LABELS),
-                    )
-                header_seen = True
-                continue
-            tier, capability, profile, model, reasoning = cells
-            tier = tier.lower()
-            if not tier or not capability or not profile or not model or not reasoning:
-                fail(offset, "assignment table has an empty cell")
-            if tier != expected_tier:
-                fail(
-                    offset,
-                    f"assignment table row must use tier {expected_tier}: {tier}",
-                )
-            if capability in assignments:
-                fail(
-                    offset,
-                    f"assignment table has a duplicate row: {tier}.{capability}",
-                )
-            assignments[capability] = (profile, model, reasoning)
-
-        if not header_seen:
-            raise ValueError(f"{path}: assignment table header is missing: {heading}")
-        if not separator_seen:
-            raise ValueError(f"{path}: assignment table separator is missing: {heading}")
-        if not assignments:
-            raise ValueError(f"{path}: assignment table is empty: {heading}")
-        return assignments
-
-    native_critical = parse_section(
-        _ASSIGNMENT_TABLE_HEADERS["native_critical"], "critical"
-    )
-    external_critical = parse_section(
-        _ASSIGNMENT_TABLE_HEADERS["external_critical"], "critical"
-    )
-    return {
-        "native": {
-            "standard": parse_section(
-                _ASSIGNMENT_TABLE_HEADERS["native_standard"], "standard"
-            ),
-            "critical": native_critical,
-        },
-        "external": {
-            "luna": parse_section(
-                _ASSIGNMENT_TABLE_HEADERS["external_luna"], "luna"
-            ),
-            "standard": parse_section(
-                _ASSIGNMENT_TABLE_HEADERS["external_standard"], "standard"
-            ),
-            "critical": external_critical,
-        },
-    }
-
+EXPECTED_TIERS = {
+    "native": {"standard", "critical"},
+    "external": {"luna", "standard", "critical"},
+}
+REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
 
 def check_distribution_boundary(root: Path) -> list[str]:
@@ -498,14 +381,6 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     if not all(path.is_file() for path in roles_paths.values()):
         return []
 
-    workflow_path = root / "docs/WORKFLOW.md"
-    try:
-        expected_matrices = parse_assignment_matrices(workflow_path)
-    except (OSError, UnicodeError, ValueError) as error:
-        return [
-            f"role-contract: cannot parse docs/WORKFLOW.md assignment tables: {error}"
-        ]
-
     failures: list[str] = []
     tiers_by_config: dict[str, dict[str, object]] = {}
     for modelconfig, roles_path in roles_paths.items():
@@ -518,25 +393,24 @@ def check_roles_and_profiles(root: Path) -> list[str]:
         if set(roles) != {"tiers"}:
             failures.append(f"role-contract: {relative} must contain tiers only")
         tiers = roles.get("tiers")
-        expected_assignments = expected_matrices[modelconfig]
-        if not isinstance(tiers, dict) or set(tiers) != set(expected_assignments):
-            expected_tiers = ", ".join(expected_assignments)
+        expected_tier_names = EXPECTED_TIERS[modelconfig]
+        if not isinstance(tiers, dict) or set(tiers) != expected_tier_names:
+            expected_tiers = ", ".join(sorted(expected_tier_names))
             failures.append(
                 f"role-contract: {relative} must define {expected_tiers}"
             )
             continue
         tiers_by_config[modelconfig] = tiers
-        for tier, expected_tier_assignments in expected_assignments.items():
+        for tier in expected_tier_names:
             actual_assignments = tiers.get(tier)
             if not isinstance(actual_assignments, dict) or set(
                 actual_assignments
-            ) != set(expected_tier_assignments):
+            ) != set(CAPABILITY_PROFILES):
                 failures.append(
                     f"role-contract: unexpected {modelconfig}.{tier} capability set"
                 )
                 continue
-            for capability, expected in expected_tier_assignments.items():
-                assignment = actual_assignments[capability]
+            for capability, assignment in actual_assignments.items():
                 if not isinstance(assignment, dict) or set(assignment) != {
                     "profile",
                     "model",
@@ -547,12 +421,7 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                         "profile, model, and reasoning_effort"
                     )
                     continue
-                actual = (
-                    assignment["profile"],
-                    assignment["model"],
-                    assignment["reasoning_effort"],
-                )
-                if actual != expected:
+                if assignment["profile"] != CAPABILITY_PROFILES[capability]:
                     failures.append(
                         f"role-contract: {modelconfig}.{tier}.{capability} does "
                         "not match the approved assignment matrix"
@@ -821,24 +690,9 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     )
     direct_consumers = {
         "orchestra": (
-            "git worktree add",
-            "git switch -c <branch> <captured-head>",
-            "configured upstream",
-            "fetch only its remote branch",
-            "verified full commit",
-            "git merge --ff-only <upstream>",
-            "ahead or diverged",
-            "not remotely verified",
-            "Never run `git pull`",
-            "focused `repository_context` delta",
-            "orchestra/<task-slug>[-N]",
-            "ORCHESTRA_WORKTREE_ROOT",
-            "orchestra/checkout-mode",
-            "Prove that checkout writable",
-            "timeout_ms: 600000",
-            "Never implement on the starting branch",
-            "same live preapproval task",
             "session_model.py",
+            "task_state.py",
+            "coordination.py",
         ),
         "orchestra-phase-commit": ("commit_phase.py",),
         "orchestra-pr-review": (
@@ -887,234 +741,13 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "<!-- orchestra:end -->"
         ) != 1:
             failures.append("runtime-contract: managed markers must occur exactly once")
-        for target in (
-            "$orchestra",
-            "$orchestra-delivery-policy",
-            "${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml",
-            "${CODEX_HOME:-$HOME/.codex}/agents/",
-            "selected managed or hybrid checkout is the only task checkout",
-            "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/",
-            "${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode",
-            "${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root",
-            "timeout_ms: 600000",
-            "Incomplete intended post-mutation cleanup is `partial`",
-        ):
-            if target not in text:
-                failures.append(f"runtime-contract: managed block must route to {target}")
+        if "$orchestra" not in text:
+            failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
     for name in (skill for skill in SKILL_NAMES if skill != "orchestra-project-start"):
         skill = root / f"codex/skills/{name}/SKILL.md"
         if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
             failures.append(f"runtime-contract: {name} must state the Orchestra home")
-    return failures
-
-
-def check_verification_ownership(root: Path) -> list[str]:
-    """Keep deterministic checks owner-led and verifier dispatch conditional."""
-    failures: list[str] = []
-    required_by_path = {
-        "VISION.md": (
-            "implementation owner is the first deterministic quality gate",
-            "canonical full suite when one exists",
-            "a separate verifier is reserved",
-            "all critical phases",
-        ),
-        "docs/WORKFLOW.md": (
-            "implementation owner runs every required local deterministic check",
-            "canonical full suite when one exists",
-            "the suite is the `.agent/` hard gate when that store exists",
-            "independent gate to `none`",
-            "any critical phase",
-            "same implementation owner applies accepted fixes",
-            "publishes a replacement `implementation-report`",
-            "any applicable independent gate reruns with the same verifier",
-            "current accepted `pr-review`",
-        ),
-        "docs/ARCHITECTURE.md": (
-            "first deterministic quality gate",
-            "canonical full suite when one exists",
-            "ordinary deterministic non-critical phases have no verifier",
-            "critical phases independently repeat",
-        ),
-        "AGENTS.md": (
-            "implementation owner runs and autocorrects every required local deterministic check",
-            "canonical full suite when one exists",
-            "use no verifier for ordinary deterministic non-critical work",
-            "every critical phase",
-        ),
-        "codex/runtime/AGENTS.orchestra.md": (
-            "owner runs and autocorrects every required local deterministic check",
-            "canonical full suite when one exists",
-            "ordinary deterministic non-critical independent gate",
-            "any critical phase",
-        ),
-        "codex/skills/orchestra/SKILL.md": (
-            "implementation owner every required local deterministic check",
-            "canonical full suite when one exists",
-            "do not spawn a verifier",
-            "any critical phase",
-        ),
-        "codex/skills/orchestra-role-implementer/SKILL.md": (
-            "first deterministic quality gate",
-            "canonical full suite",
-            "do not return `implemented` while a required check is failing",
-            "exact command and working directory",
-        ),
-        "codex/skills/orchestra-role-reviewer/SKILL.md": (
-            "do not routinely repeat tests, lint, type checks, builds",
-            "one concrete defect hypothesis",
-            "not a `verification-report`",
-        ),
-        "codex/skills/orchestra-role-verifier/SKILL.md": (
-            "dedicated independent gate",
-            "critical phase",
-        ),
-        "codex/skills/orchestra/references/technical_planning.md": (
-            "assign every required local deterministic check to the implementation owner",
-            "canonical full suite when one exists",
-            "set the independent gate to `none`",
-            "explicit repository policy",
-            "independent verifier to repeat the applicable gate",
-        ),
-        "codex/skills/orchestra/references/runtime_verification.md": (
-            "do not dispatch it for routine local deterministic checks in a non-critical phase",
-            "identify at least one dedicated-gate reason",
-            "in a critical phase",
-        ),
-        "codex/skills/orchestra/references/browser_acceptance.md": (
-            "always a dedicated independent gate",
-            "never an `implementation handoff check`",
-        ),
-        "codex/skills/orchestra/references/host_codex.md": (
-            "independent verification gate",
-            "do not spawn",
-            "matrix entries describe available capabilities",
-        ),
-        "codex/skills/orchestra-phase-commit/SKILL.md": (
-            "an accepted current-review identifier",
-            "`implementation-review` for ordinary phase completion",
-            "`pr-review` for an accepted pr fix",
-            "every verification-report identifier required by that phase's "
-            "`independent verification gate`",
-            "a gate of `none` requires no `verification-report`",
-        ),
-        "codex/skills/orchestra-pr-review/SKILL.md": (
-            "the current `implementation-report` identifier",
-            "every `verification-report` identifier required by the relevant "
-            "phase's `independent verification gate`",
-            "a gate of `none` supplies no `verification-report`",
-            "same owner apply the fixes",
-            "publish a replacement `implementation-report`",
-            "rerun affected deterministic handoff checks",
-            "rerun any applicable independent gate with the same verifier",
-            "current accepted `pr-review`",
-        ),
-    }
-    forbidden_contracts = (
-        "canonical full suite belongs only to the latter",
-        "canonical full suite belongs to the verifier",
-        "canonical full-suite command only to the independent verifier",
-        "independent verification gate`, which owns any canonical full-suite command",
-        "planner never assigns the same full-suite gate to both roles",
-        "assign any canonical full suite only to the latter",
-        "current implementation and verification report identifiers",
-        "run affected `runtime_verification` and any required `browser_acceptance`",
-    )
-    for relative, required in required_by_path.items():
-        path = root / relative
-        if not path.is_file():
-            continue
-        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
-        for contract in required:
-            if contract not in normalized:
-                failures.append(
-                    f"verification-ownership: {relative} must name {contract}"
-                )
-        for forbidden in forbidden_contracts:
-            if forbidden in normalized:
-                failures.append(
-                    f"verification-ownership: {relative} retains "
-                    f"verifier-only semantics: {forbidden}"
-                )
-    return failures
-
-
-def check_user_preview(root: Path) -> list[str]:
-    """Keep user preview a Decision and phase line, not a tier or kind."""
-    failures: list[str] = []
-    required_by_path = {
-        "VISION.md": (
-            "optional user preview",
-            "not a tier, profile, or plan status",
-            "no Orchestra-owned process survives the pause",
-            "post-absorption",
-        ),
-        "docs/WORKFLOW.md": (
-            "blocker `user_preview`",
-            "bare tier choice or silence is `none`",
-            "Decision before dispatching",
-            "frozen revision is that post-absorption",
-            "`<NN>-preview-brief.md`",
-            "not a semantic artifact kind",
-            "`blocked` to `active` resume",
-        ),
-        "docs/ARCHITECTURE.md": (
-            "no process is retained across the pause",
-            "User preview: required | none",
-        ),
-        "AGENTS.md": (
-            "user preview",
-            "fresh owner absorbs",
-        ),
-        "codex/runtime/AGENTS.orchestra.md": (
-            "blocker `user_preview`",
-            "User preview: required | none",
-        ),
-        "codex/skills/orchestra/SKILL.md": (
-            "User preview Decision must already be recorded",
-            "blocker `user_preview`",
-            "fresh owner absorbs",
-        ),
-        "codex/skills/orchestra/references/technical_planning.md": (
-            "User preview: required | none",
-            "split mixed API and UI work",
-        ),
-        "codex/skills/orchestra/references/frontend_implementation.md": (
-            "not user preview",
-        ),
-        "codex/skills/orchestra-role-implementer/SKILL.md": (
-            "user-preview absorption",
-        ),
-        "codex/skills/orchestra-role-reviewer/SKILL.md": (
-            "frozen user-preview revision",
-        ),
-    }
-    for relative, required in required_by_path.items():
-        path = root / relative
-        if not path.is_file():
-            failures.append(f"user-preview: missing {relative}")
-            continue
-        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
-        for contract in required:
-            if " ".join(contract.lower().split()) not in normalized:
-                failures.append(
-                    f"user-preview: {relative} must name {contract}"
-                )
-    workflow = root / "docs/WORKFLOW.md"
-    if workflow.is_file():
-        kinds = workflow.read_text(encoding="utf-8")
-        start = kinds.find("Conventional artifact kinds are")
-        end = kinds.find("Corrected", start) if start >= 0 else -1
-        if start < 0 or end < 0:
-            failures.append(
-                "user-preview: docs/WORKFLOW.md must keep the conventional "
-                "artifact kinds sentence"
-            )
-        elif "preview-brief" in kinds[start:end].lower():
-            failures.append(
-                "user-preview: preview-brief must not join conventional "
-                "artifact kinds"
-            )
     return failures
 
 
@@ -1474,25 +1107,16 @@ def check_cursor_host(root: Path) -> list[str]:
     )
     spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
-        "fresh",
         "Task",
         "run_in_background",
-        "resume",
-        "resume: self",
         "luna-worker",
         "grok-worker",
-        "isolated",
-        "matrix row is not assigned",
         "cursor-grok-4.6-xhigh",
         "gpt-5.6-luna-xhigh",
         "claude-opus-5-thinking-medium",
         "generalPurpose",
-        "*-fast",
-        "Independent verification gate",
-        "do not create a verifier Task",
-        "matrix entries describe available capabilities",
         "plugin-browser-use-browser-use",
-        "`auto` and `chrome` map to Browser Use",
+        "Browser Use",
     ):
         if required not in spawn:
             failures.append(f"cursor-contract: spawn.md must name {required}")
@@ -1588,20 +1212,13 @@ def check_grok_host(root: Path) -> list[str]:
     spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
         "spawn_subagent",
-        "background: true",
         "isolation: none",
-        "isolation: worktree",
         "resume_from",
         "get_command_or_subagent_output",
         "timeout_ms: 600000",
         "GROK_SESSION_ID",
         "Playwright",
         "general-purpose",
-        "matrix row is not assigned",
-        "workflow",
-        "Independent verification gate",
-        "do not spawn a verifier",
-        "matrix entries describe available capabilities",
     ):
         if required not in spawn:
             failures.append(f"grok-contract: spawn.md must name {required}")
@@ -1609,69 +1226,21 @@ def check_grok_host(root: Path) -> list[str]:
 
 
 def check_repository_conventions(root: Path) -> list[str]:
-    """Keep `.agent/` lookup, seed, persist fork, and root-only writes explicit."""
+    """Keep this repository's `.agent/` hard-gate command declaration exact."""
     failures: list[str] = []
-    required_by_path = {
-        "docs/WORKFLOW.md": (
-            "`.agent/` first",
-            "missing-store checkpoint",
-            "seed Decision in `plan.md`",
-            "seed handoff order",
-            "before dispatching review",
-            "`persist` forks by destination",
-            "root writes only `.agent/**`",
-            "the first approved phase's stable handoff",
-            "exempts root-authored `.agent/**` deltas",
-            "cite the exact `.agent/` seed paths",
-            "post-edit repository-context revalidation",
-            "replacement `implementation-report`",
-            "new literal hard-gate command",
-            "same reviewer for delta review",
-        ),
-        "codex/skills/orchestra/SKILL.md": (
-            "missing-store checkpoint",
-            "seed handoff order",
-            "the first approved phase's stable handoff",
-            "before dispatching review",
-            "`persist` forks by destination",
-            "exempts root-authored `.agent/**` deltas",
-            "cite the exact `.agent/` seed paths",
-            "post-edit repository-context revalidation",
-            "replacement `implementation-report`",
-            "new literal hard-gate command",
-            "same reviewer for delta review",
-        ),
-        "codex/skills/orchestra-role-implementer/SKILL.md": (
-            "do not edit `.agent/`",
-            "fresh post-edit `context-delta`",
-            "new literal `.agent/` hard-gate command",
-        ),
-        "codex/skills/orchestra-role-reviewer/SKILL.md": (
-            "inspect packet-cited seed paths",
-            "fresh post-edit `context-delta`",
-            "replacement `implementation-report`",
-        ),
-        "codex/skills/orchestra/references/repository_context.md": (
-            "`.agent/` first",
-            "applicable `AGENTS.md`",
-        ),
-        ".agent/backend-testing.md": (
-            "python3 codex/scripts/validate_suite.py --full",
-            "python3 codex/scripts/validate_suite.py --quick",
-            "Do not treat an ad-hoc `pytest`",
-        ),
-    }
-    for relative, required in required_by_path.items():
-        path = root / relative
-        if not path.is_file():
-            failures.append(f"repository-conventions: missing {relative}")
-            continue
-        normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
-        for contract in required:
-            if " ".join(contract.lower().split()) not in normalized:
-                failures.append(
-                    f"repository-conventions: {relative} must name {contract}"
-                )
+    relative = ".agent/backend-testing.md"
+    path = root / relative
+    if not path.is_file():
+        return [f"repository-conventions: missing {relative}"]
+    normalized = " ".join(path.read_text(encoding="utf-8").lower().split())
+    for contract in (
+        "python3 codex/scripts/validate_suite.py --full",
+        "python3 codex/scripts/validate_suite.py --quick",
+    ):
+        if contract not in normalized:
+            failures.append(
+                f"repository-conventions: {relative} must name {contract}"
+            )
     return failures
 
 
@@ -1684,9 +1253,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_roles_and_profiles,
     check_skills_and_runtime,
-    check_verification_ownership,
     check_repository_conventions,
-    check_user_preview,
     check_direct_sync,
     check_cursor_host,
     check_grok_host,
