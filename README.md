@@ -91,10 +91,10 @@ For an existing repository:
 1. Ask: `Use Orchestra to add <visible behavior>.`
 2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
    asks you to choose the tier.
-3. It creates an isolated worktree in `managed` mode, or creates a fresh task
-   branch in the current clean checkout in opt-in `hybrid` mode, then proposes observable
-   acceptance, and asks you to confirm the final specification and
-   implementation plan.
+3. It proposes observable acceptance and asks you to confirm the final
+   specification and implementation plan (one message for simple tasks). After
+   confirmation it creates an isolated worktree in `managed` mode, or a fresh
+   task branch in the current clean checkout in opt-in `hybrid` mode.
 4. After approval it implements, verifies, reviews, and commits accepted phases.
 5. It reports `implementation complete; delivery pending` and asks whether to
    hold, open a PR, or integrate locally when repository policy allows.
