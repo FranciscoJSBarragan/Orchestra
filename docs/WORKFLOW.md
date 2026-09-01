@@ -252,10 +252,12 @@ authoritative for formal work.
 
 `task request-stop` records a cooperative request and never interrupts a tool,
 agent, process, or mutable implementation owner. For every adopted card, the
-root queries current Task Control state before a new capability dispatch, a
-phase commit, terminal completion, PR or local delivery, and at every stable
-handoff. A pending request prevents new work at those boundaries. `task
-transfer` and `task finish` reject it; `task reclaim --authorized` preserves it.
+root queries current Task Control state at real pauses: before a phase commit,
+before terminal completion, before PR or local delivery, and whenever it
+returns to the user for input. Routine capability dispatches and stable
+handoffs inside an actively running phase do not each require a query. A
+pending request prevents new work at those boundaries. `task transfer` and
+`task finish` reject it; `task reclaim --authorized` preserves it.
 
 After the current owner reaches a stable handoff, it closes its exact owned
 resources using the normal cleanup contract, writes the existing approved plan
@@ -353,175 +355,41 @@ Cursor `minimal` is the equivalent of Codex `luna`. This cut also assigns
 Cursor `standard`. Grok has no cheap assigned tier. Hard gates never change
 with the cheap tier. Do not rename the Codex `luna` key.
 
-### Native standard configuration
+### Installed matrices are the assignment truth
 
-| Tier | Capability | Base profile | Model | Reasoning |
-| --- | --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | `gpt-5.6-terra` | `high` |
-| Standard | `web_research` | `orchestra_analyst` | `gpt-5.6-terra` | `high` |
-| Standard | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `medium` |
-| Standard | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `medium` |
-| Standard | `independent_review` | `orchestra_reviewer` | `gpt-5.6-sol` | `medium` |
-| Standard | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-terra` | `high` |
-| Standard | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-terra` | `high` |
+The installed TOML matrices, not this document, define every model and
+reasoning assignment. The sources are `codex/config/roles.native.toml` and
+`codex/config/roles.external.toml` (installed as
+`$CODEX_HOME/orchestra/roles.toml`, dual installs composing both under
+`modes`), `hosts/cursor/config/roles.cursor.toml`, and
+`hosts/grok/config/roles.grok.toml` (installed under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/<host>/roles.toml`). Reassigning a
+model or reasoning effort edits only the matching TOML file; this document is
+not updated for such a change. Structural invariants the matrices must keep:
 
-### External standard configuration
-
-| Tier | Capability | Base profile | Model | Reasoning |
-| --- | --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | `opencode/deepseek-v4-flash` | `max` |
-| Standard | `web_research` | `orchestra_analyst` | `antigravity/gemini-3.6-flash-high` | `high` |
-| Standard | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | `cursor/grok-4.6` | `high` |
-| Standard | `frontend_implementation` | `orchestra_implementation_worker` | `opencode/glm-5.2` | `max` |
-| Standard | `independent_review` | `orchestra_reviewer` | `gpt-5.6-terra` | `high` |
-| Standard | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-terra` | `medium` |
-| Standard | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-terra` | `high` |
-
-### External Luna configuration
-
-| Tier | Capability | Base profile | Model | Reasoning |
-| --- | --- | --- | --- | --- |
-| Luna | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
-| Luna | `web_research` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
-| Luna | `technical_planning` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
-| Luna | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
-| Luna | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-luna` | `max` |
-| Luna | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-luna` | `max` |
-| Luna | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-luna` | `max` |
-| Luna | `independent_review` | `orchestra_reviewer` | `gpt-5.6-luna` | `max` |
-| Luna | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
-| Luna | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
-
-The external source matrix uses the native Luna slug. A dual installation
-rewrites every one of these assignments to the
-`orchestra-v1/gpt-5.6-luna` compatibility alias. Luna agents remain leaf
-workers; the Sol root retains orchestration and descendant ownership.
-
-In the dual matrix, every native model named by the external configuration is
-resolved through its `orchestra-v1/` compatibility alias. Cursor, OpenCode, and
-Antigravity assignments remain unchanged.
-
-### Native critical configuration
-
-| Tier | Capability | Base profile | Model | Reasoning |
-| --- | --- | --- | --- | --- |
-| Critical | `repository_context` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
-| Critical | `web_research` | `orchestra_analyst` | `gpt-5.6-luna` | `xhigh` |
-| Critical | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
-| Critical | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
-| Critical | `independent_review` | `orchestra_reviewer` | `gpt-5.6-sol` | `high` |
-| Critical | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
-| Critical | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-luna` | `xhigh` |
-
-### External critical configuration
-
-| Tier | Capability | Base profile | Model | Reasoning |
-| --- | --- | --- | --- | --- |
-| Critical | `repository_context` | `orchestra_analyst` | `gpt-5.6-sol` | `medium` |
-| Critical | `web_research` | `orchestra_analyst` | `gpt-5.6-sol` | `medium` |
-| Critical | `technical_planning` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `architecture_analysis` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `difficult_debugging` | `orchestra_analyst` | `gpt-5.6-sol` | `high` |
-| Critical | `general_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
-| Critical | `frontend_implementation` | `orchestra_implementation_worker` | `gpt-5.6-sol` | `high` |
-| Critical | `independent_review` | `orchestra_reviewer` | `gpt-5.6-sol` | `high` |
-| Critical | `browser_acceptance` | `orchestra_verifier` | `gpt-5.6-sol` | `medium` |
-| Critical | `runtime_verification` | `orchestra_verifier` | `gpt-5.6-sol` | `medium` |
-
-External critical keeps the same capabilities and profiles, but uses
-`gpt-5.6-sol` with `medium` for `repository_context`, `web_research`,
-`browser_acceptance`, and `runtime_verification`, and `high` for the remaining
-capabilities. A second critical review reuses `independent_review` with Sol
-high only for a named measurable risk and independently detectable defect
-class. Native critical's second review also uses Sol high; the Luna assignment
-applies only to the four capabilities listed above. No Orchestra assignment
-uses Sol xhigh.
-
-The critical capability and profile structure remains shared. Dual native uses
-the native Luna or Sol V2 assignments; dual external uses the corresponding
-Sol V1 compatibility aliases so a tier transition never crosses protocol
-versions.
-
-Frontend implementation composes `orchestra_implementation_worker`; browser acceptance
-composes `orchestra_verifier`. They remain independent and never run as one combined
-role.
-
-### Cursor minimal configuration
-
-Cursor has no native/external mode. Product contract for `minimal`:
-
-| Tier | Capability | Base profile | Product model |
-| --- | --- | --- | --- |
-| Minimal | `repository_context` | `orchestra_analyst` | Luna high |
-| Minimal | `web_research` | `orchestra_analyst` | Luna high |
-| Minimal | `runtime_verification` | `orchestra_verifier` | Luna high |
-| Minimal | `browser_acceptance` | `orchestra_verifier` | Luna high |
-| Minimal | `technical_planning` | `orchestra_analyst` | Grok 4.6 medium |
-| Minimal | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 medium |
-| Minimal | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 medium |
-| Minimal | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 medium |
-| Minimal | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 medium |
-| Minimal | `independent_review` | `orchestra_reviewer` | Grok 4.6 medium |
-
-`hosts/cursor/config/roles.cursor.toml` records that contract. The Cursor spawn
-reference maps each row onto the closest live Task worker without rewriting the
-product names.
-
-### Cursor standard configuration
-
-Product contract for `standard`. Context, research, runtime, and browser
-acceptance are Luna xhigh; implementation, planning, architecture, and
-debugging are Grok 4.6 xhigh; independent review is Opus 5 medium. Never use
-Fast variants:
-
-| Tier | Capability | Base profile | Product model |
-| --- | --- | --- | --- |
-| Standard | `repository_context` | `orchestra_analyst` | Luna xhigh |
-| Standard | `web_research` | `orchestra_analyst` | Luna xhigh |
-| Standard | `runtime_verification` | `orchestra_verifier` | Luna xhigh |
-| Standard | `browser_acceptance` | `orchestra_verifier` | Luna xhigh |
-| Standard | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 xhigh |
-| Standard | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 xhigh |
-| Standard | `technical_planning` | `orchestra_analyst` | Grok 4.6 xhigh |
-| Standard | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 xhigh |
-| Standard | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 xhigh |
-| Standard | `independent_review` | `orchestra_reviewer` | Opus 5 medium |
-
-Cursor `critical` remains unassigned; selecting it blocks.
-
-### Grok Build standard and critical configuration
-
-Grok has no native/external mode. The live catalog is `grok-4.6` at one cost.
-Product contract for assigned `standard` and `critical` — the spawn rows are
-identical; `critical` raises root scrutiny (focused plan review, no skipped
-review, second review only for a named measurable risk):
-
-| Tier | Capability | Base profile | Product model |
-| --- | --- | --- | --- |
-| Standard and critical | `repository_context` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard and critical | `web_research` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard and critical | `runtime_verification` | `orchestra_verifier` | Grok 4.6 inherit |
-| Standard and critical | `browser_acceptance` | `orchestra_verifier` | Grok 4.6 inherit |
-| Standard and critical | `general_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
-| Standard and critical | `frontend_implementation` | `orchestra_implementation_worker` | Grok 4.6 inherit |
-| Standard and critical | `technical_planning` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard and critical | `architecture_analysis` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard and critical | `difficult_debugging` | `orchestra_analyst` | Grok 4.6 inherit |
-| Standard and critical | `independent_review` | `orchestra_reviewer` | Grok 4.6 inherit |
-
-`hosts/grok/config/roles.grok.toml` records that contract. The Grok spawn
-reference maps each row onto `spawn_subagent` `general-purpose` without
-inventing a per-dispatch reasoning field. Grok `minimal` remains unassigned;
-selecting it blocks.
+- Codex native defines exactly `standard` and `critical`; Codex external adds
+  exactly one complete `luna` matrix. Every defined tier assigns all ten
+  capabilities to the four base profiles.
+- The external Luna tier is a single-model cost lane. A dual installation
+  rewrites every native model in the external mode to its `orchestra-v1/`
+  compatibility alias; Cursor, OpenCode, and Antigravity assignments remain
+  unchanged, so a tier transition never crosses protocol versions. Luna
+  agents remain leaf workers; the Sol root retains orchestration and
+  descendant ownership.
+- No Orchestra assignment uses Sol xhigh. A second critical review reuses
+  `independent_review` only for a named measurable risk and independently
+  detectable defect class.
+- Cursor assigns `minimal` and `standard` and blocks unassigned `critical`;
+  never use Fast variants. The Cursor spawn reference maps each row onto the
+  closest live Task worker without rewriting product names.
+- Grok assigns `standard` and `critical` on the live `grok-4.6` catalog with
+  identical spawn rows (`critical` raises root scrutiny, not the model) and
+  blocks unassigned `minimal`. The Grok spawn reference maps rows onto
+  `spawn_subagent` `general-purpose` without inventing a per-dispatch
+  reasoning field.
+- Frontend implementation composes `orchestra_implementation_worker`; browser
+  acceptance composes `orchestra_verifier`. They never run as one combined
+  role.
 
 ## Context and planning
 
@@ -800,19 +668,15 @@ are descriptive labels with no transition graph. Timestamps indicate freshness
 but never prove that an agent or process is live.
 
 For external progress surfaces, the root writes `summary` as one concise,
-localized milestone line. Once an approved plan exists, phase milestones use
-the manifest's exact current and total phase counts: `Phase X/Y ·
-Implementation active`, numbered implementation-review entries, accepted
-finding counts while corrections are in progress, reviews approved, and phase
-completion after the Git commit exists. Review numbering restarts for each
-phase and counts actual reviewer evaluations; only findings accepted by the
-root are reported. A review-to-implementer return is represented by the
-accepted-findings milestone and receives no extra transition. Delivery
-milestones distinguish implementation complete, hold, PR open/clean/merged,
-and verified local integration. Managed or hybrid checkout mode is not itself
-reported unless it explains a delivery blocker. The root never derives these
-milestones from free-text agent output and creates no event ledger, locale
-field, or second progress state machine.
+localized milestone line at material transitions only: phase started, blocked
+(with the blocker), phase committed, and the delivery outcome (implementation
+complete, hold, PR open/clean/merged, or verified local integration). Once an
+approved plan exists it may prefix the manifest's exact `Phase X/Y`. Interior
+review numbering, accepted-finding counts, and per-return transitions are not
+required milestones; only findings accepted by the root ever appear. Managed
+or hybrid checkout mode is not itself reported unless it explains a delivery
+blocker. The root never derives milestones from free-text agent output and
+creates no event ledger, locale field, or second progress state machine.
 
 Coordination keeps machine-facing `tier`, `stage`, `status`, activity
 `capability`, and activity `state` labels in English. User-visible task
@@ -976,9 +840,9 @@ In the same message as the initial tier recommendation, offer preview when all
 three hold from the minimum brief, with no extra research pass: the visible
 result is a surface the user operates or looks at; the change is material
 (new or substantially changed screen or flow, not a string or minor CSS
-tweak); and a local run recipe is known or trivially inferable. The offer is
-one clause, answerable as the chosen tier with preview or the chosen tier
-alone. Bare tier choice or silence is `none`. A conversational
+tweak); and a local run recipe is known or trivially inferable. The offer is brief,
+lives inside the tier message, and is answerable together with the tier
+choice. Bare tier choice or silence is `none`. A conversational
 `interactive` / `interactivo` (or equivalent in the chat language) that
 clearly means this pause is `required`; if it might mean the product is
 interactive, disambiguate once in that same message. Do not re-ask when

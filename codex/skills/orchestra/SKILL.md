@@ -82,8 +82,8 @@ or [hosts/grok/references/spawn.md](../../../hosts/grok/references/spawn.md)
 
 ## Recommend and transition tiers
 
-Recommend `Tier: <available-tier> — <matching condition>: <one-line evidence>`
-from the minimum brief, batched with any clarifying questions and with the
+Recommend one available tier, naming its matching condition and one line of
+evidence from the minimum brief, batched with any clarifying questions and the
 user-preview offer when the WORKFLOW detection rule matches, then obtain the
 user's explicit tier choice. Codex native mode offers `standard` and
 `critical`. Codex external mode additionally offers `luna`, recommended only
