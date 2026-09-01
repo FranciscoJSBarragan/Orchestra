@@ -186,8 +186,9 @@ not a restatement.
    normal timeout is not a user-visible transition). Browser work carries
    `browser_route` per WORKFLOW "Test permissions and browser routing";
    Orchestra observes the active permission choice and never changes it.
-6. **Phase teardown and commit** — WORKFLOW "Phase teardown". Consume
-   `cleanup`/`retained_resources`, retire the cohort, then commit through
+6. **Phase teardown and commit** — WORKFLOW "Phase teardown" (proportional:
+   an edit-only phase with no declared retention or incomplete cleanup goes
+   straight to commit). Retire the cohort, then commit through
    [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and update the
    manifest. Escalate repeated non-converging failures per WORKFLOW
    ("difficult_debugging", tier change, or a user authority boundary).

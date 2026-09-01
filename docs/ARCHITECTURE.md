@@ -418,13 +418,12 @@ does not promote them automatically. `repository_context` alone may validate a
 reported candidate into a targeted `context-delta`. No discovery registry,
 global context file, coordination column, or additional artifact kind exists.
 
-Each discovery preserves evidence status separately from context role:
-`descriptive` current-state information, `normative` intended behavior or
-constraint, or `uncertain`. Only a validated descriptive claim at an exact
-phase-authorized documentation path may receive `persist`; executable
-configuration and operational data remain normal implementation scope. The
-same owner makes the change, repository context revalidates it independently,
-and the same reviewer evaluates the meaningful delta before commit.
+Each discovery classifies its claim as `descriptive` current-state
+information, `normative` intended behavior or constraint, or `uncertain`.
+Only a confirmed descriptive claim at an exact phase-authorized documentation
+path may receive `persist`; executable configuration and operational data
+remain normal implementation scope. The same owner makes the change and the
+same reviewer evaluates the meaningful delta before commit.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
@@ -465,7 +464,8 @@ phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
 dispatch API. Grok uses a fresh `spawn_subagent` per dispatch, `isolation:
 none`, `cwd` equal to the task checkout, may `resume_from` the same
-phase-cohort agent after completion, and never resumes a reviewer.
+phase-cohort agent after completion, including the same reviewer for delta
+reviews; first reviews stay fresh spawns.
 
 Cursor and Grok have no native/external mode and do not run `session_model.py`.
 Codex mode detection remains Codex-only. Shared helpers, checkout-mode, and

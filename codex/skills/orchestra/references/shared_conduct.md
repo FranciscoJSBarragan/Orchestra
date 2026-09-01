@@ -39,17 +39,19 @@ verifiers also clean by default and recreate what a later accepted fix or rerun
 needs. They may retain a non-browser resource only when the packet explicitly
 authorizes that exact resource category for phase reuse.
 
-Every return includes `cleanup: pass | partial | blocked` and
-`retained_resources: none` or a list containing each resource's type, exact
-handle, owner, and authorized reason. `pass` means every resource due for
-cleanup was closed; explicitly authorized retained resources may still be
-listed. `partial` is limited to an inaccessible or unclosed source-read-only
-task tab or window. `blocked` means a task-owned process, terminal session, or
-resource capable of writing the worktree remains, or safe ownership cannot be
-established. Cleanup status is independent of the capability outcome. Do not
-persist cleanup fields or resource handles in semantic artifacts or
-coordination. Do not create a resource registry, hook, wrapper, or persisted
-cleanup state.
+Cleanup reporting is exception-based. A return with no cleanup declaration
+means every owned resource was closed and nothing is retained; a role that
+created no closable resource, which is the norm for analysts and reviewers,
+reports nothing. Declare `cleanup: partial | blocked` and `retained_resources`
+(each resource's type, exact handle, owner, and authorized reason) only when
+the packet authorized processes, services, or browser work, something is
+genuinely retained, or cleanup did not complete. `partial` is limited to an
+inaccessible or unclosed source-read-only task tab or window. `blocked` means
+a task-owned process, terminal session, or resource capable of writing the
+worktree remains, or safe ownership cannot be established. Cleanup status is
+independent of the capability outcome. Do not persist cleanup fields or
+resource handles in semantic artifacts or coordination. Do not create a
+resource registry, hook, wrapper, or persisted cleanup state.
 
 ## Command permissions and failures
 

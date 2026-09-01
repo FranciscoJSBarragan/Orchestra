@@ -70,11 +70,13 @@ on every spawn (the V2 default forks the full root history, which multiplies
 token cost and destroys reviewer independence); under V1 never set
 `fork_context: true`. Grok Build: `spawn_subagent` exists and `spawn_agent`
 does not; use a fresh isolated subagent per dispatch, `isolation: none`,
-`cwd` equal to the task checkout, resume only the same phase-cohort agent
-with `resume_from`, and never resume a reviewer. Cursor: `Task` exists; use a
-fresh isolated Task per dispatch, resume only the same phase-cohort agent id,
-and never `resume: self` for a reviewer. Never mix Codex, Cursor, and Grok
-spawn protocols in one task.
+`cwd` equal to the task checkout, and resume only the same phase-cohort agent
+with `resume_from`. Cursor: `Task` exists; use a fresh isolated Task per
+dispatch, resume only the same phase-cohort agent id, and never `resume: self`
+for a reviewer. On both hosts a reviewer's first review is a fresh spawn and
+delta reviews within the same phase resume that same reviewer, matching the
+open phase cohort on Codex. Never mix Codex, Cursor, and Grok spawn protocols
+in one task.
 
 ## Host adapters
 
@@ -846,13 +848,14 @@ Any delegated role may discover a material fact, supported inference, or
 unresolved uncertainty absent from its exact inputs. Record it under the
 existing report's conditional `Context discoveries` section only when it
 affects a named material judgment in the current phase or a named dependency of
-an identified later phase. Each entry has a report-local stable identifier such
-as `CTX-001`, evidence and locator, inspected revision, evidence classification,
-material impact, mandatory `Affected judgment`, and the named current-task
-consumer. It also classifies the claim separately as `descriptive`
-current-state information, `normative` intended behavior or constraint, or
-`uncertain` when the source's role cannot be established. Classification
-applies to the individual claim, not an entire mixed-purpose file. The
+an identified later phase; the section is opt-in reporting, never a
+per-report obligation. Each entry has a report-local stable identifier such
+as `CTX-001`, evidence and locator, inspected revision, the claim
+classification (`descriptive` current-state information, `normative` intended
+behavior or constraint, or `uncertain` when the source's role cannot be
+established), material impact, mandatory `Affected judgment`, and the named
+current-task consumer. Classification applies to the individual claim, not an
+entire mixed-purpose file. The
 globally unambiguous reference for a published report is the composite
 `<artifact-identifier>#CTX-001`. When publication is unavailable, the agent
 returns the complete inline report with its report-local `CTX-001`, and the root
@@ -869,68 +872,60 @@ publish a `context-delta`; other roles keep the discovery in the report kind
 they already produce.
 
 At a stable handoff, and never while an implementation owner is actively
-mutating the worktree, the root gives every material discovery one of these
-dispositions:
+mutating the worktree, the root judges each material discovery and gives it
+one of four dispositions. It may first confirm a consequential disputed claim
+with one bounded `repository_context` dispatch when at least one possible
+result can change current-task acceptance, a finding disposition, replanning,
+or a persist; that confirmation is ordinary root judgment, not a separate
+disposition or machine state:
 
 - `route`: the report already provides sufficient evidence for a named
   current-task consumer, so its exact artifact and composite discovery ID, or
   its complete inline fallback and local ID, are included in that consumer's
   packet;
-- `validate`: a consequential, uncertain, or disputed factual claim receives
-  one bounded post-approval `repository_context` dispatch only when at least
-  one possible result can change current-task acceptance, a finding
-  disposition, replanning, or a `persist` required by its named consumer. The
-  packet carries the exact report, discovery ID, affected judgment, consumer,
-  revision, and paths; the one-shot analyst publishes a targeted
-  `context-delta` with claim result, both classifications, source paths,
-  revision, source type, and decision effect, then closes after consumption;
 - `replan`: a discovery changes an approved phase or later dependency, so the
   affected phase becomes a complete replacement artifact and the root updates
   the manifest; material scope, public-contract, or user-visible behavior
   changes still require renewed approval;
-- `persist`: knowledge needs to survive task-artifact cleanup. `persist` forks
-  by destination. Product documentation still goes through the current
-  responsible implementation owner, who may update the repository's canonical
-  versioned human-readable documentation only for a validated `descriptive`
-  claim and an exact path already listed under the phase's `Context maintenance
-  paths`; if no such phase exists, the root uses `replan` when the change
-  remains within approved authority, and otherwise uses `defer` or requests the
+- `persist`: knowledge needs to survive task-artifact cleanup. Product
+  documentation goes through the current responsible implementation owner,
+  who may update the repository's canonical versioned human-readable
+  documentation only for a confirmed `descriptive` claim and an exact path
+  already listed under the phase's `Context maintenance paths`; if no such
+  phase exists, the root uses `replan` when the change remains within
+  approved authority, and otherwise reports the follow-up or requests the
   newly required authority. An `.agent/**` destination is a root write at the
-  next approved-phase stable handoff and then follows the mandatory post-edit
-  proof below before delta review; do not list `.agent/` under `Context
-  maintenance paths`. A `normative` or `uncertain`
-  conflict is never rewritten to match current code automatically; executable
-  configuration, databases, generated data, and operational data remain normal
-  implementation scope;
-- `defer`: a useful out-of-scope candidate is reported as an explicit follow-up
-  without silently expanding the current task; or
-- `discard`: the candidate is duplicate, immaterial, disproven, or unsupported.
+  next approved-phase stable handoff; do not list `.agent/` under `Context
+  maintenance paths`. A `normative` or `uncertain` conflict is never
+  rewritten to match current code automatically; executable configuration,
+  databases, generated data, and operational data remain normal
+  implementation scope; or
+- `discard`: the candidate is duplicate, immaterial, disproven, or
+  unsupported, or a useful out-of-scope follow-up that the root reports to
+  the user without silently expanding the current task.
 
 The root routes only the exact reports or targeted context deltas required by a
 later consumer. When a later phase depends on the discovery, that dependency is
 captured through the existing complete replacement-phase mechanism rather than
 an implicit packet-only assumption. Before phase teardown, every reported
-material discovery has an explicit disposition; `defer` and `discard` are valid
-non-blocking outcomes. Task-private artifacts remain current-task evidence and
-are not cross-task memory. If a role nevertheless returns a discovery without
-an affected judgment and named current-task consumer, the root applies discard
-without validation or another agent dispatch.
+material discovery has an explicit disposition. Task-private artifacts remain
+current-task evidence and are not cross-task memory. If a role returns a
+discovery without an affected judgment and named current-task consumer, the
+root discards it without confirmation or another agent dispatch.
 
 A stale-context claim that names the exact material review judgment it makes
 unreliable cannot be deferred into an `accepted` phase; an incidental
 discrepancy neither creates a discovery nor blocks. After an authorized
-documentation correction, including a root-authored `.agent/**` `persist`, the
-root always dispatches one bounded post-edit `repository_context` revalidation
-against the exact changed paths and dirty revision. The same implementation
-owner then reruns affected deterministic handoff checks and publishes a
-replacement `implementation-report`; when `.agent/` adds or changes a hard
-gate, that evidence includes the new literal hard-gate command. Any applicable
-independent gate reruns with the same verifier. Only the fresh context delta,
-replacement implementation and verification evidence, and meaningful delta go
-to the same reviewer for delta review. A rejected revalidation, stale evidence,
-or unresolved material context basis blocks phase commit with its affected
-judgment named. This post-edit proof is not pruned by the earlier relevance
-gate.
+documentation edit — the owner's product-documentation `persist` or a
+root-authored `.agent/**` write — the same implementation owner reruns the
+affected deterministic handoff checks and publishes a replacement
+`implementation-report`; when `.agent/` adds or changes a hard gate, that
+evidence includes the new literal hard-gate command. The replacement evidence
+and meaningful delta then go to the same reviewer for delta review. No
+mandatory post-edit `repository_context` revalidation or verifier rerun is
+chained onto a documentation edit; the reviewer keeps full authority to block
+acceptance and commit when a named material judgment still depends on
+missing, stale, or conflicting context.
 
 All coordination operations are fail-soft after their correctly authorized
 first attempt. `invalid` or `unavailable` status
@@ -988,7 +983,7 @@ alone. Bare tier choice or silence is `none`. A conversational
 clearly means this pause is `required`; if it might mean the product is
 interactive, disambiguate once in that same message. Do not re-ask when
 already chosen. Do not offer on API, schema, worker, CI, migration, or
-library-only work. Do not persist an internal label `standard-interactive`.
+library-only work. Preview is never persisted as an internal tier label.
 
 Record the task-level choice as a Decision before dispatching
 `technical_planning`. Plan approval confirms only the per-phase mapping the
@@ -1009,14 +1004,12 @@ if the current phase line is `required`:
    starts any preview process themselves.
 2. Set `plan.md` to `blocked` with named blocker `user_preview` and next
    action user inspection. This is distinct from a safe-stop blocker.
-3. Give the user a preview pack: worktree cwd, task branch, how to run the
-   surface, allowed paths, a short visible-result summary, cited existing
-   implementation screenshot paths, stay on the task branch, edit and do not
-   commit, and do not invoke Orchestra in the iteration chat. The root may
-   also write an advisory `<NN>-preview-brief.md` in the task-private
-   artifacts directory that cites those shots without copying them. Git and
-   the `implementation-report` remain truth; the brief is not a semantic
-   artifact kind and no later Orchestra agent consumes it as authority.
+3. Give the user a preview pack in the conversation: worktree cwd, task
+   branch, how to run the surface, allowed paths, a short visible-result
+   summary, cited existing implementation screenshot paths, stay on the task
+   branch, edit and do not commit, and do not invoke Orchestra in the
+   iteration chat. Git and the `implementation-report` remain truth; no
+   preview artifact is written.
 4. Wait with `request_user_input` for iterate, freeze as-is, or skip this
    phase. The user iterates in a native chat they open, as direct work
    outside Orchestra, without adopting or transferring the card. On Cursor
@@ -1029,8 +1022,10 @@ primary checkout for a long time; mention that when recommending preview.
 
 Resume in the owning chat, or reclaim at this stable checkpoint meaning the
 user finished iterating and Orchestra continues here, never that iteration
-moves inside Orchestra. Reclaim abandons the previous chat. Spawn a fresh
-implementation owner for the remainder of the phase. Git is authoritative.
+moves inside Orchestra. Reclaim abandons the previous chat. The same
+implementation owner absorbs the delta when it is still available; spawn a
+fresh owner only when the original no longer exists (transfer, reclaim, or a
+closed host session). Git is authoritative.
 Treat in-scope uncommitted and untracked edits as the delta. Recommend
 against user commits; if the task branch gained commits, record them as
 authorized preexisting changes and include them in absorption. Out-of-scope
@@ -1051,9 +1046,9 @@ The loop is:
 
 1. The root selects one `orchestra_implementation_worker` with
    `general_implementation` or `frontend_implementation` and keeps that owner
-   for the whole phase unless a user-preview pause retires it. After that
-   pause a fresh owner absorbs the delta and owns the remainder of the phase.
-   Its packet contains edit authority, worktree,
+   for the whole phase, including delta absorption after a user-preview
+   pause; a fresh owner is spawned only when the original owner no longer
+   exists. Its packet contains edit authority, worktree,
    `plan.md` path, exact overview and current phase IDs, revision, accepted
    finding IDs, stop conditions, and only new context. The worker reads scope,
    acceptance, verification, and dependencies from those documents and reads
@@ -1090,11 +1085,12 @@ The loop is:
    sends one consolidated finding packet containing evidence, impact, and
    acceptance, never provisional or superseding directions. It also disposes
    any returned context-discovery identifiers before routing a dependent
-   consumer. It consumes cleanup status at the same handoff: `pass` with no
-   retained resource causes no follow-up, authorized non-browser retention
-   stays in root memory until phase teardown, `partial` is non-blocking only for a
-   source-read-only task tab or window, and `blocked` prevents downstream
-   dispatch. A blocked cleanup receives one cleanup-only follow-up to the same
+   consumer. Cleanup reporting is exception-based: a handoff with no
+   `cleanup`/`retained_resources` declaration means pass with nothing
+   retained. When a declaration is present, authorized non-browser retention
+   stays in root memory until phase teardown, `partial` is non-blocking only
+   for a source-read-only task tab or window, and `blocked` prevents
+   downstream dispatch and receives one cleanup-only follow-up to the same
    owner; failure to clear it blocks the phase without a retry loop.
    When the current phase's `User preview` line is `required`, complete that
    pause and absorption before the next step. Do not dispatch verification or
@@ -1115,11 +1111,15 @@ The loop is:
    current source and diff invalidates that packet. Context discovered by a
    verifier stays in its verification report and receives the same root
    disposition before downstream use.
-4. Only after every required verifier passes or an environment blocker is
-   explicitly accepted does one reviewer receive exact overview, phase,
-   implementation, and any required verification IDs, plus every exact
-   repository-context artifact or inline fallback required by the approved
-   overview and current phase. When the phase commit will include root-authored
+4. One reviewer receives exact overview, phase, implementation, and
+   verification IDs, plus every exact repository-context artifact or inline
+   fallback required by the approved overview and current phase. When the
+   independent gate is not `none`, the root may dispatch this source review in
+   parallel with verification; the reviewer then receives each required
+   `verification-report` (or an explicitly accepted blocker) as a delta and
+   must consume it before publishing its `implementation-review`. A failed
+   verification returns to the owner first, and the reviewer receives the
+   resulting replacement evidence as a delta. When the phase commit will include root-authored
    `.agent/` files, that packet must cite the exact `.agent/` seed paths as
    additional evidence; a commit containing those files cannot close without
    that citation and inspection. It independently inspects source and diff,
@@ -1144,33 +1144,30 @@ The loop is:
    is named, after independently resolvable findings are reported.
 5. The review artifact and accepted stable finding IDs return to the same owner;
    the root does not restate findings. For a potentially stale context
-   discovery, the root first confirms that at least one validation result can
-   change acceptance, a finding disposition, replanning, or a `persist` needed
-   by the named consumer; otherwise it uses `discard` without dispatch. Only a
-   confirmed `descriptive` claim at an exact authorized versioned
-   documentation path receives `persist`. Product documentation returns to the
-   same owner; an `.agent/**` destination remains root-authored at this stable
-   handoff.
+   discovery, the root confirms the claim only when at least one possible
+   result can change acceptance, a finding disposition, replanning, or a
+   `persist` needed by the named consumer; otherwise it uses `discard` without
+   dispatch. Only a confirmed `descriptive` claim at an exact authorized
+   versioned documentation path receives `persist`. Product documentation
+   returns to the same owner; an `.agent/**` destination remains root-authored
+   at this stable handoff.
    `normative` or `uncertain` conflicts are corrected as implementation defects,
-   replanned, deferred, or taken to the applicable authority boundary rather
-   than rewritten to follow code automatically.
+   replanned, reported as follow-ups, or taken to the applicable authority
+   boundary rather than rewritten to follow code automatically.
 6. After the owner edits product documentation or the root writes an authorized
-   `.agent/**` `persist`, first run one targeted post-edit repository-context
-   revalidation against the exact changed paths and current dirty revision. On
-   confirmation, have the same implementation owner rerun affected
-   deterministic handoff checks and publish a replacement
+   `.agent/**` `persist`, the same implementation owner reruns affected
+   deterministic handoff checks and publishes a replacement
    `implementation-report` for that dirty revision. If the `.agent/` change
    adds or changes a hard gate, the owner must run the new literal hard-gate
-   command; prior evidence is stale. Then rerun an applicable independent gate
-   with the same verifier. Send only the fresh context delta, replacement
-   implementation and verification reports, and meaningful delta to the same
-   reviewer for delta review. A rejected revalidation or stale required
-   evidence blocks this path.
+   command; prior evidence is stale. Send the replacement evidence and
+   meaningful delta to the same reviewer for delta review. No mandatory
+   post-edit context revalidation or verifier rerun is chained onto the edit;
+   stale required evidence still blocks this path.
 7. After final evidence is consumed and every material context discovery has an
    explicit disposition, require the reviewer to have an unblocked current
    context basis. A material unresolved, stale, or conflicting context basis
-   blocks commit. The root then performs the minimal phase teardown described
-   below, following up only on retained resources or incomplete cleanup.
+   blocks commit. The root then performs the proportional phase teardown
+   described below.
 8. When teardown permits the phase to close, the root commits with direct Git
    or the narrow exact-path helper and records the commit in the phase manifest.
    No commit artifact duplicates Git.
@@ -1216,21 +1213,24 @@ explicitly authorizes retention of an exact non-browser category. Browser task
 tabs are never retained across a handoff. Persisted activity rows are
 observability snapshots, not resource handles or cleanup authority.
 
-After final review and verification pass, but before phase commit, the root:
+Teardown is proportional to what the phase actually used. Cleanup reporting
+is exception-based: a handoff with no `cleanup`/`retained_resources`
+declaration means pass with nothing retained. For an edit-only phase — no
+agent declared retention, `partial`, or `blocked`, and no processes, services,
+or browser work were used — the root retires the cohort with the host close
+contract and proceeds directly to commit with no cleanup follow-ups.
 
-1. consumes each phase agent's latest `cleanup: pass | partial | blocked` and
-   `retained_resources` declaration and does not contact an agent that reported
-   `pass` with no retained resources;
-2. sends one parallel cleanup-only follow-up, without new implementation or
-   verification work, only to owners with authorized retained resources or
-   `partial` or `blocked` cleanup, while stopping shared temporary processes the
-   root itself started;
-3. consumes those results, then under V1 calls `close_agent` for every phase
-   agent so descendants close as well; under V2, where no true close operation
-   is exposed, requires every phase agent to be completed with no active
-   descendant or retained resource;
-4. confirms that no known agent or owned process with worktree write access
-   remains active.
+When any agent declared authorized retention, `partial`, or `blocked`, or the
+phase used owned processes, services, or browser work, the root, after final
+review and verification pass and before phase commit, sends one parallel
+cleanup-only follow-up (without new implementation or verification work) only
+to the owners of those declarations, stops shared temporary processes it
+started itself, consumes those results, then retires every phase agent: under
+V1 it calls `close_agent` so descendants close as well; under V2, where no
+true close operation is exposed, it requires every phase agent to be
+completed with no active descendant or retained resource. It finally confirms
+that no known agent or owned process with worktree write access remains
+active.
 
 An active write-capable agent or owned process blocks the commit. Failure to
 close a source-read-only browser tab is reported as partial cleanup but does not

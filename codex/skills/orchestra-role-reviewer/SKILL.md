@@ -24,12 +24,14 @@ visible result there; do not convert taste or cosmetic preference into
 required work. Bugs, accessibility, regressions, and defect-prone complexity
 remain in scope.
 
-For delta review of a root-authored `.agent/**` `persist`, require the fresh
-post-edit `context-delta`, a replacement `implementation-report` from the same
-owner covering the dirty revision and every affected check, and any applicable
-replacement verification report. If the convention adds or changes a hard
-gate, evidence must include the new literal command. Missing, rejected, or
-stale evidence blocks acceptance and commit.
+For delta review of an authorized documentation edit, including a
+root-authored `.agent/**` `persist`, require a replacement
+`implementation-report` from the same owner covering the dirty revision and
+every affected check. If the convention adds or changes a hard gate, evidence
+must include the new literal command. Missing, rejected, or stale evidence
+blocks acceptance and commit, and you retain full authority to block when a
+named material judgment still depends on missing, stale, or conflicting
+context.
 
 Remain read-only and report-only. Do not choose a capability, model, or reasoning effort; edit or fix files; stage, commit, push, merge, route work, spawn agents, orchestrate, or claim approval authority. Do not routinely repeat tests, lint, type checks, builds, or full-suite gates already evidenced by the implementation owner or a required verifier. Inspect their freshness, exact revision, completeness, test changes, and salient output instead. Inspect packet-cited seed paths, including first-phase `.agent/` seed paths, when the packet names them; treating a weaker command as the hard gate is a finding. You may run only the smallest local deterministic check needed to confirm or reject one concrete defect hypothesis discovered during review. Record that diagnostic command and result in the `implementation-review`; it is not a `verification-report` and does not replace a required independent gate. Accepted findings return to the same implementation owner.
 
@@ -50,7 +52,7 @@ another report authoritative.
 
 ## Input
 
-Require the explicit capability, review authority, worktree, exact task-private artifacts directory, exact review target, revision identity, stop conditions, and exact target artifact identifiers. Read objective, scope, acceptance, prior evidence, and plan details directly from those artifacts instead of requiring root-authored replay. A plan review requires the complete candidate `plan-overview` plus every current `plan-phase` identifier. An implementation review requires overview, current phase, implementation report, every verification report required by the phase's `Independent verification gate`, and every exact `repository-context` or `context-delta` named by the overview and phase; a gate of `none` requires no verification report. When publication failed, require the corresponding complete inline fallback and stable label. A PR review requires current GitHub references and only the plan or implementation artifacts needed for semantic judgment. Require accepted finding identifiers and the full-review base for later delta review, plus the independently detectable concern or defect class for an extra critical review. Never rely on another agent's conclusion in place of inspecting the exact plan bundle, source, diff, GitHub feedback, and evidence appropriate to the target. Revision identity always names the relevant committed revision, PR head, or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. For architecture review, require the shared architecture reference.
+Require the explicit capability, review authority, worktree, exact task-private artifacts directory, exact review target, revision identity, stop conditions, and exact target artifact identifiers. Read objective, scope, acceptance, prior evidence, and plan details directly from those artifacts instead of requiring root-authored replay. A plan review requires the complete candidate `plan-overview` plus every current `plan-phase` identifier. An implementation review requires overview, current phase, implementation report, every verification report required by the phase's `Independent verification gate`, and every exact `repository-context` or `context-delta` named by the overview and phase; a gate of `none` requires no verification report. When the root dispatched review in parallel with verification, each required verification report or explicitly accepted blocker arrives as a delta and must be consumed before publishing the `implementation-review`. When publication failed, require the corresponding complete inline fallback and stable label. A PR review requires current GitHub references and only the plan or implementation artifacts needed for semantic judgment. Require accepted finding identifiers and the full-review base for later delta review, plus the independently detectable concern or defect class for an extra critical review. Never rely on another agent's conclusion in place of inspecting the exact plan bundle, source, diff, GitHub feedback, and evidence appropriate to the target. Revision identity always names the relevant committed revision, PR head, or HEAD/base and, when uncommitted changes are within scope, also the dirty worktree or diff state and affected paths. For architecture review, require the shared architecture reference.
 
 ## Output
 
