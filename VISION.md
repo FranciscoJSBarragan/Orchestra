@@ -227,52 +227,20 @@ only new deltas; it does not repeatedly summarize content already available to
 the next agent.
 
 Material context discovered after planning remains in the producing agent's
-existing semantic report with evidence, revision, impact, and a stable local
-identifier. The root decides whether to route that report to a current-task
-consumer, validate the claim through a targeted repository-context delta,
-replace an affected plan member, persist durable knowledge in authorized
-versioned source documentation, or explicitly defer or discard it. Discovery
-does not grant authority, make the claim canonical, or permit an agent to edit
-an earlier artifact. Task-private reports support the current task; knowledge
-that must survive task cleanup becomes durable only through an authorized
-source change, including tracked `.agent/` convention files when that store is
-in use. This uses the existing report kinds and creates no shared
-mutable context document, artifact kind, registry, or memory system.
+existing semantic report; the root assigns its explicit disposition, discovery
+never grants authority or creates a registry, and knowledge that must survive
+task cleanup becomes durable only through an authorized versioned source
+change, including tracked `.agent/` convention files when that store is in
+use. Normative sources express intent or constraints and never follow current
+code automatically merely because the two conflict. The disposition and
+persistence mechanics live in `docs/WORKFLOW.md`.
 
-The approved overview exposes a bounded, provenance-preserving `Review context`,
-and each phase identifies both the exact context evidence its review consumes
-and exact versioned documentation under `Context maintenance paths` when
-conditionally authorized for maintenance. Independent implementation review
-consumes that evidence directly, records `Context basis`, and remains read-only. When review
-finds stale project information, the root validates the claim independently;
-only a confirmed descriptive fact may return to the same implementation owner
-for an authorized documentation correction, except that a `persist` destination
-under `.agent/**` is a root write at an approved-phase stable handoff before
-delta review. That root-write exception changes edit ownership, not proof: the
-corrected source still receives a fresh repository-context revalidation delta,
-replacement checks from the same implementation owner (including a new literal
-hard gate when changed), any applicable independent verification, and delta
-review by the same reviewer before commit.
-Normative sources express intent or constraints and never follow current code
-automatically merely because the two conflict.
-
-Waiting is passive coordination, not a status interrogation. The root uses
-ten-minute wait windows that return immediately on completion, treats timeout
-as continued work, and never interrupts merely to request progress. Thirty
-minutes prompts at most one evidence-based blocker assessment.
-
-Implementation ownership is also a stable observation boundary. While the
-owner is active, the root does not inspect or exercise the evolving
-implementation. At each owner handoff, it may perform one bounded identity,
-scope, and evidence check, then completes any root-originated investigation
-before returning one consolidated, confirmed finding packet. A required user
-preview starts only at that stable handoff, after the owner has closed every
-owned resource; no Orchestra-owned process survives the pause. Independent
-verification and review of that phase wait until a fresh owner has absorbed any
-in-scope user delta and handoff checks are green; that post-absorption
-revision is the frozen revision for the rest of the phase. Once verification
-starts against a stable revision, speculative root review stops; required
-verification finishes before independent review begins.
+Waiting is passive coordination, not a status interrogation, and
+implementation ownership is a stable observation boundary: while the owner is
+active the root does not inspect or exercise the evolving implementation, and
+no Orchestra-owned process survives a required user preview pause. The exact
+waiting, handoff, preview, and verification-ordering rules live in
+`docs/WORKFLOW.md`.
 
 ### Composable agents
 
@@ -340,20 +308,10 @@ its own shared processes, and retires the phase cohort with the lifecycle
 evidence available to the active multi-agent protocol. Resource handles remain
 transient and never become a registry.
 
-Browser work uses a host-mapped `browser_route` in a fresh task-owned tab. On
-Codex, `auto` falls back to the isolated in-app Browser only when Chrome is
-technically unavailable or lacks a capability that the in-app Browser can
-provide. On Cursor, `auto` and `chrome` map to Browser Use and `in_app` is
-blocked. On Grok, `auto` maps to Playwright and `in_app` is blocked. An
-explicit `chrome` or, on Codex, `in_app` route remains fixed, is attempted even
-as a tool canary, and is never vetoed or substituted.
-Each browser run closes its exact task tab before any handoff and a rerun opens
-a new one; Orchestra never claims a user's existing tab or closes the Chrome
-application, a shared window, or unrelated browser state. A product failure
-never triggers a browser switch. Browser acceptance cites PNG screenshot files
-next to its report when the run reached a visible page; frontend visual
-iteration cites them when the browser was used. Agent-internal visual
-iteration is implementation evidence, not user preview.
+Browser work uses a host-mapped `browser_route` in a fresh task-owned tab; an
+explicit user route is never vetoed or substituted, and Orchestra never claims
+user tabs or closes shared browser state. The host mappings and tab lifecycle
+live in `docs/WORKFLOW.md` ("Test permissions and browser routing").
 
 ### Idea-to-project continuity
 
@@ -371,37 +329,13 @@ structured intent, verification, and delivery coordination, but does not build
 a second transaction engine around Git.
 
 Each formal task creates one collision-free `orchestra/*` task branch before
-repository analysis. Managed mode creates an Orchestra-owned worktree under
-`${ORCHESTRA_WORKTREE_ROOT:-$HOME/.orchestra/worktrees}`; opt-in hybrid mode
-creates the branch in the current clean primary checkout or linked worktree.
-Shared runtime helpers, checkout mode, and worktree root install under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}`. Codex-only sync also records those
-values under `$CODEX_HOME/orchestra/` for one compatibility window, requires
-Codex 0.146.0 or later, and by default selects the built-in `:workspace`
-permission profile, keeps `approval_policy = "on-request"`, and routes eligible
-boundary requests through `approvals_reviewer = "auto_review"`. Cursor and Grok
-sync never write Codex, Cursor, or Grok permission configuration. An explicit permission
-choice for the current task, host, or launcher remains authoritative at
-runtime. Sync installs no custom permission profile, writable-root list,
-command rule, or Git bridge.
-After a real write canary passes in the task's repository directory, the root
-resolves and fetches the configured upstream for a fresh canonical-base task.
-Managed mode creates the exact branch and worktree directly from the verified
-remote commit without updating the base checkout. Hybrid mode fast-forwards a
-strictly behind clean canonical base, while an ahead or diverged base blocks for
-a user decision. A failed configured-upstream fetch blocks; a repository with
-no remote/upstream may proceed only with its local base explicitly identified
-as not remotely verified. Explicit noncanonical bases remain unchanged for
-stacked work. Orchestra never pulls, implicitly merges, or rebases setup work.
-Under Guardian,
-protected shared Git metadata receives one exact automatically reviewed
-escalation. Hybrid mode never implements on the starting branch, including
-`main`; dirty or ambiguous state requires an explicit decision. Existing work
-is never cleaned, stashed, or rewritten implicitly.
-After branch/worktree creation, a deterministic helper initializes the ignored
-worktree-local task state without changing Git status or requiring escalation.
-Completed resources are removed only when exact Git and integration evidence
-make that cleanup safe.
+repository analysis, in a managed Orchestra-owned worktree or the opt-in
+hybrid clean primary checkout. Orchestra never pulls, implicitly merges, or
+rebases setup work; existing work is never cleaned, stashed, or rewritten
+implicitly; and completed resources are removed only when exact Git and
+integration evidence make cleanup safe. The complete checkout, sync, and
+permission mechanics live in `docs/WORKFLOW.md` ("Task checkout and branch")
+and the installation boundary in `docs/ARCHITECTURE.md`.
 
 Completion freezes the approved objective, acceptance, and artifact selection.
 The terminal phase commit may advance only for a reviewed PR fix that stays

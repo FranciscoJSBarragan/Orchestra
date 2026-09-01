@@ -1,14 +1,16 @@
 # Orchestra Agent Rules
 
 `docs/WORKFLOW.md` is the canonical home for every operational rule. This file
-states what is required and where the mechanism is specified; it does not
-restate mechanics.
+names what is required and where the mechanism is specified; it does not
+restate mechanics. When this file and `docs/WORKFLOW.md` appear to disagree,
+`docs/WORKFLOW.md` wins.
 
 ## Product source of truth
 
 Read `VISION.md`, `docs/WORKFLOW.md`, and `docs/ARCHITECTURE.md` before changing
 Orchestra's workflow. Skills, scripts, profiles, tests, and hooks implement those
-documents; they do not redefine them independently.
+documents; they do not redefine them independently. Each normative rule has
+exactly one home; other documents reference it instead of restating it.
 
 ## Language
 
@@ -16,205 +18,30 @@ documents; they do not redefine them independently.
 - Code, comments, commits, plans, prompts, profiles, schemas, and internal docs
   are English.
 
-## Orchestrator responsibility and autonomy
-
-The root orchestrator owns specification alignment, tier recommendation,
-capability routing, compact synthesis, blocker resolution, the local plan,
-phase commits, and final technical judgment. The user chooses the active tier
-and remains the final authority after a concise recommendation.
-
-The root is the technical lead. It follows the autonomy policy in
-`docs/WORKFLOW.md` ("Autonomy within an approved objective"): within an
-approved objective it makes reversible in-scope decisions and carries out
-every step named in the approved plan without re-asking, never asks the user
-to make a technical choice it can make and reverse, and batches genuinely
-required user checks into one consolidated request.
-
-Require user confirmation only for the hard gates: irreversible loss of unique
-data or work, production mutation, security or privacy policy changes,
-payments or material external cost, public-contract changes, a new product
-choice, or substantial scope expansion. An explicit instruction given after
-the corresponding scope, warning, plan, or pending action was presented
-satisfies that checkpoint while material facts remain unchanged; do not ask
-for the same confirmation twice.
-
-Keep the root as a router, authority holder, and intelligent judge rather than
-a semantic relay: it holds exact current artifact identifiers, revision,
-risks, accepted findings, and pending decisions, and opens complete
-producer-authored documents for specification, approval, authority or risk
-judgment, and convergence intervention.
-
-Preserve the approved objective, constraints, acceptance, and authority. Treat
-a proposed mechanism or causal explanation as a hypothesis, challenge it
-against current evidence, and choose the smallest supported implementation that
-preserves the approved result.
-
-## Activation and specification gate
+## Activation
 
 Orchestra is an explicit planned-work route, not the default implementation
-route. Activate it only through `$orchestra` or an unequivocal imperative to
-use or start Orchestra. Ordinary plan requests, descriptive mentions, and
-direct change, fix, or implementation work do not activate it.
+route: it activates only via `$orchestra` or an unequivocal imperative to
+use or start Orchestra, while ordinary plan requests, descriptive mentions,
+and direct fixes stay outside it. A planning-only host mode reuses the
+conversation, pauses before task setup, and later continues without a second
+invocation; Orchestra observes the host mode and never changes it.
+`orchestra-project-start` may activate implicitly for a greenfield idea but
+never activates the full workflow without an explicit user choice. Details:
+`docs/WORKFLOW.md` ("Activation and specification gate").
 
-If Orchestra is invoked in a planning-only host mode, reuse the conversation,
-pause before formal task setup, and ask the user to switch to an
-execution-capable mode; then continue from the adopted context without a second
-invocation. Orchestra observes the host mode and never changes it.
+## Root orchestrator
 
-`orchestra-project-start` may activate implicitly for a new project, empty
-directory, stack decision, or idea without a meaningful repository. It never
-activates the full Orchestra workflow without an explicit user choice.
-
-In an execution-capable mode, reuse the prior conversation and obtain a
-minimum brief (objective, visible result, repository area, critical risks,
-bounded open questions). Recommend the initial tier in the same interaction.
-A brainstorming-only request stays read-only until the user authorizes task
-setup.
-
-When the conversation adopted a ready `$orchestra-task`, its revision-bound
-confirmed specification already satisfies the final-specification checkpoint.
-After tier selection and checkout creation, reuse exact prepared repository
-context at the same revision and proceed to formal planning without duplicate
-confirmation. Changed Git receives only a focused context delta, and only a
-material specification change reopens confirmation. Register Coordinator after
-checkout creation with the prepared card's UUID via `--task-id`.
-
-Before tier selection, identify the execution host and resolve its installed
-model configuration as specified in `docs/WORKFLOW.md`. Codex uses `roles.toml`
-plus `session_model.py` for dual matrices; that mode is immutable for the task.
-Cursor reads the Cursor host matrix, has no native/external mode, and does not
-run `session_model.py`. Grok Build reads the Grok host matrix, has no
-native/external mode, and does not run `session_model.py`. Orchestra never
-changes or respawns the root.
-
-## Tier selection
-
-Recommend `Tier: <tier> — <matching condition>: <one-line evidence>` and obtain
-the user's explicit choice. Codex native offers `standard` and `critical`;
-Codex external additionally offers `luna` only as a cost-focused opt-in for
-ordinary bounded work when the user explicitly prioritizes cost. Cursor offers
-`minimal`, `standard`, and `critical` with no mode split; this cut assigns
-`minimal` and `standard` and recommends `standard`, while unassigned Cursor
-`critical` blocks. Grok Build assigns `standard` and `critical` on `grok-4.6`
-and blocks `minimal`. `minimal` is the Cursor cost/speed option. Codex `standard` remains the default on Codex. `critical` covers
-security-sensitive work, credentials, payments, migrations, destructive
-actions, or production changes. Destructive means irreversible loss of unique
-data or work; proven-reversible operations do not force critical. A
-user-selected `luna`, `minimal`, or `standard` tier never waives the hard
-gates. Tier changes follow the transition procedure in `docs/WORKFLOW.md`;
-never change tier unilaterally.
-
-## Task checkout
-
-Every formal task uses a fresh collision-free `orchestra/*` branch. Managed
-mode keeps the existing dedicated-worktree flow; opt-in hybrid mode creates
-that branch from the exact HEAD of the current clean primary checkout or linked
-worktree. A fresh task on the canonical base resolves and fetches its configured
-upstream before fixing the base revision. Managed mode branches from that
-verified commit without updating the base checkout; hybrid mode proceeds when
-equal, fast-forwards a strictly behind clean base, and blocks when ahead or
-diverged. A fetch failure blocks, while no remote/upstream permits only an
-explicitly identified local base that is not remotely verified. Explicit noncanonical
-bases preserve stacked work. Setup never pulls, implicitly merges, or rebases.
-Never implement on the starting branch or `main`. Dirty, detached,
-conflicted, active-operation, or identity-ambiguous state requires one
-consolidated user decision before mutation. Register the task best-effort with
-`coordination.py`; telemetry failure never reduces authority.
-
-## Agent flow
-
-Four behavior-only profiles (`orchestra_analyst`,
-`orchestra_implementation_worker`, `orchestra_reviewer`, `orchestra_verifier`)
-compose with explicit capabilities from the installed assignment matrix. Role
-behavior is self-serve: each profile stub reads its `orchestra-role-*` skill
-and the shared conduct reference itself; packets carry only the assignment.
-Semantic handoffs are complete revision-identified Markdown artifacts in the
-task-private artifacts directory. Accepted findings return to the same
-implementation owner; the phase cohort (owner, reviewer, verifiers) stays open
-through the phase and closes before the phase commit, except that a required
-user preview closes the first owner before the pause and a fresh owner absorbs
-the remainder. Waiting, observation
-boundaries, verification ordering, user preview, and review policy are specified in
-`docs/WORKFLOW.md`.
-
-Phase plans distinguish implementation handoff checks from the independent
-verification gate. The implementation owner runs and autocorrects every
-required local deterministic check, including the canonical full suite when
-one exists. Use no verifier for ordinary deterministic non-critical work.
-Reserve one for browser interaction, owned services or processes, mutable data,
-credentials, network or external environments, explicit repository policy,
-and every critical phase; critical repeats the applicable gate independently.
-Reviewers inspect source, diff, tests, and fresh evidence without routinely
-repeating gates, but may run one minimal diagnostic check for a concrete defect
-hypothesis.
-
-Every approved overview carries a provenance-preserving `Review context`, and
-every phase names its exact context dependencies plus exact non-glob `Context
-maintenance paths` or `none`. Implementation review receives that evidence
-directly and reports `Context basis`. Reviewers remain read-only: a validated
-descriptive correction returns to the same implementation owner, then receives
-repository-context revalidation, affected verification, and delta review.
-Normative or uncertain conflicts never update documentation merely to match
-current code.
-
-Any role records newly discovered material context only in its existing report.
-At a stable handoff the root assigns its explicit disposition and routes exact
-identifiers; only authorized versioned source changes make knowledge durable
-across tasks. Discovery never expands agent authority or creates a new context
-store or artifact kind. Repository conventions live in `.agent/` when present;
-missing-store and update rules are in `docs/WORKFLOW.md`. Executable configuration, databases, generated data,
-and operational data are not context-maintenance paths.
-
-## Execution and commits
-
-Use the fewest independently reviewable phases. After plan approval the root
-writes `plan.md` (`active`/`blocked`/`completed`) with the approved overview
-verbatim and the exact phase manifest; Git remains authoritative on resume.
-Plan approval authorizes implementation and commits at reviewed phase
-boundaries. The root commits directly or through the narrow helper; commit
-execution is not an agent profile. Coordination snapshots are fail-soft
-observability and never grant authority. Preserve unrelated and uncommitted
-user work.
-
-Completion freezes approved intent and artifact selection. Accepted PR fixes
-inside that intent may advance the affected terminal manifest commit after
-review and verification; new scope after completion requires a new task.
-
-## Delivery
-
-Repository policy is explicit; if absent, ask once and recommend `hybrid`.
-`open PR` authorizes review/fix/commit/push cycles until clean; merge remains
-separately authorized. Local integration requires explicit direction, fresh
-verification, an exact match between task HEAD and the terminal manifest
-commit, and guarded cleanup. PR open and merge require the same revision match.
-Never deploy, release, publish, or mutate production without explicit scope.
-
-## Permissions and browser routing
-
-On Codex, Orchestra synchronizes Guardian as the default. Cursor and Grok
-observe the host permission choice and never write permission configuration.
-The active permission choice for the task, host, or launcher stays
-authoritative and Orchestra never changes it (full rules in `docs/WORKFLOW.md`,
-"Test permissions and browser routing"). Browser packets carry `browser_route`;
-an explicit user route wins and is never vetoed or substituted. Cursor maps
-`auto` and `chrome` to Browser Use and blocks `in_app`. Grok maps `auto` to
-Playwright and blocks `in_app` and `chrome`.
-
-## User-facing progress
-
-Report only material transitions, findings, blockers, fresh verification
-results, and authority requests; progress updates are informational, not
-implicit permission requests. Blocking questions use `request_user_input` per
-`docs/WORKFLOW.md`.
-
-A normal host-wait timeout is not a material transition and produces no
-user-facing update unless the user asks.
-
-The root distinguishes verified facts, supported inference, and uncertainty,
-and uses an available visualization capability only when it materially
-clarifies a complex sequence, hierarchy, comparison, or mapping. Simple prose
-is the default, missing visualization support never blocks work, and delegated
-agents do not create user-facing visualizations.
+The root owns specification alignment, tier recommendation, capability
+routing, compact synthesis, blocker resolution, the local plan, phase commits,
+and final technical judgment. It follows the autonomy policy in
+`docs/WORKFLOW.md` ("Autonomy within an approved objective"): within an
+approved objective it makes reversible in-scope decisions without re-asking
+and stops only at the hard gates named there. The user chooses the active tier
+and remains the final authority. Tier semantics, host matrices, checkout and
+branch rules, agent flow, phase execution, review policy, delivery, and
+browser/permission routing are all specified in `docs/WORKFLOW.md`; do not
+duplicate them here or in skills.
 
 ## Anti-overengineering rules
 
@@ -229,8 +56,8 @@ agents do not create user-facing visualizations.
   it requires a genuinely different responsibility boundary.
 - No authoritative plan CLI, Kanban board, event ledger, benchmark control
   plane, or workflow state engine.
-- Every test proves observable acceptance or a named regression risk; avoid
-  duplicated, count-driven, or implementation-detail coverage.
+- Every test proves observable acceptance or a named regression risk; tests pin
+  structure and invariants, never prose wording.
 - Prefer deletion and direct code over compatibility layers.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure or

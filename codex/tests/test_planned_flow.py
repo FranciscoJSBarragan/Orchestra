@@ -190,6 +190,40 @@ class PlannedFlowInvariantTests(unittest.TestCase):
         for capability in CAPABILITY_PROFILES:
             self.assertIn(f"`{capability}`", self.skill)
 
+    def test_normative_text_has_exactly_one_home(self) -> None:
+        """No long verbatim passage may be duplicated across policy homes.
+
+        WORKFLOW.md is the canonical home; the root skill, runtime overlay,
+        and AGENTS.md reference it. Short shared phrases (activation gate,
+        identifiers) are fine; a shared 25-word run means a rule was restated.
+        """
+
+        def ngrams(text: str, n: int = 25) -> set[str]:
+            words = " ".join(text.lower().split()).split()
+            return {
+                " ".join(words[i : i + n]) for i in range(len(words) - n + 1)
+            }
+
+        sources = {
+            "docs/WORKFLOW.md": (ROOT / "docs/WORKFLOW.md").read_text(),
+            "codex/skills/orchestra/SKILL.md": self.skill,
+            "codex/runtime/AGENTS.orchestra.md": (
+                ROOT / "codex/runtime/AGENTS.orchestra.md"
+            ).read_text(),
+            "AGENTS.md": (ROOT / "AGENTS.md").read_text(),
+        }
+        names = list(sources)
+        grams = {name: ngrams(text) for name, text in sources.items()}
+        for index, first in enumerate(names):
+            for second in names[index + 1 :]:
+                shared = grams[first] & grams[second]
+                self.assertEqual(
+                    shared,
+                    set(),
+                    f"duplicated normative passage between {first} and "
+                    f"{second}: {sorted(shared)[:3]}",
+                )
+
     def test_visible_primary_skill_identity_is_orchestra(self) -> None:
         lines = self.skill.splitlines()
         self.assertEqual(lines[0], "---")

@@ -35,7 +35,8 @@ affected deterministic handoff check, and publish a replacement
 changes a hard gate, run the new literal `.agent/` hard-gate command; earlier
 evidence does not satisfy it.
 
-Report observed evidence. Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review) as the default. The active permission choice for the task, host, or launcher remains authoritative: Orchestra never changes it or blocks execution solely because it differs. When Guardian is active, commands inside the workspace run directly and one exact command that crosses a protected boundary requests one narrow escalation for automatic review. With manual approvals, that escalation may prompt the user; with Full Access, it runs without the workspace sandbox boundary. Never retry a denial through a workaround or broaden permissions. Deterministic syntax, type, compile, lint, import, assertion, validation-contract, and CLI-usage failures remain real failures. A missing external service, credential, or dependency may return `blocked`, but never broadens task authority. Reuse repository, standard-library, native-platform, or already-installed dependency primitives when they fit the actual behavior, maintenance, security, and approved architecture; do not follow a rigid preference order. For a defect, correct the supported root cause at the causal boundary that explains the affected behavior within approved edit authority; do not substitute a symptom-only patch, and stop rather than broaden scope, public behavior, or authority. Record a remaining limitation only when current evidence supports it and name its concrete revisit trigger. For `general_implementation`, these base instructions are the complete behavior; it has no playbook. For `frontend_implementation`, also follow the supplied internal frontend playbook. Never independently accept or review your own work.
+Report observed evidence, applying shared conduct's command-permission and
+failure semantics. Reuse repository, standard-library, native-platform, or already-installed dependency primitives when they fit the actual behavior, maintenance, security, and approved architecture; do not follow a rigid preference order. For a defect, correct the supported root cause at the causal boundary that explains the affected behavior within approved edit authority; do not substitute a symptom-only patch, and stop rather than broaden scope, public behavior, or authority. Record a remaining limitation only when current evidence supports it and name its concrete revisit trigger. For `general_implementation`, these base instructions are the complete behavior; it has no playbook. For `frontend_implementation`, also follow the supplied internal frontend playbook. Never independently accept or review your own work.
 
 A context discovery never expands edit authority. Update canonical repository
 documentation only when the root packet supplies an explicit `persist`
@@ -65,7 +66,8 @@ inside allowed paths, rerun every required handoff check, and publish a
 replacement `implementation-report`. Out-of-scope paths or new product
 behavior return `blocked`.
 
-When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `implementation-report` for every stable handoff directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-implementation-report.md` file and return that exact file name. Coordination is descriptive and never grants edit authority.
+Publish and record telemetry per shared conduct; the report kind is a
+complete `implementation-report` for every stable handoff.
 
 ## Input
 

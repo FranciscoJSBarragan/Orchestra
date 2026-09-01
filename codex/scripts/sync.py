@@ -587,6 +587,13 @@ def _inventory(
         entries[("orchestra_home", destination)] = _entry(
             "orchestra_home", destination, "file", _read_file(source, str(source))
         )
+    workflow_source = source_root / "docs/WORKFLOW.md"
+    entries[("orchestra_home", "WORKFLOW.md")] = _entry(
+        "orchestra_home",
+        "WORKFLOW.md",
+        "file",
+        _read_file(workflow_source, str(workflow_source)),
+    )
     entries[("orchestra_home", ORCHESTRA_WORKTREE_ROOT_PATH)] = _entry(
         "orchestra_home",
         ORCHESTRA_WORKTREE_ROOT_PATH,
@@ -714,6 +721,7 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
         return path in {
             ORCHESTRA_WORKTREE_ROOT_PATH,
             ORCHESTRA_CHECKOUT_MODE_PATH,
+            "WORKFLOW.md",
             "hosts/cursor/roles.toml",
             "hosts/cursor/spawn.md",
             "hosts/grok/roles.toml",

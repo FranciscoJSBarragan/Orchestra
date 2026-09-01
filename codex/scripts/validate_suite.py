@@ -744,7 +744,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         if "$orchestra" not in text:
             failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
-    for name in (skill for skill in SKILL_NAMES if skill != "orchestra-project-start"):
+    exempt = {"orchestra-project-start", *ROLE_SKILL_BY_PROFILE.values()}
+    for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
         if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
             failures.append(f"runtime-contract: {name} must state the Orchestra home")

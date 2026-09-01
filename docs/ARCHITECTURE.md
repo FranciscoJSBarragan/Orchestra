@@ -185,29 +185,12 @@ current source and diff before it produces one consolidated finding packet with
 evidence, impact, and acceptance.
 
 At that stable boundary, the root also owns disposition of material context
-discoveries returned from any role. It may route the producing report to a
-named current-task consumer, validate a consequential claim through one
-targeted `repository_context` delta, replace an affected phase, persist durable
-knowledge through an already-authorized source-documentation edit, or explicitly
-defer or discard the candidate. This judgment never runs concurrently with an
-active mutable implementation owner and never lets a discovery expand its
-producer's authority. Product-documentation `persist` still returns to the same
-implementation owner at a phase-listed path. The root may edit only `.agent/**`
-at an approved-phase stable handoff. An initial seed then follows its normal
-gate and initial review. A later `.agent/**` `persist` receives post-edit
-repository-context revalidation, replacement checks from the same owner, any
-applicable verifier rerun, and delta review by the same reviewer; ordinary
-convention-doc commits still need no independent verifier.
-
-Approved plans expose context without creating a context store: the overview
-contains a provenance-preserving `Review context` index and each phase names its
-exact evidence dependencies plus exact, non-glob `Context maintenance paths` or
-`none`. The implementation reviewer consumes the cited evidence directly and
-records `Context basis` while remaining read-only. A validated descriptive
-correction returns to the same implementation owner, then receives a fresh
-repository-context delta, affected verification, and delta review. Normative or
-uncertain conflicts remain intent, implementation, planning, or authority
-questions rather than automatic documentation updates.
+discoveries returned from any role; discoveries never expand their producer's
+authority or create a context store. Approved plans expose context without a
+registry: the overview carries a provenance-preserving `Review context` index
+and each phase names its exact evidence dependencies plus exact non-glob
+`Context maintenance paths` or `none`. Disposition and persistence mechanics
+live in `docs/WORKFLOW.md` ("Material context discovery").
 
 ### Base profiles and capabilities
 
@@ -583,98 +566,27 @@ encrypted compaction blobs are not portable across alias/native routes.
 
 ## Verification environment and browser routing
 
-On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor and Grok observe the host permission
-choice and never write permission configuration. The active permission choice for the
-task, host, or launcher remains authoritative; the complete permission rules
-live in `docs/WORKFLOW.md` ("Test permissions and browser routing").
-Deterministic syntax, type, compile, lint, import, assertion,
-validation-contract, and CLI-usage failures remain real failures.
-
-Browser packets use the transient `browser_route` value `auto`, `in_app`, or
-`chrome`. An explicit user route is attempted even as a tool canary and remains
-fixed without fallback; an agent may report its technical blocker but may not
-veto or substitute it. On Codex, without an explicit route, `auto` selects the
-dedicated Chrome connector first and uses Codex's in-app Browser only for a
-technical availability or capability gap that the in-app Browser can satisfy.
-On Cursor, `auto` and `chrome` map to Browser Use and `in_app` is blocked. On
-Grok, `auto` maps to Playwright and `in_app` is blocked. `chrome` selects only
-the dedicated Chrome connector on Codex, maps to Browser Use on Cursor, and is
-blocked on Grok. Computer Use and standalone browser automation are not browser
-route substitutes, except that Cursor `auto` and `chrome` use Browser Use and
-Grok `auto` uses Playwright as the host-mapped surface. The Cursor IDE browser
-and the Browser Use CLI are not substitutes. If Browser Use MCP is unavailable
-or Chrome remote-debugging permission is missing, return `blocked`.
-
-Every browser run creates a new task-owned tab rather than claiming or reusing a
-user tab or a prior run's tab. Frontend iteration and independent browser
-acceptance use separate task tabs. An allowed `auto` fallback captures the
-Chrome blocker, closes any task-owned Chrome tab already created, and repeats
-the complete scenario in a new in-app Browser task tab. Product failures,
-timeouts, and selector errors remain evidence on the selected surface and never
-trigger fallback. Each task tab is closed before a successful, failed, or
-blocked handoff and a rerun opens another new tab; browser tabs cannot be
-retained for phase reuse. Browser-work handoffs stop their owned supporting
-processes and report `retained_resources: none`. Unrelated tabs, windows,
-authenticated sessions, processes, and user state are preserved, and Orchestra
-never closes the Chrome application or a shared window. Every
-`browser_acceptance` report that reached a visible page cites PNG screenshot
-files in the task-private artifacts directory; a frontend run that used the
-browser cites the same kind of files from the `implementation-report`. The
-root opens the cited paths. These files are report evidence, not a new artifact
-kind.
+Permission and browser-routing behavior is specified once in
+`docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally:
+each host supplies its own permission surface (Codex synchronizes Guardian as
+the default; Cursor and Grok observe the host choice and never write
+permission configuration), and `browser_route` is a transient packet value
+whose host mapping is fixed — Codex `auto` prefers the Chrome connector with a
+capability-based in-app fallback, Cursor maps `auto` and `chrome` to Browser
+Use and blocks `in_app`, and Grok maps `auto` to Playwright and blocks
+`in_app` and `chrome`. Browser evidence is PNG screenshot files cited from the
+existing report kinds, not a new artifact kind.
 
 ## Phase resource lifecycle
 
-Phase agents clean exact owned test processes, terminal sessions, and task tabs
-before every handoff by default, recreating them for a later fix or rerun when
-needed. Only packet-authorized non-browser resource categories may be retained
-for phase reuse, with exact handles reported; browser task tabs never qualify.
-Before commit, the root skips agents that
-reported `cleanup: pass` and no retained resources, sends one parallel
-cleanup-only follow-up to owners with retained resources or incomplete cleanup,
-and stops root-owned shared test processes. Under V1 it then calls
-`close_agent`; under V2, which exposes no true close operation, it requires
-completed agents with no active descendants or retained resources. An active
-agent or process capable of writing the worktree blocks commit; an unclosed
-source-read-only task tab is reported as partial cleanup without invalidating
-the commit.
-
-Live-agent observation uses the host wait contract with a ten-minute maximum.
-On Codex that is `wait_agent`. On Cursor it is a background Task plus
-completion notification without busy-polling. On Grok it is
-`get_command_or_subagent_output` with `timeout_ms: 600000`. Completion wakes the root
-immediately; timeout does not contact, interrupt, restart, or fail the agent.
-After 30 accumulated minutes, only concrete blocker evidence justifies
-intervention.
-
-The implementation owner runs every required local deterministic check,
-including the canonical full suite when one exists. The owner does not edit
-`.agent/`; seed files are root-authored at a stable handoff before their initial
-review. For a later `.agent/**` `persist`, the owner reruns affected checks
-after the root write and independent context revalidation, including the new
-literal hard gate when changed, and publishes replacement evidence before
-delta review. A required user preview
-pauses after that handoff with no retained Orchestra process; verification
-and review of that phase use the post-absorption frozen revision. A verifier is created only
-for browser interaction, owned services or processes, mutable or stateful data,
-credentials, network or external environments, explicit repository policy, or
-a critical phase. Ordinary deterministic non-critical phases have no verifier.
-Critical phases independently repeat the applicable owner-run
-gate. Reviewers inspect evidence rather than routinely repeating checks and may
-run only a minimal diagnostic check for a concrete defect hypothesis.
-
-Once the root gives a stable revision packet to a verifier, it stops
-speculative source review until that verification returns. It interrupts a
-verifier only when the revision changed or a finding was first confirmed
-against the exact current source and diff and invalidates the packet. Every
-required verifier must return `pass`, or a `blocked` result explicitly accepted
-by the root, before `independent_review` is dispatched. An active verifier or a
-failed verifier awaiting its rerun is not final evidence.
-
-No helper discovers or kills processes globally. Resource handles exist only in
-root memory, apply only to resources Orchestra created, and expire at phase
-teardown. Commit execution remains a separate direct Git operation.
+Resource hygiene is owner-first and transient: agents clean exact owned
+resources before each handoff, retention requires explicit packet
+authorization, handles live only in root memory, and no helper discovers or
+kills processes globally. Waiting uses the host wait contract without
+busy-polling. The complete rules — cleanup statuses, teardown, verification
+ordering, and the observation boundary — live in `docs/WORKFLOW.md` ("Phase
+execution", "Phase teardown", and "Agent waiting"). Commit execution remains a
+separate direct Git operation.
 
 ## Lightweight conformance and hooks
 
@@ -715,115 +627,13 @@ implement three competing rule sets.
 
 ### Behavioral tests
 
-Tests protect the few important invariants:
-
-- only explicit `$orchestra`, native-host-chat adoption of a ready
-  `$orchestra-task`, or an unequivocal use/start Orchestra imperative activates
-  the workflow;
-- ordinary capture and preparation remain inert and never create a host chat,
-  branch, worktree, tier, permission override, or implementation run;
-- immutable case-insensitive human IDs are never reused, while Coordinator and
-  Control use the same UUID after checkout creation; direct tasks never invent
-  a human ID and clients attach one only through an exact Control UUID match;
-- adoption is exclusive to one native chat, changed Git requests only a focused
-  context delta, and stable-checkpoint transfer preserves worktree and plan;
-  when the owning chat cannot release the card, explicit reclaim from another
-  native chat with `task reclaim --authorized` preserves the same worktree and
-  plan;
-- the visible primary skill name is `Orchestra`;
-- planning-only host mode reuses context without mutation and continues when
-  execution-capable without a second invocation;
-- the skill never changes the host into a planning-only mode;
-- ordinary plan requests, direct implementation, and descriptive mentions do
-  not activate Orchestra;
-- initial routing follows minimum brief, installed-mode resolution, tier,
-  read-only preflight, sibling worktree creation, focused repository context,
-  final specification, then formal plan;
-- repeated repository context requests only targeted deltas and every one-shot
-  analyst closes after its result;
-- only repository context may use the transient Luna-high unsupported-model
-  fallback, after attempting the installed assignment first and without
-  crossing from dual native V2 into V1;
-- Cursor has no native/external mode, does not run `session_model.py`, and
-  dispatches through isolated Task workers rather than Codex profiles;
-- Grok Build has no native/external mode, does not run `session_model.py`, and
-  dispatches through isolated `spawn_subagent` `general-purpose` workers;
-- native Codex defines only standard and critical assignments, while Codex
-  external adds exactly one complete Luna assignment matrix;
-- Cursor offers `minimal`, `standard`, and `critical` with no native/external
-  mode, assigns `minimal` and `standard` in this cut, and blocks unassigned
-  Cursor `critical`;
-- Grok Build assigns `standard` and `critical` on the live `grok-4.6` catalog
-  and blocks unassigned `minimal`; `critical` uses the same spawn rows and
-  raises root scrutiny;
-- plan approval permits phase commits but not merge/deploy;
-- every formal task creates one collision-free `orchestra/*` branch before work;
-- managed mode creates an isolated Orchestra-root worktree, while hybrid mode
-  branches in place only from a clean primary checkout or linked worktree;
-- task setup creates one ignored `.orchestra/` state directory inside the
-  selected worktree, rejects unsafe collisions, leaves Git status clean, and
-  supplies exact plan and artifact paths without protected-write escalation;
-- neither mode implements directly on the starting branch or `main`;
-- a fresh canonical-base task resolves and fetches the configured upstream
-  before fixing its base revision; a fetch failure blocks, while an absent
-  remote/upstream permits an explicitly identified local base that is not
-  remotely verified;
-- managed mode branches directly from the verified upstream commit without
-  updating the base checkout; hybrid mode accepts equality, fast-forwards a
-  strictly behind clean base, and blocks when the local base is ahead or
-  diverged;
-- explicit noncanonical bases preserve stacked work, and setup never performs
-  a pull, implicit merge, or rebase;
-- scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
-  import into the clean task worktree;
-- fresh task `HEAD` equals the base revision; adopted task `HEAD` equals the
-  adopted source revision while retaining the integration base;
-- task resume requires exact plan, path, branch, base, and HEAD;
-- local plan resume reconciles against Git instead of overriding it;
-- phase owners, reviewers, and capability verifiers are reused only within one
-  phase, clean owned resources before each handoff, and retire before its
-  commit using the active protocol's lifecycle evidence;
-- the synchronized Guardian defaults remain distinct from an authoritative
-  explicit task, host, or launcher permission choice, and under Guardian test
-  failures use at most one exact automatically reviewed boundary escalation
-  with no denial retry;
-- the root recommends a tier, the user selects it, and a user-directed tier
-  transition preserves unchanged work and evidence;
-- browser routing honors explicit selection; Codex otherwise prefers the Chrome
-  connector with capability-based in-app Browser fallback, while Cursor maps
-  `auto` and `chrome` to Browser Use and blocks `in_app`, using a fresh
-  task-owned tab per run and closing it before every handoff; Grok maps `auto`
-  to Playwright and blocks `in_app` and `chrome`;
-- the first review covers the bounded target while delta reviews stay focused;
-- the implicit greenfield skill never silently activates Orchestra;
-- PR-open authority includes the review/fix/push loop but not implicit merge;
-- authorized PR merge cleans only exact unchanged local and remote task resources;
-- accepted review findings return to the same implementation owner;
-- implementation review receives exact project-context evidence, records its
-  `Context basis`, and blocks acceptance when a material judgment depends on
-  missing, stale, or conflicting context;
-- every material context discovery has an evidence-backed composite identifier
-  when published, or a local identifier kept with its complete inline fallback,
-  plus an explicit root disposition, while only `repository_context` can
-  publish a validating `context-delta` and durable promotion requires
-  authorized versioned source;
-- validated descriptive context corrections use exact non-glob phase paths,
-  return to the same implementation owner, and receive revalidation,
-  verification, and delta review; normative conflicts never follow code
-  automatically;
-- the root alone uses optional user-facing visualization, only when it
-  materially clarifies a complex relationship and never as a workflow
-  dependency;
-- proposed mechanisms remain hypotheses while the approved objective,
-  constraints, acceptance, and authority are preserved;
-- planned and implemented tests map to observable acceptance or a named
-  regression risk instead of duplicated, count-driven, or implementation-detail
-  coverage;
-- hooks call the validator without adding policy;
-- local integration removes only safely merged Orchestra-owned resources;
-- managed and hybrid delivery remove only the recognized worktree-local task
-  state, while hold and an unmerged PR retain it;
-- rejected authority/journal machinery is not introduced.
+Tests pin structural invariants, never prose wording: explicit activation
+routing, the closed four-profile and seven-playbook inventory, capability →
+profile mapping consistency across every installed matrix, valid dual-matrix
+composition with V1 aliases, helper behavior (checkout, commit, delivery,
+sync, coordination, task control), and host adapter structure. Behavioral
+policy lives only in `docs/WORKFLOW.md` and is enforced by review, not by
+sentence-freezing assertions.
 
 ## Complexity safeguards
 

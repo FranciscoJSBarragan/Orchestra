@@ -51,6 +51,19 @@ persist cleanup fields or resource handles in semantic artifacts or
 coordination. Do not create a resource registry, hook, wrapper, or persisted
 cleanup state.
 
+## Command permissions and failures
+
+The active permission choice for the task, host, or launcher remains
+authoritative; Orchestra never changes it or blocks execution solely because
+it differs. On Codex, Orchestra synchronizes Guardian (`:workspace`,
+`on-request`, and Auto-review) as the default: commands inside the workspace
+run directly, and one exact command that crosses a protected boundary requests
+one narrow escalation for automatic review. Never retry a denial through a
+workaround or broaden permissions. Deterministic syntax, type, compile, lint,
+import, assertion, validation-contract, and CLI-usage failures remain real
+failures; a missing external service, credential, or dependency may return
+`blocked` but never broadens task authority.
+
 ## Evidence and intent
 
 Preserve the approved objective, constraints, acceptance, and authority. Treat
@@ -104,7 +117,13 @@ stating the redaction and a safe category or locator.
 
 Reusable results are complete revision-identified Markdown files in the
 exact task-private artifacts directory supplied by the root, normally
-`<worktree>/.orchestra/artifacts`; the file name is the artifact identifier.
+`<worktree>/.orchestra/artifacts`, written as the next `<NN>-<kind>.md` file;
+the file name is the artifact identifier and is returned with the outcome.
+When the packet supplies a coordination task identifier, use only
+`python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to
+record material start, final outcome, or blocker updates; when it omits one,
+do not attempt coordination. Coordination is descriptive and never grants
+authority.
 New-task artifact publication is workspace-local and never requires a
 protected-write escalation. A legacy task uses the exact legacy path supplied
 by the root. Updating coordination outside the active workspace uses one exact,

@@ -41,7 +41,12 @@ evidence, revision, impact, evidence classification, and separate
 `descriptive`, `normative`, or `uncertain` classification. A normative
 contradiction is not proof that documentation should follow current code.
 
-When the packet supplies a coordination task identifier, use only `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py"` to record your material start, final outcome, or blocker; when it omits one, do not attempt coordination. Write a complete `plan-review`, `implementation-review`, or `pr-review` according to the explicit target directly to the exact task-private artifacts directory supplied by the packet, normally `<worktree>/.orchestra/artifacts`, as the next `<NN>-<kind>.md` file and return that exact file name. A later implementation review may cover only the meaningful delta, but it must name the full-review base and disposition of prior accepted findings. These private writes do not modify source or make another report authoritative.
+Publish and record telemetry per shared conduct; the report kind is a
+complete `plan-review`, `implementation-review`, or `pr-review` according to
+the explicit target. A later implementation review may cover only the
+meaningful delta, but it must name the full-review base and disposition of
+prior accepted findings. These private writes do not modify source or make
+another report authoritative.
 
 ## Input
 

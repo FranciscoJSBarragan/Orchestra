@@ -102,6 +102,8 @@ class SyncTests(unittest.TestCase):
             ROOT / "codex/runtime/AGENTS.orchestra.md",
             fixture / "codex/runtime/AGENTS.orchestra.md",
         )
+        (fixture / "docs").mkdir(parents=True)
+        shutil.copy2(ROOT / "docs/WORKFLOW.md", fixture / "docs/WORKFLOW.md")
         return fixture
 
     def convert_current_install_to_legacy_profile_manifest(self) -> None:
