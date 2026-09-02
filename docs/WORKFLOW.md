@@ -484,7 +484,14 @@ After explicit activation in an execution-capable mode:
    introduce it at plan approval. The root authors the plan directly whenever
    the work fits one phase, using the same two-document shape; it dispatches
    `technical_planning` only when the work does not fit one phase or carries
-   cross-component or critical risk. Either author reads the exact context
+   cross-component or critical risk. Work fits one phase when one owner of one
+   implementation capability can cover it, its risk order is uniform, and no
+   result must be reviewed and committed before another begins; the number of
+   items, areas, screens, or files in the brief is not a criterion. Work is
+   cross-component only when it crosses an ownership, capability, or runtime
+   boundary (frontend and backend, one service and another, a contract or
+   migration and its consumer); two areas served by the same capability are
+   one component for this purpose. Either author reads the exact context
    evidence and produces one complete `plan-overview` plus one complete
    `plan-phase` per phase, returned as an explicit candidate bundle; no
    consumer reconstructs the bundle from a summary or chooses members by
@@ -505,10 +512,30 @@ After explicit activation in an execution-capable mode:
    declares `User preview: required | none`.
 10. Default to one phase for ordinary work and two to three for a large task.
    Every additional phase must name the independent review boundary it buys;
-   phase splits without one are format inflation. An unverified assumption
-   that does not determine feasibility may be checked at the start of the
-   phase that consumes it instead of creating a preparation phase or blocking
-   planning; feasibility-determining facts still require direct evidence.
+   phase splits without one are format inflation. A phase is a full serial
+   cycle, not a ticket: a fresh implementation owner with no carried context,
+   handoff checks, any required verifier, one independent review with possible
+   fixes, teardown, and a commit. Phases never run in parallel, so a split
+   never shortens the task; it only adds cycles. A boundary exists only when
+   at least one of these holds: the next work depends on a reviewed and
+   committed state; one owner or capability cannot safely cover the whole
+   (frontend and non-frontend work that cannot remain bounded); the task-level
+   User preview Decision is `required` and non-visible work must commit before
+   the inspectable phase; or the risk order differs materially (a contract or
+   migration versus its UI). Distinct areas, screens, files, or brief bullets,
+   cleaner commits, or the mere fact that two changes could be reviewed
+   separately are not boundaries. Same capability, same risk order, and no
+   need to commit A before B means one phase with several acceptance criteria;
+   the owner orders that work internally within one handoff. The limit is
+   size, not count: the combined diff must remain reviewable in one pass, and
+   a large task splits legitimately. Changes that ship separately are Kanban
+   decomposition, not phases. A migration plus the UI that consumes it is a
+   legitimate split; two small screens in one frontend capability is not.
+   These criteria apply to every implementation capability. An unverified
+   assumption that does not determine feasibility may be checked at the start
+   of the phase that consumes it instead of creating a preparation phase or
+   blocking planning; feasibility-determining facts still require direct
+   evidence.
 11. After the complete bundle exists, the root reads the overview, phase
    index, named risks, and only the detail needed for judgment. It may skip
    independent plan review for a single-phase non-critical plan. A non-trivial
@@ -517,7 +544,10 @@ After explicit activation in an execution-capable mode:
    affected area, and detectable defect class. Every plan-review mandate asks
    first whether fewer phases or a smaller mechanism preserves the approved
    result — the same anti-overengineering judgment the code reviewer applies —
-   before defect hunting.
+   before defect hunting. Collapsing phases that name no step 10 boundary is
+   a root direction correction, not a review finding: when the candidate
+   bundle fits one phase under step 9, the root authors the single-phase plan
+   directly instead of opening a plan-review cycle for it.
 12. A dispatched reviewer reads the exact bundle and publishes `plan-review`
     with stable finding identifiers. Accepted IDs and the review artifact
     return to the same author, which publishes complete replacement documents
@@ -529,7 +559,9 @@ After explicit activation in an execution-capable mode:
     persisted review counter or mechanical limit is introduced.
 13. The root presents the exact accepted bundle at the user's altitude and
     requests implementation approval, unless step 7 already combined that
-    request with specification confirmation.
+    request with specification confirmation. For a multi-phase bundle it names,
+    in one line per additional phase, the step 10 boundary that phase buys, so
+    the user can reject a split.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact selected task checkout. Managed mode leaves the base checkout

@@ -164,12 +164,17 @@ not a restatement.
 2. **Formal planning** — WORKFLOW "Context and planning" and the
    [technical planning](references/technical_planning.md) playbook. The root
    authors directly whatever fits one phase; dispatch `technical_planning`
-   only for multi-phase, cross-component, or critical work. Produce
+   only for multi-phase, cross-component, or critical work, using the
+   "fits one phase" and "cross-component" criteria of WORKFLOW step 9 (item
+   count, areas, or files never decide). Produce
    one complete `plan-overview` plus one complete `plan-phase` per phase with
    the proportional format, then apply the conditional plan-review policy and
-   adjudicate findings by stable identifier.
+   adjudicate findings by stable identifier. A returned bundle whose extra
+   phases name no WORKFLOW step 10 boundary is collapsed by the root authoring
+   the single-phase plan itself, not by a review cycle.
 3. **Approval and the local plan** — present the exact accepted bundle and
-   request explicit approval; stop before implementation, and
+   request explicit approval, naming the step 10 boundary each additional
+   phase buys; stop before implementation, and
    no approved `plan.md` is persisted before approval. On approval write
    `plan.md` at the path returned by `task_state.py init` with the
    approved overview verbatim and the exact phase manifest; only `active`,

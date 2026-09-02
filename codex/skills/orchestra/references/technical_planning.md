@@ -47,8 +47,13 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   gate; configured delivery checks remain a separate final boundary.
 - Define the fewest independently reviewable phases: default to one phase for
   ordinary work and two to three for a large task. Every additional phase must
-  name the independent review boundary it buys; a split without one is format
-  inflation. Each phase document is independently executable with a small
+  name one of the review boundaries defined in `docs/WORKFLOW.md` ("Context
+  and planning", step 10), which also states what a phase costs and what does
+  not count as a boundary; a split without one is format inflation. One
+  outcome may group several independent acceptance criteria that share one
+  owner capability and risk order; when no listed boundary applies, collapse
+  the phases rather than inventing one or returning `blocked`. Each phase
+  document is independently executable with a small
   mandatory core — one outcome, exact allowed scope, acceptance criteria,
   verification, and stop conditions — plus the structural declarations below.
   Preconditions, dependencies, later-phase outputs, risks, and exclusions
@@ -106,5 +111,6 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 
 Return `blocked` when evidence is insufficient, a feasibility-determining fact
 is unresolved, scope is materially ambiguous, canonical sources conflict, a
-public or high-impact decision remains unresolved, or no proportional phase
-boundary can be defended.
+public or high-impact decision remains unresolved, or the work is too large for
+one phase yet no WORKFLOW boundary separates it. Being able to fit the work in
+one phase is never a blocker.
