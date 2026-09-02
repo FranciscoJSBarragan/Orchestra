@@ -75,8 +75,8 @@ external tasks may additionally use Luna as a cost-focused opt-in when the user
 explicitly prioritizes cost for ordinary, bounded work. Cursor tasks offer
 minimal, standard, and critical, with no native/external mode: minimal is the
 equivalent of Codex Luna. Codex still defaults to standard; Cursor
-recommends standard, and `minimal` when the user prioritizes cost or speed.
-Cursor `critical` remains unassigned. Grok Build tasks offer standard and
+recommends standard, `minimal` when the user prioritizes cost or speed, and
+`critical` for matching high-impact risk. Grok Build tasks offer standard and
 critical on grok-4.6; there is no cheaper assigned tier, and `minimal` is
 blocked.
 Material risk still calls for standard or critical where those matrices exist.
@@ -94,8 +94,8 @@ direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
 or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
 scrutiny for actual high-impact risk; external Luna is considered only when the
-user explicitly prioritizes cost for ordinary, bounded work. On Cursor it recommends `standard`, and `minimal` when the user prioritizes
-cost or speed; unassigned Cursor `critical` remains blocked. On Grok Build it
+user explicitly prioritizes cost for ordinary, bounded work. On Cursor it recommends `standard`, `minimal` when the user prioritizes
+cost or speed, and `critical` for matching high-impact risk. On Grok Build it
 recommends `standard` and offers `critical` for matching high-impact risk;
 unassigned Grok `minimal` remains blocked. The
 user makes the final tier choice among assigned tiers.
@@ -293,7 +293,7 @@ capability may use its compatible Luna-high entry as a transient fallback. The
 substitution is remembered only for the live task and does not create a visible
 task, alter the installed matrix, or establish a fallback for any other
 capability. Cursor does not run session detection or native/external modes; it
-reads one host matrix and currently assigns `minimal` and `standard`.
+reads one host matrix and currently assigns `minimal`, `standard`, and `critical`.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and, only when the independent gate requires one, a verifier for each used

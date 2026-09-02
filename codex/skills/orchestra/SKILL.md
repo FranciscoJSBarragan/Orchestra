@@ -88,9 +88,8 @@ user-preview offer when the WORKFLOW detection rule matches, then obtain the
 user's explicit tier choice. Codex native mode offers `standard` and
 `critical`. Codex external mode additionally offers `luna`, recommended only
 when the user explicitly prioritizes cost for ordinary bounded work; otherwise
-`standard` remains the default. Cursor offers `minimal` and `standard` and
-treats unassigned `critical` as `blocked`; `minimal` is the cost/speed choice.
-Grok offers `standard` and `critical` and treats unassigned `minimal` as
+`standard` remains the default. Cursor offers `minimal`, `standard`, and
+`critical`; `minimal` is the cost/speed choice. Grok offers `standard` and `critical` and treats unassigned `minimal` as
 `blocked`. Tier conditions, the destructive-action definition, preview
 semantics, and the transition procedure: WORKFLOW "Tier flows and models",
 "User preview", and "Tier transition". A cheaper user-selected tier never

@@ -8,10 +8,10 @@ or Grok `spawn_subagent`.
 
 Read `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Cursor has
 no native/external mode and does not run `session_model.py`. Assigned tiers
-are those with complete capability rows. This cut assigns `minimal` and
-`standard`. Recommend `standard`. Recommend `minimal` when the user prioritizes
-cost or speed for ordinary bounded work. If the user selects `critical`, stop
-with `blocked`: Cursor matrix row is not assigned.
+are those with complete capability rows. This cut assigns `minimal`, `standard`,
+and `critical`. Recommend `standard`. Recommend `minimal` when the user
+prioritizes cost or speed for ordinary bounded work. Recommend `critical` for
+matching high-impact risk.
 
 ## Dispatch
 
@@ -39,31 +39,34 @@ Apply the phase verification contract before launching a Task. When the
 `Independent verification gate` is `none`, do not create a verifier Task;
 matrix entries describe available capabilities, not mandatory agents. Create a
 verifier only for a named browser, service/process, mutable-data, credential,
-network/external, repository-policy, or critical-tier gate. Cursor currently
-blocks the critical tier, but this rule remains the host contract when that tier
-is assigned later.
+network/external, repository-policy, or critical-tier gate.
 
 ## Product contract vs live Task slugs
 
-`roles.cursor.toml` records Luna high/xhigh, Grok 4.6 medium/xhigh, and
-Opus 5 medium as the product contract. Pass those names in the packet. Never
-pass a `*-fast` slug. The live Task schema may only expose nearby workers. Use
-the closest non-fast worker without rewriting the product contract or inventing
-a Codex `reasoning_effort` field:
+`roles.cursor.toml` records Composer 2.5 Fast, Luna high/xhigh, Grok 4.6
+high/xhigh, Fable 5.1 low/medium, and Sol 5 medium/high as the product contract.
+Pass those names in the packet. The live Task schema may only expose nearby
+workers. Use the closest worker without rewriting the product contract or
+inventing a Codex `reasoning_effort` field:
 
 | Product model | Product effort | Task worker actually passed |
 | --- | --- | --- |
-| `gpt-5.6-luna` | `high` | `luna-worker` (`model` inherit unless a Luna-high slug exists; never Fast) |
+| `composer-2.5-fast` | `fast` | `composer-fast-worker` with `model` `composer-2.5-fast` |
+| `gpt-5.6-luna` | `high` | `luna-worker` (`model` inherit unless a Luna-high slug exists) |
 | `gpt-5.6-luna` | `xhigh` | `luna-worker` with `model` `gpt-5.6-luna-xhigh` |
-| `cursor-grok-4.6` | `medium` | `grok-worker` (`model` inherit unless a Grok-4.6-medium slug exists; never Fast) |
+| `cursor-grok-4.6` | `high` | `grok-worker` with `model` `cursor-grok-4.6-high` |
 | `cursor-grok-4.6` | `xhigh` | `grok-worker` with `model` `cursor-grok-4.6-xhigh` |
-| `claude-opus-5` | `medium` | `generalPurpose` with `model` `claude-opus-5-thinking-medium` |
+| `claude-fable-5-1` | `low` | `generalPurpose` with `model` `claude-fable-5-1-thinking-low` |
+| `claude-fable-5-1` | `medium` | `generalPurpose` with `model` `claude-fable-5-1-thinking-medium` |
+| `gpt-5.6-sol` | `medium` | `sol-worker` with `model` `gpt-5.6-sol-medium` |
+| `gpt-5.6-sol` | `high` | `sol-worker` with `model` `gpt-5.6-sol-high` |
 
-If inherit would select a Fast variant, pass the exact non-fast effort slug
-instead of inherit. If a later Task schema exposes exact slugs, prefer them and
-document the change here. Do not silently substitute Sol or Terra. Never
-substitute `gpt-5.6-luna-low` for Luna xhigh. Never substitute
-`claude-opus-5-thinking-high` for Opus 5 medium.
+If inherit would select an unintended variant, pass the exact effort slug instead
+of inherit. If a later Task schema exposes exact slugs, prefer them and document
+the change here. Never substitute `gpt-5.6-luna-low` for Luna xhigh. Never
+substitute a different model family for an assigned row; when the exact
+effort slug is missing from the live schema, use the same family's closest
+effort without rewriting the product contract.
 
 ## Wait and cleanup
 

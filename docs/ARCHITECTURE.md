@@ -486,13 +486,9 @@ install choice.
 
 Cursor reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. It offers
-`minimal`, `standard`, and `critical` with no mode split. This cut assigns
-`minimal` (Luna high for low-analysis capabilities, Grok 4.6 medium for
-implementation and remaining judgment) and `standard` (Luna xhigh for context,
-research, runtime, and browser acceptance; Grok 4.6 xhigh for implementation,
-planning, architecture, and debugging; Opus 5 medium for independent review).
-Selecting `critical` on Cursor
-blocks until those rows are assigned.
+`minimal`, `standard`, and `critical` with no mode split; this cut assigns
+all three. The TOML matrix, not this document, defines the per-capability
+model and effort assignments.
 
 Grok Build reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers

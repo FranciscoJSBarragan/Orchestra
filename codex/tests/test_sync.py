@@ -1971,7 +1971,7 @@ class SyncTests(unittest.TestCase):
         roles = self.orchestra_root.joinpath("hosts/cursor/roles.toml").read_text()
         self.assertIn("[tiers.minimal.independent_review]", roles)
         self.assertIn("[tiers.standard.independent_review]", roles)
-        self.assertNotIn("[tiers.critical.", roles)
+        self.assertIn("[tiers.critical.independent_review]", roles)
         self.assertFalse(self.legacy_manifest_path().exists())
         self.assertTrue((self.orchestra_root / "install-manifest.json").is_file())
         removed = sync.uninstall(self.home, self.codex_home, host="cursor")

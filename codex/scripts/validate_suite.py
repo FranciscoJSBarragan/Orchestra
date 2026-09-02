@@ -1014,21 +1014,10 @@ CURSOR_CAPABILITIES = (
     "frontend_implementation",
     "independent_review",
 )
-CURSOR_LUNA_CAPABILITIES = {
+CURSOR_COMPOSER_FAST_CAPABILITIES = {
     "repository_context",
     "web_research",
     "runtime_verification",
-    "browser_acceptance",
-}
-CURSOR_STANDARD_OPUS_MEDIUM_CAPABILITIES = {
-    "independent_review",
-}
-CURSOR_STANDARD_XHIGH_CAPABILITIES = {
-    "general_implementation",
-    "frontend_implementation",
-    "technical_planning",
-    "architecture_analysis",
-    "difficult_debugging",
 }
 ASSIGNMENT_FIELDS = {"profile", "subagent_type", "model", "effort"}
 
@@ -1067,7 +1056,7 @@ def _cursor_assignment_failures(
 
 
 def check_cursor_host(root: Path) -> list[str]:
-    """Validate the Cursor adapter inventory, deferred critical, and spawn contract."""
+    """Validate the Cursor adapter inventory and spawn contract."""
     failures: list[str] = []
     roles_path = root / "hosts/cursor/config/roles.cursor.toml"
     spawn_path = root / "hosts/cursor/references/spawn.md"
@@ -1080,25 +1069,42 @@ def check_cursor_host(root: Path) -> list[str]:
     except (tomllib.TOMLDecodeError, UnicodeError) as error:
         return [f"cursor-contract: roles.cursor.toml is invalid: {error}"]
     tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard"}:
+    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard", "critical"}:
         failures.append(
-            "cursor-contract: roles.cursor.toml must assign minimal and standard only"
+            "cursor-contract: roles.cursor.toml must assign minimal, standard, and critical"
         )
         return failures
-    if "critical" in tiers:
-        failures.append("cursor-contract: critical must remain unassigned")
 
     def minimal_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_LUNA_CAPABILITIES:
+        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
+            return "composer-2.5-fast", "fast", "composer-fast-worker"
+        if capability == "browser_acceptance":
             return "gpt-5.6-luna", "high", "luna-worker"
-        return "cursor-grok-4.6", "medium", "grok-worker"
+        return "cursor-grok-4.6", "high", "grok-worker"
 
     def standard_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_LUNA_CAPABILITIES:
+        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
+            return "composer-2.5-fast", "fast", "composer-fast-worker"
+        if capability == "browser_acceptance":
             return "gpt-5.6-luna", "xhigh", "luna-worker"
-        if capability in CURSOR_STANDARD_OPUS_MEDIUM_CAPABILITIES:
-            return "claude-opus-5", "medium", "generalPurpose"
-        if capability in CURSOR_STANDARD_XHIGH_CAPABILITIES:
+        if capability in {"technical_planning", "architecture_analysis"}:
+            return "claude-fable-5-1", "low", "generalPurpose"
+        if capability in {"difficult_debugging", "independent_review"}:
+            return "gpt-5.6-sol", "medium", "sol-worker"
+        if capability in {"general_implementation", "frontend_implementation"}:
+            return "cursor-grok-4.6", "high", "grok-worker"
+        return "", "", ""
+
+    def critical_contract(capability: str) -> tuple[str, str, str]:
+        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
+            return "composer-2.5-fast", "fast", "composer-fast-worker"
+        if capability == "browser_acceptance":
+            return "gpt-5.6-luna", "xhigh", "luna-worker"
+        if capability in {"technical_planning", "architecture_analysis"}:
+            return "claude-fable-5-1", "medium", "generalPurpose"
+        if capability in {"difficult_debugging", "independent_review"}:
+            return "gpt-5.6-sol", "high", "sol-worker"
+        if capability in {"general_implementation", "frontend_implementation"}:
             return "cursor-grok-4.6", "xhigh", "grok-worker"
         return "", "", ""
 
@@ -1106,15 +1112,25 @@ def check_cursor_host(root: Path) -> list[str]:
     failures.extend(
         _cursor_assignment_failures("standard", tiers.get("standard"), standard_contract)
     )
+    failures.extend(
+        _cursor_assignment_failures("critical", tiers.get("critical"), critical_contract)
+    )
     spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
         "Task",
         "run_in_background",
+        "composer-fast-worker",
+        "composer-2.5-fast",
         "luna-worker",
         "grok-worker",
+        "sol-worker",
+        "cursor-grok-4.6-high",
         "cursor-grok-4.6-xhigh",
         "gpt-5.6-luna-xhigh",
-        "claude-opus-5-thinking-medium",
+        "claude-fable-5-1-thinking-low",
+        "claude-fable-5-1-thinking-medium",
+        "gpt-5.6-sol-medium",
+        "gpt-5.6-sol-high",
         "generalPurpose",
         "plugin-browser-use-browser-use",
         "Browser Use",

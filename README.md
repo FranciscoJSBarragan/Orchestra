@@ -39,7 +39,7 @@ classifies any prior candidate checkpoint, and recommends an available assigned
 tier. Codex native offers standard and critical; Codex external additionally
 offers Luna as a cost-focused opt-in for ordinary, bounded work when the user
 explicitly prioritizes cost. Cursor offers minimal, standard, and critical with
-no native/external mode; this cut assigns minimal and standard and recommends standard. Grok Build assigns standard and critical on grok-4.6 and has no cheaper tier. It then creates one collision-free
+no native/external mode; this cut assigns all three and recommends standard. Grok Build assigns standard and critical on grok-4.6 and has no cheaper tier. It then creates one collision-free
 `orchestra/<task-slug>[-N]` branch before repository analysis. Managed mode
 creates a dedicated Git worktree under a portable Orchestra root; opt-in hybrid
 mode uses the current clean primary checkout or linked worktree and creates the

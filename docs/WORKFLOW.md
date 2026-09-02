@@ -297,11 +297,9 @@ before resource creation. Orchestra never changes or respawns the root.
 On Cursor, there is no native/external mode and `session_model.py` is not
 invoked. The root reads
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Cursor offers
-`minimal`, `standard`, and `critical`. This cut assigns `minimal` and
-`standard`. The
+`minimal`, `standard`, and `critical`. This cut assigns all three. The
 root recommends `standard`; it recommends `minimal` when the user prioritizes
-cost or speed. Selecting `critical` blocks until
-those rows are assigned.
+cost or speed; it recommends `critical` for matching high-impact risk.
 
 On Grok Build, there is no native/external mode and `session_model.py` is not
 invoked. The root reads
@@ -352,8 +350,8 @@ security, payment, destructive-action, or delivery authority gates. Tier
 transitions remain user-directed and cannot change the task's selected Codex
 mode.
 
-Cursor `minimal` is the equivalent of Codex `luna`. This cut also assigns
-Cursor `standard`. Grok has no cheap assigned tier. Hard gates never change
+Cursor `minimal` is the equivalent of Codex `luna`. This cut assigns Cursor
+`minimal`, `standard`, and `critical`. Grok has no cheap assigned tier. Hard gates never change
 with the cheap tier. Do not rename the Codex `luna` key.
 
 ### Installed matrices are the assignment truth
@@ -380,9 +378,10 @@ not updated for such a change. Structural invariants the matrices must keep:
 - No Orchestra assignment uses Sol xhigh. A second critical review reuses
   `independent_review` only for a named measurable risk and independently
   detectable defect class.
-- Cursor assigns `minimal` and `standard` and blocks unassigned `critical`;
-  never use Fast variants. The Cursor spawn reference maps each row onto the
-  closest live Task worker without rewriting product names.
+- Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast is
+  the assigned fast lane for repository, research, and runtime verification
+  rows. The Cursor spawn reference maps each row onto the closest live Task
+  worker without rewriting product names.
 - Grok assigns `standard` and `critical` on the live `grok-4.6` catalog with
   identical spawn rows (`critical` raises root scrutiny, not the model) and
   blocks unassigned `minimal`. The Grok spawn reference maps rows onto
@@ -409,7 +408,7 @@ After explicit activation in an execution-capable mode:
    selects `native` or `external` from the root model and multi-agent version
    before tier selection. A legacy Codex matrix remains fixed. The selected dual
    mode is immutable for the task. On Cursor, skip session inspection and read
-   the Cursor host matrix; `minimal` and `standard` are assigned. On Grok
+   the Cursor host matrix; `minimal`, `standard`, and `critical` are assigned. On Grok
    Build, skip session inspection and read the Grok host matrix; `standard`
    and `critical` are assigned.
 3. From that brief, the root recommends an available assigned tier with one
@@ -418,7 +417,7 @@ After explicit activation in an execution-capable mode:
    may recommend `luna` only when ordinary bounded work has an explicit cost
    priority, and otherwise defaults to `standard`. Cursor recommends
    `standard`, recommends `minimal` when cost or speed is the priority, and
-   blocks `critical` until those rows are assigned. Grok recommends `standard`
+   offers `critical` for matching high-impact risk. Grok recommends `standard`
    and offers `critical` for matching high-impact risk; it blocks `minimal`.
    The user
    explicitly chooses the active assigned tier. In that same message, offer
