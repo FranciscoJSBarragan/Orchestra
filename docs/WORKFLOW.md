@@ -445,6 +445,35 @@ After explicit activation in an execution-capable mode:
    close each one-shot analyst. Additional dispatches are allowed only for
    newly material factual questions and request only the targeted context
    delta.
+   The brief's factual questions may also include time-sensitive external
+   questions. They arise only when the task introduces a capability the
+   repository lacks or replaces an existing mechanism (authentication,
+   payments, email, storage, search, jobs, analytics, and similar), adds or
+   pins a dependency, depends on an external API, SDK, or platform contract
+   the repository does not pin, touches auth, payments, stores, or compliance
+   rules, or hinges on a deprecation or CVE. Cosmetic, layout, refactor, or
+   defect work inside existing code raises none, and then no external
+   dispatch happens. The same volume criterion applies: the root resolves
+   external questions itself when two or three bounded lookups suffice, and
+   dispatches one `orchestra_analyst` with `web_research` and dated,
+   versioned questions when the remaining volume or the risk of mis-stating
+   a version or contract is material. This happens before specification
+   confirmation, never as a standing step. A specification or plan claim
+   about an external contract the repository does not pin (version, API, SDK,
+   quota, platform policy, deprecation, CVE) requires current primary
+   evidence with its version or date cited, or it is recorded under Open
+   questions or Decisions; neither the root nor any planner closes such a
+   claim from memory, and plan review may block a version or contract claim
+   that lacks that evidence under the planning playbook's existing
+   feasibility-evidence rule. When the trigger is a capability the
+   repository lacks, the root compares adopting an established current
+   solution against building it, judged against the constraints the
+   preflight and `repository_context` already report (stack, runtime,
+   hosting, credential categories, cost, lock-in, data residency), and
+   presents the recommendation with its alternatives as a specification
+   Decision in the same confirmation message. Adopting is not a default
+   preference; the user decides, and the approved plan inherits that
+   Decision with the pinned version.
 6. The orchestrator continues the user dialogue using that evidence and
    confirms the final specification with Objective, User-visible behavior,
    Constraints, Acceptance, Exclusions, Decisions, and Open questions, then
