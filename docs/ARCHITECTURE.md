@@ -419,6 +419,9 @@ documentation (or the applicable existing Orchestra guidance); task cleanup
 does not promote them automatically. `repository_context` alone may validate a
 reported candidate into a targeted `context-delta`. No discovery registry,
 global context file, coordination column, or additional artifact kind exists.
+The durable knowledge checkpoint before completion is one root judgment with
+`.agent/` as its only destination; it adds no store, helper, or agent
+(`docs/WORKFLOW.md`, "Durable knowledge checkpoint").
 
 Each discovery classifies its claim as `descriptive` current-state
 information, `normative` intended behavior or constraint, or `uncertain`.

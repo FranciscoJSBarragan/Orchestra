@@ -678,6 +678,8 @@ new Orchestra task and plan rather than reopening or rewriting the old one.
 Before PR or local delivery, the root reads the terminal commit from the
 completed manifest and requires the effective task head to match it exactly.
 An unexplained mismatch blocks continuation and delivery under that plan.
+Between the last phase commit and `completed`, the root runs the durable
+knowledge checkpoint ("Durable knowledge checkpoint").
 
 `Review context`, `Context maintenance paths`, and `User preview` are
 semantic sections of the approved overview and phase artifacts; they add no
@@ -1482,6 +1484,35 @@ confirmation; a task shortcut is `discard`. `persist` forks by destination as
 specified above. The allowed-path check exempts root-authored `.agent/**`
 deltas; implementer allowed paths exclude `.agent/`. Delivery checks remain in
 `orchestra.toml`.
+
+## Durable knowledge checkpoint
+
+Once every phase is committed and before `plan.md` becomes `completed`, or
+when the task ends genuinely blocked, the root judges once whether the task
+produced knowledge of this repository that a later task would otherwise have
+to rediscover at cost: a convention the work had to infer, a verified
+operational lesson (a failing setup, its cause, and the proven recovery), a
+hard gate or prerequisite the store did not name. Sources are the phase
+reports, discoveries already dispositioned `discard` as out-of-scope, and the
+root's own observations; the root does not dispatch an agent to search for
+candidates.
+
+The only destination is an exact `.agent/` path under the existing taxonomy.
+A candidate qualifies only when it is verified against the current revision,
+non-obvious, not already represented in `.agent/`, `AGENTS.md`, source, or
+canonical documentation, and not task progress, approvals, branch state,
+secrets, or a user preference. Anything that fails that test is dropped in
+silence; the checkpoint is never mentioned to the user when nothing qualifies.
+
+A qualifying descriptive correction persists under the existing `.agent/**`
+`persist` rules. A qualifying normative addition is new policy: the root names
+the exact path and one-line content in the same consolidated final request
+that carries the delivery decision, never as a separate turn, and writes it
+only on confirmation. Either write follows the documented order (root write,
+same owner rerun of affected checks, delta review by the same reviewer, phase
+commit); that commit becomes the terminal commit before `completed`. The
+checkpoint never reopens scope, adds product behavior, or blocks delivery when
+the user declines.
 
 ## Delivery policy
 

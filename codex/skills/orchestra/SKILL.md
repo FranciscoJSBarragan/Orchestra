@@ -196,7 +196,10 @@ not a restatement.
    [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and update the
    manifest. Escalate repeated non-converging failures per WORKFLOW
    ("difficult_debugging", tier change, or a user authority boundary).
-7. **Completion and delivery** — after every phase is committed, set `plan.md`
+7. **Completion and delivery** — after every phase is committed, run the
+   durable knowledge checkpoint (WORKFLOW "Durable knowledge checkpoint":
+   one root judgment, `.agent/` as the only destination, silent when nothing
+   qualifies), then set `plan.md`
    to `completed` (completion freezes approved intent) and route only through
    [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md). PR
    observation uses `pr.py observe` through

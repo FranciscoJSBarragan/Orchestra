@@ -13,7 +13,8 @@ Keep the root responsible for reading the user's delivery direction and making t
    completed plan manifest, its terminal phase commit, checkout mode, and
    recorded resource ownership. Require the effective task HEAD to match that
    terminal commit before PR or local delivery; an unexplained mismatch blocks
-   use of the completed plan.
+   use of the completed plan. The durable knowledge checkpoint has already
+   run; if it produced an `.agent/` commit, that commit is the terminal one.
    For an adopted Kanban task, require `task finish` to record that same exact
    terminal revision before choosing a delivery lane.
 2. Have the root directly run `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/policy.py" --repo <root> show` and read its structured result.

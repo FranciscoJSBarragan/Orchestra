@@ -221,6 +221,16 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("exact phase manifest", self.skill)
         self.assertNotIn(".orchestra/", (ROOT / ".gitignore").read_text())
 
+    def test_durable_knowledge_checkpoint_targets_only_agent_store(self) -> None:
+        self.assertIn("## Durable knowledge checkpoint", self.workflow)
+        section = self.workflow.split("## Durable knowledge checkpoint", 1)[1]
+        section = section.split("\n## ", 1)[0]
+        self.assertIn("`.agent/`", section)
+        self.assertIn("`completed`", section)
+        self.assertIn("Durable knowledge checkpoint", self.skill)
+        for banned in ("memory store", "optmem", "omem"):
+            self.assertNotIn(banned, section.lower())
+
     def test_greenfield_skill_is_implicit_without_activating_orchestra(self) -> None:
         skill_dir = ROOT / "codex/skills/orchestra-project-start"
         skill = (skill_dir / "SKILL.md").read_text()

@@ -232,8 +232,11 @@ never grants authority or creates a registry, and knowledge that must survive
 task cleanup becomes durable only through an authorized versioned source
 change, including tracked `.agent/` convention files when that store is in
 use. Normative sources express intent or constraints and never follow current
-code automatically merely because the two conflict. The disposition and
-persistence mechanics live in `docs/WORKFLOW.md`.
+code automatically merely because the two conflict. Before a task completes,
+the root judges once whether it learned something about the repository worth
+keeping and proposes only an exact `.agent/` path; Orchestra owns no memory
+store of its own. The disposition, persistence, and checkpoint mechanics live
+in `docs/WORKFLOW.md`.
 
 Waiting is passive coordination, not a status interrogation, and
 implementation ownership is a stable observation boundary: while the owner is
