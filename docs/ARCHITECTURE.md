@@ -185,7 +185,9 @@ discoveries returned from any role; discoveries never expand their producer's
 authority or create a context store. Approved plans expose context without a
 registry: the overview carries a provenance-preserving `Review context` index
 and each phase names its exact evidence dependencies plus exact non-glob
-`Context maintenance paths` or `none`. Disposition and persistence mechanics
+`Context maintenance paths` or `none`. Repository conventions, including
+normative code conventions, live in the consumer's tracked `.agent/` files and
+reach workers only as exact cited paths. Disposition and persistence mechanics
 live in `docs/WORKFLOW.md` ("Material context discovery").
 
 ### Base profiles and capabilities

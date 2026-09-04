@@ -32,7 +32,10 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   including affected tests, lint, type checks, builds, validation commands,
   and the canonical full suite when one exists. Copy literal `.agent/` hard-gate
   commands into `Implementation handoff checks` and cite those `.agent/` paths
-  in `Review context`. Never put `.agent/` in `Context maintenance paths`. A
+  in `Review context`. Also cite the exact `.agent/` convention paths that
+  bear on the change in `Review context`, and name in each phase the
+  conventions it consumes; do not paste their bodies or add conventions the
+  task does not touch. Never put `.agent/` in `Context maintenance paths`. A
   greenfield first plan records the seed Decision in `plan.md`; the first phase
   names those exact `.agent/` paths in its scope and outputs; the first-phase
   review packet must cite the exact `.agent/` seed paths. Do not write `.agent/`

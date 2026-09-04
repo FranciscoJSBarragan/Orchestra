@@ -1432,8 +1432,20 @@ A consumer repository may store durable agent operating conventions in tracked
 `.agent/` topic files. That store is not task-private `.orchestra/` state, not
 host-injected `AGENTS.md`, and not `orchestra.toml` delivery argv. Files use a
 fixed taxonomy when present: scope, hard gate with exact argv and cwd,
-diagnostic-only commands, forbidden substitutions, opt-in gates, and
-prerequisites. There is no closed file enum and no empty stub.
+diagnostic-only commands, forbidden substitutions, opt-in gates,
+prerequisites, and conventions. There is no closed file enum and no empty stub.
+
+Conventions are `normative` code conventions of that repository: local
+architecture boundaries, required or forbidden patterns, preferred libraries,
+and test policy. A convention is short and covers only what a competent agent
+would otherwise get wrong in that repository; it never restates general
+engineering principles, style preferences a linter already enforces, or facts
+the code demonstrates. A convention is not a hard gate unless it names an exact
+command. The plan cites the exact `.agent/` convention paths in `Review
+context` and each phase names the ones it consumes; an implementation that
+violates a packet-cited convention is a review finding, while uncited
+conventions and style never become required work. Adding or changing a
+convention is new normative policy and follows the confirmation rule below.
 
 Lookup reads `.agent/` first, then applicable `AGENTS.md` files if present, then
 Makefile, CI, package manifests, and `orchestra.toml` as evidence. Packets name

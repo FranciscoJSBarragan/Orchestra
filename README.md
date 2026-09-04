@@ -77,7 +77,8 @@ only the exact clean task resources; `hold` and unmerged work remain available.
 Each consumer repository declares that choice in `orchestra.toml`. Missing
 policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured
 verification uses ordered argument arrays, not shell command strings. Phase
-conventions, when present, live in tracked `.agent/` files; delivery checks stay
+conventions, when present, live in tracked `.agent/` files, including hard
+gates and the repository's own normative code conventions; delivery checks stay
 in `orchestra.toml`.
 
 The source repository is authoritative. Runtime resources are installed through
