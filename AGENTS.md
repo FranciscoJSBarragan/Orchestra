@@ -27,7 +27,9 @@ and direct fixes stay outside it. A planning-only host mode reuses the
 conversation, pauses before task setup, and later continues without a second
 invocation; Orchestra observes the host mode and never changes it.
 `orchestra-project-start` may activate implicitly for a greenfield idea but
-never activates the full workflow without an explicit user choice. Details:
+never activates the full workflow without an explicit user choice.
+`orchestra-repo-onboard` is explicit only and writes a repository's tracked
+`.agent/` conventions after confirmation without activating the workflow. Details:
 `docs/WORKFLOW.md` ("Activation and specification gate").
 
 ## Root orchestrator

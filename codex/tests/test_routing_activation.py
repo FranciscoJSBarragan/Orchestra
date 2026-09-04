@@ -248,6 +248,22 @@ class RoutingActivationContractTests(unittest.TestCase):
         self.assertIn("Do not activate `$orchestra` automatically", normalized_skill)
         self.assertIn("explicitly accepts", normalized_skill)
 
+    def test_repo_onboard_skill_is_explicit_and_writes_only_agent_store(self) -> None:
+        skill_dir = ROOT / "codex/skills/orchestra-repo-onboard"
+        skill = (skill_dir / "SKILL.md").read_text()
+        metadata = (skill_dir / "agents/openai.yaml").read_text()
+        frontmatter = skill.split("---", 2)[1]
+        normalized_skill = self._flat(skill)
+        self.assertIn("$orchestra-repo-onboard", frontmatter)
+        self.assertIn("Do not use for a greenfield idea", frontmatter)
+        self.assertIn("allow_implicit_invocation: false", metadata)
+        self.assertIn("$orchestra-repo-onboard", metadata)
+        self.assertIn("`.agent/`", skill)
+        self.assertIn("Require explicit confirmation", normalized_skill)
+        self.assertIn("Do not activate `$orchestra` automatically", normalized_skill)
+        self.assertIn("orchestra-repo-onboard", self.workflow)
+        self.assertIn("orchestra-repo-onboard", self.agents)
+
 
 if __name__ == "__main__":
     unittest.main()

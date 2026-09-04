@@ -71,6 +71,8 @@ REQUIRED_PATHS = (
     "codex/control/orchestra_control/mcp.py",
     "codex/skills/orchestra-project-start/SKILL.md",
     "codex/skills/orchestra-project-start/agents/openai.yaml",
+    "codex/skills/orchestra-repo-onboard/SKILL.md",
+    "codex/skills/orchestra-repo-onboard/agents/openai.yaml",
     "codex/skills/orchestra/references/repository_context.md",
     "codex/skills/orchestra/references/web_research.md",
     "codex/skills/orchestra/references/technical_planning.md",
@@ -241,6 +243,7 @@ SKILL_NAMES = (
     "orchestra",
     "orchestra-task",
     "orchestra-project-start",
+    "orchestra-repo-onboard",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -795,7 +798,7 @@ def check_direct_sync(root: Path) -> list[str]:
     if commands != {"status", "apply", "uninstall"}:
         failures.append("sync-contract: CLI must expose exactly status, apply, and uninstall")
     if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly thirteen skills")
+        failures.append("sync-contract: sync inventory must name exactly fourteen skills")
     if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
         failures.append("sync-contract: sync inventory must name exactly four agents")
     if set(constants.get("LEGACY_AGENTS", ())) != set(LEGACY_PROFILE_NAMES):

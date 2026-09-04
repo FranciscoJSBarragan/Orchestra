@@ -168,6 +168,11 @@ class SyncTests(unittest.TestCase):
                 ".agents/skills/orchestra-project-start/SKILL.md"
             ).is_file()
         )
+        self.assertTrue(
+            self.home.joinpath(
+                ".agents/skills/orchestra-repo-onboard/SKILL.md"
+            ).is_file()
+        )
         for name in sync.AGENTS:
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())

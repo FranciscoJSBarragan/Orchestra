@@ -11,7 +11,10 @@ implementation and any planning-only host mode remain separate.
 `orchestra-project-start` may activate implicitly for a new project, empty
 directory, stack decision, or idea without a repository. It prepares a small
 runnable foundation after confirmation, then offers Orchestra without silently
-activating it. The full Orchestra workflow starts only from an explicit
+activating it. `$orchestra-repo-onboard` is the explicit lane for an existing
+repository: it analyzes how the project is built and tested, asks only what
+evidence cannot settle, and writes the tracked `.agent/` conventions after
+confirmation. The full Orchestra workflow starts only from an explicit
 `$orchestra` invocation or an unequivocal imperative to use or start Orchestra.
 The root acts as technical lead, recommends a tier, composes focused
 capabilities, resolves ordinary blockers, and makes the final technical
@@ -105,6 +108,12 @@ activates implicitly, helps select a proportional stack, confirms the target
 location and mutations, creates a runnable vertical foundation, and offers to
 continue through Orchestra. Accepting that offer explicitly activates the full
 workflow without repeating the greenfield discovery.
+
+For an existing repository that Orchestra has not worked in before, run
+`$orchestra-repo-onboard` once. It verifies commands, layering, and patterns
+from evidence, asks a short batch of questions, and commits a small `.agent/`
+store on a branch; later `$orchestra` tasks read it instead of rediscovering
+the same facts. Run it again to refresh a stale store.
 
 Use direct implementation instead when the change is small and you do not want
 formal planning, independent review, phase commits, or delivery coordination.
@@ -209,7 +218,7 @@ Sync results use:
 - `blocked`: safety, ownership, drift, configuration, or validation prevented
   the operation; resolve the named blocker before retrying.
 
-Thirteen skills and their internal playbook references install under
+Fourteen skills and their internal playbook references install under
 `$HOME/.agents/skills/`. Shared helpers install under
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/` and, for Codex, also under
 `$CODEX_HOME/orchestra/scripts/`. Four Codex agent profiles install under

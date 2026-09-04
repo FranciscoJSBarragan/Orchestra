@@ -220,7 +220,8 @@ prompts; they have no internal playbooks. Internal playbooks exist only for
 `architecture_analysis` assignment has no separate playbook. Playbooks are
 internal references, not public skills or additional personas. Public skill
 identifiers remain stable except for the additive implicit
-`orchestra-project-start` greenfield entry point.
+`orchestra-project-start` greenfield entry point and the additive explicit
+`orchestra-repo-onboard` lane that writes a repository's `.agent/` store.
 
 Frontend implementation and browser acceptance are independent capabilities on
 different profiles. Root-owned plan authority, commits, PR observation,
@@ -304,6 +305,7 @@ Skills describe the behavioral route and call deterministic helpers. Expected
 public lanes are:
 
 - implicit greenfield project start;
+- explicit repository onboarding into `.agent/` conventions;
 - explicit orchestration and discovery;
 - planned delivery;
 - phase commit;

@@ -329,7 +329,10 @@ persist fallback state, or apply the fallback to another capability. An
 unsupported assigned model for any other capability returns `blocked`.
 
 Profiles contain behavior only. Existing public skill identifiers remain stable;
-`orchestra-project-start` is the additive implicit greenfield entry point.
+`orchestra-project-start` is the additive implicit greenfield entry point;
+`orchestra-repo-onboard` is the explicit-only lane that analyzes an existing
+repository and writes or refreshes its tracked `.agent/` store without
+activating the workflow.
 `general_implementation` and `independent_review` are assignment keys whose
 behavior remains in the base `orchestra_implementation_worker` and `orchestra_reviewer` prompts;
 neither has an internal playbook.
@@ -1460,7 +1463,10 @@ authority boundary and is never rewritten to match current code automatically.
 After first `repository_context` and before the product plan, a missing `.agent/`
 directory is a missing-store checkpoint batched into the same consolidated user
 request as spec confirmation. Recommend creating conventions from verified
-analysis. Explicit "not now" infers commands for this task only; the next
+analysis: the in-task seed below covers only what this task needs, while
+`$orchestra-repo-onboard` is the complete path when the user wants the store
+built from a broader analysis and their answers, on its own branch, before or
+after this task. Explicit "not now" infers commands for this task only; the next
 `$orchestra` on the same repo asks again until `.agent/` exists. Never create
 the store in silence. A new project skips that checkpoint: the first Orchestra
 plan automatically includes the seed Decision in `plan.md`, and the first phase

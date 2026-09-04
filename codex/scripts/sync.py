@@ -22,6 +22,7 @@ SKILLS = (
     "orchestra",
     "orchestra-task",
     "orchestra-project-start",
+    "orchestra-repo-onboard",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",

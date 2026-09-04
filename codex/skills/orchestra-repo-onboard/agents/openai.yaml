@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Repo Onboard"
+  short_description: "Analyze an existing repository and write its tracked .agent/ conventions"
+  default_prompt: "Use $orchestra-repo-onboard to analyze this repository, ask what evidence cannot settle, and write or refresh its tracked .agent/ conventions after confirmation."
+policy:
+  allow_implicit_invocation: false

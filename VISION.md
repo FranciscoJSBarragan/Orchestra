@@ -325,6 +325,12 @@ and verify it after explicit mutation confirmation. It does not silently
 activate Orchestra. The user may explicitly continue into Orchestra, which
 reuses the established brief and evidence.
 
+An existing repository has the mirror-image need: its conventions already
+exist in code and habit but not in a form workers can cite. An explicit
+repo-onboard skill verifies them from evidence, asks the user only what
+evidence cannot settle, and writes the tracked `.agent/` store once, so later
+tasks inherit that knowledge instead of rediscovering it.
+
 ### Simple Git, strong delivery
 
 Git remains the transaction and history system. Orchestra adds scope checks,
