@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestra Reviewer Role"
-  short_description: "Independent bounded review role contract"
-  default_prompt: "Use $orchestra-role-reviewer to independently review one bounded target under the Orchestra reviewer role contract."
+  short_description: "Independent review, standalone or phased"
+  default_prompt: "Use $orchestra-role-reviewer to independently review one bounded target standalone or under the Orchestra reviewer role contract."

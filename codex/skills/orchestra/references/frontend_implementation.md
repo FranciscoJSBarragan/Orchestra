@@ -1,10 +1,18 @@
 # Frontend implementation playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_implementation_worker` profile and the explicit `frontend_implementation` capability. Browser acceptance remains an independent verification capability.
 
 ## Contract
 
 - Own one approved primarily frontend phase within its brief, paths, design system, and existing component conventions.
+- When materially shaping visual or interaction design, use `frontentskill`
+  when installed. It contains the unified frontend design guidance; preserve
+  the repository's existing design system. Ordinary small edits need no
+  additional design skill.
 - Reuse existing components and patterns before adding new abstractions. Cover responsive behavior, accessibility, interaction states, loading, empty, error, and success states that are relevant to acceptance.
 - Keep inseparable non-frontend changes within scope only when the packet authorizes them; otherwise return `blocked` so the root can define a separate bounded phase.
 - When visual iteration is needed, require `browser_route: auto | in_app |
@@ -20,7 +28,11 @@ Use this internal playbook only with the `orchestra_implementation_worker` profi
   cannot run, or Chrome remote-debugging Allow is missing, return `blocked`. Do
   not substitute the Cursor IDE browser or the Browser Use CLI.
 - A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the Chrome blocker, close any implementation-owned Chrome tab already created, and repeat the complete visual scenario in a new in-app Browser task tab. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
-- For every visual interaction run, create a fresh implementation-owned task tab, keep it separate from independent acceptance, and never claim or reuse a user tab or a tab from an earlier run. Preserve unrelated tabs, authenticated sessions, windows, and browser state, and never close the Chrome application or a shared window. Follow shared resource hygiene: close the implementation tab and owned temporary processes before every handoff, whether successful, failed, or blocked, then create a fresh tab and recreate any needed process for a later accepted fix. Retain no task tab or supporting process across the handoff and return `retained_resources: none`. Browser control for the run ends when its task tab is closed; never close the browser application or a shared window to end it.
+- Use an implementation-owned task tab, separate from independent acceptance.
+  Preserve user tabs, authenticated sessions, shared windows and applications.
+  Follow WORKFLOW `Phase teardown` for cleanup and explicitly authorized
+  preview-process retention. Close task tabs at handoff; do not claim that all
+  resources were cleaned when a permitted preview process remains active.
 - Any phase that changes a user-visible surface requires at least one visual run before handoff whenever a local run recipe exists: render the changed surface in its relevant states, write PNG screenshot files into the exact task-private artifacts directory as `<NN>-implementation-report-shot-<k>.png`, and cite those exact filenames in the `implementation-report`. When no runnable surface exists, record that reason in the report instead of inventing screenshots; the root treats uncited screenshots on a surface-changing phase as missing evidence.
 - Visual iteration is implementation evidence, not independent acceptance and not user preview. Never claim acceptance of your own work; the root dispatches `browser_acceptance` separately when required. User preview, when the phase line is `required`, is a root-owned pause after this handoff.
 

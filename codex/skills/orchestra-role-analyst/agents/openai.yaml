@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestra Analyst Role"
-  short_description: "Bounded read-only analysis role contract"
-  default_prompt: "Use $orchestra-role-analyst to perform one bounded read-only analysis assignment under the Orchestra analyst role contract."
+  short_description: "Bounded read-only analysis, standalone or phased"
+  default_prompt: "Use $orchestra-role-analyst to perform one bounded read-only analysis assignment standalone or under the Orchestra analyst role contract."

@@ -1,5 +1,9 @@
 # Difficult debugging playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach, recommending a tier change, or asking the user.
 
 ## Contract

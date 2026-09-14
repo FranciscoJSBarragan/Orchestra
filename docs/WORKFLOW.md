@@ -72,12 +72,17 @@ token cost and destroys reviewer independence); under V1 never set
 schema offers it, otherwise the host `workflow` `agent()` transport per the
 Grok spawn reference; use a fresh isolated subagent per dispatch,
 `isolation: none`, `cwd` equal to the task checkout, and resume only the same
-phase-cohort agent with `resume_from`. Cursor: `Task` exists; use a fresh isolated Task per
-dispatch, resume only the same phase-cohort agent id, and never `resume: self`
-for a reviewer. On both hosts a reviewer's first review is a fresh spawn and
-delta reviews within the same phase resume that same reviewer, matching the
-open phase cohort on Codex. Never mix Codex, Cursor, and Grok spawn protocols
-in one task.
+phase-cohort agent with `resume_from` while it is available. If an owner or
+reviewer is closed, record it unavailable and replace it with the same logical
+assignment and exact approved artifact IDs; a replacement reviewer is always
+a fresh independent reviewer. Cursor: `Task` exists; use a fresh isolated Task per
+dispatch, resume only the same phase-cohort agent id while available, and never
+`resume: self` for a reviewer. On every host, the first review is fresh and
+later delta reviews reuse that reviewer only while it remains available; a
+closed reviewer is replaced by a fresh independent reviewer with the same
+review target and evidence. Native agent dispatch always uses the owning
+host's protocol. Explicit CLI delegation is a separate executor boundary,
+specified below; it never changes the owning host or its native spawn API.
 
 ## Host adapters
 
@@ -117,6 +122,110 @@ not blindly follow a stale step when a reversible correction is clearly needed.
 It reports meaningful scope or design changes to the user. It owns capability
 routing, the local plan, phase commits, direct PR observation, and final
 judgment.
+
+## Standalone tools
+
+The role skills and `orchestra-phase-commit` also support direct user requests
+outside the planned workflow. Calling one never activates `$orchestra`.
+The same role boundaries apply: analysts and reviewers are read-only,
+implementers own bounded edits, and verifiers inspect behavior without editing
+source. The direct request supplies intent, scope, target checkout or revision,
+available evidence, and authority; ask only for information that cannot be
+inferred safely. Return a concise inline result unless a named consumer needs
+a file. Standalone work requires no tier, Coordinator, task card, phase IDs,
+plan persistence, or fabricated Orchestra artifacts.
+
+Capability playbooks retain their substantive engineering guidance in direct
+use. Their phase-specific transport, artifact naming, preview decisions, and
+plan bundle requirements apply only inside an activated Orchestra task.
+Standalone planning returns a proportional proposal without writing a formal
+plan bundle; visual work still supplies inspectable evidence through the
+available host. Repository checks and authority boundaries apply in either
+route. A standalone commit requires explicit commit authority and honest
+verification/review status; it does not certify independent review. Within
+Orchestra, a phase commit still requires the approved plan and all current
+review and verification gates.
+
+The PR and local-integration skills remain specialized delivery tools with
+their existing policy, task identity, authority, and freshness requirements;
+standalone role use does not waive those contracts. They do not require legacy
+`commitbot`, `prbot`, `openprbot`, or `prmerge`. Direct code or PR analysis may
+use the reviewer role without creating Orchestra delivery state.
+
+## CLI delegation
+
+On explicit user selection, the root may execute one bounded capability with
+Codex CLI, Cursor CLI, or Grok Build CLI through `orchestra-delegate`. This executor choice
+is independent of the owning host, tier, and Codex native/external model
+configuration; it changes none of them. Use the exact requested CLI model and
+supported effort after inspecting that CLI's current catalog/help. Do not
+silently fall back to another model, provider, account, or API billing path.
+Native capability assignments remain the default. A delegate is a worker,
+never a second root running the whole Orchestra workflow.
+
+The same helper is callable from any supported host: a Cursor or Grok root
+can choose Codex as its worker without switching its own host or matrix.
+Browser acceptance stays in the owning host by default. Codex CLI delegation
+does not expose the Codex Desktop browser and rejects `browser_acceptance`;
+do not move browser testing to another CLI as a consequence of delegating
+implementation. A browser handoff requires a separately supported transport.
+
+The root supplies a focused packet with objective, acceptance, owned paths,
+checkout, expected HEAD, capability, constraints, permissions, and useful
+evidence. In an Orchestra phase, include the exact approved artifacts and
+required handoff fields. Outside it, use the standalone contract. Pass only
+the context needed for the assignment; never forward the full conversation.
+Keep one writer per overlapping scope and preserve unrelated dirty work.
+
+Permissions follow the task's explicit authority and active host restrictions.
+The helper's `default` policy leaves the CLI's own approval rules in place;
+`trusted` enables unattended implementation with Cursor `--force`, Grok
+`bypassPermissions`, or Codex `--sandbox danger-full-access` plus
+`approval_policy="never"`. Codex analysis/review instead uses `read-only`
+with no approval escalation. Apply these explicit permissions again on
+resume; Codex default implementation/verification preserves its configured
+permissions. Use trusted mode only when the user has authorized those
+permissions, including a standing instruction for the task. Analysts and
+reviewers retain the CLI's read-only mode even when trusted is selected.
+Verifiers use the CLI's execution mode to run authorized checks: trusted
+verification uses the same unattended flags, with source-read-only role
+instructions and post-execution content checks. CLI plan mode cannot supply
+runtime evidence when it rejects the test command. These flags and
+prompt boundaries are not an operating-system sandbox; the helper detects
+tracked and non-ignored content, index, and HEAD changes after execution, and
+the root must inspect them. Verification may declare exact new untracked
+report paths with `--output-path`; this never permits tracked source edits.
+Ignored build outputs and changes outside the checkout are not covered by
+the Git comparison and need the applicable runtime evidence.
+Never change global permissions or bypass an active host denial.
+
+Execution uses headless structured output and the selected checkout. No
+interactive terminal driver, relay service, extra worktree, or persisted
+workflow state is needed. Private event logs outside the repository are the
+consumer's diagnostic evidence and contain the exact session ID for explicit
+resume; retain them only for the assignment's review/recovery needs. Reuse the
+same implementation session for accepted fixes. Start an independent review
+in a fresh session; subsequent delta review may resume that reviewer. Never
+resume an implementation session as its own independent reviewer. A resumed
+packet names the current revision and context delta, and the root rechecks
+the worktree before resuming. Never use an ambiguous last-session shortcut.
+Codex resume requires the exact session UUID, passes the chosen checkout,
+model and effort explicitly, and never uses `--last` or `--ephemeral`.
+Its JSONL evidence consists of the thread ID, agent result and completed turn;
+when the protocol does not report an actual model, keep `observed_model`
+unknown rather than copying the requested model into an observed field.
+
+Timeout, interruption, authentication failure, denied permission, quota, or
+malformed/missing terminal evidence returns a bounded failure with the
+observed session and changes. Stop only processes owned by that invocation;
+never replay a possibly mutating request automatically. Inspect partial edits
+before deciding whether to resume. Exit zero establishes execution success,
+not acceptance: the root reads the result and diff, completes the repository
+checks, obtains the required independent review, and makes the final judgment.
+Commit, push, PR, merge, production, and deployment authority never travel
+implicitly with a worker's write permissions. The root owns authorized
+delivery. A missing browser transport blocks browser evidence; a successful
+CLI text result cannot substitute for it.
 
 ## Autonomy within an approved objective
 
@@ -286,13 +395,13 @@ of purge, owner mutation, or safe-stop commands.
 
 Tiers are host-specific lookups, not a shared enum.
 
-On Codex, the user selects the root's current Sol medium or Sol high entry
-outside Orchestra. The additive `dual` installation exposes native Sol as V2
-and an Orchestra Sol compatibility alias as V1. Before tier selection, Orchestra
-reads the current task's model, multi-agent version, and effort through the
-installed read-only session helper. Native Sol V2 selects `native`; the
-Orchestra Sol V1 alias selects `external`. Any other root combination blocks
-before resource creation. Orchestra never changes or respawns the root.
+On Codex, the native Astra low root entry is the default recommendation. The
+compatible Sol root entry remains supported for the legacy native protocol,
+while the Orchestra Sol compatibility alias selects external V1. Before tier
+selection, Orchestra reads the current model and multi-agent protocol through
+the installed read-only session helper; mode is tied to that protocol, not to
+an arbitrary effort value. Any unsupported root combination blocks before
+resource creation. Orchestra never changes or respawns the root.
 
 On Cursor, there is no native/external mode and `session_model.py` is not
 invoked. The root reads
@@ -378,6 +487,10 @@ not updated for such a change. Structural invariants the matrices must keep:
   unchanged, so a tier transition never crosses protocol versions. Luna
   agents remain leaf workers; the Sol root retains orchestration and
   descendant ownership.
+- Native `standard` follows the installed matrix's Astra low principal,
+  planning, and review assignments, Luna `max` implementation assignments,
+  and Luna `xhigh` evidence/browser assignments. The matrix remains the source
+  of exact rows; this description is only the routing constraint.
 - No Orchestra assignment uses Sol xhigh. A second critical review reuses
   `independent_review` only for a named measurable risk and independently
   detectable defect class.
@@ -552,8 +665,8 @@ After explicit activation in an execution-capable mode:
    at least one of these holds: the next work depends on a reviewed and
    committed state; one owner or capability cannot safely cover the whole
    (frontend and non-frontend work that cannot remain bounded); the task-level
-   User preview Decision is `required` and non-visible work must commit before
-   the inspectable phase; or the risk order differs materially (a contract or
+   User preview Decision is `required` and a reviewed commit is needed before
+   the inspectable work; preview alone does not require a split; or the risk order differs materially (a contract or
    migration versus its UI). Distinct areas, screens, files, or brief bullets,
    cleaner commits, or the mere fact that two changes could be reviewed
    separately are not boundaries. Same capability, same risk order, and no
@@ -851,11 +964,12 @@ root-authored `.agent/**` write — the same implementation owner reruns the
 affected deterministic handoff checks and publishes a replacement
 `implementation-report`; when `.agent/` adds or changes a hard gate, that
 evidence includes the new literal hard-gate command. The replacement evidence
-and meaningful delta then go to the same reviewer for delta review. No
-mandatory post-edit `repository_context` revalidation or verifier rerun is
-chained onto a documentation edit; the reviewer keeps full authority to block
-acceptance and commit when a named material judgment still depends on
-missing, stale, or conflicting context.
+and meaningful delta then go to the same reviewer for delta review. Request a
+bounded `repository_context` revalidation only when an unresolved factual
+question could change acceptance or a finding disposition. A documentation edit
+alone does not require another analysis pass. Rerun a verifier only when the
+documentation affects its independent gate. The reviewer keeps full authority to block acceptance and commit when a
+named material judgment still depends on missing, stale, or conflicting context.
 
 All coordination operations are fail-soft after their correctly authorized
 first attempt. `invalid` or `unavailable` status
@@ -926,39 +1040,40 @@ remaining previews; unstarted `required` phases become `none` the same way.
 
 Each `plan-phase` contains `User preview: required | none`. Mark `required`
 only when the task-level Decision is `required`, the phase has a user-visible
-surface, and the phase names an executable local preview recipe. When preview
-is required, split mixed API and UI work so non-visible work commits before
-the inspectable phase. Prefer fewer UI phases when preview is on.
+surface, and the phase names an executable local preview recipe. Preview does
+not force a phase split. Split mixed API and UI work only when the normal
+boundary rule requires a reviewed commit before inspectable work; otherwise the
+owner may preview the approved result in one phase.
 
 After an `implemented` handoff whose required deterministic checks are green,
 if the current phase line is `required`:
 
-1. Close every Orchestra-owned resource with no retention exception. The user
-   starts any preview process themselves.
+1. Keep only resources needed to show the approved result. The owning chat may
+   start or retain a task-owned local preview process when the packet permits
+   it; the root records that process and cleans it on final completion or
+   cancellation. Browser tabs still follow the selected route and shared
+   cleanup contract.
 2. Set `plan.md` to `blocked` with named blocker `user_preview` and next
    action user inspection. This is distinct from a safe-stop blocker.
-3. Give the user a preview pack in the conversation: worktree cwd, task
-   branch, how to run the surface, allowed paths, a short visible-result
-   summary, cited existing implementation screenshot paths, stay on the task
-   branch, edit and do not commit, and do not invoke Orchestra in the
-   iteration chat. Git and the `implementation-report` remain truth; no
-   preview artifact is written.
+3. Give the current owning chat a preview pack: worktree cwd, task branch, how
+   to run or show the surface, allowed paths, a short visible-result summary,
+   and cited implementation screenshots. The user may iterate the approved
+   scope in this task conversation; no new chat or manual process start is
+   required. Git and the `implementation-report` remain truth, and no preview
+   artifact is written.
 4. Wait with `request_user_input` for iterate, freeze as-is, or skip this
-   phase. The user iterates in a native chat they open, as direct work
-   outside Orchestra, without adopting or transferring the card. On Cursor
-   hybrid the current checkout is the worktree; on managed the pack names
-   that worktree path; on Grok or Codex the user opens another session on
-   that cwd. The root cannot open a user thread.
+   phase. Iteration stays on the task branch and is uncommitted unless the
+   user already authorized a commit. Out-of-scope paths or new behavior
+   return `blocked` or require replanning.
 
 Do not auto-continue if the user never returns. Hybrid preview can occupy the
 primary checkout for a long time; mention that when recommending preview.
 
-Resume in the owning chat, or reclaim at this stable checkpoint meaning the
-user finished iterating and Orchestra continues here, never that iteration
-moves inside Orchestra. Reclaim abandons the previous chat. The same
-implementation owner absorbs the delta when it is still available; spawn a
-fresh owner only when the original no longer exists (transfer, reclaim, or a
-closed host session). Git is authoritative.
+Resume in the owning chat or reclaim at this stable checkpoint after the user
+freezes or skips iteration. Reclaim abandons the previous chat. Preserve the
+logical implementation owner and exact artifacts when it is available; only
+after confirmed closure or unavailability spawn a replacement owner with the
+same packet and accepted IDs. Git is authoritative.
 Treat in-scope uncommitted and untracked edits as the delta. Recommend
 against user commits; if the task branch gained commits, record them as
 authorized preexisting changes and include them in absorption. Out-of-scope
@@ -984,8 +1099,9 @@ The loop is:
 1. The root selects one `orchestra_implementation_worker` with
    `general_implementation` or `frontend_implementation` and keeps that owner
    for the whole phase, including delta absorption after a user-preview
-   pause; a fresh owner is spawned only when the original owner no longer
-   exists. Its packet contains edit authority, worktree,
+   pause; a fresh owner is spawned only after the original is confirmed closed
+   or unavailable. The replacement preserves the logical owner, exact approved
+   artifacts, and accepted finding IDs. Its packet contains edit authority, worktree,
    `plan.md` path, exact overview and current phase IDs, revision, accepted
    finding IDs, stop conditions, and only new context. The worker reads scope,
    acceptance, verification, and dependencies from those documents and reads
@@ -1089,7 +1205,11 @@ The loop is:
    consumer; incidental stale information is omitted. Missing, stale, or
    conflicting context returns `blocked` only when that exact material judgment
    is named, after independently resolvable findings are reported.
-5. The review artifact and accepted stable finding IDs return to the same owner;
+5. If the reviewer closes or becomes unavailable, record the closure and spawn
+   a fresh independent reviewer with the same target, full-review base, prior
+   finding dispositions, and exact current evidence; do not require an
+   impossible same-runtime resume. The review artifact and accepted stable
+   finding IDs return to the same logical owner;
    the root does not restate findings. For a potentially stale context
    discovery, the root confirms the claim only when at least one possible
    result can change acceptance, a finding disposition, replanning, or a
@@ -1107,9 +1227,11 @@ The loop is:
    `implementation-report` for that dirty revision. If the `.agent/` change
    adds or changes a hard gate, the owner must run the new literal hard-gate
    command; prior evidence is stale. Send the replacement evidence and
-   meaningful delta to the same reviewer for delta review. No mandatory
-   post-edit context revalidation or verifier rerun is chained onto the edit;
-   stale required evidence still blocks this path.
+   meaningful delta to the same reviewer for delta review. Apply the factual
+   revalidation admission rule in `Material context discovery and promotion`;
+   do not introduce a second analysis cycle for the edit itself. Rerun a
+   verifier only for an affected independent gate. Stale required evidence
+   still blocks this path.
 7. After final evidence is consumed and every material context discovery has an
    explicit disposition, require the reviewer to have an unblocked current
    context basis. A material unresolved, stale, or conflicting context basis
@@ -1260,9 +1382,13 @@ the report.
 
 ## Review policy
 
-The first independent review completes the entire bounded target and returns all
-known material findings together. Later reviews inspect only the meaningful
-delta and interactions affected by accepted fixes.
+Every phase is accepted only after one current independent code review of its
+exact revision; no phase is accepted on implementation checks alone. Local
+integration and PR delivery also require an independent review of the exact
+terminal revision before their delivery mutation or clean result. The first
+review completes the entire bounded target and returns all known material
+findings together. Later reviews inspect only the meaningful delta and
+interactions affected by accepted fixes.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence in that order.
@@ -1482,10 +1608,9 @@ owner delivers, then the root writes `.agent/`, then the independent gate
 exact `.agent/` seed paths, then commit. Subagents suggest later convention
 updates only as `Context discoveries` whose named consumer is an exact
 `.agent/` path. Evidenced descriptive corrections may persist after validation
-without a second ask; after the root write they require post-edit
-repository-context revalidation, a replacement owner report with affected
-checks (including any new literal hard gate), any applicable verifier rerun,
-and delta review by the same reviewer. New normative policy waits for user
+without a second ask; after the root write they follow the affected-check,
+replacement-report, factual revalidation and delta-review rules in `Material
+context discovery and promotion`. New normative policy waits for user
 confirmation; a task shortcut is `discard`. `persist` forks by destination as
 specified above. The allowed-path check exempts root-authored `.agent/**`
 deltas; implementer allowed paths exclude `.agent/`. Delivery checks remain in
@@ -1493,17 +1618,20 @@ deltas; implementer allowed paths exclude `.agent/`. Delivery checks remain in
 
 ## Durable knowledge checkpoint
 
-Once every phase is committed and before `plan.md` becomes `completed`, or
-when the task ends genuinely blocked, the root judges once whether the task
-produced knowledge of this repository that a later task would otherwise have
-to rediscover at cost: a convention the work had to infer, a verified
-operational lesson (a failing setup, its cause, and the proven recovery), a
-hard gate or prerequisite the store did not name. Sources are the phase
-reports, discoveries already dispositioned `discard` as out-of-scope, and the
-root's own observations; the root does not dispatch an agent to search for
-candidates.
+For the final implementation phase, after its required verification and
+independent review pass and before phase teardown retires owners or the phase is
+committed, the root judges once whether the task produced knowledge of this
+repository that a later task would otherwise have to rediscover at cost: a
+convention the work had to infer, a verified operational lesson (a failing
+setup, its cause, and the proven recovery), or a hard gate or prerequisite the
+store did not name. For a genuinely blocked task, make the same judgment at the
+blocking boundary. Sources are phase reports, discoveries already dispositioned
+`discard` as out-of-scope, and the root's own observations; the root does not
+dispatch an agent to search for candidates.
 
-The only destination is an exact `.agent/` path under the existing taxonomy.
+Keep the implementation owner and reviewer available until any authorized
+knowledge correction, affected checks, and delta review
+finish. The only destination is an exact `.agent/` path under the existing taxonomy.
 A candidate qualifies only when it is verified against the current revision,
 non-obvious, not already represented in `.agent/`, `AGENTS.md`, source, or
 canonical documentation, and not task progress, approvals, branch state,
@@ -1518,7 +1646,9 @@ only on confirmation. Either write follows the documented order (root write,
 same owner rerun of affected checks, delta review by the same reviewer, phase
 commit); that commit becomes the terminal commit before `completed`. The
 checkpoint never reopens scope, adds product behavior, or blocks delivery when
-the user declines.
+the user declines. Once the terminal phase commit is accepted, setting
+`plan.md` to `completed` records the result; the checkpoint is not deferred until
+after owners close.
 
 ## Delivery policy
 
@@ -1540,14 +1670,22 @@ Supported policy modes:
 
 The unchanged public PR skills preserve the proven behavioral chain:
 
-1. PR-open reads the complete branch commit range and diff.
+1. PR-open reads the complete branch commit range and diff, publishes the
+   intended branch, and verifies the remote head and PR body after creation or
+   update.
 2. The root synthesizes and publishes a compact `PR-CONTEXT` capsule.
-3. The root calls the narrow PR helper directly to observe GitHub/CI and
-   review-thread state.
+3. The root calls the narrow PR helper directly to observe every relevant
+   GitHub/CI feedback surface: review bodies, issue comments, complete review
+   threads, checks, review decision, merge state, and current head. It never
+   relies on only the last thread comment.
 4. The root evaluates actionable feedback against intent, current code, and
-   scope, using an independent `orchestra_reviewer` when code-review judgment is useful.
+   scope through an independent `orchestra_reviewer` baseline review and any
+   accepted feedback delta. A PR cannot become clean without that review. The
+   root keeps revision-scoped dispositions in memory for the current observation
+   and never persists a feedback ledger.
 5. The same implementation owner applies accepted fixes, reruns affected
-   deterministic handoff checks, and publishes a replacement
+   deterministic handoff checks and every configured delivery check required for
+   the terminal revision, and publishes a replacement
    `implementation-report`; any applicable independent gate reruns with the
    same verifier. The same reviewer evaluates the meaningful delta and
    replacement evidence, producing the current accepted `pr-review`. The root
@@ -1557,13 +1695,13 @@ The unchanged public PR skills preserve the proven behavioral chain:
 6. The loop continues until two complete clean observations occur on the same
    head. The root passes the first clean head directly to the second observation
    in memory; a push or head change resets it. The second observation on an
-   unchanged head is a lightweight but complete re-poll of checks and review
-   threads; it does not re-read the diff.
+   unchanged head is a lightweight but complete re-poll of checks and all feedback
+   surfaces; it does not re-read the diff.
 
 GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
 in the PR body. The helper reports current checks and review-thread evidence; it
 does not interpret feedback, fix code, route work, or persist state. The root
-evaluates only unresolved, non-outdated feedback and returns accepted findings
+evaluates unresolved, non-outdated threads and supplemental review/issue comments and returns accepted findings
 to the same implementation owner by stable finding or GitHub reference. Publish
 `pr-review` only when an agent's semantic analysis must be consumed downstream;
 do not duplicate check, push, thread, or merge state as artifacts.
@@ -1573,7 +1711,8 @@ needed to make that PR clean. It does not authorize merge unless the user said
 `merge when clean` or separately requests merge later.
 
 After an authorized merge, the PR helper verifies the `MERGED` state against the
-exact reviewed head and performs conservative cleanup. It uses lease-protected
+exact reviewed head and performs conservative cleanup. The merge command itself
+uses `--match-head-commit` to reject a concurrent head change. It uses lease-protected
 deletion for an unchanged remote task branch and expected-value guards for local
 resources. Managed mode removes its task worktree; hybrid mode restores the
 starting branch and preserves the checkout. This exact
@@ -1587,12 +1726,14 @@ Local integration is a direct alternative, not a degraded PR path. It requires:
 
 - policy permission;
 - explicit task-level user direction;
-- clean task scope and fresh verification;
+- clean task scope, a current independent code review of the terminal revision,
+  and fresh complete configured checks;
 - integration into the intended base without rewriting unrelated history;
 - confirmation of the result;
 - mode-aware checkout and merged-branch cleanup.
 
-The mechanical path runs configured checks in the clean task checkout, permits
+The mechanical path runs every configured check in the clean task checkout and
+requires the independent review result for the same terminal revision. It permits
 only conservative fast-forward integration, and verifies that the base contains
 the captured task SHA. Before those checks, it requires the task HEAD to equal
 the terminal commit supplied from the completed plan manifest. Managed mode

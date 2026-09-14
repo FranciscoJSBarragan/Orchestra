@@ -3,53 +3,53 @@
 
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
-model = "gpt-5.6-terra"
-reasoning_effort = "high"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.standard.web_research]
 profile = "orchestra_analyst"
-model = "gpt-5.6-terra"
-reasoning_effort = "high"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.standard.technical_planning]
 profile = "orchestra_analyst"
-model = "gpt-5.6-sol"
-reasoning_effort = "high"
+model = "gpt-6-astra"
+reasoning_effort = "low"
 
 [tiers.standard.architecture_analysis]
 profile = "orchestra_analyst"
-model = "gpt-5.6-sol"
-reasoning_effort = "high"
+model = "gpt-6-astra"
+reasoning_effort = "low"
 
 [tiers.standard.difficult_debugging]
 profile = "orchestra_analyst"
-model = "gpt-5.6-sol"
-reasoning_effort = "high"
+model = "gpt-6-astra"
+reasoning_effort = "low"
 
 [tiers.standard.general_implementation]
 profile = "orchestra_implementation_worker"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
 
 [tiers.standard.frontend_implementation]
 profile = "orchestra_implementation_worker"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+reasoning_effort = "max"
 
 [tiers.standard.independent_review]
 profile = "orchestra_reviewer"
-model = "gpt-5.6-sol"
-reasoning_effort = "medium"
+model = "gpt-6-astra"
+reasoning_effort = "low"
 
 [tiers.standard.browser_acceptance]
 profile = "orchestra_verifier"
-model = "gpt-5.6-terra"
-reasoning_effort = "high"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.standard.runtime_verification]
 profile = "orchestra_verifier"
-model = "gpt-5.6-terra"
-reasoning_effort = "high"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
 
 [tiers.critical.repository_context]
 profile = "orchestra_analyst"

@@ -1,5 +1,9 @@
 # Web research playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_analyst` profile and the explicit `web_research` capability.
 
 ## Contract

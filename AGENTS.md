@@ -43,7 +43,10 @@ and stops only at the hard gates named there. The user chooses the active tier
 and remains the final authority. Tier semantics, host matrices, checkout and
 branch rules, agent flow, phase execution, review policy, delivery, and
 browser/permission routing are all specified in `docs/WORKFLOW.md`; do not
-duplicate them here or in skills.
+duplicate them here or in skills. Direct role/commit use and user-selected CLI
+executors follow "Standalone tools" and "CLI delegation" in that document;
+neither activates the full workflow. Legacy helpers (`commitbot`, `prbot`,
+`openprbot`, `prmerge`) are never dependencies of Orchestra.
 
 ## Anti-overengineering rules
 

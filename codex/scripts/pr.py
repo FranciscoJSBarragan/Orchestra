@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 from typing import Any
+from urllib.parse import quote
 
 from policy import blocked, load_policy, run_checks
 from _common import (
@@ -25,7 +28,7 @@ from _common import (
 CAPSULE_START = "<!-- PR-CONTEXT:start -->"
 CAPSULE_END = "<!-- PR-CONTEXT:end -->"
 CAPSULE_PATTERN = re.compile(
-    re.escape(CAPSULE_START) + r".*?" + re.escape(CAPSULE_END), re.DOTALL
+    re.escape(CAPSULE_START) + r".*?" + re.escape(CAPSULE_END), re.DOTALL | re.IGNORECASE
 )
 REPOSITORY_PATTERN = re.compile(r"[^/\s]+/[^/\s]+\Z")
 REMOTE_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*\Z")
@@ -33,12 +36,25 @@ GRAPHQL_QUERY = """
 query($owner:String!, $name:String!, $number:Int!) {
   repository(owner:$owner, name:$name) {
     pullRequest(number:$number) {
+      headRefOid
+      reviews(first:100) {
+        pageInfo { hasNextPage }
+        nodes { id body url author { login } }
+      }
+      comments(first:100) {
+        pageInfo { hasNextPage }
+        nodes { id body url author { login } }
+      }
       reviewThreads(first:100) {
         pageInfo { hasNextPage }
         nodes {
+          id
           isResolved
           isOutdated
-          comments(last:1) { nodes { body url author { login } } }
+          comments(first:100) {
+            pageInfo { hasNextPage }
+            nodes { id body url author { login } }
+          }
         }
       }
     }
@@ -49,6 +65,25 @@ query($owner:String!, $name:String!, $number:Int!) {
 
 def _gh(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return _run(repo, ["gh", *args])
+
+
+def _gh_body(repo: Path, body: str, *args: str) -> subprocess.CompletedProcess[str]:
+    with tempfile.NamedTemporaryFile(mode="w+", encoding="utf-8", suffix=".md") as stream:
+        stream.write(body)
+        stream.flush()
+        return _gh(repo, *args, "--body-file", stream.name)
+
+
+def _published_pr(repo: Path, repository: str, target: str, head: str,
+                  base: str, revision: str, body: str) -> bool:
+    view, error = _json_output("published PR", _gh(
+        repo, "pr", "view", target, "--repo", repository, "--json",
+        "state,headRefOid,headRefName,baseRefName,body"))
+    return not error and isinstance(view, dict) and all((
+        view.get("state") == "OPEN", view.get("headRefOid") == revision,
+        view.get("headRefName") == head, view.get("baseRefName") == base,
+        view.get("body") == body,
+    ))
 
 
 def _command_error(name: str, result: subprocess.CompletedProcess[str]) -> dict[str, Any]:
@@ -100,9 +135,9 @@ def _valid_branch(repo: Path, branch: str) -> bool:
 def _upsert_capsule(body: str, capsule: str) -> tuple[str | None, str | None]:
     inside = False
     for token in re.finditer(
-        f"{re.escape(CAPSULE_START)}|{re.escape(CAPSULE_END)}", body
+        f"{re.escape(CAPSULE_START)}|{re.escape(CAPSULE_END)}", body, re.IGNORECASE
     ):
-        if token.group(0) == CAPSULE_START:
+        if token.group(0).lower() == CAPSULE_START.lower():
             if inside:
                 return None, "PR body has unmatched, misordered, or nested PR-CONTEXT markers"
             inside = True
@@ -192,7 +227,7 @@ def open_pr(
         return blocked(f"cannot read PR input: {file_error}")
     if not intent:
         return blocked("PR context input is empty")
-    if CAPSULE_START in intent or CAPSULE_END in intent:
+    if CAPSULE_START.lower() in intent.lower() or CAPSULE_END.lower() in intent.lower():
         return blocked("PR context input must not contain capsule markers")
 
     commit_summary = "\n".join(
@@ -225,7 +260,7 @@ def open_pr(
         "--limit",
         "2",
         "--json",
-        "number,body,url",
+        "number,body,url,headRefOid",
     )
     existing, error = _json_output("gh pr list", existing_result)
     if error:
@@ -233,10 +268,21 @@ def open_pr(
     if not isinstance(existing, list) or len(existing) > 1:
         return blocked("open PR lookup is invalid or ambiguous")
 
+    # The root publishes first. Do not describe a local revision as published
+    # when the remote branch still points at older code.
+    remote, error = _json_output("published branch", _gh(
+        repo, "api", f"repos/{repository}/git/ref/heads/{quote(head, safe='')}"))
+    if error:
+        return error
+    if not isinstance(remote, dict) or not isinstance(remote.get("object"), dict) or remote["object"].get("sha") != head_sha:
+        return blocked("published branch does not match the intended revision")
+
     if existing:
         pr = existing[0]
         if not isinstance(pr, dict) or not isinstance(pr.get("number"), int):
             return blocked("open PR lookup returned invalid state")
+        if pr.get("headRefOid") != head_sha:
+            return blocked("existing PR head does not match the intended revision")
         existing_body = pr.get("body")
         if not isinstance(existing_body, str):
             return blocked("existing PR body is unavailable")
@@ -244,8 +290,8 @@ def open_pr(
         if marker_error:
             return blocked(marker_error)
         assert body is not None
-        update = _gh(
-            repo,
+        update = _gh_body(
+            repo, body,
             "pr",
             "edit",
             str(pr["number"]),
@@ -253,11 +299,11 @@ def open_pr(
             repository,
             "--title",
             title,
-            "--body",
-            body,
         )
         if update.returncode:
             return _command_error("gh pr edit", update)
+        if not _published_pr(repo, repository, str(pr["number"]), head, base, head_sha, body):
+            return {"status": "partial", "reason": "PR updated but published head/body is unverified", "pr": pr["number"]}
         return {
             "status": "ok",
             "action": "updated",
@@ -270,8 +316,8 @@ def open_pr(
     if marker_error:
         return blocked(marker_error)
     assert body is not None
-    create = _gh(
-        repo,
+    create = _gh_body(
+        repo, body,
         "pr",
         "create",
         "--repo",
@@ -282,12 +328,12 @@ def open_pr(
         head,
         "--title",
         title,
-        "--body",
-        body,
     )
     if create.returncode:
         return _command_error("gh pr create", create)
     url = create.stdout.strip().splitlines()[-1] if create.stdout.strip() else ""
+    if not url or not _published_pr(repo, repository, url, head, base, head_sha, body):
+        return {"status": "partial", "reason": "PR created but published head/body is unverified", "url": url}
     return {
         "status": "ok",
         "action": "created",
@@ -325,6 +371,7 @@ def observe_pr(
     repository: str,
     pr_number: int,
     previous_clean_head: str | None,
+    acknowledged_feedback: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Return a factual current snapshot and in-memory two-observation result."""
     repo, error = _repository_root(repo)
@@ -381,37 +428,56 @@ def observe_pr(
     threads_payload, error = _json_output("gh api graphql", threads_result)
     if error:
         return error
-    try:
-        thread_connection = threads_payload["data"]["repository"]["pullRequest"][
-            "reviewThreads"
-        ]
-        thread_nodes = thread_connection["nodes"]
-        has_next_page = thread_connection["pageInfo"]["hasNextPage"]
-    except (KeyError, TypeError):
-        return blocked("review-thread state is invalid")
-    if not isinstance(thread_nodes, list) or not isinstance(has_next_page, bool):
-        return blocked("review-thread state is invalid")
+    unresolved_feedback: list[dict[str, Any]] = []
+    supplemental_feedback: list[dict[str, Any]] = []
+    has_next_page = False
 
-    unresolved_feedback: list[dict[str, str]] = []
-    for thread in thread_nodes:
-        if not isinstance(thread, dict):
-            return blocked("review-thread state is invalid")
-        resolved = thread.get("isResolved")
-        outdated = thread.get("isOutdated")
-        if not isinstance(resolved, bool) or not isinstance(outdated, bool):
-            return blocked("review-thread state is invalid")
-        if resolved or outdated:
-            continue
-        comments = thread.get("comments", {}).get("nodes", [])
-        latest = comments[-1] if isinstance(comments, list) and comments else {}
-        author = latest.get("author") or {}
-        unresolved_feedback.append(
-            {
-                "author": str(author.get("login") or "unknown")[:100],
-                "body": " ".join(str(latest.get("body") or "").split())[:500],
-                "url": str(latest.get("url") or "")[:500],
-            }
-        )
+    def connection(value: Any) -> list[dict[str, Any]]:
+        nonlocal has_next_page
+        if not isinstance(value, dict) or not isinstance(value.get("nodes"), list):
+            raise ValueError("missing feedback connection")
+        more = value.get("pageInfo", {}).get("hasNextPage")
+        if not isinstance(more, bool) or not all(isinstance(n, dict) for n in value["nodes"]):
+            raise ValueError("invalid feedback connection")
+        has_next_page |= more
+        return value["nodes"]
+
+    def comment(value: dict[str, Any]) -> dict[str, Any]:
+        if not all(isinstance(value.get(k), str) for k in ("id", "body", "url")):
+            raise ValueError("invalid feedback comment")
+        author = value.get("author") or {}
+        if not isinstance(author, dict):
+            raise ValueError("invalid feedback author")
+        return {"id": value["id"], "body": value["body"], "url": value["url"],
+                "author": author.get("login") or "unknown"}
+
+    try:
+        if not isinstance(threads_payload, dict) or threads_payload.get("errors"):
+            raise ValueError("GraphQL feedback errors")
+        pull = threads_payload["data"]["repository"]["pullRequest"]
+        if pull.get("headRefOid") != head:
+            return blocked("PR head changed during feedback observation")
+        for thread in connection(pull.get("reviewThreads")):
+            if not all(isinstance(thread.get(k), bool) for k in ("isResolved", "isOutdated")):
+                raise ValueError("invalid review-thread state")
+            if thread["isResolved"] or thread["isOutdated"]:
+                continue
+            comments = [comment(c) for c in connection(thread.get("comments"))]
+            if not comments or not isinstance(thread.get("id"), str):
+                raise ValueError("incomplete review thread")
+            unresolved_feedback.append({"id": thread["id"], "comments": comments})
+        for kind in ("reviews", "comments"):
+            for raw in connection(pull.get(kind)):
+                item = comment(raw)
+                if not item["body"].strip():
+                    continue
+                fingerprint = hashlib.sha256(json.dumps(
+                    [repository, pr_number, head, kind, item], sort_keys=True
+                ).encode()).hexdigest()
+                supplemental_feedback.append({**item, "kind": kind, "fingerprint": fingerprint,
+                                               "acknowledged": fingerprint in acknowledged_feedback})
+    except (KeyError, TypeError, AttributeError, ValueError) as exc:
+        return blocked(f"review-thread or supplemental feedback state is invalid: {exc}")
 
     check_states = [_check_state(check) for check in checks]
     if "invalid" in check_states:
@@ -424,12 +490,15 @@ def observe_pr(
             "failed": check_states.count("failed"),
         },
         "unresolved_feedback": unresolved_feedback,
+        "supplemental_feedback": supplemental_feedback,
         "feedback_complete": not has_next_page,
         "review_decision": review_decision,
         "merge_state": merge_state,
     }
     if has_next_page:
-        return {"status": "partial", "reason": "review threads are paginated", **snapshot}
+        return {"status": "partial", "reason": "review threads or supplemental feedback are paginated", **snapshot}
+    if any(not item["acknowledged"] for item in supplemental_feedback):
+        return {"status": "partial", "reason": "supplemental feedback needs independent disposition", **snapshot}
     if unresolved_feedback:
         return {"status": "partial", "reason": "unresolved feedback remains", **snapshot}
     if review_decision in {"REVIEW_REQUIRED", "CHANGES_REQUESTED"}:
@@ -458,6 +527,7 @@ def merge_pr(
     policy_path: Path | None,
     checkout_mode: str = "managed",
     start_revision: str | None = None,
+    acknowledged_feedback: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Merge only an explicitly authorized, freshly checked current PR head."""
     if not authorized:
@@ -523,7 +593,7 @@ def merge_pr(
         return blocked("delivery policy does not permit the PR lane")
 
     preflight = _merge_preflight(
-        repo, repository, pr_number, clean_head, task_branch, base_branch
+        repo, repository, pr_number, clean_head, task_branch, base_branch, acknowledged_feedback
     )
     if preflight is not None:
         return preflight
@@ -532,7 +602,7 @@ def merge_pr(
     if check_result["status"] != "ok":
         return check_result
     preflight = _merge_preflight(
-        repo, repository, pr_number, clean_head, task_branch, base_branch
+        repo, repository, pr_number, clean_head, task_branch, base_branch, acknowledged_feedback
     )
     if preflight is not None:
         return preflight
@@ -545,6 +615,8 @@ def merge_pr(
         "--repo",
         repository,
         f"--{method}",
+        "--match-head-commit",
+        clean_head,
     )
     if merge.returncode:
         return _command_error("gh pr merge", merge)
@@ -632,6 +704,7 @@ def _merge_preflight(
     clean_head: str,
     task_branch: str,
     base_branch: str,
+    acknowledged_feedback: tuple[str, ...] = (),
 ) -> dict[str, Any] | None:
     if not _worktree_clean(repo):
         return blocked("local worktree must be clean before merge checks")
@@ -662,6 +735,9 @@ def _merge_preflight(
         return blocked("PR task or base branch changed after clean observation")
     if view.get("mergeStateStatus") != "CLEAN":
         return blocked("PR merge state is not clean")
+    observation = observe_pr(repo, repository, pr_number, clean_head, acknowledged_feedback)
+    if observation["status"] != "ok" or observation.get("head") != clean_head:
+        return blocked("PR feedback/checks changed or are incomplete before merge", observation=observation)
     return None
 
 
@@ -916,6 +992,7 @@ def parse_args() -> argparse.Namespace:
     observe_parser.add_argument("--repository", required=True)
     observe_parser.add_argument("--pr", type=int, required=True)
     observe_parser.add_argument("--previous-clean-head")
+    observe_parser.add_argument("--acknowledged-feedback", action="append", default=[])
 
     merge_parser = subparsers.add_parser("merge")
     merge_parser.add_argument("--repo", type=Path, required=True)
@@ -932,6 +1009,7 @@ def parse_args() -> argparse.Namespace:
     merge_parser.add_argument("--policy", type=Path)
     merge_parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
     merge_parser.add_argument("--start-revision")
+    merge_parser.add_argument("--acknowledged-feedback", action="append", default=[])
     return parser.parse_args()
 
 
@@ -952,7 +1030,7 @@ def main() -> int:
         )
     elif args.action == "observe":
         result = observe_pr(
-            args.repo, args.repository, args.pr, args.previous_clean_head
+            args.repo, args.repository, args.pr, args.previous_clean_head, tuple(args.acknowledged_feedback)
         )
     else:
         result = merge_pr(
@@ -970,6 +1048,7 @@ def main() -> int:
             args.policy,
             args.checkout_mode,
             args.start_revision,
+            tuple(args.acknowledged_feedback),
         )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

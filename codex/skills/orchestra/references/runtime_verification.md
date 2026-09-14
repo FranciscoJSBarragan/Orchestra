@@ -1,5 +1,9 @@
 # Runtime verification playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_verifier` profile and the
 explicit `runtime_verification` capability. Do not dispatch it for routine
 local deterministic checks in a non-critical phase; those belong to the

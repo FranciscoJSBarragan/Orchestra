@@ -1,5 +1,9 @@
 # Technical planning playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_analyst` profile and the explicit `technical_planning` capability. Also apply [architecture guidance](architecture_guidance.md) when the packet names architecture or cross-component design.
 
 ## Contract

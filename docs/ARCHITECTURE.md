@@ -464,8 +464,9 @@ matrix, conversation identity, permissions, and `browser_route`.
 
 The root detects the host from available tools: Codex when `spawn_agent` and
 `wait_agent` exist; otherwise Grok Build when `spawn_subagent` exists;
-otherwise Cursor when `Task` exists. It never mixes protocols in one
-task. Codex keeps `fork_turns: none`, V1 `close_agent`, and V2 completed-state
+otherwise Cursor when `Task` exists. Native dispatch keeps that host's
+protocol; an explicit CLI executor does not change it. Codex keeps
+`fork_turns: none`, V1 `close_agent`, and V2 completed-state
 evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
 phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
@@ -480,11 +481,28 @@ worktree-root live under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; `$CODEX_HOME`
 remains the Codex-only install root for profiles, Guardian, and session
 inspection.
 
+### Standalone roles and CLI executor
+
+Role skills have one behavior contract with two contexts: a direct assignment
+returns inline evidence; an approved phase supplies the workflow's artifacts
+and gates. `WORKFLOW.md` ("Standalone tools") owns that boundary. No alias
+skill, new agent profile, or parallel implementation of the role is needed.
+
+`orchestra-delegate` routes a selected capability to `scripts/delegate.py`.
+The helper adapts Codex, Cursor, and Grok headless arguments and event output, checks
+Git identity and worktree content around one process, and returns a compact
+result plus a private diagnostic log. The native CLI owns its session;
+explicit session IDs provide resumption. There is no delegation database or
+workflow engine. Native host matrices continue to own default assignments;
+the user's explicit executor/model selection is a per-assignment override.
+`WORKFLOW.md` ("CLI delegation") owns permissions, independence, recovery,
+and acceptance. Execution results cannot replace reviews or Git evidence.
+
 ## Model and reasoning configuration
 
 The approved Codex capability matrices are documented in `WORKFLOW.md`. On
-Codex, the user selects the root's current Sol medium or Sol high entry outside
-Orchestra. Source retains only the `native` and `external` matrices; the `dual`
+Codex, the user selects the root outside Orchestra. Astra low is the recommended
+native entry; the selected host catalog remains the availability truth. Source retains only the `native` and `external` matrices; the `dual`
 matrix is composed deterministically at sync time from those two sources
 (native wrapped under `modes.native`, external wrapped under `modes.external`
 with its Orchestra V1 aliases). Direct Codex sync installs exactly one matrix
@@ -506,9 +524,9 @@ Selecting `minimal` on Grok blocks.
 
 The dual matrix contains `native` and `external` modes. Before task setup, a
 read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
-reads its latest turn context, and accepts only native Sol V2 or the Orchestra
-Sol V1 compatibility alias. It maps those combinations to the corresponding
-mode and requires medium or high root effort. The result is kept in memory
+validates original and continuation identities, and reads the latest observed
+turn context. It accepts Astra or Sol V2 for native mode and the Orchestra Sol
+V1 alias for external mode, with model-specific effort validation. The result is kept in memory
 before plan approval and in plan Decisions afterward. It is immutable for the
 task and must match again on resume. This is routing evidence, not a new model
 selector: Orchestra never changes or respawns the root.

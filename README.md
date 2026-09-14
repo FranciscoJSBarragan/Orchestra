@@ -21,6 +21,47 @@ capabilities, resolves ordinary blockers, and makes the final technical
 judgment. The user chooses the tier and remains the product owner and final
 authority.
 
+## Use individual tools
+
+The role and commit skills also work directly without creating an Orchestra
+task. For example:
+
+- `Use $orchestra-role-reviewer to review this diff for correctness.`
+- `Use $orchestra-role-implementer to fix this bug in these files.`
+- `Use $orchestra-role-verifier to verify this acceptance scenario.`
+- `Use $orchestra-phase-commit to commit these changes with the available review and test evidence.`
+
+A direct commit reports its actual review status; it does not imply that an
+independent review occurred. Within the full workflow, phase commits still
+require the approved plan, independent review, and applicable verification.
+PR opening, convergence, merge, and local integration retain their specialized
+delivery contracts. See `docs/WORKFLOW.md` ("Standalone tools").
+
+## Delegate to another CLI
+
+Keep the current conversation as orchestrator and choose a CLI for a bounded
+assignment:
+
+- `Use $orchestra-delegate to implement this with Cursor, model claude-fable-5-1-thinking-medium. You may edit the scoped files and run checks.`
+- `Use $orchestra-delegate to independently review this diff with Grok Build, model grok-4.6, effort low.`
+- `From Cursor or Grok, use $orchestra-delegate to implement this with Codex CLI, model gpt-6-astra, effort low. You may edit the scoped files and run checks.`
+
+All three hosts can call the shared adapter with `codex`, `cursor`, or `grok`
+as the selected executor. Browser acceptance stays in the owning host by
+default; a Codex CLI worker does not inherit the Codex Desktop browser.
+
+The CLI must already be installed and authenticated. Exact model availability
+comes from its current catalog. Delegation reuses that CLI's account; it does
+not promise a particular subscription charge or silently switch to API
+billing. The root inspects the changes, completes required checks, and obtains
+independent review before accepting implementation. Accepted fixes can resume
+the same CLI session without replaying the full assignment.
+
+`orchestra-delegate` uses a small headless helper, with explicit permissions,
+private diagnostic logs, bounded timeouts, and source-change reporting. The
+executor choice does not change the task's native/external mode or tier. See
+`docs/WORKFLOW.md` ("CLI delegation") for the authority and recovery contract.
+
 ## Product sources
 
 Product intent follows this precedence:
@@ -129,7 +170,7 @@ formal planning, independent review, phase commits, or delivery coordination.
 
 Choose `dual` to expose both Codex native V2 and external V1 Orchestra routing.
 The Codex root model selector then chooses the mode automatically for each new
-Codex task: native Sol selects V2, while the Orchestra Sol compatibility alias
+Codex task: native Astra or Sol selects V2, while the Orchestra Sol compatibility alias
 selects V1. Choose legacy `native` or `external` only when one fixed Codex
 matrix is preferred. External assignments require their configured providers
 and model identifiers. Dual mode also requires CodexBridge in `catalog` mode

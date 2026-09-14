@@ -72,19 +72,33 @@ from pathlib import Path
 import sys
 
 args = sys.argv[1:]
+if "--body-file" in args:
+    body_path = Path(args[args.index("--body-file") + 1])
+    body = body_path.read_text()
+    Path(os.environ["FAKE_GH_LOG"] + ".body").write_text(body)
+    args += ["--body", body]  # Capture actual transmitted file content for assertions.
 with Path(os.environ["FAKE_GH_LOG"]).open("a", encoding="utf-8") as stream:
     stream.write(json.dumps(args) + "\\n")
 if os.environ.get("FAKE_GH_FAIL") == "view" and args[:2] == ["pr", "view"]:
     print("intentional fake gh failure", file=sys.stderr)
     raise SystemExit(3)
 if args[:2] == ["pr", "list"]:
-    print(os.environ.get("FAKE_PR_LIST", "[]"))
+    prs = json.loads(os.environ.get("FAKE_PR_LIST", "[]"))
+    for pr in prs:
+        pr.setdefault("headRefOid", os.environ["FAKE_REMOTE_HEAD"])
+    print(json.dumps(prs))
 elif args[:2] == ["pr", "create"]:
     print("https://example.invalid/acme/project/pull/7")
 elif args[:2] == ["pr", "edit"]:
     print("https://example.invalid/acme/project/pull/7")
 elif args[:2] == ["pr", "view"]:
-    if any(
+    if "state,headRefOid,headRefName,baseRefName,body" in args:
+        view = json.loads(os.environ["FAKE_MERGE_VIEW"])
+        view["body"] = Path(os.environ["FAKE_GH_LOG"] + ".body").read_text()
+        if os.environ.get("FAKE_BAD_READBACK"):
+            view["body"] = "unexpected"
+        print(json.dumps(view))
+    elif any(
         arg.startswith("state,headRefOid") and "mergeStateStatus" in arg
         for arg in args
     ):
@@ -97,6 +111,8 @@ elif args[:2] == ["pr", "view"]:
         print(os.environ["FAKE_POST_MERGE_VIEW"])
     else:
         print(os.environ["FAKE_OBSERVE_VIEW"])
+elif args[:1] == ["api"] and args[1].startswith("repos/"):
+    print(json.dumps({"object": {"sha": os.environ["FAKE_REMOTE_HEAD"]}}))
 elif args[:2] == ["api", "graphql"]:
     print(os.environ["FAKE_THREADS"])
 elif args[:2] == ["pr", "merge"]:
@@ -115,6 +131,7 @@ else:
             **os.environ,
             "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", ""),
             "FAKE_GH_LOG": str(self.log),
+            "FAKE_REMOTE_HEAD": self.head,
             "FAKE_PR_LIST": "[]",
             "FAKE_OBSERVE_VIEW": json.dumps(
                 {
@@ -164,11 +181,20 @@ else:
         (self.repo / relative).write_text(content, encoding="utf-8")
 
     def threads(self, nodes: list[dict], has_next_page: bool = False) -> str:
+        for i, node in enumerate(nodes):
+            node.setdefault("id", f"thread-{i}")
+            comments = node.get("comments", {})
+            comments.setdefault("pageInfo", {"hasNextPage": False})
+            for j, c in enumerate(comments.get("nodes", [])):
+                c.setdefault("id", f"comment-{i}-{j}")
         return json.dumps(
             {
                 "data": {
                     "repository": {
                         "pullRequest": {
+                            "headRefOid": self.head,
+                            "reviews": {"pageInfo": {"hasNextPage": False}, "nodes": []},
+                            "comments": {"pageInfo": {"hasNextPage": False}, "nodes": []},
                             "reviewThreads": {
                                 "pageInfo": {"hasNextPage": has_next_page},
                                 "nodes": nodes,
@@ -302,7 +328,9 @@ else:
                 "mergeStateStatus": merge_state,
             }
         )
-        self.environment["FAKE_THREADS"] = self.threads(threads)
+        payload = json.loads(self.threads(threads))
+        payload["data"]["repository"]["pullRequest"]["headRefOid"] = head or self.head
+        self.environment["FAKE_THREADS"] = json.dumps(payload)
 
     def policy_text(self, command: str, mode: str = "hybrid") -> str:
         return (
@@ -320,6 +348,7 @@ else:
         if staged.returncode:
             self.git("commit", "-q", "-m", "configure policy")
         self.head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.set_observation([], [])
         self.environment["FAKE_MERGE_VIEW"] = json.dumps(
             {
                 "state": "OPEN",
@@ -446,6 +475,61 @@ else:
                 ]
                 self.assertEqual(mutations, [])
 
+    def test_supplemental_feedback_dispositions_bind_head_and_content(self) -> None:
+        data = json.loads(self.environment["FAKE_THREADS"])
+        pull = data["data"]["repository"]["pullRequest"]
+        comment = {"id": "review-1", "body": "Outside diff: fix authorization", "url": "review-url", "author": {"login": "reviewer"}}
+        pull["reviews"]["nodes"] = [comment]
+        self.environment["FAKE_THREADS"] = json.dumps(data)
+        _, first = self.run_pr(*self.observe_args(self.head))
+        self.assertEqual(first["status"], "partial")
+        token = first["supplemental_feedback"][0]["fingerprint"]
+        _, clean = self.run_pr(*self.observe_args(self.head), "--acknowledged-feedback", token)
+        self.assertEqual(clean["status"], "ok")
+        comment["body"] += " and tenant isolation"
+        self.environment["FAKE_THREADS"] = json.dumps(data)
+        _, edited = self.run_pr(*self.observe_args(self.head), "--acknowledged-feedback", token)
+        self.assertEqual(edited["status"], "partial")
+        _, merge = self.run_pr(*self.merge_args(), "--acknowledged-feedback", token)
+        self.assertEqual(merge["status"], "blocked")
+        self.assertFalse(any(e[:2] == ["pr", "merge"] for e in self.log_entries()))
+
+    def test_all_thread_comments_remain_visible_and_pagination_blocks(self) -> None:
+        body = "Critical finding " + "x" * 600
+        thread = {"isResolved": False, "isOutdated": False, "comments": {"nodes": [
+            {"body": body, "url": "first", "author": None},
+            {"body": "Thanks", "url": "last", "author": None}]}}
+        self.set_observation([], [thread])
+        _, result = self.run_pr(*self.observe_args(self.head))
+        self.assertEqual(result["unresolved_feedback"][0]["comments"][0]["body"], body)
+        data = json.loads(self.environment["FAKE_THREADS"])
+        data["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"][0]["comments"]["pageInfo"]["hasNextPage"] = True
+        self.environment["FAKE_THREADS"] = json.dumps(data)
+        _, result = self.run_pr(*self.observe_args(self.head))
+        self.assertFalse(result["feedback_complete"])
+
+    def test_graphql_errors_and_head_race_never_report_clean(self) -> None:
+        data = json.loads(self.environment["FAKE_THREADS"])
+        data["errors"] = [{"message": "partial authorization"}]
+        self.environment["FAKE_THREADS"] = json.dumps(data)
+        _, result = self.run_pr(*self.observe_args(self.head))
+        self.assertEqual(result["status"], "blocked")
+        del data["errors"]
+        data["data"]["repository"]["pullRequest"]["headRefOid"] = "b" * 40
+        self.environment["FAKE_THREADS"] = json.dumps(data)
+        _, result = self.run_pr(*self.observe_args(self.head))
+        self.assertEqual(result["status"], "blocked")
+
+    def test_published_revision_and_body_are_verified(self) -> None:
+        self.environment["FAKE_REMOTE_HEAD"] = "b" * 40
+        _, result = self.run_pr(*self.open_args())
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(any(e[:2] == ["pr", "create"] for e in self.log_entries()))
+        self.environment["FAKE_REMOTE_HEAD"] = self.head
+        self.environment["FAKE_BAD_READBACK"] = "yes"
+        _, result = self.run_pr(*self.open_args())
+        self.assertEqual(result["status"], "partial")
+
     def test_observe_pending_and_unresolved_feedback_are_partial(self) -> None:
         self.set_observation([{"status": "IN_PROGRESS", "conclusion": None}], [])
         pending_result, pending = self.run_pr(*self.observe_args())
@@ -471,7 +555,7 @@ else:
         self.assertEqual(unresolved_result.returncode, 0)
         self.assertEqual(unresolved["status"], "partial")
         self.assertEqual(
-            unresolved["unresolved_feedback"][0]["body"], "Handle the error"
+            unresolved["unresolved_feedback"][0]["comments"][0]["body"], "Handle the error"
         )
 
     def test_observe_requires_two_clean_observations_on_same_head(self) -> None:
@@ -700,6 +784,7 @@ else:
         self.assertIsNone(self.remote_head())
         merge = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "merge"])
         self.assertIn("--rebase", merge)
+        self.assertEqual(merge[merge.index("--match-head-commit") + 1], self.head)
 
     def test_hybrid_merge_restores_start_branch_and_preserves_checkout(self) -> None:
         self.write_policy(passing=True)

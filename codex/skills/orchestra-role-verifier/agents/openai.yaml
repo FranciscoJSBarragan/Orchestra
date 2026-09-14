@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestra Verifier Role"
-  short_description: "Source-read-only verification role contract"
-  default_prompt: "Use $orchestra-role-verifier to run source-read-only verification and report observed evidence under the Orchestra verifier role contract."
+  short_description: "Source-read-only verification, standalone or phased"
+  default_prompt: "Use $orchestra-role-verifier to run bounded source-read-only verification standalone or under the Orchestra verifier role contract."

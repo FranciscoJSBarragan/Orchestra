@@ -1,5 +1,9 @@
 # Repository context playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_analyst` profile and the explicit `repository_context` capability.
 
 ## Contract
@@ -52,12 +56,11 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   evidence needed by the root's disposition. Also state the result's effect on
   the named judgment and consumer. Publish an unresolved conflict instead of
   guessing which source should win.
-- After an authorized context-documentation correction, accept one bounded
-  revalidation dispatch for the changed paths and current dirty revision.
-  Publish a fresh targeted `context-delta` that confirms or rejects the
-  correction; do not edit the source or accept the implementer's report as
-  proof. This post-edit revalidation is mandatory and bypasses the earlier
-  decision-change admission gate because it proves an edit already made.
+- After a context-documentation correction, rerun the checks affected by the
+  changed claim. Independent review evaluates the delta. Request a separate
+  context revalidation only when a named unresolved factual question could
+  change acceptance or a finding disposition; documentation edits alone do
+  not create another mandatory analysis pass.
 
 Return `blocked` when the questions or boundaries are missing, the requested
 scan is unbounded, a material canonical-source conflict remains unresolved, a

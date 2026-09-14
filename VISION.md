@@ -24,6 +24,13 @@ explicitly invokes Orchestra, it supplies the smallest dependable process that
 puts intelligence where it has leverage: confirming the specification, planning
 the work, implementing carefully, finding real bugs, and verifying behavior.
 
+The same analysis, implementation, review, verification, and commit tools are
+useful independently, without requiring the full planned workflow. A user may
+also choose a Codex, Cursor, or Grok CLI executor for a bounded assignment while the
+owning orchestrator retains scope, independent review, and delivery judgment.
+Reuse the user's chosen tools without introducing another workflow engine or
+weakening the quality contract.
+
 ## Primary users
 
 - Individual developers.

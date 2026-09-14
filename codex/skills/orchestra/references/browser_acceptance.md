@@ -1,5 +1,9 @@
 # Browser acceptance playbook
 
+For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
+guidance below, but omit phase-only transport, artifact IDs, and formal plan
+bundles. Return inline evidence or an explicitly requested output path.
+
 Use this internal playbook only with the `orchestra_verifier` profile and the
 explicit `browser_acceptance` capability. Browser acceptance is always a
 dedicated independent gate, never an `Implementation handoff check`, and uses

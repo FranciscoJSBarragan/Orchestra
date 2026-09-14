@@ -1,4 +1,4 @@
 interface:
   display_name: "Orchestra Implementer Role"
-  short_description: "Scoped implementation role contract"
-  default_prompt: "Use $orchestra-role-implementer to implement one approved scoped change under the Orchestra implementer role contract."
+  short_description: "Scoped implementation, standalone or phased"
+  default_prompt: "Use $orchestra-role-implementer to implement one explicitly bounded change standalone or under an approved Orchestra phase."

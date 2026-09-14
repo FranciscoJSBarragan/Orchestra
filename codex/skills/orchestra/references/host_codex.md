@@ -6,9 +6,11 @@ Use this reference only when the execution host is Codex (`spawn_agent` and
 Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
 `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the Codex assignment
 matrix. For a dual matrix resolve exactly
-`modes.<modelconfig>.tiers.<tier>.<capability>` using the immutable mode from
-`session_model.py`. For a legacy matrix resolve exactly
-`tiers.<tier>.<capability>`. Require every selected entry to contain only
+`modes.<modelconfig>.tiers.<tier>.<capability>` using the immutable protocol mode
+from `session_model.py`; model plus multi-agent protocol select the mode, not
+an arbitrary effort value. Native Astra low is the recommended root entry and
+the compatible Sol entry remains supported for legacy routing. For a legacy
+matrix resolve exactly `tiers.<tier>.<capability>`. Require every selected entry to contain only
 `profile`, `model`, and `reasoning_effort`. Load
 `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the
 packet, and use the assignment's explicit model and reasoning overrides when

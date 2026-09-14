@@ -9,10 +9,11 @@ Keep the root responsible for reading the user's delivery direction and making t
 
 ## Resolve policy and authority
 
-1. Require a reviewed, verified, committed change, its exact revision, the
+1. Require an independently reviewed, fully verified, committed change, its exact revision, the
    completed plan manifest, its terminal phase commit, checkout mode, and
    recorded resource ownership. Require the effective task HEAD to match that
-   terminal commit before PR or local delivery; an unexplained mismatch blocks
+   terminal commit and require the current review and all configured checks for
+   that revision before PR or local delivery; an unexplained mismatch blocks
    use of the completed plan. The durable knowledge checkpoint has already
    run; if it produced an `.agent/` commit, that commit is the terminal one.
    For an adopted Kanban task, require `task finish` to record that same exact
