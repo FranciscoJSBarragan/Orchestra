@@ -1,389 +1,185 @@
 # Orchestra
 
 Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,
-Cursor, and Grok Build.
+Cursor, and Grok Build. It is built for one developer who wants planned work to
+arrive reviewed, verified, and committed.
 
-It helps an individual developer move from an idea or an explicitly activated
-Orchestra request through a runnable foundation, confirmed specification,
-planning, implementation, review, verification, and authorized delivery. Direct
-implementation and any planning-only host mode remain separate.
+Orchestra turns a well-defined change into an approved plan, then drives it through implementation, independent review, runtime verification, and phase commits on an isolated `orchestra/*` branch. You stay the product owner and final authority; the orchestrator acts as your technical lead.
 
-`orchestra-project-start` may activate implicitly for a new project, empty
-directory, stack decision, or idea without a repository. It prepares a small
-runnable foundation after confirmation, then offers Orchestra without silently
-activating it. `$orchestra-repo-onboard` is the explicit lane for an existing
-repository: it analyzes how the project is built and tested, asks only what
-evidence cannot settle, and writes the tracked `.agent/` conventions after
-confirmation. The full Orchestra workflow starts only from an explicit
-`$orchestra` invocation or an unequivocal imperative to use or start Orchestra.
-The root acts as technical lead, recommends a tier, composes focused
-capabilities, resolves ordinary blockers, and makes the final technical
-judgment. The user chooses the tier and remains the product owner and final
-authority.
+It is not a framework, a daemon, or a second Git. It is a set of skills, four agent profiles, and a few small Python helpers that your existing coding agent already knows how to run.
 
-## Use individual tools
+```text
+$orchestra add CSV export to the orders page
+```
 
-The role and commit skills also work directly without creating an Orchestra
-task. For example:
+```text
+Brief ............ export orders as CSV from the orders list
+Tier ............. standard (recommended: bounded UI + file download, low blast radius)
+Acceptance ....... button visible on /orders; downloads orders.csv with the visible columns
+Checkout ......... orchestra/orders-csv-export (worktree, from main)
 
-- `Use $orchestra-role-reviewer to review this diff for correctness.`
-- `Use $orchestra-role-implementer to fix this bug in these files.`
-- `Use $orchestra-role-verifier to verify this acceptance scenario.`
-- `Use $orchestra-phase-commit to commit these changes with the available review and test evidence.`
+Phase 1  export helper + unit tests .......... implemented ▸ reviewed ▸ committed
+Phase 2  button + download flow .............. implemented ▸ browser-verified ▸ reviewed ▸ committed
 
-A direct commit reports its actual review status; it does not imply that an
-independent review occurred. Within the full workflow, phase commits still
-require the approved plan, independent review, and applicable verification.
-PR opening, convergence, merge, and local integration retain their specialized
-delivery contracts. See `docs/WORKFLOW.md` ("Standalone tools").
+Implementation complete; delivery pending.
+Hold, open a PR, or integrate locally?
+```
 
-## Delegate to another CLI
+---
 
-Keep the current conversation as orchestrator and choose a CLI for a bounded
-assignment:
+## Why Orchestra
 
-- `Use $orchestra-delegate to implement this with Cursor, model claude-fable-5-1-thinking-medium. You may edit the scoped files and run checks.`
-- `Use $orchestra-delegate to independently review this diff with Grok Build, model grok-4.6, effort low.`
-- `From Cursor or Grok, use $orchestra-delegate to implement this with Codex CLI, model gpt-6-astra, effort low. You may edit the scoped files and run checks.`
+Coding agents are already good at writing code. What they lack is a dependable process around the code: a confirmed spec, a plan that survives contact with the repository, someone independent who reads the diff, evidence that the thing actually runs, and commits you can trace. Most attempts to add that process turn into a workflow engine that costs more tokens than it saves.
 
-All three hosts can call the shared adapter with `codex`, `cursor`, or `grok`
-as the selected executor. Browser acceptance stays in the owning host by
-default; a Codex CLI worker does not inherit the Codex Desktop browser.
+Orchestra makes different bets:
 
-The CLI must already be installed and authenticated. Exact model availability
-comes from its current catalog. Delegation reuses that CLI's account; it does
-not promise a particular subscription charge or silently switch to API
-billing. The root inspects the changes, completes required checks, and obtains
-independent review before accepting implementation. Accepted fixes can resume
-the same CLI session without replaying the full assignment.
+- **Explicit, not ambient.** Nothing happens until you say `$orchestra`. Ordinary requests, plan mode, and quick fixes stay exactly as they were.
+- **Four roles, not forty personas.** Analyst, implementer, reviewer, verifier. The root adds a capability (frontend, debugging, browser acceptance, planning) per dispatch instead of inventing a new agent for each domain.
+- **Independence where it pays.** The implementer runs and fixes every deterministic check before handoff. A reviewer who did not write the code reads intent, diff, tests, and fresh evidence. A separate verifier appears only at real boundaries: browsers, running services, mutable data, credentials, or critical tiers.
+- **Git is the state machine.** One task, one branch, one commit per accepted phase. No event ledger, no lock files, no plan CLI you have to keep in sync.
+- **Quality per token.** Tokens go to understanding the repository, root-causing, tests, and high-signal review — not to re-validating unchanged authority or restarting whole runs after a local failure.
+- **Bounded autonomy.** Inside an approved objective the orchestrator makes reversible technical decisions on its own. It stops for you at data loss, production, public contracts, security, external cost, scope expansion, and anything hard to undo.
 
-`orchestra-delegate` uses a small headless helper, with explicit permissions,
-private diagnostic logs, bounded timeouts, and source-change reporting. The
-executor choice does not change the task's native/external mode or tier. See
-`docs/WORKFLOW.md` ("CLI delegation") for the authority and recovery contract.
+## How a task flows
 
-## Product sources
+1. **Brief and tier.** Orchestra reuses the conversation you already had, summarizes the brief, recommends a tier with its cost-benefit, and asks you to choose.
+2. **Specification.** A short read-only preflight and focused repository context close real gaps. You confirm observable acceptance in one message for simple tasks.
+3. **Checkout.** One collision-free `orchestra/<slug>` branch is created — in a dedicated worktree (`managed`) or in your clean current checkout (`hybrid`). Never directly on `main`.
+4. **Plan.** A planner writes one overview and one self-contained document per phase. You approve; the plan lands in the task's private `.orchestra/plan.md`.
+5. **Phases.** For each phase: implement and self-check → optional visual preview for UI work → independent review → verification where the boundary demands it → phase commit with exact path scope and evidence.
+6. **Delivery.** `implementation complete; delivery pending`. You decide: hold, open a PR, or integrate locally — according to the repository's declared policy.
 
-Product intent follows this precedence:
+Tier controls intensity (models, review depth, double evidence), never authority. `critical` phases keep independent double verification; `minimal` exists for cheap, bounded work on hosts that assign it.
 
-1. `VISION.md` defines mission, audience, principles, success, and non-goals.
-2. `docs/WORKFLOW.md` defines behavior from request through delivery.
-3. `docs/ARCHITECTURE.md` defines component and role boundaries.
-4. `AGENTS.md` provides concise executable rules for agents.
-5. Skills, profiles, scripts, tests, and hooks implement those sources.
+## Hosts
 
-Lower levels must not silently redefine higher levels. A deliberate product
-change updates the relevant canonical document and its executable enforcement
-together.
+| Host | Tiers | Notes |
+| --- | --- | --- |
+| **Codex** | `standard`, `critical`, plus opt-in `luna` (external mode) | Guardian permissions synced as default; native V2 or external V1 matrices |
+| **Cursor** | `minimal`, `standard`, `critical` | Reads its own role matrix; browser work routed through Browser Use |
+| **Grok Build** | `standard`, `critical` | `grok-4.6`; no cheaper tier |
 
-## Delivery model
+All three share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.
 
-Orchestra starts only from explicit activation. It reuses the conversation,
-classifies any prior candidate checkpoint, and recommends an available assigned
-tier. Codex native offers standard and critical; Codex external additionally
-offers Luna as a cost-focused opt-in for ordinary, bounded work when the user
-explicitly prioritizes cost. Cursor offers minimal, standard, and critical with
-no native/external mode; this cut assigns all three and recommends standard. Grok Build assigns standard and critical on grok-4.6 and has no cheaper tier. It then creates one collision-free
-`orchestra/<task-slug>[-N]` branch before repository analysis. Managed mode
-creates a dedicated Git worktree under a portable Orchestra root; opt-in hybrid
-mode uses the current clean primary checkout or linked worktree and creates the
-task branch there. Every formal task works only on its Orchestra branch and
-supports hold, PR, or local integration when policy allows.
+## Use the pieces on their own
 
-After plan approval, Orchestra scales implementation, review, and verification
-to the active tier. The user may direct a safe tier change among the tiers
-available assigned tiers without restarting the workflow or discarding
-valid work. Tier choice changes model and scrutiny intensity; it never waives
-separate authority for production, security, payments, destructive operations,
-merge, release, or deployment.
+You do not need the full workflow to benefit from the roles. Each skill works standalone from any chat:
 
-The implementation owner runs and autocorrects required local deterministic
-checks before handoff, including the canonical full suite when one exists. The
-reviewer inspects intent, source, diff, tests, and fresh evidence without
-routinely rerunning those gates. Orchestra
-creates a separate verifier only for browser or runtime boundaries, mutable
-data, credentials, network or external environments, explicit repository
-policy, and critical work; critical phases retain independent double evidence.
+```text
+Use $orchestra-role-reviewer to review this diff for correctness.
+Use $orchestra-role-implementer to fix this bug in these files.
+Use $orchestra-role-verifier to verify this acceptance scenario in the browser.
+Use $orchestra-phase-commit to commit these changes with the available evidence.
+```
 
-The four profiles are `orchestra_analyst`,
-`orchestra_implementation_worker`, `orchestra_reviewer`, and
-`orchestra_verifier`. Namespacing prevents Orchestra from intercepting ordinary
-host agents. The root selects explicit capability assignments and their
-applicable internal references. The approved
-formal plan is written directly as `active` to one root-owned, unversioned path
-at `<task-worktree>/.orchestra/plan.md`. Semantic reports live beside it under
-`.orchestra/artifacts`; the self-ignored task state stays outside Git history
-and requires only normal workspace access. Provisional specs and
-unapproved plans are not persisted. Git, not the plan, remains authoritative
-for code and history. Safe local integration or an authorized PR merge removes
-only the exact clean task resources; `hold` and unmerged work remain available.
+Or keep your current chat as orchestrator and hand a bounded assignment to another CLI:
 
-Each consumer repository declares that choice in `orchestra.toml`. Missing
-policy is never inferred: Orchestra asks once and recommends `hybrid`. Configured
-verification uses ordered argument arrays, not shell command strings. Phase
-conventions, when present, live in tracked `.agent/` files, including hard
-gates and the repository's own normative code conventions; delivery checks stay
-in `orchestra.toml`.
+```text
+Use $orchestra-delegate to implement this with Codex CLI, model gpt-6-astra, effort low.
+Use $orchestra-delegate to independently review this diff with Grok Build.
+```
 
-The source repository is authoritative. Runtime resources are installed through
-repository-driven direct sync, with one owner for managed files and no changes
-to unrelated host configuration.
+Delegation reuses that CLI's own account and session, reports source changes, and hands the result back for review — no billing surprises, no hidden workflow switch.
 
-## First task quickstart
+## Companion skills
 
-For an existing repository:
+| Skill | When |
+| --- | --- |
+| `orchestra` | Explicit full workflow: spec → plan → phases → delivery |
+| `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
+| `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
+| `orchestra-task` | Capture and prepare a task card (`A1`, `A2`, …) from any chat without starting anything; adopt it later from a native host chat |
+| `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, or Grok Build CLI with scoped permissions |
+| `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
+| `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
 
-1. Ask: `Use Orchestra to add <visible behavior>.`
-2. Orchestra summarizes the brief, recommends a tier with its cost-benefit, and
-   asks you to choose the tier.
-3. It proposes observable acceptance and asks you to confirm the final
-   specification and implementation plan (one message for simple tasks). After
-   confirmation it creates an isolated worktree in `managed` mode, or a fresh
-   task branch in the current clean checkout in opt-in `hybrid` mode.
-4. After approval it implements, verifies, reviews, and commits accepted phases.
-5. It reports `implementation complete; delivery pending` and asks whether to
-   hold, open a PR, or integrate locally when repository policy allows.
+## Install
 
-For a new project, describe the idea normally. `orchestra-project-start`
-activates implicitly, helps select a proportional stack, confirms the target
-location and mutations, creates a runnable vertical foundation, and offers to
-continue through Orchestra. Accepting that offer explicitly activates the full
-workflow without repeating the greenfield discovery.
+**Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, or Grok Build). GitHub CLI only if you want PR delivery.
 
-For an existing repository that Orchestra has not worked in before, run
-`$orchestra-repo-onboard` once. It verifies commands, layering, and patterns
-from evidence, asks a short batch of questions, and commits a small `.agent/`
-store on a branch; later `$orchestra` tasks read it instead of rediscovering
-the same facts. Run it again to refresh a stale store.
-
-Use direct implementation instead when the change is small and you do not want
-formal planning, independent review, phase commits, or delivery coordination.
-
-## Prerequisites
-
-- Python 3 for source synchronization and validation.
-- Git for task branches, plans, commits, and worktrees.
-- The project runtime and dependency manager needed by the consumer repository.
-- GitHub CLI only when using PR delivery.
-- Required local services and credentials for the project; Orchestra identifies
-  their categories but does not print or persist secret values.
-
-Choose `dual` to expose both Codex native V2 and external V1 Orchestra routing.
-The Codex root model selector then chooses the mode automatically for each new
-Codex task: native Astra or Sol selects V2, while the Orchestra Sol compatibility alias
-selects V1. Choose legacy `native` or `external` only when one fixed Codex
-matrix is preferred. External assignments require their configured providers
-and model identifiers. Dual mode also requires CodexBridge in `catalog` mode
-with a refreshed catalog that publishes the reserved `orchestra-v1/` aliases.
-Orchestra sync does not change or restart CodexBridge. Cursor ignores
-`--modelconfig` and reads `hosts/cursor` or `hosts/grok` roles instead.
-
-## Direct sync
-
-Run synchronization explicitly from a trusted Orchestra checkout. It is outside
-ordinary task execution:
+Clone this repository and run the sync from the checkout. It installs skills, profiles, role matrices, and helpers into the host's own directories, records everything it owns in a manifest, and never touches unrelated configuration.
 
 ```sh
-python3 codex/scripts/sync.py status --modelconfig dual
-python3 codex/scripts/sync.py apply --dry-run --modelconfig dual
-python3 codex/scripts/sync.py apply --modelconfig dual
-python3 codex/scripts/sync.py apply --modelconfig dual --checkout-mode hybrid
-python3 codex/scripts/sync.py apply --host cursor
-python3 codex/scripts/sync.py apply --host grok
+git clone https://github.com/FranciscoJSBarragan/Orchestra.git
+cd Orchestra
+
+# Preview what would change
+python3 codex/scripts/sync.py status --host all --modelconfig dual
+python3 codex/scripts/sync.py apply --host all --modelconfig dual --dry-run
+
+# Install for every host (or pick: --host codex | cursor | grok)
 python3 codex/scripts/sync.py apply --host all --modelconfig dual
-python3 codex/scripts/sync.py status --modelconfig native
-python3 codex/scripts/sync.py apply --modelconfig native --worktree-root /absolute/path
+
+# Later
 python3 codex/scripts/sync.py status
-python3 codex/scripts/sync.py apply
 python3 codex/scripts/sync.py uninstall
 ```
 
-`--host` is `codex`, `cursor`, `grok`, or `all`. Default `codex` preserves
-existing installs and does not write `~/.cursor` or `~/.grok`. Shared skills
-still install under `$HOME/.agents/skills/` for any host. Choose `dual`, `native`, or `external` on
-the first Codex apply. The install manifest
-records that global choice, so later status and apply calls may omit
-`--modelconfig`. Passing another value previews or applies an atomic
-configuration switch. Do not switch the installed configuration while an
-Orchestra task is active. Within `dual`, each task's automatically detected
-`native` or `external` mode is immutable; changing protocol mode requires a new
-task opened with the matching root model entry.
+Useful flags:
 
-The optional `--worktree-root` overrides `ORCHESTRA_WORKTREE_ROOT`; otherwise
-sync uses `$HOME/.orchestra/worktrees`. Sync writes the effective absolute path
-to `${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root` and, for Codex, also
-mirrors it at `$CODEX_HOME/orchestra/worktree-root`. `--checkout-mode managed|hybrid`
-selects the task-checkout strategy and is persisted at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` with a Codex compatibility
-mirror; `managed` is the backward-compatible
-default. Hybrid mode uses either the primary checkout or a linked worktree when
-it is clean, but always creates a new `orchestra/*` branch before work and never
-implements directly on `main`. Dirty, detached, conflicted, or otherwise
-ambiguous checkouts require one explicit decision. Before changing Codex configuration,
-sync requires Codex 0.146.0 or later. It installs the built-in `:workspace`
-permission profile with `approval_policy = "on-request"` and
-`approvals_reviewer = "auto_review"`. Older or unreadable clients block before
-mutation. Historical manifest-owned Full Access and legacy blocks migrate
-atomically, while uninstall remains version-independent and restores the
-original configuration.
+- `--modelconfig dual|native|external` — Codex model matrix. `dual` lets the root model pick per task. Persisted after the first apply.
+- `--checkout-mode managed|hybrid` — dedicated worktree (default) or a fresh branch in your clean current checkout.
+- `--worktree-root /path` — where managed worktrees live (default `~/.orchestra/worktrees`).
 
-Guardian is the synchronized default, not a runtime requirement. An explicit
-permission choice for the current task, host, or launcher remains authoritative;
-Orchestra neither changes it nor blocks solely because it differs. When
-Guardian is active, the workspace boundary permits routine repository work
-while exact escalations for protected paths such as shared Git metadata are
-reviewed automatically. Manual approvals may prompt the user, while Full Access
-runs without that workspace sandbox boundary. Sync does not install a custom
-permission profile, writable-root list, worktree helper, or command rule.
-User-owned `sandbox_mode`, `default_permissions`, conflicting permission
-profiles, or incompatible legacy sandbox tables block synchronization without
-changing the file. Sync takes reversible ownership of `approval_policy`,
-`approvals_reviewer`, and `default_permissions`; unrelated options such as
-`web_search` are preserved byte-for-byte. Task Control never launches an
-execution host or
-changes permissions; adoption uses the current native chat's configured choice.
+Sync results are `ok`, `partial` (nothing unsafe happened, read `detail`), or `blocked` (a named safety, drift, or ownership issue; nothing was written). Uninstall removes only content whose digest still matches the manifest.
 
-Restart the Codex host after a permission change so new agent sessions receive
-the selected backend. Status and apply results report `codex_version`,
-`permission_backend`,
-`permission_profile`, `profile_configured`, `checkout_mode`, `sandbox_root`, detected
-`cache_roots`, coarse `omitted_cache_tools`, `unconfigured_cache_tools`, and
-`restart_required`. Cache access does not install project dependencies or make
-an empty virtual environment ready for tests.
+### Per-repository configuration
 
-Sync results use:
+Each consumer repository declares its delivery policy and checks in `orchestra.toml`:
 
-- `ok`: requested state is complete.
-- `partial`: no unsafe mutation occurred, but setup, cleanup, or requested state
-  is incomplete; read `detail` and the reported changes.
-- `blocked`: safety, ownership, drift, configuration, or validation prevented
-  the operation; resolve the named blocker before retrying.
+```toml
+[delivery]
+mode = "hybrid"   # "hold" | "pr" | "hybrid" | "local"
 
-Fourteen skills and their internal playbook references install under
-`$HOME/.agents/skills/`. Shared helpers install under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/` and, for Codex, also under
-`$CODEX_HOME/orchestra/scripts/`. Four Codex agent profiles install under
-`$CODEX_HOME/agents/`; the Codex capability matrix installs under
-`$CODEX_HOME/orchestra/roles.toml`. The Cursor matrix installs under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. The Grok matrix
-installs under `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. When
-`CODEX_HOME` is unset it defaults to `$HOME/.codex`. When `ORCHESTRA_HOME` is
-unset it defaults to `$HOME/.orchestra`. The tool owns only destinations
-recorded in the install manifest.
-
-Before replacing or removing an existing owned destination, the tool writes one
-current deterministic safety backup under `$CODEX_HOME/orchestra/backups/`.
-Backups are not restoration history: uninstall removes only content whose digest
-still matches the manifest, preserves drifted or unrelated content, and never
-restores unrelated user configuration.
-
-## Coordination CLI
-
-Direct sync installs a fail-soft coordination helper at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py`. Orchestra uses it to expose
-multiple active tasks, material agent activity, and revision-identified
-Markdown artifact locators without making telemetry authoritative:
-
-```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task list
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" task show --task <uuid>
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py" artifact list --task <uuid>
+[[checks]]
+name = "suite"
+command = ["python3", "-m", "pytest", "-q"]
 ```
 
-The helper lazily creates `$HOME/.orchestra/state.sqlite3` with mode `0600`.
-An empty version-zero file is safely bootstrapped, while a partial, unknown, or
-corrupt database remains untouched and returns `unavailable`. Artifact content
-lives in each task worktree's private Git metadata. Commands return JSON and
-use `invalid` or `unavailable` for coordination failures. Those results never
-grant authority, validate phase transitions, or block an otherwise authorized
-tier change, implementation, commit, or delivery; agents fall back to complete
-inline reports and current source.
+Missing policy is never inferred — Orchestra asks once and recommends `hybrid`. Repository conventions that workers should cite (hard gates, prerequisites, code conventions) live in tracked `.agent/` files; `$orchestra-repo-onboard` writes them for you.
 
-Completed task metadata remains queryable. Worktree cleanup may make old
-artifact locators unavailable. Sync and uninstall manage the helper but never
-own or remove the database. There is no daemon, HTTP server, MCP server, global
-executable, event ledger, heartbeat system, or dashboard in this version.
+## What Orchestra will not do
 
-## Prepared-task Kanban
+- Replace Git, GitHub, CI, or your tests.
+- Require PRs, or merge, release, or deploy without separate explicit authorization.
+- Run in the background. There is no daemon, HTTP server, or remote service.
+- Persist every thought. Task state lives in one self-ignored `.orchestra/` directory inside the worktree and is removed only by guarded cleanup.
+- Become an enterprise approval platform.
 
-Direct sync also installs `$orchestra-task` and its local JSON helper. Any
-harness can capture or prepare a card without activating Orchestra. New cards
-receive immutable IDs such as `A1`; a native Codex, Cursor, or Grok Build chat later adopts
-that ID
-and starts the normal visible Orchestra flow:
+## Repository layout
 
-```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task list
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task create \
-  --title "<title>" --brief "<objective>" --idempotency-key "<stable-key>"
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" task prepare \
-  --task A1 --repository "<repo>" \
-  --repository-context-file "<context>" \
-  --specification-file "<specification>" --confirmed
+```text
+VISION.md              mission, principles, success criteria, non-goals
+docs/WORKFLOW.md       the canonical behavior contract, request → delivery
+docs/ARCHITECTURE.md   components, contracts, host adapters, installation boundary
+docs/ROADMAP.md        non-canonical; deferred distribution and benchmarks
+AGENTS.md              concise executable rules for agents working on Orchestra itself
+codex/skills/          the 15 skills and their internal playbooks
+codex/agents/          the four namespaced agent profiles
+codex/config/          Codex role matrix and permission defaults
+codex/scripts/         sync.py, validate_suite.py, coordination and task-control helpers
+codex/tests/           conformance suite
+hosts/cursor, hosts/grok  host role matrices
+hub/                   optional local read-only hub, TUI, and macOS menu-bar client
 ```
 
-One card is the default: Orchestra keeps sequential complexity in plan phases.
-When an explicitly confirmed brief has genuinely independent execution,
-acceptance, repository, or delivery boundaries, `task decompose --confirmed`
-atomically reuses the source card, creates the minimum additional cards, and
-records an immutable initiative DAG. `blocked_by` supports `completed` and
-`delivered`; unrelated cards in the same initiative are shown as parallel.
-Preparation is allowed while blocked, but adoption waits for the dependency.
+Product intent has a strict precedence: `VISION.md` → `docs/WORKFLOW.md` → `docs/ARCHITECTURE.md` → `AGENTS.md` → skills, profiles, scripts, tests. Lower layers never silently redefine higher ones.
 
-`task finish` records the reviewed terminal Git revision. After an authorized
-local integration or PR merge returns exact verified evidence, the owning
-native chat records it with `task record-delivery`. A `delivered` dependency in
-the same Git repository also requires the adopting checkout to contain the
-recorded integration revision. The helper never pulls or transports context.
+## Contributing
 
-The helper stores private state in `$HOME/.orchestra/control.sqlite3` and
-revision-bound documents below `$HOME/.orchestra/tasks/<id>/`. Direct sync also
-registers the local stdio `orchestra_tasks` MCP server, exposing capture,
-query, notes, preparation, confirmed decomposition, archive, and restore only. It cannot adopt, transfer, reclaim, finish, or record delivery for a task,
-start an execution host, create a worktree, or change permissions. From a native
-Codex, Cursor, or Grok Build chat,
-say `Arranca A1 con Orchestra`; that chat adopts the UUID, activates normal
-Orchestra, and Coordinator registers the same UUID after checkout creation.
-The store never substitutes for the native conversation, approved `plan.md`,
-Git, or user authority.
-The Hub remains GET-only. The native menu-bar app reads cards and capabilities
-from Task Control and invokes that same local JSON CLI for its bounded card
-actions. There is no daemon, remote MCP transport, or mutable web console.
-
-The CLI additionally supports draft editing, recoverable trash, restricted
-purge, cooperative safe-stop requests, and reopening cancelled cards. A safe
-stop never interrupts active work: the owning root handles it at a stable
-handoff, cleans resources, blocks the existing plan, and acknowledges with its
-Codex, Cursor, or Grok identity. The same prior owner can resume the preserved
-checkout and plan after reopening. Purge requires the exact short ID and is
-limited to an evidence-free trashed draft; short IDs are never reused. These
-sensitive lifecycle and ownership commands are not exposed through MCP.
-
-The native `hub/menubar` app gets cards and action capabilities from the shared
-Task Control runtime, merges only Hub progress by exact UUID, and remains
-usable when Hub is down. Its neutral start action copies an instruction for any
-supported host. The app installer owns only the app and its RunAtLoad
-LaunchAgent; `sync.py` alone owns the shared runtime.
-
-Artifacts are the semantic handoff channel across context, planning,
-implementation, verification, debugging, and review. Formal planning publishes
-one `plan-overview` and one `plan-phase` per phase; the approved private
-`plan.md` preserves the overview and exact phase IDs and paths. Agents receive
-explicit authority plus exact document references and new deltas instead of a
-root-authored summary chain. Git and GitHub remain authoritative for code,
-commits, PR checks, and merge.
-
-## Conformance
-
-Run the deterministic suite validator from the repository root:
+Run the conformance suite before opening a PR:
 
 ```sh
-python3 codex/scripts/validate_suite.py --quick
-python3 codex/scripts/validate_suite.py --full
+python3 codex/scripts/validate_suite.py --quick   # what the pre-commit hook runs
+python3 codex/scripts/validate_suite.py --full    # manual and CI entry point
 ```
 
-The versioned pre-commit hook invokes only quick validation. Full validation is
-the manual and CI entry point.
+Every test must prove observable acceptance or pin a named regression risk. Read `AGENTS.md` for the anti-overengineering rules — before adding a mechanism, name its consumer, the failure it prevents, why an existing primitive is not enough, and its cleanup path.
 
-Bootstrap, sync, and installation work do not invoke Orchestra itself. Model
-benchmarking is deferred until the composable runtime works end to end.
+## Status
+
+Orchestra is in active use on real projects by its author and is shared here for developers who want the same process. The skill and helper contracts are stable enough to install; the plugin/marketplace distribution boundary is intentionally deferred until install, update, and both delivery paths are proven in more repositories (see `docs/ROADMAP.md`). Feedback from real tasks is the most useful contribution right now.
+
+## License
+
+[MIT](LICENSE)
