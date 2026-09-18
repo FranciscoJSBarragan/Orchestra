@@ -78,21 +78,13 @@ comparison, or mapping becomes materially easier to understand. Simple
 explanations remain prose, a missing visualization capability never blocks the
 workflow, and phase agents do not create user-facing visualizations.
 
-The active tier controls assignment intensity, not user authority. Tiers are
-host-specific lookups. Codex native tasks offer standard and critical; Codex
-external tasks may additionally use Luna as a cost-focused opt-in when the user
-explicitly prioritizes cost for ordinary, bounded work. Cursor tasks offer
-minimal, standard, and critical, with no native/external mode: minimal is the
-equivalent of Codex Luna. Codex still defaults to standard; Cursor
-recommends standard, `minimal` when the user prioritizes cost or speed, and
-`critical` for matching high-impact risk. Grok Build tasks offer standard and
-critical on grok-4.6; there is no cheaper assigned tier, and `minimal` is
-blocked.
-Material risk still calls for standard or critical where those matrices exist.
-A user may choose an available assigned tier or direct a safe transition within
-the selected Codex mode after a concise recommendation. Independent authority
-boundaries for production, security, payments, destructive actions, and
-delivery remain in force.
+The active tier controls assignment intensity, not user authority. Each host
+provides its own native capability matrix. Codex offers standard and critical;
+Cursor also offers minimal for ordinary work where cost or speed matters.
+Grok Build offers standard and critical and has no cheaper assigned tier.
+The user chooses among assigned tiers after a concise risk recommendation.
+Independent authority boundaries for production, security, payments,
+destructive actions, and delivery remain in force.
 
 ### Explicit, proportional workflow
 
@@ -102,8 +94,8 @@ direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
 `$orchestra` invocation, adoption of a prepared task from a native host chat,
 or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
-scrutiny for actual high-impact risk; external Luna is considered only when the
-user explicitly prioritizes cost for ordinary, bounded work. On Cursor it recommends `standard`, `minimal` when the user prioritizes
+scrutiny for actual high-impact risk. On Cursor it recommends `standard`,
+`minimal` when the user prioritizes
 cost or speed, and `critical` for matching high-impact risk. On Grok Build it
 recommends `standard` and offers `critical` for matching high-impact risk;
 unassigned Grok `minimal` remains blocked. The
@@ -296,18 +288,13 @@ repository policy, and all critical phases. Critical work keeps double
 evidence: the owner verifies first and a verifier repeats the applicable gate
 independently.
 
-The installed assignment remains authoritative. On Codex, a dual installation
-uses the root session's model and multi-agent version to select its native V2
-or external V1 matrix before task setup; that model configuration is immutable
-for the task, while tier transitions remain available within it. Legacy Codex
-installations retain their fixed native or external matrix. When the external
-standard matrix assigns `repository_context` to its configured external model
-but the internal subagent runtime cannot accept that model, only that
-capability may use its compatible Luna-high entry as a transient fallback. The
-substitution is remembered only for the live task and does not create a visible
-task, alter the installed matrix, or establish a fallback for any other
-capability. Cursor does not run session detection or native/external modes; it
-reads one host matrix and currently assigns `minimal`, `standard`, and `critical`.
+The installed assignment remains authoritative. Orchestra uses native host
+execution and optional explicit CLI delegation. Model-provider bridges and
+protocol compatibility belong to separate products; installing Orchestra does
+not require CodexBridge. The former Codex external-model integration is retained
+as historical reference in CodexBridge for a future opt-in integration, without
+an active integration contract. Unsupported assignments require an explicit
+supported choice rather than a hidden fallback.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and, only when the independent gate requires one, a verifier for each used
@@ -412,3 +399,16 @@ Orchestra succeeds when:
   Cursor hosts.
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
+
+## Distribution
+
+Orchestra can be distributed as a self-contained plugin generated from its
+canonical source. Skills, native host adapters, CLI delegation, and helpers
+remain one product; packaging does not introduce another workflow runtime.
+Host-specific manifests adapt installation and discovery. The host retains
+permissions and execution authority. Task Control and Hub are optional
+companions, and neither is a prerequisite for the delivery flow.
+
+A portable manifest broadens discovery; full execution support still requires
+the native capabilities described in WORKFLOW. Bridge integration and public
+marketplace publication are separate work.

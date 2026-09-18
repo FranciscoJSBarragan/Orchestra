@@ -65,24 +65,20 @@ HELPERS = (
     "commit_phase.py",
     "delegate.py",
     "adopt_worktree.py",
-    "session_model.py",
     "policy.py",
     "pr.py",
     "integrate_local.py",
     "_common.py",
 )
-RETIRED_HELPERS = ("create_worktree.py",)
-MODELCONFIGS = ("native", "external", "dual")
+RETIRED_HELPERS = ("create_worktree.py", "session_model.py")
+MODELCONFIGS = ("native",)
+# Accepted only as ownership metadata for migration and uninstall.
+LEGACY_MODELCONFIGS = ("external", "dual")
 HOSTS = ("codex", "cursor", "grok", "all")
 HOST_SCOPES = ("codex", "cursor", "grok")
 ENTRY_SCOPES = ("shared", *HOST_SCOPES)
 CHECKOUT_MODES = ("managed", "hybrid")
 CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
-DUAL_MODEL_ALIASES = (
-    ("gpt-5.6-sol", "orchestra-v1/gpt-5.6-sol"),
-    ("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),
-    ("gpt-5.6-luna", "orchestra-v1/gpt-5.6-luna"),
-)
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
@@ -509,33 +505,8 @@ def _entry(root: str, path: str, kind: str, content: bytes) -> dict[str, Any]:
     }
 
 
-def compose_dual_matrix(native_text: str, external_text: str) -> str:
-    """Compose the installed dual matrix from the two source matrices.
-
-    Wraps each source's top-level `tiers` tables under `modes.native.tiers` /
-    `modes.external.tiers` by textual section rewrite, preserving entry order
-    and comments. External native-model references are rewritten to their
-    Orchestra V1 compatibility aliases so a V1 root never crosses protocol
-    versions.
-    """
-    native = native_text.replace("[tiers.", "[modes.native.tiers.")
-    external = external_text.replace("[tiers.", "[modes.external.tiers.")
-    for native_model, alias in DUAL_MODEL_ALIASES:
-        external = external.replace(
-            f'model = "{native_model}"', f'model = "{alias}"'
-        )
-    return f"{native.rstrip()}\n\n{external.rstrip()}\n"
-
-
-def _roles_content(source_root: Path, modelconfig: str) -> bytes:
-    if modelconfig == "dual":
-        native_source = source_root / "codex/config/roles.native.toml"
-        external_source = source_root / "codex/config/roles.external.toml"
-        return compose_dual_matrix(
-            _read_file(native_source, str(native_source)).decode("utf-8"),
-            _read_file(external_source, str(external_source)).decode("utf-8"),
-        ).encode("utf-8")
-    source = source_root / f"codex/config/roles.{modelconfig}.toml"
+def _roles_content(source_root: Path) -> bytes:
+    source = source_root / "codex/config/roles.native.toml"
     return _read_file(source, str(source))
 
 
@@ -643,7 +614,7 @@ def _inventory(
             "codex_home",
             "orchestra/roles.toml",
             "file",
-            _roles_content(source_root, modelconfig),
+            _roles_content(source_root),
         )
         for helper in HELPERS:
             source = source_root / "codex/scripts" / helper
@@ -847,7 +818,7 @@ def _read_manifest(
     else:
         installed_hosts: set[str] = set()
     modelconfig = payload.get("modelconfig")
-    if modelconfig is not None and modelconfig not in MODELCONFIGS:
+    if modelconfig is not None and modelconfig not in (*MODELCONFIGS, *LEGACY_MODELCONFIGS):
         raise SyncError("invalid install manifest modelconfig")
     checkout_mode = payload.get("checkout_mode")
     if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
@@ -1733,7 +1704,7 @@ def _write_manifest(
         "entries": [entries[key] for key in sorted(entries)]
     }
     if modelconfig is not None:
-        if modelconfig not in MODELCONFIGS:
+        if modelconfig not in (*MODELCONFIGS, *LEGACY_MODELCONFIGS):
             raise SyncError(f"unknown model configuration: {modelconfig}")
         payload["modelconfig"] = modelconfig
     if checkout_mode is not None:
@@ -2026,27 +1997,10 @@ def synchronize(
         installed_hosts = set(install_state["installed_hosts"])
         if modelconfig is not None and modelconfig not in MODELCONFIGS:
             raise SyncError(f"unknown model configuration: {modelconfig}")
-        effective_modelconfig = modelconfig or installed_modelconfig
+        effective_modelconfig = "native" if include_codex else installed_modelconfig
         if checkout_mode is not None and checkout_mode not in CHECKOUT_MODES:
             raise SyncError(f"unknown checkout mode: {checkout_mode}")
         effective_checkout_mode = checkout_mode or installed_checkout_mode or "managed"
-        if include_codex and effective_modelconfig is None:
-            detail = (
-                "model configuration is not selected; pass "
-                "--modelconfig dual, --modelconfig native, or "
-                "--modelconfig external"
-            )
-            if action == "status" and not manifest_present:
-                return _result(
-                    "partial",
-                    label,
-                    [],
-                    detail,
-                    worktree_root=effective_worktree_root,
-                    unconfigured_cache_tools=missing_cache_tools,
-                    **result_context,
-                )
-            raise SyncError(detail)
         desired, operations, auxiliary_drift, missing_cache_tools = _analyze(
             source_root,
             home,

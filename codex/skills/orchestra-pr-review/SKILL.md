@@ -5,6 +5,8 @@ description: Converge an authorized Orchestra pull request through host-adapted 
 
 # Converge an authorized PR
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Keep the root responsible for GitHub observation, feedback disposition, routing,
 blockers, pushes, and the clean conclusion. Read WORKFLOW `PR path`, `Review
 policy`, and the selected host adapter before dispatching any reviewer. This
@@ -12,7 +14,7 @@ skill never merges, releases, deploys, publishes, or persists PR state.
 
 ## Observe and review
 
-1. Run `python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/pr.py" observe
+1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/pr.py" observe
    --repo <root> --repository <OWNER/REPO> --pr <number>` with the optional
    in-memory `--previous-clean-head <sha>`. Include repeatable
    `--acknowledged-feedback <fingerprint>` only after independent disposition
@@ -23,13 +25,11 @@ skill never merges, releases, deploys, publishes, or persists PR state.
    non-outdated feedback, pagination completeness, and clean-observation
    fields as external facts. Malformed or incomplete evidence is `partial` or
    `blocked`, never clean.
-3. Resolve `independent_review` through the selected host adapter. Codex reads
-   its installed matrix and runs `session_model.py` only for dual Codex mode;
-   Cursor reads `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`
-   and its adapter; Grok reads the corresponding `hosts/grok/roles.toml` and
-   adapter. Cursor and Grok never use `CODEX_HOME` or `session_model.py`.
-   Require the resolved mode and tier to match the approved plan, then pass
-   the explicit model and effort fields supported by that host.
+3. Resolve `independent_review` through the owning host adapter's native
+   matrix or the explicitly selected execution preset. Match the approved
+   host, tier, and recorded assignments before dispatch, including WORKFLOW's
+   transition boundary for a plan from the retired external integration.
+   Pass the exact model and effort fields supported by that host.
 4. Require a current independent baseline review before declaring a PR clean;
    reuse it for unchanged code and feedback. Dispatch `orchestra_reviewer`
    when new feedback needs semantic judgment. Supply review authority, task and

@@ -5,6 +5,8 @@ description: Turn a greenfield software idea into a proportional, runnable proje
 
 # Start a greenfield project
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Help a non-expert user move from an idea to a small runnable vertical foundation
 without imposing a generic stack, hidden mutation, or the full Orchestra
 delivery workflow.

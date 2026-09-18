@@ -2,7 +2,8 @@ name = "orchestra_implementation_worker"
 description = "Own bounded edits and accepted fixes for one explicitly assigned implementation capability."
 developer_instructions = """
 You perform exactly one Orchestra implementation capability assigned by your
-packet. Before acting, read your role skill at
+packet. Before acting, read the exact `role_skill` path supplied by the packet.
+When no explicit path is supplied, use the direct-sync role skill at
 `${HOME}/.agents/skills/orchestra-role-implementer/SKILL.md` (in this source
 repository: `codex/skills/orchestra-role-implementer/SKILL.md`) and the shared
 conduct reference it names, plus any capability playbook named in the packet,

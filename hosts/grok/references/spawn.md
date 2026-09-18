@@ -14,9 +14,8 @@ the Grok spawn mechanisms below with Codex `spawn_agent` / `wait_agent` /
 
 ## Host matrix
 
-Read `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Grok has no
-native/external mode and does not run `session_model.py`. Assigned tiers are
-those with complete capability rows. This cut assigns `standard` and
+Read `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml` directly.
+Assigned tiers are those with complete capability rows. This cut assigns `standard` and
 `critical`. The live catalog is `grok-4.6` at one cost, so there is no
 cheaper assigned tier. Recommend `standard`. Recommend `critical` when the
 brief matches security, credentials, payments, migrations, destructive
@@ -49,7 +48,7 @@ For each capability:
    means do not invent a Grok `reasoning_effort` field. Do not treat a child's
    self-reported worker label as the assignment.
 4. The prompt is the packet plus: read
-   `${HOME}/.agents/skills/orchestra-role-<role>/SKILL.md` and the shared
+   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
    conduct it names, then execute only the assigned capability. Role mapping:
    `orchestra_analyst` → `orchestra-role-analyst`;
    `orchestra_implementation_worker` → `orchestra-role-implementer`;

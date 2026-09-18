@@ -55,7 +55,7 @@ Tier controls intensity (models, review depth, double evidence), never authority
 
 | Host | Tiers | Notes |
 | --- | --- | --- |
-| **Codex** | `standard`, `critical`, plus opt-in `luna` (external mode) | Guardian permissions synced as default; native V2 or external V1 matrices |
+| **Codex** | `standard`, `critical` | Native model matrix; active host permissions (Guardian default with direct sync) |
 | **Cursor** | `minimal`, `standard`, `critical` | Reads its own role matrix; browser work routed through Browser Use |
 | **Grok Build** | `standard`, `critical` | `grok-4.6`; no cheaper tier |
 
@@ -112,7 +112,27 @@ subscription or authorizes a different billing path.
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
 
-## Install
+## Install as a plugin
+
+Build a self-contained bundle for your host; no global sync or Bridge is needed:
+
+```sh
+python3 codex/scripts/package_plugin.py --target portable --output dist/portable/orchestra
+python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
+python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
+```
+
+The portable format supports Agent Plugins 1.0 and Codex. Native variants keep
+Cursor's optional task identity hook and Grok's compatible loader. All variants
+include the same workflow, skills, helpers, native adapters, and CLI delegation.
+Task Control and Hub remain optional. The package inherits host permissions.
+
+See [plugin packaging](packaging/README.md) for local loading, installation
+boundaries, updates, and switching from direct sync. Building does not install
+or publish anything. Full support on another harness requires a verified native
+adapter, beyond accepting the plugin format.
+
+## Install with direct sync
 
 **Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, or Grok Build). GitHub CLI only if you want PR delivery.
 
@@ -123,11 +143,11 @@ git clone https://github.com/FranciscoJSBarragan/Orchestra.git
 cd Orchestra
 
 # Preview what would change
-python3 codex/scripts/sync.py status --host all --modelconfig dual
-python3 codex/scripts/sync.py apply --host all --modelconfig dual --dry-run
+python3 codex/scripts/sync.py status --host all
+python3 codex/scripts/sync.py apply --host all --dry-run
 
 # Install for every host (or pick: --host codex | cursor | grok)
-python3 codex/scripts/sync.py apply --host all --modelconfig dual
+python3 codex/scripts/sync.py apply --host all
 
 # Later
 python3 codex/scripts/sync.py status
@@ -136,11 +156,18 @@ python3 codex/scripts/sync.py uninstall
 
 Useful flags:
 
-- `--modelconfig dual|native|external` — Codex model matrix. `dual` lets the root model pick per task. Persisted after the first apply.
 - `--checkout-mode managed|hybrid` — dedicated worktree (default) or a fresh branch in your clean current checkout.
 - `--worktree-root /path` — where managed worktrees live (default `~/.orchestra/worktrees`).
 
 Sync results are `ok`, `partial` (nothing unsafe happened, read `detail`), or `blocked` (a named safety, drift, or ownership issue; nothing was written). Uninstall removes only content whose digest still matches the manifest.
+
+Codex uses its native matrix by default; CodexBridge is not required. Updating
+an older installation with Codex selected previews and replaces its owned
+external/dual matrix and removes unchanged retired helpers. Drift remains
+protected. Existing external-mode tasks require an explicit transition decision
+before resumption; the update never rewrites their plans or Bridge settings.
+The extracted compatibility code is archived as reference in the
+separate CodexBridge repository. It is not currently an installable extension.
 
 ### Per-repository configuration
 

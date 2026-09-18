@@ -5,9 +5,11 @@ description: Commit one accepted Orchestra phase directly or one explicitly auth
 
 # Commit an accepted phase
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Choose `orchestra_phase` or `standalone` using the shared conduct router and
-the canonical `${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md` (`Standalone
-tools`; source checkout: [WORKFLOW](../../../docs/WORKFLOW.md)). A formal
+the canonical `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (`Standalone
+tools`; source checkout: [runtime resources](../orchestra/runtime.md)). A formal
 assignment with missing phase fields is blocked rather than downgraded to a
 direct commit.
 
@@ -50,7 +52,7 @@ path.
 3. Write the message to a temporary file outside the repository, stage only
    the accepted or standalone-scoped paths, run `git commit -F <file>`, and
    read the resulting SHA and status once.
-4. Use `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/commit_phase.py` instead
+4. Use `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/commit_phase.py` instead
    when exact-path staging benefits from a compact structured result. Pass
    `--repo`, `--message-file`, and each exact `--path`.
 5. Accept `committed` with its SHA or `nothing_to_commit`. For `blocked`,

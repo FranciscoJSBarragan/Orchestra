@@ -5,6 +5,8 @@ description: Create or update one authorized Orchestra pull request from the com
 
 # Open or update one PR
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 The root owns PR intent synthesis and directly invokes the PR helper; PR opening is not a profile or capability assignment. Require explicit repository, base, head, title, human body, exact revision, approved `plan.md` manifest, exact overview and completed phase artifact identifiers, validation reports, and known risks. Read objective, acceptance, invariants, and phase intent from those exact documents rather than a root-authored replay.
 
 ## Execute the PR-open contract
@@ -14,7 +16,7 @@ The root owns PR intent synthesis and directly invokes the PR helper; PR opening
 3. Write the human body and compact intent to temporary files outside the repository and arrange cleanup.
 4. Resolve the terminal phase commit from the completed manifest and publish the
    intended branch at that exact revision. Have the root directly run `python3
-   "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/pr.py" open --repo <root>
+   "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/pr.py" open --repo <root>
    --repository <OWNER/REPO> --base <base> --head <head>
    --expected-task-revision <manifest-sha> --title <title> --body-file
    <body-file> --context-file <context-file> --authorized`. The helper must

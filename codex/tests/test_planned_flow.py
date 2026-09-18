@@ -2,26 +2,18 @@
 
 These tests pin machine-consumed structure: the four behavior-only profiles,
 the capability-to-profile routing, the installed assignment matrices, the
-closed playbook inventory, and the dual-matrix composition. Behavioral policy
+closed playbook inventory. Behavioral policy
 lives only in `docs/WORKFLOW.md`; its wording is intentionally not frozen here.
 """
 
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 import tomllib
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-_SYNC_SPEC = importlib.util.spec_from_file_location(
-    "orchestra_sync_planned", ROOT / "codex/scripts/sync.py"
-)
-assert _SYNC_SPEC is not None and _SYNC_SPEC.loader is not None
-_sync = importlib.util.module_from_spec(_SYNC_SPEC)
-_SYNC_SPEC.loader.exec_module(_sync)
-
 PROFILE_NAMES = {
     "orchestra_analyst",
     "orchestra_implementation_worker",
@@ -57,7 +49,6 @@ CAPABILITY_PROFILES = {
 }
 EXPECTED_TIERS = {
     "native": {"standard", "critical"},
-    "external": {"luna", "standard", "critical"},
 }
 REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
@@ -69,14 +60,8 @@ class PlannedFlowInvariantTests(unittest.TestCase):
             modelconfig: tomllib.loads(
                 (ROOT / f"codex/config/roles.{modelconfig}.toml").read_text()
             )["tiers"]
-            for modelconfig in ("native", "external")
+            for modelconfig in ("native",)
         }
-        self.dual_modes = tomllib.loads(
-            _sync.compose_dual_matrix(
-                (ROOT / "codex/config/roles.native.toml").read_text(),
-                (ROOT / "codex/config/roles.external.toml").read_text(),
-            )
-        )["modes"]
         self.profiles = {
             path.stem: tomllib.loads(path.read_text())
             for path in (ROOT / "codex/agents").glob("*.toml")
@@ -134,41 +119,6 @@ class PlannedFlowInvariantTests(unittest.TestCase):
                         assignment["profile"], {"root", "orchestrator"}
                     )
 
-    def test_luna_tier_is_a_single_model_cost_lane(self) -> None:
-        luna = self.role_matrices["external"]["luna"]
-        self.assertEqual(
-            {assignment["model"] for assignment in luna.values()},
-            {"gpt-5.6-luna"},
-        )
-
-    def test_dual_matrix_preserves_source_assignments_with_v1_aliases(self) -> None:
-        self.assertEqual(set(self.dual_modes), {"native", "external"})
-        self.assertEqual(
-            self.dual_modes["native"],
-            {"tiers": self.role_matrices["native"]},
-        )
-        aliases = {
-            "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
-            "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
-            "gpt-5.6-luna": "orchestra-v1/gpt-5.6-luna",
-        }
-        expected_external = {
-            tier: {
-                capability: {
-                    **assignment,
-                    "model": aliases.get(
-                        assignment["model"],
-                        assignment["model"],
-                    ),
-                }
-                for capability, assignment in assignments.items()
-            }
-            for tier, assignments in self.role_matrices["external"].items()
-        }
-        self.assertEqual(
-            self.dual_modes["external"],
-            {"tiers": expected_external},
-        )
 
     def test_playbook_inventory_is_closed_and_consumed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {

@@ -13,9 +13,8 @@ or Grok `spawn_subagent`.
 
 ## Host matrix
 
-Read `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Cursor has
-no native/external mode and does not run `session_model.py`. Assigned tiers
-are those with complete capability rows. This cut assigns `minimal`, `standard`,
+Read `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml` directly.
+Assigned tiers are those with complete capability rows. This cut assigns `minimal`, `standard`,
 and `critical`. Recommend `standard`. Recommend `minimal` when the user
 prioritizes cost or speed for ordinary bounded work. Recommend `critical` for
 matching high-impact risk.
@@ -31,7 +30,7 @@ Cursor `Task.subagent_type` is a closed enum. Do not dispatch through custom
    independence guarantee). Pass `run_in_background`
    when the owner must remain available. Do not busy-poll.
 3. The Task prompt is the packet plus: read
-   `${HOME}/.agents/skills/orchestra-role-<role>/SKILL.md` and the shared
+   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
    conduct it names, then execute only the assigned capability. Role mapping:
    `orchestra_analyst` → `orchestra-role-analyst`;
    `orchestra_implementation_worker` → `orchestra-role-implementer`;

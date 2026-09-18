@@ -65,10 +65,8 @@ planning-only mode.
 Every Orchestra dispatch starts from a clean context: the packet and named
 artifacts carry the assignment. The root identifies the execution host from
 available tools and reads that host's spawn reference. Codex: `spawn_agent`
-and `wait_agent` exist; under multi-agent V2 pass `fork_turns: none` explicitly
-on every spawn (the V2 default forks the full root history, which multiplies
-token cost and destroys reviewer independence); under V1 never set
-`fork_context: true`. Grok Build: use `spawn_subagent` when the session
+and `wait_agent` exist; pass `fork_turns: none` explicitly on every spawn
+to preserve focused context and reviewer independence. Grok Build: use `spawn_subagent` when the session
 schema offers it, otherwise the host `workflow` `agent()` transport per the
 Grok spawn reference; use a fresh isolated subagent per dispatch,
 `isolation: none`, `cwd` equal to the task checkout, and resume only the same
@@ -90,19 +88,16 @@ Shared skills, packets, artifacts, authority, cleanup declarations, and Git are
 identical across hosts. Each host owns spawn/wait/close, the model matrix,
 conversation identity, permissions, and `browser_route`.
 
-- Codex has native/external modes, Guardian defaults, `session_model.py`, and
-  profiles under `$CODEX_HOME/agents`. Wait uses `wait_agent` with
-  `timeout_ms: 600000`. Close uses V1 `close_agent` or V2 completed-state
-  evidence.
-- Cursor has no native/external mode and does not run `session_model.py`. It
-  reads `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Dispatch
+- Codex uses its native assignment matrix and four behavior profiles.
+  Wait uses `wait_agent` with
+  `timeout_ms: 600000`; teardown requires completed-state evidence.
+- Cursor reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml`. Dispatch
   uses Cursor Task workers from that matrix plus the existing `orchestra-role-*`
   skill. Custom `~/.cursor/agents` files are not the dispatch API. Wait uses a
   background Task and completion notification without busy-polling. Cleanup
   requires completed agents with no retained write-capable resources. Cursor
   sync never writes Codex `config.toml` or Cursor `settings.json`.
-- Grok Build has no native/external mode and does not run `session_model.py`.
-  It reads `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Dispatch
+- Grok Build reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Dispatch
   uses `spawn_subagent` with `general-purpose` plus the existing
   `orchestra-role-*` skill. Do not use the host workflow tool or
   `isolation: worktree`. Wait uses `get_command_or_subagent_output` with
@@ -110,10 +105,29 @@ conversation identity, permissions, and `browser_route`.
   write-capable resources. Grok sync never writes `~/.grok/config.toml` or
   Codex `config.toml`.
 
-Shared helpers, checkout-mode, and worktree-root live under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}`. `$CODEX_HOME` remains the Codex-only
-install root. During the compatibility window, Codex sync also mirrors helpers
-under `$CODEX_HOME/orchestra/scripts`.
+Resolve executable resources using `orchestra/runtime.md` alongside the loaded
+skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
+package. Direct sync retains its managed global destinations and compatibility
+helper mirrors. All paths below that describe installed resources use the
+selected installation's mapping. Settings remain outside the plugin under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}`; Task Control and coordination retain
+`$HOME/.orchestra` or their explicit `--state-root`.
+
+Plugins do not register Codex agent types or edit global configuration. For a
+plugin dispatch, read the selected behavior profile, spawn a native `default`
+agent with the matrix's explicit model and effort, and include that profile's
+instructions and the exact role skill path in the bounded packet. Direct sync
+uses its registered profile type. Both routes preserve the same responsibility,
+capability, and independence requirements. If the host cannot dispatch the
+required independent agents or explicit model assignment, report that concrete
+capability gap; plugin compatibility alone does not imply workflow support.
+
+A plugin inherits the active host permissions without modifying them. Guardian
+configuration is specific to direct Codex sync. Installing or loading a plugin
+does not activate Orchestra, select a tier, install another runtime, or grant
+delivery authority. Use one installation route per host to avoid duplicate skill
+selection. Task Control and Hub remain optional; the core plugin does not start
+an MCP server or a Hub process.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -156,8 +170,7 @@ use the reviewer role without creating Orchestra delivery state.
 
 On explicit user selection, the root may execute one bounded capability with
 Codex CLI, Cursor CLI, or Grok Build CLI through `orchestra-delegate`. This executor choice
-is independent of the owning host, tier, and Codex native/external model
-configuration; it changes none of them. Use the exact requested CLI model and
+is independent of the owning host and tier; it changes neither. Use the exact requested CLI model and
 supported effort after inspecting that CLI's current catalog/help. Do not
 silently fall back to another model, provider, account, or API billing path.
 Native capability assignments remain the default; an explicitly selected
@@ -239,15 +252,14 @@ the default. Do not combine it with another tier silently: a tier change
 requires an explicit choice to leave the preset or select a compatible one.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
-as `${ORCHESTRA_HOME:-$HOME/.orchestra}/execution-presets.toml` with a Codex
+as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
 compatibility mirror. Its consumer is `delegate.py --resolve-only`: resolve
 the selected preset, owning host, capability, tier, and root-selected attempt
 before dispatch. It returns an exact CLI assignment, a native Codex assignment,
 root reuse, or the owning host's browser matrix. Check actual model/tool
 availability before use; unavailable assignments block rather than invoking a
 different account, model, host, or billing path. Native Codex assignments must
-be supported by the active protocol; the preset cannot cross native/external
-protocols. Other hosts use Codex CLI for Codex assignments and keep their own
+be supported by the active host runtime. Other hosts use Codex CLI for Codex assignments and keep their own
 browser route. Codex browser acceptance stays native, never in Codex CLI.
 An explicitly supplied `--presets-file` may hold user-customized assignments;
 never edit managed installed files to customize one task.
@@ -480,48 +492,38 @@ of purge, owner mutation, or safe-stop commands.
 
 Tiers are host-specific lookups, not a shared enum.
 
-On Codex, the native Astra low root entry is the default recommendation. The
-compatible Sol root entry remains supported for the legacy native protocol,
-while the Orchestra Sol compatibility alias selects external V1. Before tier
-selection, Orchestra reads the current model and multi-agent protocol through
-the installed read-only session helper; mode is tied to that protocol, not to
-an arbitrary effort value. Any unsupported root combination blocks before
-resource creation. Orchestra never changes or respawns the root.
+On Codex, Astra low is the recommended native root. The user's current root
+remains authoritative: Orchestra never changes or respawns it. Read
+the Codex matrix selected by runtime resources and check the host's available
+tools and models before dispatch. No rollout inspection, bridge aliases, or
+external-model mode selection is required.
 
-On Cursor, there is no native/external mode and `session_model.py` is not
-invoked. The root reads
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. Cursor offers
+On Cursor, the root reads
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml`. Cursor offers
 `minimal`, `standard`, and `critical`. This cut assigns all three. The
 root recommends `standard`; it recommends `minimal` when the user prioritizes
 cost or speed; it recommends `critical` for matching high-impact risk.
 
-On Grok Build, there is no native/external mode and `session_model.py` is not
-invoked. The root reads
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. Grok offers
+On Grok Build, the root reads
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Grok offers
 `minimal`, `standard`, and `critical`. This cut assigns `standard` and
 `critical` on the live `grok-4.6` catalog. The root recommends `standard`.
 Selecting `minimal` blocks: there is no cheaper Grok row. `critical` uses the
 same spawn rows and raises root scrutiny; it does not change model or
 reasoning.
 
-For every spawned dispatch, the root selects the explicit capability, base
-profile, and host assignment from the selected Codex mode or the Cursor or
-Grok host matrix. The selected model configuration is kept in memory before plan approval
-and in plan Decisions afterward. It cannot change within a task, including
-during tier transitions. Legacy Codex `native` and `external` installations
-continue to provide one fixed top-level matrix and do not run session
-detection.
+For every spawned dispatch, select a capability, profile, and explicit model
+and effort from the owning host's matrix, unless an explicit CLI assignment or
+execution preset overrides it. An unavailable assignment blocks that dispatch
+until the user selects a supported option. Never silently substitute a bridge
+alias, another provider, or an account with different billing.
 
-Outside an explicit CLI assignment or execution preset, the installed assignment
-is always attempted first. The only runtime
-compatibility exception is `repository_context`: when its assigned model is
-rejected before execution because the internal subagent runtime does not support
-that model, a legacy installation may retain its current Luna-high behavior and
-dual external may use its Orchestra V1 Luna alias. Dual native blocks instead of
-crossing protocol versions. Record a permitted substitution only in live root
-memory. Do not create a visible Codex task, modify source or installed matrices,
-persist fallback state, or apply the fallback to another capability. An
-unsupported assigned model for any other capability returns `blocked`.
+The current workflow does not resume a former Codex external-mode task under
+native assignments automatically. If an existing plan records external or dual
+routing, stop before mutation and obtain an explicit transition decision that
+preserves its checkout, approved scope, and accepted evidence. Historical
+compatibility sources are archived in CodexBridge; they are not a runtime
+fallback or a currently supported add-on.
 
 Profiles contain behavior only. Existing public skill identifiers remain stable;
 `orchestra-project-start` is the additive implicit greenfield entry point;
@@ -539,18 +541,11 @@ the shared architecture guidance reference also used with `technical_planning`
 or `independent_review` when architecture is named; it has no dedicated
 playbook.
 
-The native Codex mode offers `standard` and `critical`. The Codex external mode
-additionally offers `luna` as a cost-focused opt-in for ordinary, bounded work
-when the user explicitly prioritizes cost. On Codex, `standard` remains the
-default recommendation. Material risk still calls for `standard` or `critical`;
-choosing `luna` after a warning never waives production, migration, data,
-security, payment, destructive-action, or delivery authority gates. Tier
-transitions remain user-directed and cannot change the task's selected Codex
-mode.
-
-Cursor `minimal` is the equivalent of Codex `luna`. This cut assigns Cursor
-`minimal`, `standard`, and `critical`. Grok has no cheap assigned tier. Hard gates never change
-with the cheap tier. Do not rename the Codex `luna` key.
+Codex offers `standard` and `critical`, with `standard` as the default
+recommendation. Cursor additionally assigns `minimal` for ordinary work when
+cost or speed is the priority. Grok has no cheap assigned tier. A tier choice
+never waives production, migration, data, security, payment, destructive-action,
+or delivery authority gates. Tier transitions remain user-directed.
 
 ### Installed matrices are the assignment truth
 
@@ -558,24 +553,15 @@ Explicit CLI and preset overrides follow "CLI delegation" and "Delegated
 execution presets"; the invariants below describe the native matrices.
 
 The installed TOML matrices, not this document, define native model and
-reasoning assignment. The sources are `codex/config/roles.native.toml` and
-`codex/config/roles.external.toml` (installed as
-`$CODEX_HOME/orchestra/roles.toml`, dual installs composing both under
-`modes`), `hosts/cursor/config/roles.cursor.toml`, and
+reasoning assignment. The sources are `codex/config/roles.native.toml`
+(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`, and
 `hosts/grok/config/roles.grok.toml` (installed under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/<host>/roles.toml`). Reassigning a
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/<host>/roles.toml`). Reassigning a
 model or reasoning effort edits only the matching TOML file; this document is
 not updated for such a change. Structural invariants the matrices must keep:
 
-- Codex native defines exactly `standard` and `critical`; Codex external adds
-  exactly one complete `luna` matrix. Every defined tier assigns all ten
-  capabilities to the four base profiles.
-- The external Luna tier is a single-model cost lane. A dual installation
-  rewrites every native model in the external mode to its `orchestra-v1/`
-  compatibility alias; Cursor, OpenCode, and Antigravity assignments remain
-  unchanged, so a tier transition never crosses protocol versions. Luna
-  agents remain leaf workers; the Sol root retains orchestration and
-  descendant ownership.
+- Codex defines exactly `standard` and `critical`. Every defined tier assigns
+  all ten capabilities to the four base profiles.
 - Native `standard` follows the installed matrix's Astra low principal,
   planning, and review assignments, Luna `max` implementation assignments,
   and Luna `xhigh` evidence/browser assignments. The matrix remains the source
@@ -608,19 +594,14 @@ After explicit activation in an execution-capable mode:
    an objective, ask for it before creating resources. If the user explicitly
    limits the request to brainstorming, remain read-only until the user
    authorizes formal task setup.
-2. The root identifies the host and reads the installed assignment matrix. On
-   Codex, a dual matrix requires one successful read-only session inspection and
-   selects `native` or `external` from the root model and multi-agent version
-   before tier selection. A legacy Codex matrix remains fixed. The selected dual
-   mode is immutable for the task. On Cursor, skip session inspection and read
-   the Cursor host matrix; `minimal`, `standard`, and `critical` are assigned. On Grok
-   Build, skip session inspection and read the Grok host matrix; `standard`
-   and `critical` are assigned.
+2. The root identifies the owning host and reads its installed native matrix:
+   Codex and Grok assign `standard` and `critical`; Cursor additionally assigns
+   `minimal`. Check the available host capabilities without inspecting Codex
+   rollout files or choosing a provider compatibility mode.
 3. From that brief, the root recommends an available assigned tier with one
    concise explanation of material risk, added scrutiny, and expected
-   cost-benefit. Codex native offers `standard` or `critical`; Codex external
-   may recommend `luna` only when ordinary bounded work has an explicit cost
-   priority, and otherwise defaults to `standard`. Cursor recommends
+   cost-benefit. Codex offers `standard` or `critical` and defaults to
+   `standard`. Cursor recommends
    `standard`, recommends `minimal` when cost or speed is the priority, and
    offers `critical` for matching high-impact risk. Grok recommends `standard`
    and offers `critical` for matching high-impact risk; it blocks `minimal`.
@@ -828,8 +809,8 @@ aid, not a workflow database. New-task plan writes remain inside the writable
 checkout and require no protected-path escalation.
 
 The file records task and Git identity, checkout mode and resource ownership,
-the hybrid starting branch/revision when applicable, active tier, immutable
-dual model configuration, user and root decisions, authorized preexisting
+the hybrid starting branch/revision when applicable, owning host, active tier,
+user and root decisions, authorized preexisting
 changes, and the approved overview verbatim. Its phase manifest maps every
 phase number to the exact artifact ID, private path, artifact revision, progress
 status, accepted commit, blocker, and next action. It does not duplicate phase
@@ -898,7 +879,7 @@ authority rules.
 ### Coordination snapshots and artifacts
 
 The installed
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/coordination.py` helper exposes
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/coordination.py` helper exposes
 `task` and `activity` commands with compact JSON results. It stores task and
 activity snapshots in `$HOME/.orchestra/state.sqlite3`.
 If that helper path is missing, use the Codex compatibility copy at
@@ -1348,7 +1329,7 @@ not dispatch an agent merely to operate or explain Git.
 
 ### Tier transition
 
-The active tier may change among those available in the selected mode only
+The active tier may change among those assigned by the owning host only
 after explicit user direction. Wait for the current tool call to settle,
 collect the exact revision
 and dirty-diff state, accepted evidence, completed acceptance, pending work, and
@@ -1361,9 +1342,8 @@ implementation worker owns the remaining phase and receives later accepted
 findings. Evidence for the unchanged revision and conditions remains valid; a
 new risk receives only targeted context and reverification. A best-effort
 coordination update records the selected tier, but its failure never delays or
-reverses the transition. A tier transition never changes the task's selected
-model configuration; switching between native V2 and external V1 requires a new
-Orchestra task rooted in the matching model selector entry.
+reverses the transition. A tier transition never changes the owning host or
+authorizes a different provider or billing path.
 
 ### Phase teardown
 
@@ -1390,10 +1370,9 @@ phase used owned processes, services, or browser work, the root, after final
 review and verification pass and before phase commit, sends one parallel
 cleanup-only follow-up (without new implementation or verification work) only
 to the owners of those declarations, stops shared temporary processes it
-started itself, consumes those results, then retires every phase agent: under
-V1 it calls `close_agent` so descendants close as well; under V2, where no
-true close operation is exposed, it requires every phase agent to be
-completed with no active descendant or retained resource. It finally confirms
+started itself, consumes those results, then retires every phase agent using
+the owning host adapter. On Codex, require every phase agent to be completed
+with no active descendant or retained resource. It finally confirms
 that no known agent or owned process with worktree write access remains
 active.
 
@@ -1525,7 +1504,8 @@ The installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` file selects
 `managed` by default or opt-in `hybrid`; an explicit task direction may override
 that value and is recorded in the approved plan. If that file is missing, read
 the Codex compatibility copy at
-`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`.
+`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`. If neither file exists,
+use `managed`; loading a plugin does not create a settings file.
 
 Managed mode uses a dedicated Git worktree below the effective root resolved
 from `ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or

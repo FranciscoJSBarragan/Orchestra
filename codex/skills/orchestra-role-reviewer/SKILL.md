@@ -5,6 +5,8 @@ description: Use for one independent bounded plan, architecture, implementation,
 
 # Orchestra Reviewer Role
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
 defines the common packet, authority, cleanup, evidence, report, and stop
 contract for every role.

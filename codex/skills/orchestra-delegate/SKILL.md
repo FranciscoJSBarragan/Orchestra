@@ -5,10 +5,12 @@ description: Delegate a bounded assignment through Codex, Cursor, or Grok Build 
 
 # Delegate one capability
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Keep scope, routing, acceptance, and delivery in the owning conversation. Read
 `Standalone tools` and `CLI delegation` in
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md` (source fallback:
-[WORKFLOW](../../../docs/WORKFLOW.md)). Those sections own the policy. Use
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (source fallback:
+[runtime resources](../orchestra/runtime.md)). Those sections own the policy. Use
 the applicable [role and capability](../orchestra/SKILL.md) router's
 contract; do not forward the full workflow or conversation to the CLI.
 
@@ -18,7 +20,7 @@ When a preset is selected, read WORKFLOW `Delegated execution presets` and
 resolve its assignment before the steps below. Example (no process starts):
 
 ```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/delegate.py" \
+python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/delegate.py" \
   --preset standard-delegate --host codex --tier standard \
   --capability general_implementation --resolve-only
 ```
@@ -63,7 +65,7 @@ of who implemented the change.
 Run the shared helper (source fallback: `codex/scripts/delegate.py`):
 
 ```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/delegate.py" \
+python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/delegate.py" \
   --repo <checkout> --executor <codex|cursor|grok> --capability <capability> \
   --model <exact-cli-model> --expected-head <current-sha> \
   --prompt-file <private-prompt> --log-file <new-private-log> \

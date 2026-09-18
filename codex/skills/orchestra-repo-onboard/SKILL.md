@@ -5,6 +5,8 @@ description: Use only for an explicit `$orchestra-repo-onboard` invocation or an
 
 # Onboard an existing repository
 
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
 Turn one existing repository into a place where Orchestra workers stop
 rediscovering the same facts: verify how the project is really built, tested,
 and structured, ask the user only what evidence cannot settle, and write a
@@ -17,7 +19,7 @@ Inspect the target directory read-only. Require meaningful application code
 under Git; for an idea, an empty directory, or a stack decision, stop and let
 `orchestra-project-start` handle it. If the user wants planned delivery of a
 change, stop and let them invoke `$orchestra`. Read
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md` ("Repository conventions")
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` ("Repository conventions")
 for the taxonomy and the authority rules that every `.agent/` write obeys.
 
 When `.agent/` already exists, run in refresh mode: read it first and produce

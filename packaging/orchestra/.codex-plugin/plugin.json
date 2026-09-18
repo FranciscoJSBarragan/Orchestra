@@ -1,0 +1,24 @@
+{
+  "name": "orchestra",
+  "version": "0.1.0",
+  "description": "Explicit planned software delivery with native agents, independent review, verification, and authorized delivery.",
+  "author": {
+    "name": "Francisco Javier Serna Barragan"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Orchestra",
+    "shortDescription": "Plan, implement, review, and verify software changes.",
+    "longDescription": "Orchestra packages a shared workflow, role skills, native host adapters, and local helpers. Task intake and CLI delegation are optional.",
+    "developerName": "Orchestra",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use Orchestra to plan and deliver a software change."
+  },
+  "license": "MIT",
+  "keywords": [
+    "orchestra",
+    "workflow",
+    "multi-agent"
+  ]
+}

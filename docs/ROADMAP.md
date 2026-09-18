@@ -5,27 +5,18 @@
 This roadmap is non-canonical. It does not override `VISION.md`,
 `docs/WORKFLOW.md`, `docs/ARCHITECTURE.md`, or `AGENTS.md`.
 
-Current work prioritizes dependable repository-driven direct sync and proven
-software-delivery behavior. The sequence is canonical contract first,
-executable routing and conformance second, then real-project evidence.
+Current work packages the native workflow from its canonical sources and
+verifies relocatable bundles. Plugin installation is an alternative to direct
+sync; it does not create a second runtime.
 
-## Deferred distribution boundary
+## Distribution
 
-Plugin and marketplace distribution remains deferred until all of these
-conditions hold:
+Local plugin packaging is supported. Public marketplace publication remains a
+separate explicit delivery decision after host acceptance and real-project
+workflow evidence. This roadmap does not prescribe an implementation design.
 
-- install, update, status, and uninstall are dependable;
-- user configuration is preserved reliably;
-- standard and critical workflows succeed in real projects;
-- local and PR delivery are proven;
-- the user judges the product mature;
-- packaging reduces friction without creating a second runtime.
-
-Cursor local plugin install under `~/.cursor/plugins/local` is not marketplace
-distribution. Agent Plugins / Cursor Marketplace publication stays deferred.
-
-Meeting these conditions permits a product decision about distribution; it does
-not prescribe an implementation design.
+Bridge integration is deferred. Native adapters and CLI delegation remain in
+Orchestra. Task Control and Hub stay optional.
 
 ## Deferred model benchmark
 

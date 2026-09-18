@@ -5,11 +5,10 @@ description: Use only for an explicit `$orchestra-task` invocation or an unequiv
 
 # Orchestra Task
 
-Use `${ORCHESTRA_HOME:-$HOME/.orchestra}` as the installed Orchestra runtime
-home and invoke the
-deterministic helper at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py`. If that helper is
-missing, use `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/task_control.py`. Never write
+Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
+
+Use the selected runtime and invoke the deterministic helper at
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py`. Never write
 `control.sqlite3` or task documents directly. Human task IDs are
 case-insensitive; always display their canonical uppercase form.
 
@@ -36,12 +35,12 @@ profile.
    revision by digest.
 
 ```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
   task create --title "<title>" --brief "<brief>" \
   --source-harness codex --idempotency-key "<stable-key>" \
   --repository "<canonical-root>"
 
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
   task prepare --task "<short-id>" --repository "<canonical-root>" \
   --repository-context-file "<private-context-file>" \
   --specification-file "<private-specification-file>" --confirmed
@@ -70,7 +69,7 @@ response maps manifest keys to human IDs. Never retry with a new idempotency key
 after an uncertain result; first query the source card.
 
 ```sh
-python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
   task decompose --task "<short-id>" --manifest-file "<private-manifest.json>" \
   --confirmed --idempotency-key "<stable-key>"
 ```
@@ -138,7 +137,7 @@ an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build c
   Pass `--authorized` only after that explicit instruction in this chat:
 
   ```sh
-  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+  python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
     task reclaim --task "<short-id>" --repository "<canonical-or-checkout>" \
     --authorized
   ```
@@ -151,7 +150,7 @@ an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build c
   terminal commit exists:
 
   ```sh
-  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+  python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
     task finish --task "<short-id>" --repository "<task-checkout>" \
     --task-revision "<terminal-sha>"
   ```
@@ -163,7 +162,7 @@ an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build c
   exact result from the owning native chat:
 
   ```sh
-  python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py" \
+  python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/task_control.py" \
     task record-delivery --task "<short-id>" --repository "<base-checkout>" \
     --task-revision "<terminal-sha>" \
     --delivery-revision "<integrated-base-sha>" \

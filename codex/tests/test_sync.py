@@ -59,7 +59,7 @@ class SyncTests(unittest.TestCase):
         action: str,
         *,
         dry_run: bool = False,
-        modelconfig: str | None = "external",
+        modelconfig: str | None = None,
         checkout_mode: str | None = None,
         host: str = "codex",
     ) -> dict[str, object]:
@@ -93,7 +93,7 @@ class SyncTests(unittest.TestCase):
             ROOT / "codex/config/execution-presets.toml",
             fixture / "codex/config/execution-presets.toml",
         )
-        for modelconfig in ("native", "external"):
+        for modelconfig in ("native",):
             shutil.copy2(
                 ROOT / f"codex/config/roles.{modelconfig}.toml",
                 fixture / f"codex/config/roles.{modelconfig}.toml",
@@ -155,7 +155,7 @@ class SyncTests(unittest.TestCase):
     def test_clean_install_status_and_uninstall(self) -> None:
         status = self.run_sync("status")
         self.assertEqual(status["status"], "partial")
-        self.assertEqual(status["modelconfig"], "external")
+        self.assertEqual(status["modelconfig"], "native")
         self.assertEqual(status["checkout_mode"], "managed")
         self.assertEqual(status["sandbox_root"], str(self.orchestra_root))
         self.assertTrue(status["restart_required"])
@@ -164,7 +164,7 @@ class SyncTests(unittest.TestCase):
 
         applied = self.run_sync("apply")
         self.assertEqual(applied["status"], "ok")
-        self.assertEqual(applied["modelconfig"], "external")
+        self.assertEqual(applied["modelconfig"], "native")
         self.assertEqual(applied["checkout_mode"], "managed")
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         self.assertTrue(
@@ -187,8 +187,8 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/task_state.py").is_file()
         )
-        self.assertTrue(
-            self.codex_home.joinpath("orchestra/scripts/session_model.py").is_file()
+        self.assertFalse(
+            self.codex_home.joinpath("orchestra/scripts/session_model.py").exists()
         )
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/task_mcp.py").is_file()
@@ -251,11 +251,11 @@ class SyncTests(unittest.TestCase):
             {f"agents/{name}.toml" for name in sync.AGENTS},
         )
         self.assertEqual(len(installed_agents), 4)
-        self.assertEqual(self.manifest()["modelconfig"], "external")
+        self.assertEqual(self.manifest()["modelconfig"], "native")
         self.assertEqual(self.manifest()["checkout_mode"], "managed")
         self.assertEqual(
             self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
-            ROOT.joinpath("codex/config/roles.external.toml").read_bytes(),
+            ROOT.joinpath("codex/config/roles.native.toml").read_bytes(),
         )
         self.assertFalse(
             self.codex_home.joinpath("orchestra/roles.external.toml").exists()
@@ -1078,7 +1078,7 @@ class SyncTests(unittest.TestCase):
             self.home,
             self.codex_home,
             "apply",
-            modelconfig="external",
+            modelconfig="native",
             worktree_root=replacement,
         )
 
@@ -1094,20 +1094,6 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertEqual(config.read_text(), original)
 
-    def test_fresh_install_requires_explicit_modelconfig(self) -> None:
-        status = self.run_sync("status", modelconfig=None)
-        self.assertEqual(status["status"], "partial")
-        self.assertIn("--modelconfig dual", status["detail"])
-        self.assertIn("--modelconfig native", status["detail"])
-
-        for dry_run in (False, True):
-            result = self.run_sync(
-                "apply", dry_run=dry_run, modelconfig=None
-            )
-            self.assertEqual(result["status"], "blocked")
-            self.assertIn("--modelconfig external", result["detail"])
-        self.assertFalse(self.home.exists())
-        self.assertFalse(self.codex_home.exists())
 
     def test_fresh_install_preserves_unmanaged_generic_agent_profiles(self) -> None:
         generic = self.codex_home / "agents/analyst.toml"
@@ -1130,109 +1116,130 @@ class SyncTests(unittest.TestCase):
         }
         self.assertNotIn("agents/analyst.toml", owned_paths)
 
-    def test_native_install_persists_and_switches_atomically_to_external(self) -> None:
-        installed = self.run_sync("apply", modelconfig="native")
-        self.assertEqual(installed["status"], "ok")
-        self.assertEqual(installed["modelconfig"], "native")
+
+    def seed_retired_install(self, mode: str) -> bytes:
+        """Reproduce former manifest ownership without keeping its runtime."""
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        manifest = self.manifest()
+        manifest["modelconfig"] = mode
         roles = self.codex_home / "orchestra/roles.toml"
-        native = ROOT / "codex/config/roles.native.toml"
-        external = ROOT / "codex/config/roles.external.toml"
-        self.assertEqual(roles.read_bytes(), native.read_bytes())
-        self.assertEqual(self.manifest()["modelconfig"], "native")
+        content = b'[tiers.standard.example]\nmodel = "retired/model"\n'
+        if mode == "dual":
+            content = content.replace(b"[tiers.", b"[modes.external.tiers.")
+        roles.write_bytes(content)
+        for entry in manifest["entries"]:
+            if entry["root"] == "codex_home" and entry["path"] == "orchestra/roles.toml":
+                entry["digest"] = hashlib.sha256(content).hexdigest()
+        for root_name, root, name, scope in (
+            ("codex_home", self.codex_home, "orchestra/scripts/session_model.py", "codex"),
+            ("orchestra_home", self.orchestra_root, "scripts/session_model.py", "shared"),
+        ):
+            helper = root / name
+            helper.parent.mkdir(parents=True, exist_ok=True)
+            helper.write_bytes(b"# Retired session helper\n")
+            manifest["entries"].append({
+                "root": root_name, "path": name, "scope": scope, "type": "file",
+                "digest": hashlib.sha256(helper.read_bytes()).hexdigest(),
+            })
+        self.manifest_path().write_text(json.dumps(manifest))
+        return content
 
-        reused = self.run_sync("status", modelconfig=None)
-        self.assertEqual(reused["status"], "ok")
-        self.assertEqual(reused["modelconfig"], "native")
-
-        preview = self.run_sync(
-            "apply", dry_run=True, modelconfig="external"
-        )
+    def test_fresh_install_defaults_to_native_without_selection(self) -> None:
+        preview = self.run_sync("apply", dry_run=True)
         self.assertEqual(preview["status"], "partial")
-        self.assertEqual(preview["modelconfig"], "external")
-        self.assertEqual(
-            [
-                change
-                for change in preview["changes"]
-                if change["path"] == "orchestra/roles.toml"
-            ],
-            [
-                {
-                    "operation": "update",
-                    "path": "orchestra/roles.toml",
-                    "root": "codex_home",
-                }
-            ],
-        )
-        self.assertEqual(roles.read_bytes(), native.read_bytes())
+        self.assertEqual(preview["modelconfig"], "native")
+        self.assertFalse(self.home.exists())
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
         self.assertEqual(self.manifest()["modelconfig"], "native")
-
-        switched = self.run_sync("apply", modelconfig="external")
-        self.assertEqual(switched["status"], "ok")
-        self.assertEqual(switched["modelconfig"], "external")
-        self.assertEqual(roles.read_bytes(), external.read_bytes())
-        self.assertEqual(self.manifest()["modelconfig"], "external")
         self.assertEqual(
-            self.codex_home.joinpath(
-                "orchestra/backups/codex_home/orchestra/roles.toml"
-            ).read_bytes(),
-            native.read_bytes(),
-        )
-        self.assertEqual(
-            self.run_sync("status", modelconfig=None)["status"], "ok"
+            (self.codex_home / "orchestra/roles.toml").read_bytes(),
+            (ROOT / "codex/config/roles.native.toml").read_bytes(),
         )
 
-    def test_dual_install_persists_combined_matrix(self) -> None:
-        installed = self.run_sync("apply", modelconfig="dual")
-        self.assertEqual(installed["status"], "ok")
-        self.assertEqual(installed["modelconfig"], "dual")
-        self.assertEqual(self.manifest()["modelconfig"], "dual")
-        expected_dual = sync.compose_dual_matrix(
-            ROOT.joinpath("codex/config/roles.native.toml").read_text(
-                encoding="utf-8"
-            ),
-            ROOT.joinpath("codex/config/roles.external.toml").read_text(
-                encoding="utf-8"
-            ),
-        ).encode("utf-8")
-        self.assertEqual(
-            self.codex_home.joinpath("orchestra/roles.toml").read_bytes(),
-            expected_dual,
-        )
-        installed_roles = tomllib.loads(expected_dual.decode("utf-8"))
-        modes = installed_roles["modes"]
-        self.assertNotIn("luna", modes["native"]["tiers"])
-        luna = modes["external"]["tiers"]["luna"]
-        self.assertEqual(len(luna), 10)
-        self.assertEqual(
-            {assignment["model"] for assignment in luna.values()},
-            {"orchestra-v1/gpt-5.6-luna"},
-        )
-        self.assertEqual(
-            self.run_sync("status", modelconfig=None)["modelconfig"],
-            "dual",
-        )
+    def test_retired_selections_are_rejected_without_writes(self) -> None:
+        for mode in ("external", "dual"):
+            with self.subTest(mode=mode):
+                result = self.run_sync("apply", modelconfig=mode)
+                self.assertEqual(result["status"], "blocked")
+                self.assertIn("unknown model configuration", result["detail"])
+                self.assertFalse(self.home.exists())
 
-    def test_legacy_manifest_requires_one_explicit_selection(self) -> None:
+    def test_retired_install_migrates_owned_resources_to_native(self) -> None:
+        for mode in ("external", "dual"):
+            with self.subTest(mode=mode):
+                previous = self.seed_retired_install(mode)
+                roles = self.codex_home / "orchestra/roles.toml"
+                manifest_before = self.manifest_path().read_bytes()
+                for action, dry_run in (("status", False), ("apply", True)):
+                    result = self.run_sync(action, dry_run=dry_run)
+                    self.assertEqual(result["status"], "partial")
+                    self.assertEqual(result["modelconfig"], "native")
+                    self.assertEqual(roles.read_bytes(), previous)
+                    self.assertEqual(self.manifest_path().read_bytes(), manifest_before)
+                migrated = self.run_sync("apply")
+                self.assertEqual(migrated["status"], "ok", migrated)
+                self.assertEqual(self.manifest()["modelconfig"], "native")
+                self.assertEqual(roles.read_bytes(), (ROOT / "codex/config/roles.native.toml").read_bytes())
+                self.assertFalse((self.codex_home / "orchestra/scripts/session_model.py").exists())
+                self.assertFalse((self.orchestra_root / "scripts/session_model.py").exists())
+                self.assertEqual(
+                    (self.codex_home / "orchestra/backups/codex_home/orchestra/roles.toml").read_bytes(),
+                    previous,
+                )
+                self.assertEqual(self.run_sync("status")["status"], "ok")
+                self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+
+    def test_retired_helper_drift_blocks_migration_without_mutation(self) -> None:
+        self.seed_retired_install("dual")
+        helper = self.orchestra_root / "scripts/session_model.py"
+        helper.write_text("# User changes\n")
+        before = {
+            p: p.read_bytes() for p in self.temporary_path_files()
+        }
+        result = self.run_sync("apply")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.temporary_path_files()})
+
+    def temporary_path_files(self) -> list[Path]:
+        return [p for p in Path(self.temporary.name).rglob("*") if p.is_file()]
+
+    def test_retired_install_can_be_uninstalled_without_migration(self) -> None:
+        self.seed_retired_install("external")
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertFalse(self.manifest_path().exists())
+        self.assertFalse((self.codex_home / "orchestra/scripts/session_model.py").exists())
+
+    def test_other_host_sync_preserves_retired_codex_selection(self) -> None:
+        original = self.seed_retired_install("dual")
+        for host in ("cursor", "grok"):
+            with self.subTest(host=host):
+                result = self.run_sync("apply", host=host)
+                self.assertEqual(result["status"], "ok", result)
+                self.assertEqual(self.manifest()["modelconfig"], "dual")
+                self.assertEqual((self.codex_home / "orchestra/roles.toml").read_bytes(), original)
+                self.assertTrue((self.codex_home / "orchestra/scripts/session_model.py").exists())
+        self.assertEqual(self.run_sync("apply", host="all")["status"], "ok")
+        self.assertEqual(self.manifest()["modelconfig"], "native")
+        self.assertEqual(self.run_sync("status", host="all")["status"], "ok")
+
+    def test_legacy_manifest_without_selection_defaults_to_native(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         manifest = self.manifest()
         manifest.pop("modelconfig")
-        manifest_path = self.manifest_path()
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        self.manifest_path().write_text(json.dumps(manifest))
+        result = self.run_sync("apply")
+        self.assertEqual(result["status"], "ok", result)
+        self.assertEqual(self.manifest()["modelconfig"], "native")
 
-        status = self.run_sync("status", modelconfig=None)
-        self.assertEqual(status["status"], "blocked")
-        self.assertIn("model configuration is not selected", status["detail"])
-        self.assertEqual(
-            self.run_sync("apply", modelconfig=None)["status"], "blocked"
-        )
-
-        migrated = self.run_sync("apply", modelconfig="external")
-        self.assertEqual(migrated["status"], "ok")
-        self.assertEqual(migrated["changes"], [])
-        self.assertEqual(self.manifest()["modelconfig"], "external")
+    def test_failed_migration_restores_roles_and_manifest(self) -> None:
+        previous = self.seed_retired_install("dual")
+        manifest_before = self.manifest_path().read_bytes()
+        with mock.patch.object(sync, "_write_manifest", side_effect=OSError("injected migration failure")):
+            result = self.run_sync("apply")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual((self.codex_home / "orchestra/roles.toml").read_bytes(), previous)
+        self.assertEqual(self.manifest_path().read_bytes(), manifest_before)
+        self.assertEqual(self.manifest()["modelconfig"], "dual")
 
     def test_legacy_manifest_remains_uninstallable_without_selection(self) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
@@ -1265,7 +1272,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(status["status"], "blocked")
         self.assertIn("invalid install manifest modelconfig", status["detail"])
 
-        manifest["modelconfig"] = "external"
+        manifest["modelconfig"] = "native"
         manifest["checkout_mode"] = "unsupported"
         (self.manifest_path()).write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
@@ -1275,29 +1282,6 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(status["status"], "blocked")
         self.assertIn("invalid install manifest checkout mode", status["detail"])
 
-    def test_failed_switch_restores_roles_and_persisted_selection(self) -> None:
-        self.assertEqual(
-            self.run_sync("apply", modelconfig="native")["status"], "ok"
-        )
-        roles = self.codex_home / "orchestra/roles.toml"
-        roles_before = roles.read_bytes()
-        manifest_before = (
-            self.manifest_path()
-        ).read_bytes()
-
-        with mock.patch.object(
-            sync, "_write_manifest", side_effect=OSError("injected switch failure")
-        ):
-            switched = self.run_sync("apply", modelconfig="external")
-        self.assertEqual(switched["status"], "blocked")
-        self.assertEqual(roles.read_bytes(), roles_before)
-        self.assertEqual(
-            (self.manifest_path()).read_bytes(),
-            manifest_before,
-        )
-        self.assertEqual(
-            self.run_sync("status", modelconfig=None)["modelconfig"], "native"
-        )
 
     def test_dry_run_is_a_zero_mutation_full_preview(self) -> None:
         preview = self.run_sync("apply", dry_run=True)
@@ -1428,9 +1412,9 @@ class SyncTests(unittest.TestCase):
         env.pop("ORCHESTRA_WORKTREE_ROOT", None)
         commands = (
             ("status",),
-            ("status", "--modelconfig", "external"),
-            ("apply", "--dry-run", "--modelconfig", "external"),
-            ("apply", "--modelconfig", "external"),
+            ("status", "--modelconfig", "native"),
+            ("apply", "--dry-run", "--modelconfig", "native"),
+            ("apply", "--modelconfig", "native"),
             ("status",),
             ("uninstall",),
         )
@@ -1461,7 +1445,7 @@ class SyncTests(unittest.TestCase):
                 str(SYNC_PATH),
                 "apply",
                 "--modelconfig",
-                "external",
+                "native",
             ],
             cwd=ROOT,
             env=env,
@@ -1473,9 +1457,11 @@ class SyncTests(unittest.TestCase):
         default_codex_home = self.home / ".codex"
         helper = default_codex_home / "orchestra/scripts/policy.py"
         self.assertTrue(helper.is_file())
-        self.assertIn(
-            "${CODEX_HOME:-$HOME/.codex}",
-            self.home.joinpath(".agents/skills/orchestra/SKILL.md").read_text(),
+        installed_skill = self.home / ".agents/skills/orchestra"
+        self.assertIn("(runtime.md)", (installed_skill / "SKILL.md").read_text())
+        self.assertEqual(
+            (installed_skill / "runtime.md").read_bytes(),
+            (ROOT / "codex/skills/orchestra/runtime.md").read_bytes(),
         )
         resolved = subprocess.run(
             [sys.executable, str(helper), "--repo", str(ROOT), "show"],
@@ -1512,7 +1498,7 @@ class SyncTests(unittest.TestCase):
                 "apply",
                 "--dry-run",
                 "--modelconfig",
-                "external",
+                "native",
                 "--worktree-root",
                 str(explicit_root),
             ],
@@ -1564,7 +1550,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1580,7 +1566,7 @@ class SyncTests(unittest.TestCase):
             self.codex_home,
             "apply",
             dry_run=True,
-            modelconfig="external",
+            modelconfig="native",
         )
         self.assertEqual(preview["status"], "partial")
         self.assertEqual(
@@ -1593,7 +1579,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1612,7 +1598,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "status",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1677,7 +1663,7 @@ class SyncTests(unittest.TestCase):
             self.home,
             self.codex_home,
             "apply",
-            modelconfig="external",
+            modelconfig="native",
         )
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(self.home.exists())
@@ -1690,7 +1676,7 @@ class SyncTests(unittest.TestCase):
             self.home,
             self.codex_home,
             "apply",
-            modelconfig="external",
+            modelconfig="native",
         )
         self.assertEqual(result["status"], "blocked")
         self.assertFalse(self.home.exists())
@@ -1708,7 +1694,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1722,7 +1708,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1819,7 +1805,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1846,7 +1832,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(destination.read_bytes(), destination_before)
@@ -1863,7 +1849,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1874,7 +1860,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )["status"],
             "ok",
         )
@@ -1894,7 +1880,7 @@ class SyncTests(unittest.TestCase):
                 self.home,
                 self.codex_home,
                 "apply",
-                modelconfig="external",
+                modelconfig="native",
             )
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(destination.read_bytes(), destination_before)
@@ -2027,7 +2013,7 @@ class SyncTests(unittest.TestCase):
                 status = self.run_sync(
                     "status",
                     host=selected,
-                    modelconfig="external" if selected not in {"cursor", "grok"} else None,
+                    modelconfig="native" if selected not in {"cursor", "grok"} else None,
                 )
                 self.assertEqual(status["status"], "ok", status.get("detail"))
 

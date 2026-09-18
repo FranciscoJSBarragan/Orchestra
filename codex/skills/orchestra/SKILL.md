@@ -5,6 +5,8 @@ description: Use only for an explicit `$orchestra` invocation or an unequivocal 
 
 # Orchestra
 
+Read [runtime resources](runtime.md) before resolving workflow files or helpers.
+
 The root orchestrator owns specification alignment, tier recommendation,
 capability routing, the approved local plan, blocker resolution, phase commits,
 delivery observation, and final technical judgment. The user chooses the tier
@@ -12,7 +14,7 @@ and remains the product and authority owner. Role skills and internal
 playbooks carry delegated behavior; this skill only routes the work.
 
 `docs/WORKFLOW.md` (installed as
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md`) is the canonical policy.
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`) is the canonical policy.
 Do not load the whole document by default. Read only the sections needed for
 the current checkpoint:
 
@@ -28,9 +30,8 @@ the current checkpoint:
 | Delivery | `Delivery policy`, `PR path`, `Local integration path`, and [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md) |
 | Completion and handoff | `Durable knowledge checkpoint`, `User-facing progress and handoff` |
 
-The source checkout is the fallback for the installed workflow and references.
-Use `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/<name>.py`, falling back to
-`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/<name>.py`.
+Use `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/<name>.py` with the
+selected runtime; see runtime resources for direct-sync compatibility paths.
 
 ## Activation and host routing
 
@@ -46,12 +47,11 @@ spawn protocol. Explicit CLI delegation follows its separate executor contract.
 Codex uses [host_codex](references/host_codex.md),
 `spawn_agent`, and `wait_agent`; Cursor uses its Task adapter; Grok Build uses
 its `spawn_subagent` adapter. Resolve the selected host's matrix through that
-adapter. Only Codex dual mode runs the installed `session_model.py`; Cursor
-and Grok read their own host matrices. When the user selects an execution
-preset, resolve its capability overrides
-through [orchestra-delegate](../orchestra-delegate/SKILL.md) before native
-assignment lookup; reuse the selected host adapter for native results.
-The selected model configuration is immutable for the task and is never inferred from an arbitrary effort value.
+adapter. Each host reads its native matrix directly. When the user selects an
+execution preset, resolve capability overrides through
+[orchestra-delegate](../orchestra-delegate/SKILL.md) before native assignment
+lookup. Apply WORKFLOW "Tier flows and models" before resuming a task from the
+retired external integration.
 
 Before resources exist, read `Tier flows and models`, recommend one assigned
 tier with concise risk and cost evidence, and obtain the user's choice. The

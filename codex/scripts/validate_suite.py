@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -14,20 +13,6 @@ import subprocess
 import sys
 import tomllib
 from typing import Callable
-
-
-def _load_sync_module():
-    spec = importlib.util.spec_from_file_location(
-        "orchestra_sync_for_validation",
-        Path(__file__).resolve().parent / "sync.py",
-    )
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-sync = _load_sync_module()
 
 
 REQUIRED_PATHS = (
@@ -42,6 +27,11 @@ REQUIRED_PATHS = (
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
     "codex/scripts/sync.py",
+    "codex/scripts/package_plugin.py",
+    "codex/tests/test_package_plugin.py",
+    "packaging/orchestra/.codex-plugin/plugin.json",
+    "packaging/README.md",
+    "codex/skills/orchestra/runtime.md",
     "codex/scripts/coordination.py",
     "codex/scripts/task_state.py",
     "codex/scripts/task_control.py",
@@ -49,13 +39,11 @@ REQUIRED_PATHS = (
     "codex/scripts/commit_phase.py",
     "codex/scripts/delegate.py",
     "codex/scripts/adopt_worktree.py",
-    "codex/scripts/session_model.py",
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
     "codex/scripts/_common.py",
     "codex/config/roles.native.toml",
-    "codex/config/roles.external.toml",
     "codex/config/execution-presets.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/orchestra_analyst.toml",
@@ -112,7 +100,6 @@ REQUIRED_PATHS = (
     "codex/tests/test_coordination.py",
     "codex/tests/test_task_control.py",
     "codex/tests/test_adopt_worktree.py",
-    "codex/tests/test_session_model.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
@@ -185,17 +172,8 @@ HISTORICAL_NARRATIVES = (
 ROADMAP_REQUIREMENTS = (
     "This roadmap is non-canonical. It does not override `VISION.md`, "
     "`docs/WORKFLOW.md`, `docs/ARCHITECTURE.md`, or `AGENTS.md`.",
-    "Plugin and marketplace distribution remains deferred until all of these",
+    "Local plugin packaging is supported.",
     "does not prescribe an implementation design.",
-)
-
-DEFERRED_DISTRIBUTION_CRITERIA = (
-    "install, update, status, and uninstall are dependable;",
-    "user configuration is preserved reliably;",
-    "standard and critical workflows succeed in real projects;",
-    "local and PR delivery are proven;",
-    "the user judges the product mature;",
-    "packaging reduces friction without creating a second runtime.",
 )
 
 HOOK_CONTENT = """#!/bin/sh
@@ -263,26 +241,9 @@ SKILL_NAMES = (
 )
 VALID_MODELS = {
     "gpt-6-astra",
-    "antigravity/gemini-3.6-flash-high",
-    "cursor/composer-2.5",
-    "cursor/composer-2.5-fast",
-    "cursor/grok-4.6",
-    "xai/grok-4.6",
     "gpt-5.6-sol",
     "gpt-5.6-terra",
     "gpt-5.6-luna",
-    "orchestra-v1/gpt-5.6-sol",
-    "orchestra-v1/gpt-5.6-terra",
-    "orchestra-v1/gpt-5.6-luna",
-    "opencode/glm-5.2",
-    "opencode/deepseek-v4-flash",
-    "opencode/deepseek-v4-pro",
-}
-
-DUAL_MODEL_ALIASES = {
-    "gpt-5.6-sol": "orchestra-v1/gpt-5.6-sol",
-    "gpt-5.6-terra": "orchestra-v1/gpt-5.6-terra",
-    "gpt-5.6-luna": "orchestra-v1/gpt-5.6-luna",
 }
 
 
@@ -337,13 +298,12 @@ CAPABILITY_PROFILES = {
 }
 EXPECTED_TIERS = {
     "native": {"standard", "critical"},
-    "external": {"luna", "standard", "critical"},
 }
 REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
 
 def check_distribution_boundary(root: Path) -> list[str]:
-    """Reject migration evidence and V1 distribution implementation paths."""
+    """Keep generated plugin manifests out of the canonical source roots."""
     failures: list[str] = []
     migration = root / "docs/MIGRATION.md"
     if migration.exists():
@@ -352,7 +312,7 @@ def check_distribution_boundary(root: Path) -> list[str]:
     for relative in (Path(".codex-plugin"), Path("codex/.codex-plugin")):
         if (root / relative).exists():
             failures.append(
-                f"distribution-boundary: prohibited V1 path {relative.as_posix()}"
+                f"distribution-boundary: generated manifest belongs in a package, not {relative.as_posix()}"
             )
     return failures
 
@@ -386,7 +346,6 @@ def check_roles_and_profiles(root: Path) -> list[str]:
     """Keep assignments canonical and profiles limited to behavior contracts."""
     roles_paths = {
         "native": root / "codex/config/roles.native.toml",
-        "external": root / "codex/config/roles.external.toml",
     }
     if not all(path.is_file() for path in roles_paths.values()):
         return []
@@ -479,60 +438,6 @@ def check_roles_and_profiles(root: Path) -> list[str]:
                     "profile"
                 ] in {"root", "orchestrator"}:
                     failures.append("role-contract: root must have no assignment")
-
-    if set(tiers_by_config) == {"native", "external"}:
-        try:
-            dual = tomllib.loads(
-                sync.compose_dual_matrix(
-                    (root / "codex/config/roles.native.toml").read_text(
-                        encoding="utf-8"
-                    ),
-                    (root / "codex/config/roles.external.toml").read_text(
-                        encoding="utf-8"
-                    ),
-                )
-            )
-        except (OSError, tomllib.TOMLDecodeError, UnicodeError) as error:
-            failures.append(
-                f"role-contract: composed dual matrix is invalid: {error}"
-            )
-        else:
-            modes = dual.get("modes")
-            if set(dual) != {"modes"} or not isinstance(modes, dict) or set(
-                modes
-            ) != {"native", "external"}:
-                failures.append(
-                    "role-contract: the composed dual matrix must contain native and external modes"
-                )
-            else:
-                for modelconfig in ("native", "external"):
-                    mode = modes.get(modelconfig)
-                    tiers = mode.get("tiers") if isinstance(mode, dict) else None
-                    if not isinstance(mode, dict) or set(mode) != {"tiers"}:
-                        failures.append(
-                            f"role-contract: dual {modelconfig} must contain tiers only"
-                        )
-                        continue
-                    expected = tiers_by_config[modelconfig]
-                    if modelconfig == "external":
-                        expected = {
-                            tier: {
-                                capability: {
-                                    **assignment,
-                                    "model": DUAL_MODEL_ALIASES.get(
-                                        assignment["model"],
-                                        assignment["model"],
-                                    ),
-                                }
-                                for capability, assignment in assignments.items()
-                            }
-                            for tier, assignments in expected.items()
-                        }
-                    if tiers != expected:
-                        failures.append(
-                            f"role-contract: dual {modelconfig} assignments must "
-                            f"match the approved {modelconfig} matrix and protocol aliases"
-                        )
 
     agents = root / "codex/agents"
     actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
@@ -710,7 +615,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     )
     direct_consumers = {
         "orchestra": (
-            "session_model.py",
             "task_state.py",
             "coordination.py",
         ),
@@ -827,16 +731,15 @@ def check_direct_sync(root: Path) -> list[str]:
         "commit_phase.py",
         "delegate.py",
         "adopt_worktree.py",
-        "session_model.py",
         "policy.py",
         "pr.py",
         "integrate_local.py",
         "_common.py",
     ):
         failures.append("sync-contract: sync inventory must match the canonical helper set")
-    if tuple(constants.get("MODELCONFIGS", ())) != ("native", "external", "dual"):
+    if tuple(constants.get("MODELCONFIGS", ())) != ("native",):
         failures.append(
-            "sync-contract: modelconfig choices must be exactly native, external, and dual"
+            "sync-contract: modelconfig choices must be native only"
         )
     if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "all"):
         failures.append(
@@ -894,13 +797,9 @@ def check_direct_sync(root: Path) -> list[str]:
     role_sources = sorted(
         path.name for path in (root / "codex/config").glob("roles.*.toml")
     )
-    if role_sources != [
-        "roles.external.toml",
-        "roles.native.toml",
-    ]:
+    if role_sources != ["roles.native.toml"]:
         failures.append(
-            "sync-contract: source must contain exactly the native and external "
-            "role matrices; dual is composed at sync time"
+            "sync-contract: source must contain only the native Codex role matrix"
         )
     runtime = root / "codex/runtime/AGENTS.orchestra.md"
     if runtime.is_file():
@@ -930,22 +829,6 @@ def check_documentation(root: Path) -> list[str]:
                     "documentation: docs/ROADMAP.md is missing required boundary: "
                     f"{requirement}"
                 )
-
-        criteria: list[str] = []
-        in_distribution_section = False
-        for line in roadmap_text.splitlines():
-            if line == "## Deferred distribution boundary":
-                in_distribution_section = True
-                continue
-            if in_distribution_section and line.startswith("## "):
-                break
-            if in_distribution_section and line.startswith("- "):
-                criteria.append(line[2:])
-        if tuple(criteria) != DEFERRED_DISTRIBUTION_CRITERIA:
-            failures.append(
-                "documentation: docs/ROADMAP.md must contain exactly the six "
-                "approved deferred distribution criteria in order"
-            )
 
     for relative in PERMANENT_DOCS:
         path = root / relative

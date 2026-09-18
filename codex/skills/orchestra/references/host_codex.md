@@ -10,34 +10,17 @@ closest-model substitutions to preset CLI assignments.
 Use this reference only when the execution host is Codex (`spawn_agent` and
 `wait_agent` exist). Never mix Codex spawn with Cursor `Task` or Grok `spawn_subagent`.
 
-Use `${CODEX_HOME:-$HOME/.codex}` as the installed Codex root and
-`${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` as the Codex assignment
-matrix. For a dual matrix resolve exactly
-`modes.<modelconfig>.tiers.<tier>.<capability>` using the immutable protocol mode
-from `session_model.py`; model plus multi-agent protocol select the mode, not
-an arbitrary effort value. Native Astra low is the recommended root entry and
-the compatible Sol entry remains supported for legacy routing. For a legacy
-matrix resolve exactly `tiers.<tier>.<capability>`. Require every selected entry to contain only
-`profile`, `model`, and `reasoning_effort`. Load
-`${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml`, pass the capability in the
-packet, and use the assignment's explicit model and reasoning overrides when
-spawning. A profile never selects its capability or assignment.
+Resolve the Codex matrix and behavior profiles through
+[runtime resources](../runtime.md). Read `tiers.<tier>.<capability>` directly;
+each row supplies `profile`, `model`, and `reasoning_effort`. Read the matching
+behavior profile and apply WORKFLOW "Host adapters" to choose the native agent
+type. Include the exact role skill path and explicit model and effort in the
+capability packet. The recommended root is Astra low; availability comes from
+the live host catalog. For unsupported rows or a plan from the retired external
+integration, follow WORKFLOW "Tier flows and models".
 
-Always attempt the installed assignment first. Only when a
-`repository_context` spawn is rejected before execution because the internal
-subagent runtime does not support the assigned model, retry that same
-`orchestra_analyst` packet internally with Luna and reasoning `high` only for a
-legacy matrix or the dual `external` mode. The dual external retry uses the
-installed Orchestra V1 Luna alias; legacy mode uses its existing Luna entry.
-The dual `native` mode blocks instead of crossing protocol versions. Record the
-substitution only in root memory for the live task when it is permitted. Do not
-create a visible Codex task, persist fallback state, edit the source or
-installed matrix, or use this fallback for another capability. If any other
-capability's assigned model is unsupported, return `blocked`.
-
-Every dispatch starts from a clean context: under multi-agent V2 pass
-`fork_turns: none` explicitly on every spawn; under V1 never set
-`fork_context: true`.
+Set `fork_turns: none` on each native spawn. Provider mode detection and
+external-model aliases are outside this adapter.
 
 Apply the phase verification contract before resolving a verifier assignment.
 When the `Independent verification gate` is `none`, do not spawn
@@ -54,17 +37,15 @@ means continue waiting without `send_input` or `interrupt: true`. A normal
 timeout is not a user-visible transition. After 30 accumulated minutes, assess
 once only for concrete blocker evidence.
 
-Under V1, call `close_agent` on every phase agent after owner cleanup so
-descendants close as well. Under V2, where no true close operation is exposed,
-require every phase agent to be `completed` with no active descendant or
-retained resource.
+After owner cleanup, retire the cohort using completed agents with no live
+children or retained resources. Follow WORKFLOW "Phase teardown" for exceptions.
 
 Browser packets use `browser_route: auto | in_app | chrome`. `auto` prefers the
 dedicated Chrome connector and may use Codex's in-app Browser only for a
 technical availability or capability gap that the in-app Browser can satisfy.
 `chrome` and `in_app` remain strict.
 
-Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
+Direct sync configures Guardian (`:workspace`, `on-request`, and Auto-review)
 as the default. The active permission choice for the task, host, or launcher
 remains authoritative.
 

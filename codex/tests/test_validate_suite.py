@@ -22,7 +22,7 @@ class ValidateSuiteTests(unittest.TestCase):
         shutil.copytree(
             SOURCE_ROOT,
             self.root,
-            ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc", "dist"),
         )
 
     def run_validator(
@@ -173,7 +173,7 @@ class FullModeFixtureTest(unittest.TestCase):
         plugin_path.write_text("{}\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("prohibited V1 path codex/.codex-plugin", result.stdout)
+        self.assertIn("generated manifest belongs in a package, not codex/.codex-plugin", result.stdout)
 
     def test_generic_configuration_and_plugin_named_paths_are_allowed(self) -> None:
         (self.root / "pyproject.toml").write_text(
@@ -192,19 +192,6 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("docs/ROADMAP.md is missing required boundary", result.stdout)
-
-    def test_roadmap_rejects_a_seventh_distribution_criterion(self) -> None:
-        roadmap = self.root / "docs/ROADMAP.md"
-        roadmap.write_text(
-            roadmap.read_text(encoding="utf-8").replace(
-                "\nMeeting these conditions",
-                "\n- adoption reaches a numeric threshold.\n\nMeeting these conditions",
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("exactly the six approved", result.stdout)
 
     def test_historical_product_narrative_is_rejected(self) -> None:
         readme = self.root / "README.md"
@@ -290,24 +277,6 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("has invalid model", result.stdout)
 
-    def test_dual_matrix_must_match_legacy_assignments_and_protocol_aliases(
-        self,
-    ) -> None:
-        composer = self.root / "codex/scripts/sync.py"
-        composer.write_text(
-            composer.read_text(encoding="utf-8").replace(
-                '("gpt-5.6-terra", "orchestra-v1/gpt-5.6-terra"),',
-                '("gpt-5.6-terra", "gpt-5.6-terra"),',
-                1,
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(
-            "dual external assignments must match",
-            result.stdout,
-        )
 
     def test_duplicate_profile_name_is_rejected(self) -> None:
         analyst = self.root / "codex/agents/orchestra_analyst.toml"
@@ -355,7 +324,7 @@ class FullModeFixtureTest(unittest.TestCase):
         )
 
     def test_speculative_pr_role_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.external.toml"
+        roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8")
             + '\n[tiers.standard.pr_poll]\nprofile = "orchestra_reviewer"\n'
@@ -365,7 +334,7 @@ class FullModeFixtureTest(unittest.TestCase):
         )
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpected external.standard capability set", result.stdout)
+        self.assertIn("unexpected native.standard capability set", result.stdout)
 
     def test_assignment_without_profile_is_rejected(self) -> None:
         roles = self.root / "codex/config/roles.native.toml"

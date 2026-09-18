@@ -37,6 +37,7 @@ Orchestra/
 │   ├── WORKFLOW.md
 │   ├── ARCHITECTURE.md
 │   └── ROADMAP.md              # non-canonical sequencing
+├── packaging/                # plugin metadata and usage; built from canonical sources
 ├── .githooks/                 # versioned thin wrappers only
 ├── hosts/
 │   ├── cursor/                # Cursor spawn, roles, local plugin
@@ -355,10 +356,6 @@ Orchestra may persist only contracts with direct consumers:
 - one PR-CONTEXT capsule in the GitHub PR body;
 - direct-sync manifest consumed by install, update, status, and uninstall.
 
-The installed session-model helper is a read-only runtime probe consumed only
-by the dual Orchestra routing skill. It persists no state and returns a compact
-JSON result.
-
 The provisional specification remains in conversation. An unapproved formal
 candidate is one `plan-overview`, one `plan-phase` per phase, and optional
 `plan-review` artifacts. Its current membership is an explicit bundle of IDs,
@@ -466,8 +463,7 @@ The root detects the host from available tools: Codex when `spawn_agent` and
 `wait_agent` exist; otherwise Grok Build when `spawn_subagent` exists;
 otherwise Cursor when `Task` exists. Native dispatch keeps that host's
 protocol; an explicit CLI executor does not change it. Codex keeps
-`fork_turns: none`, V1 `close_agent`, and V2 completed-state
-evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
+`fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
 phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
 dispatch API. Grok uses a fresh `spawn_subagent` per dispatch, `isolation:
@@ -475,11 +471,10 @@ none`, `cwd` equal to the task checkout, may `resume_from` the same
 phase-cohort agent after completion, including the same reviewer for delta
 reviews; first reviews stay fresh spawns.
 
-Cursor and Grok have no native/external mode and do not run `session_model.py`.
-Codex mode detection remains Codex-only. Shared helpers, checkout-mode, and
-worktree-root live under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; `$CODEX_HOME`
-remains the Codex-only install root for profiles, Guardian, and session
-inspection.
+Every host resolves one native matrix through the selected installation, as
+specified in WORKFLOW "Host adapters". Settings and mutable state remain under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}`; direct sync additionally manages Codex
+profiles and Guardian under `$CODEX_HOME`.
 
 ### Standalone roles and CLI executor
 
@@ -508,14 +503,10 @@ and acceptance. Execution results cannot replace reviews or Git evidence.
 
 ## Model and reasoning configuration
 
-The approved Codex capability matrices are documented in `WORKFLOW.md`. On
-Codex, the user selects the root outside Orchestra. Astra low is the recommended
-native entry; the selected host catalog remains the availability truth. Source retains only the `native` and `external` matrices; the `dual`
-matrix is composed deterministically at sync time from those two sources
-(native wrapped under `modes.native`, external wrapped under `modes.external`
-with its Orchestra V1 aliases). Direct Codex sync installs exactly one matrix
-at the canonical `$CODEX_HOME/orchestra/roles.toml` path and records that
-install choice.
+The user's root and the host catalog determine native model availability.
+Codex installs `codex/config/roles.native.toml` at
+`$CODEX_HOME/orchestra/roles.toml`. It exposes one top-level `tiers` table;
+there is no composed provider mode or model-specific rollout probe.
 
 Cursor reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. It offers
@@ -530,64 +521,20 @@ Grok Build reads one host matrix at
 assigned tier. `critical` uses the same spawn rows and raises root scrutiny.
 Selecting `minimal` on Grok blocks.
 
-The dual matrix contains `native` and `external` modes. Before task setup, a
-read-only helper resolves the current rollout identified by `CODEX_THREAD_ID`,
-validates original and continuation identities, and reads the latest observed
-turn context. It accepts Astra or Sol V2 for native mode and the Orchestra Sol
-V1 alias for external mode, with model-specific effort validation. The result is kept in memory
-before plan approval and in plan Decisions afterward. It is immutable for the
-task and must match again on resume. This is routing evidence, not a new model
-selector: Orchestra never changes or respawns the root.
+The installed rows supply exact models and reasoning efforts. Role profiles
+stay behavior-only; capability playbooks remain independent of providers.
+Workflow owns tier selection, transitions, unsupported assignments, and legacy
+task resumption. CLI executor overrides continue through `delegate.py`.
 
-Legacy installations remain fixed and do not invoke session detection. Their
-existing sync and task behavior stays compatible. In the dual matrix, native
-mode is equal to the legacy native matrix. External mode is equal to the legacy
-external matrix except that every native OpenAI model reference uses a
-CodexBridge `orchestra-v1/` alias. The bridge publishes those aliases only in
-catalog mode, marks them V1, rewrites them to their native target before
-forwarding, and never sends them through CLIProxyAPI.
-
-The two logical modes differ in their standard assignments, and external alone
-adds the cost-focused `luna` tier. They share the critical capability and
-profile structure, while native critical uses Luna xhigh for repository
-context, web research, browser acceptance, and runtime verification; external
-critical retains its Sol assignments. External critical uses V1 Sol aliases so
-it never crosses protocol versions. The external Luna source assignments use
-the native Luna slug, while dual composition rewrites them to the Orchestra V1
-Luna alias. Skills pass the selected explicit overrides when spawning a
-profile. Profiles contain behavior; playbooks contain capability instructions
-only for the seven capabilities listed above, and architecture guidance remains
-one shared reference.
-
-The task's active tier is a user-selected lookup key inside its immutable mode.
-Native accepts `standard` and `critical`; external additionally accepts `luna`
-as an opt-in only when the user explicitly prioritizes cost for ordinary,
-bounded work. `standard` remains the default recommendation, and material risk
-still calls for `standard` or `critical`. The active tier may change only after
-explicit user direction without changing the mode. Because spawned agents
-cannot change model or reasoning effort, a safe transition replaces only live
-agents whose assignment differs and passes them a compact continuation packet.
-Changing between native V2 and external V1 requires a new task started from the
-matching root selector entry.
-
-Assignment resolution still prefers the exact installed model. A narrow runtime
-compatibility rule permits only `repository_context` to retry internally with
-Luna at reasoning `high` when its assigned model is rejected as unsupported
-before execution. Legacy installations retain their existing fallback; dual
-external uses the installed Orchestra V1 Luna alias; dual native blocks instead
-of crossing protocol versions. The root records a permitted substitution only
-in memory for the live task. It creates no visible Codex task, persists no
-fallback, changes no matrix, and blocks unsupported models for every other
-capability.
-
-A second critical review requires a named measurable risk. No Orchestra
-assignment uses Sol xhigh. Frontend work and browser acceptance remain separate
-dispatches.
-
-Operational notes for the V1 aliases: alias catalog metadata must stay
-synchronized with the native metadata (the context-window entry controls when
-Codex compacts), `ultra` reasoning effort is not used on V1 aliases, and
-encrypted compaction blobs are not portable across alias/native routes.
+CodexBridge is a separate optional product. Its historical Orchestra external
+matrix, V1 aliases, session inspection, and composition code are preserved
+unchanged under `docs/reference/orchestra-external/` in that repository. This
+reference has no runtime consumer in Orchestra and is not an installable
+integration. Future Bridge support must establish its own opt-in contract.
+Host adapters and CLI delegation stay in the Orchestra repository because they
+implement execution of the shared workflow. Task Control and Hub remain
+optional task-intake and observation components; packaging does not change
+their responsibilities.
 
 ## Verification environment and browser routing
 
@@ -627,7 +574,7 @@ checks should stay deterministic and fast enough for local use. It validates:
 - capability matrix/profile consistency, including the Cursor `minimal` and
   `standard` matrices;
 - concise AGENTS/runtime instructions;
-- forbidden distribution paths and historical product narrative;
+- plugin packaging boundaries and historical product narrative;
 - representative workflow contract tests.
 
 It does not validate live approvals, replay agent history, or inspect unrelated
@@ -654,8 +601,8 @@ implement three competing rule sets.
 
 Tests pin structural invariants, never prose wording: explicit activation
 routing, the closed four-profile and seven-playbook inventory, capability →
-profile mapping consistency across every installed matrix, valid dual-matrix
-composition with V1 aliases, helper behavior (checkout, commit, delivery,
+profile mapping consistency across every installed native matrix, helper
+behavior (checkout, commit, delivery,
 sync, coordination, task control), and host adapter structure. Behavioral
 policy lives only in `docs/WORKFLOW.md` and is enforced by review, not by
 sentence-freezing assertions.
@@ -732,8 +679,30 @@ unused mechanisms.
 
 ## Installation boundary
 
-The source repository is authoritative. Installation uses only
-repository-driven direct sync. A single sync tool owns explicitly managed
+The source repository is authoritative. `codex/scripts/package_plugin.py`
+builds a relocatable plugin from the same skills, profiles, helpers, native
+matrices, and canonical workflow used by direct sync. The builder consumes
+`packaging/orchestra/.codex-plugin/plugin.json` as its only metadata source and
+writes a new output directory; it refuses to overwrite an existing destination.
+Generated bundles are disposable distribution artifacts, excluded from Git.
+They contain no installers, active configuration, credentials, or private data.
+
+The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
+compatibility manifest. Cursor and Grok targets use native manifests for their
+host loaders. Cursor additionally includes the existing session identity hook
+for optional task adoption. The four Codex behavior profiles are packet content,
+not plugin-registered agent types. All targets retain the same shared workflow;
+only distribution metadata and necessary host hooks vary. No MCP or Hub process
+is started by the core plugin. Runtime resolution and dispatch policy belong to
+WORKFLOW "Host adapters" and the loaded skill's runtime reference.
+
+Plugin install, update, listing, and removal belong to the host's plugin manager.
+Removing a plugin does not remove user task data. Publishing bundles or a public
+marketplace is a separate delivery action. Supporting another host requires an
+explicit native capability adapter; recognizing a manifest is insufficient.
+
+Repository-driven direct sync remains an alternative installation route. A
+single sync tool owns explicitly managed
 resources per requested host (`codex`, `cursor`, `grok`, or `all`; default `codex`). It
 supports dry-run and backup, preserves unrelated user configuration, reports
 what it installed, and requires a restart when a Codex permission backend
@@ -769,3 +738,12 @@ takes reversible ownership of `approval_policy`, `approvals_reviewer`, and
 Only a manifest-owned permission block may migrate from historical legacy or
 Full Access forms. Permission edits remove exact TOML spans and preserve all
 unrelated bytes, including multiline strings.
+
+Codex sync defaults to the native matrix. Former `external` and `dual` manifest
+values are accepted only to preserve ownership during migration or uninstall.
+An apply that includes Codex replaces the owned matrix with native content and
+removes an unchanged owned session-model helper through the existing digest
+checks. Status and dry-run preview the transition without mutation; drift still
+blocks apply. Sync for another host preserves Codex's installed selection until
+Codex itself is selected. Migration changes installation resources only; it does
+not convert active task plans or change CodexBridge configuration.

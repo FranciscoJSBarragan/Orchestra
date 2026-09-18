@@ -6,3 +6,5 @@ __pycache__/
 hub/tui/.venv/
 hub/tui/screenshots/
 hub/menubar/build/
+
+/dist/

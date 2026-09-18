@@ -24,15 +24,15 @@ detail that cannot be inferred. Do not require or invent `plan-overview`,
 substantive guidance in a named capability reference, while adapting its
 phase-only transport, artifact naming, preview, and plan-bundle requirements
 to the canonical `Standalone tools` section in
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md` (source checkout:
-[WORKFLOW](../../../../docs/WORKFLOW.md#standalone-tools)). Return the complete
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (source checkout:
+[runtime resources](../runtime.md)). Return the complete
 result inline by default; write a file only at an explicitly supplied path with
 matching authority. Direct work must not read unneeded phase recipes or
 manufacture an approved plan when none was supplied.
 
 In `orchestra_phase` mode, read the canonical
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md`; the source checkout is the
-[WORKFLOW fallback](../../../../docs/WORKFLOW.md). Read the sections named by
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`; the source checkout is the
+[runtime resources](../runtime.md). Read the sections named by
 the root and enforce its full exact-ID evidence, review, verification, cleanup,
 and authority gates. A formal packet with missing required fields is blocked;
 do not silently downgrade it to standalone. When explicit CLI delegation is
