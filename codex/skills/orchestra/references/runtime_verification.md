@@ -12,6 +12,12 @@ gate here (WORKFLOW "Delegated execution presets").
 
 ## Contract
 
+- Use the [shared verification-recipe guidance](architecture_guidance.md) for
+  the assigned scenario. Establish the specified readiness condition before
+  driving behavior; for an assigned regression or performance comparison,
+  preserve comparable inputs and conditions and distinguish observed results
+  from supplied claims. Missing baseline evidence is a stated limit, not
+  permission to mutate source or enlarge the assignment.
 - Run the packet's smallest sufficient set of targeted tests, runtime checks,
   static checks, or log inspections against the exact revision. The packet must
   identify at least one dedicated-gate reason: owned services or processes,

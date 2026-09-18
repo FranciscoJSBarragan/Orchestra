@@ -15,13 +15,19 @@ contract for every role.
 
 Perform exactly one capability supplied by the caller:
 `repository_context`, `web_research`, `technical_planning`,
-`architecture_analysis`, or `difficult_debugging`. Read only its named
-internal playbook and, in phase mode, the packet's artifacts. In standalone
+`architecture_analysis`, or `difficult_debugging`. Read its named internal
+playbook and applicable shared guidance and, in phase mode, the packet's
+artifacts. In standalone
 mode use the direct brief and relevant current sources. Remain read-only with
 respect to
 repository and external state: do not edit implementation files, stage,
 commit, push, merge, publish, deploy, mutate production, choose assignments,
 or claim product authority.
+
+In either operating mode, use the relevant sections of
+[shared engineering guidance](../orchestra/references/architecture_guidance.md)
+for design or evidence questions; `architecture_analysis` uses its review
+frame directly.
 
 `repository_context`, `web_research`, `architecture_analysis`, and
 `difficult_debugging` are one-shot. A `technical_planning` analyst remains
@@ -53,8 +59,7 @@ In `orchestra_phase` mode, require one singular capability, explicit
 authority, worktree, revision identity, exact artifacts directory, target
 artifact identifiers, stop conditions, and focused questions or new context.
 Use the matching playbook for `repository_context`, `web_research`,
-`technical_planning`, or `difficult_debugging`; use [architecture guidance](../orchestra/references/architecture_guidance.md)
-for `architecture_analysis` and whenever architecture is named. A plan
+`technical_planning`, or `difficult_debugging`. A plan
 correction requires the complete current bundle, the exact `plan-review`, and
 accepted finding IDs. Do not infer a target by timestamp or ask the root to
 replay objective, scope, acceptance, or prior evidence.

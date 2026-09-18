@@ -11,6 +11,11 @@ the active user-selected tier.
 
 ## Contract
 
+- Consume the assigned recipe using [shared engineering guidance](architecture_guidance.md)
+  ("Verification recipes"). Establish readiness and exercise the named user
+  journey through its expected result; opening a page alone proves only that
+  page loaded. Recipe guidance does not change the browser route, data
+  authority, or resource lifecycle below.
 - Require `browser_route: auto | in_app | chrome`. An explicit user route,
   relayed by the root or supplied directly in the agent conversation, must be
   attempted even when the scenario is a canary for a previously failing tool,

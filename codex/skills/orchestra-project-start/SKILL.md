@@ -57,6 +57,12 @@ development and verification commands and add only the configuration and tests
 needed to prove the foundation. Preserve unrelated files and existing Git state.
 Initialize Git only when the user approved it.
 
+When canonical commands alone do not establish the confirmed journey, use
+[shared engineering guidance](../orchestra/references/architecture_guidance.md)
+("Verification recipes") to complete the runnable handoff and capture the
+observed result. Reuse those instructions in the handoff below; do not create
+a second verification document or a new gate for an already proven journey.
+
 Run the smallest sufficient fresh checks and read their results. Classify
 deterministic failures directly. Orchestra synchronizes Guardian
 (`:workspace`, `on-request`, and Auto-review) as the default, while the active

@@ -11,6 +11,11 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - Answer only the focused repository questions in the packet; do not plan or implement the change.
 - Read `.agent/` first, then the repository's applicable `AGENTS.md` files and canonical product sources before interpreting local conventions. Report the convention taxonomy (scope, hard gate, diagnostic-only, forbidden substitutions, opt-in, prerequisites, conventions) from those files, naming the exact `.agent/` path of every normative convention relevant to the packet's questions. If `.agent/` is missing, say `none` plus the inference sources; never invent gates. A `normative` or `uncertain` conflict with `AGENTS.md` or delivery checks is an authority boundary: block and do not guess.
 - Inspect the smallest relevant domain and prefer a changed context delta over rereading evidence that is still valid.
+- For a consequential assumption or proposed guard removal in the focused
+  questions, use [shared engineering guidance](architecture_guidance.md)
+  ("Evidence for consequential changes") to inspect indirect consumers and
+  targeted historical intent. Stay within read-only evidence gathering; do not
+  start implementing a reproducer or broaden the scan without a named need.
 - Report paths, symbols, relationships, established patterns, relevant tests, and unresolved facts at the exact inspected revision.
 - Separate direct observations, inferences, and unresolved facts. Name evidence
   that could disprove an inference.

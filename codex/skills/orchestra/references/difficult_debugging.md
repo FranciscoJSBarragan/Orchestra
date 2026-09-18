@@ -11,6 +11,11 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
 - Require the repeated failure signature, attempted approaches, changed context delta, relevant logs and verification, diagnostic scope, exclusions, and revision.
 - Reproduce or trace only within the permitted diagnostic boundary. Distinguish the observed symptom, triggering condition, causal mechanism, and affected scope.
 - Form competing hypotheses, seek discriminating evidence, record disproved hypotheses, and state confidence in the supported root cause.
+- When attempts repeat the same failure, examine the premise shared by those
+  attempts before proposing another correction. Preserve the disproved
+  hypotheses and choose a bounded observation that distinguishes the remaining
+  explanations; new patches or repeated unchanged checks are not new causal
+  evidence.
 - Recommend the smallest local corrective action for the same implementation owner. Do not implement it or restart discovery, planning, or the whole workflow.
 - Prefer source, runtime, test, and log evidence over intuition; do not claim a guess as diagnosis.
 - When coordination is available, publish the complete diagnosis as

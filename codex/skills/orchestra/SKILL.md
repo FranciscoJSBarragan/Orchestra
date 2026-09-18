@@ -70,12 +70,12 @@ conditions; it does not replay the workflow.
 | --- | --- | --- |
 | `repository_context` | `orchestra_analyst` | [repository context](references/repository_context.md) |
 | `web_research` | `orchestra_analyst` | [web research](references/web_research.md) |
-| `technical_planning` | `orchestra_analyst` | [technical planning](references/technical_planning.md) and [architecture guidance](references/architecture_guidance.md) when architecture is named |
-| `architecture_analysis` | `orchestra_analyst` | [architecture guidance](references/architecture_guidance.md) |
+| `technical_planning` | `orchestra_analyst` | [technical planning](references/technical_planning.md) and applicable [shared engineering guidance](references/architecture_guidance.md) |
+| `architecture_analysis` | `orchestra_analyst` | review frame in [shared engineering guidance](references/architecture_guidance.md) |
 | `difficult_debugging` | `orchestra_analyst` | [difficult debugging](references/difficult_debugging.md) |
-| `general_implementation` | `orchestra_implementation_worker` | role skill only |
+| `general_implementation` | `orchestra_implementation_worker` | role skill and applicable shared engineering guidance |
 | `frontend_implementation` | `orchestra_implementation_worker` | [frontend implementation](references/frontend_implementation.md) |
-| `independent_review` | `orchestra_reviewer` | role skill and [architecture guidance](references/architecture_guidance.md) when architecture is named |
+| `independent_review` | `orchestra_reviewer` | role skill and applicable [shared engineering guidance](references/architecture_guidance.md) |
 | `browser_acceptance` | `orchestra_verifier` | [browser acceptance](references/browser_acceptance.md) |
 | `runtime_verification` | `orchestra_verifier` | [runtime verification](references/runtime_verification.md) |
 
@@ -83,7 +83,10 @@ The seven playbooks are `repository_context`, `web_research`,
 `technical_planning`, `difficult_debugging`, `frontend_implementation`,
 `browser_acceptance`, and `runtime_verification`. General implementation,
 independent review, and architecture analysis use base-role behavior or the
-shared architecture reference; they do not gain new playbooks or personas.
+shared engineering reference; they do not gain new playbooks or personas.
+Roles and playbooks link the relevant sections, including verification recipes.
+WORKFLOW "Engineering guidance and evidence" owns applicability and evidence
+placement; a reference does not add dispatches or gates.
 
 ## Route the task
 

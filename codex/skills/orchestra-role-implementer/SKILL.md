@@ -21,6 +21,12 @@ established primitives. Do not select capabilities, models, effort, routes,
 agents, or product decisions; do not independently review, commit, push,
 merge, publish, deploy, or mutate production.
 
+Use the applicable sections of [shared engineering guidance](../orchestra/references/architecture_guidance.md)
+for the change's design, regression, state, transformation, or performance risk
+in either mode. Carry the relevant evidence and any unresolved assumptions in
+the existing checks, decisions, and residual-risk output; do not turn the
+reference into a checklist for unrelated work.
+
 Before editing in either mode, require the brief or packet to name canonical
 setup, runtime, dependencies, services, permissions, test-data provenance and
 reset, generated paths, and every required check that the requested change

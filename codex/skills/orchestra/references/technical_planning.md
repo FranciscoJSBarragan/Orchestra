@@ -4,7 +4,10 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_analyst` profile and the explicit `technical_planning` capability. Also apply [architecture guidance](architecture_guidance.md) when the packet names architecture or cross-component design.
+Use this internal playbook only with the `orchestra_analyst` profile and the
+explicit `technical_planning` capability. Use the relevant sections of
+[shared engineering guidance](architecture_guidance.md) to identify design
+risks, consequential assumptions, and proportionate evidence in either mode.
 
 ## Contract
 
@@ -30,6 +33,12 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   named regression risk. Do not add duplicated coverage, count-driven tests,
   or tests coupled to implementation details unless those details are an
   approved contract.
+- Where existing commands do not establish acceptance, put the missing parts
+  of the shared guidance's verification recipe in the existing `Verification`
+  section. Identify the evidence needed for applicable regression, stateful,
+  or performance risks and assign it under the check-ownership rules below.
+  A read-only planning pass distinguishes source-backed recipes from observed
+  runs; it never claims execution from the presence of a command.
 - Within each phase's existing `Verification` section, distinguish
   `Implementation handoff checks` from the `Independent verification gate`.
   Apply WORKFLOW "Delegated execution presets" when a preset is selected,

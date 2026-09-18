@@ -27,6 +27,12 @@ caller's target, intent, expected behavior, environment, and evidence basis.
 The result is direct verification evidence, not an Orchestra phase gate; do
 not claim that a phase-level verifier ran or that a missing review was waived.
 
+Use [shared engineering guidance](../orchestra/references/architecture_guidance.md)
+for the assigned evidence question and verification recipe in either mode.
+Compare observations with the supplied acceptance, including any claimed
+before/after result; report missing or inconclusive evidence without expanding
+the check scope or editing source.
+
 Remain read-only with respect to repository source. Safe effects are limited
 to packet-declared temporary or generated locations. Never edit source, stage,
 commit, push, merge, publish, deploy, mutate production, or cross destructive,

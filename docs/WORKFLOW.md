@@ -361,6 +361,29 @@ another device, an account or approval only the user holds — batch every
 needed check into one consolidated request with expected results, instead of
 sequential single questions.
 
+## Engineering guidance and evidence
+
+The shared `architecture_guidance.md` reference, reached through the loaded
+role skill and its runtime resources, owns the reusable engineering criteria
+and verification-recipe guidance. Apply only sections relevant to the task's
+acceptance or material risks. A trivial edit does not acquire design exercises,
+new tests, benchmarks, or a dedicated verifier from this guidance.
+
+Planning identifies applicable risks and the evidence needed to settle them;
+implementation applies the techniques within its scope; independent review
+assesses consequences against current sources and evidence; verification
+executes only its assigned checks. This guidance also applies to standalone
+roles without activating Orchestra. Existing capability boundaries, terminal
+check ownership, authority rules, and dedicated-gate reasons remain decisive.
+
+Keep task-specific recipes and material assumptions in the existing plan
+acceptance, risks, and `Verification` sections, or the standalone brief.
+Implementation and verification reports carry observed evidence and limits in
+their existing fields. Do not create mandatory report fields, a new artifact
+kind, or a separate recipe registry. Reusable repository knowledge follows
+"Repository conventions" and "Durable knowledge checkpoint"; a suggested
+recipe does not become a hard gate merely by appearing in a report.
+
 ## Durable task intake
 
 The installed `task_control.py` helper is a harness-neutral JSON boundary for a
@@ -537,9 +560,9 @@ neither has an internal playbook.
 The only internal playbooks are `repository_context`, `web_research`,
 `technical_planning`, `difficult_debugging`, `frontend_implementation`,
 `browser_acceptance`, and `runtime_verification`. `architecture_analysis` uses
-the shared architecture guidance reference also used with `technical_planning`
-or `independent_review` when architecture is named; it has no dedicated
-playbook.
+the review frame of the shared engineering guidance; it has no dedicated
+playbook. Applicability for other roles follows "Engineering guidance and
+evidence".
 
 Codex offers `standard` and `critical`, with `standard` as the default
 recommendation. Cursor additionally assigns `minimal` for ordinary work when
@@ -1642,6 +1665,14 @@ fixed taxonomy when present: scope, hard gate with exact argv and cwd,
 diagnostic-only commands, forbidden substitutions, opt-in gates,
 prerequisites, and conventions. There is no closed file enum and no empty stub.
 
+For a reusable verification recipe, follow "Engineering guidance and evidence"
+and cite maintained project instructions before considering a new entry.
+Persist only a verified, non-obvious gap with a named future consumer, using
+the existing prerequisites and command categories in the relevant `.agent/`
+topic. Record unexecuted commands as unverified rather than successful checks;
+they cannot establish a verified recipe. New hard gates or normative additions
+still require the confirmation below.
+
 Conventions are `normative` code conventions of that repository: local
 architecture boundaries, required or forbidden patterns, preferred libraries,
 and test policy. A convention is short and covers only what a competent agent
@@ -1704,6 +1735,18 @@ store did not name. For a genuinely blocked task, make the same judgment at the
 blocking boundary. Sources are phase reports, discoveries already dispositioned
 `discard` as out-of-scope, and the root's own observations; the root does not
 dispatch an agent to search for candidates.
+
+For a recurring failure already evidenced by the task, first distinguish
+missing guidance, incorrect skill routing, missing context, ambiguous
+instructions, and failure to follow an existing rule. Choose the smallest
+supported correction: a regression test or tool fix for an executable defect,
+or a concise clarification for a demonstrated knowledge gap. Do not accumulate
+new rules when an existing one already addresses the cause. This judgment adds
+no reflection stage or transcript-mining job. The checkpoint's writes remain
+limited to the repository knowledge below; code, routing, or Orchestra-policy
+changes use normal implementation scope and review when already authorized,
+otherwise become bounded follow-up proposals without delaying delivery. Agents
+never gain authority to rewrite their own skills or policies from a failure.
 
 Keep the implementation owner and reviewer available until any authorized
 knowledge correction, affected checks, and delta review

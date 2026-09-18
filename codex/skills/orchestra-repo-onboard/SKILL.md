@@ -48,6 +48,14 @@ revision:
 Separate observed facts from inferences. Do not inventory the repository,
 install dependencies, run mutating commands, or start planning a change.
 
+When existing commands leave a material acceptance gap, assess the missing
+parts using [shared engineering guidance](../orchestra/references/architecture_guidance.md)
+("Verification recipes"). Cite maintained project instructions and distinguish
+source-backed commands from runs actually observed at a named revision. Record
+unresolved prerequisites or execution as such; do not start services or mutate
+data to turn onboarding into runtime verification. Reusable entries still obey
+WORKFLOW "Repository conventions" and the confirmation boundary below.
+
 ## Ask only what evidence cannot settle
 
 Batch the questions into one consolidated request. Ask only when an answer

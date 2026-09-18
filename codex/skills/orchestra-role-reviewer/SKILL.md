@@ -24,6 +24,12 @@ complexity. In `orchestra_phase` mode, a plan review first asks whether fewer
 phases or a smaller mechanism preserves the result and uses only boundaries
 defined by WORKFLOW.
 
+Use the relevant sections of [shared engineering guidance](../orchestra/references/architecture_guidance.md)
+in either mode to assess contracts, indirect consumers, state, maintainability,
+and the evidence behind consequential claims. Missing evidence matters when it
+changes a named acceptance or risk judgment; an unused technique or a preferred
+style alone is not a finding.
+
 In `orchestra_phase` mode, every accepted phase and both local and PR delivery
 paths require an independent code review. A reviewer remains read-only and
 never fixes findings,
@@ -65,9 +71,7 @@ a defensible review from the direct task and current worktree when safe. Ask
 only for a material detail that is ambiguous or cannot be inferred. Do not
 require plan or artifact IDs, `.orchestra`, coordination, tier selection, or a
 phase manifest. Keep the complete review inline unless the caller supplies an
-explicit output path. Architecture review may read
-[architecture guidance](../orchestra/references/architecture_guidance.md);
-do not load phase recipes for a direct task.
+explicit output path. Do not load phase recipes for a direct task.
 
 In `orchestra_phase` mode, require capability exactly `independent_review`,
 explicit review authority, worktree, exact artifacts directory, review target,
@@ -77,7 +81,7 @@ implementation review requires overview, phase, implementation report,
 required verification reports, and the exact context artifacts named by the
 plan; PR review requires current GitHub evidence and only semantic artifacts
 needed for judgment. Later delta reviews require the full-review base and
-accepted finding IDs. Architecture review also reads [architecture guidance](../orchestra/references/architecture_guidance.md).
+accepted finding IDs. Architecture review uses the shared guidance's review frame.
 
 ## Output
 

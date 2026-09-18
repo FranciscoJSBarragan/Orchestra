@@ -532,6 +532,14 @@ def _skill_frontmatter(text: str) -> dict[str, str] | None:
     return metadata
 
 
+def _local_markdown_links(text: str) -> list[str]:
+    return [
+        target
+        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text)
+        if not target.startswith(("#", "http://", "https://"))
+    ]
+
+
 def check_skills_and_runtime(root: Path) -> list[str]:
     """Validate skill metadata, direct links, and the managed routing block."""
     failures: list[str] = []
@@ -546,10 +554,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         elif metadata["name"] != name or "TODO" in metadata["description"]:
             failures.append(f"skill-contract: {name} metadata is incomplete")
 
-        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
-            if target.startswith(("#", "http://", "https://")):
-                continue
-            resolved = (skill.parent / target).resolve()
+        for target in _local_markdown_links(text):
+            resolved = (skill.parent / target.split("#", 1)[0]).resolve()
             if not resolved.is_file():
                 failures.append(f"skill-contract: {name} has broken link {target}")
 
@@ -598,12 +604,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     failures.append(
                         f"skill-contract: orchestra does not consume playbook {target}"
                     )
-            architecture_target = f"references/{ARCHITECTURE_REFERENCE}.md"
-            if architecture_target not in routing:
-                failures.append(
-                    "skill-contract: shared architecture guidance must serve "
-                    "technical planning, architecture analysis, and independent review"
-                )
             for forbidden in (
                 "references/general_implementation.md",
                 "references/independent_review.md",
@@ -613,6 +613,38 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     failures.append(
                         f"skill-contract: {forbidden} must not be a playbook"
                     )
+    guidance = (references / f"{ARCHITECTURE_REFERENCE}.md").resolve()
+    guidance_consumers = [
+        *(f"codex/skills/{name}/SKILL.md" for name in (
+            "orchestra",
+            "orchestra-role-analyst",
+            "orchestra-role-implementer",
+            "orchestra-role-reviewer",
+            "orchestra-role-verifier",
+            "orchestra-repo-onboard",
+            "orchestra-project-start",
+        )),
+        *(f"codex/skills/orchestra/references/{name}.md" for name in (
+            "repository_context",
+            "technical_planning",
+            "runtime_verification",
+            "browser_acceptance",
+        )),
+    ]
+    for relative in guidance_consumers:
+        consumer = root / relative
+        if not consumer.is_file():
+            continue  # Required-path validation owns missing source files.
+        targets = {
+            (consumer.parent / target.split("#", 1)[0]).resolve()
+            for target in _local_markdown_links(consumer.read_text(encoding="utf-8"))
+        }
+        if guidance not in targets:
+            failures.append(
+                f"skill-contract: {relative} must link to shared engineering guidance "
+                f"({ARCHITECTURE_REFERENCE}.md)"
+            )
+
     direct_consumers = {
         "orchestra": (
             "task_state.py",

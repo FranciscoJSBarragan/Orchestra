@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -385,6 +386,55 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("skill-contract: orchestra has broken link missing.md", result.stdout)
+
+    def test_shared_guidance_reaches_roles_and_recipe_consumers(self) -> None:
+        consumers = (
+            "orchestra/SKILL.md",
+            "orchestra-role-analyst/SKILL.md",
+            "orchestra-role-implementer/SKILL.md",
+            "orchestra-role-reviewer/SKILL.md",
+            "orchestra-role-verifier/SKILL.md",
+            "orchestra-repo-onboard/SKILL.md",
+            "orchestra-project-start/SKILL.md",
+            "orchestra/references/repository_context.md",
+            "orchestra/references/technical_planning.md",
+            "orchestra/references/runtime_verification.md",
+            "orchestra/references/browser_acceptance.md",
+        )
+        for relative in consumers:
+            with self.subTest(consumer=relative):
+                page = self.root / "codex/skills" / relative
+                original = page.read_text(encoding="utf-8")
+                # Leave the path as plain text: a mention is not a routed reference.
+                unrouted = re.sub(
+                    r"\[[^]]+\]\(([^)]*architecture_guidance\.md)\)",
+                    r"\1",
+                    original,
+                )
+                self.assertNotEqual(original, unrouted)
+                try:
+                    page.write_text(unrouted, encoding="utf-8")
+                    result = self.run_validator()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        f"codex/skills/{relative} must link to shared engineering guidance",
+                        result.stdout,
+                    )
+                finally:
+                    page.write_text(original, encoding="utf-8")
+
+    def test_shared_guidance_routing_does_not_pin_link_wording(self) -> None:
+        page = self.root / "codex/skills/orchestra-role-implementer/SKILL.md"
+        original = page.read_text(encoding="utf-8")
+        rewritten = re.sub(
+            r"\[[^]]+\]\(([^)]*architecture_guidance\.md)\)",
+            r"[Relevant criteria](\1)",
+            original,
+        )
+        self.assertNotEqual(original, rewritten)
+        page.write_text(rewritten, encoding="utf-8")
+        result = self.run_validator()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_runtime_requires_exact_managed_markers(self) -> None:
         runtime = self.root / "codex/runtime/AGENTS.orchestra.md"

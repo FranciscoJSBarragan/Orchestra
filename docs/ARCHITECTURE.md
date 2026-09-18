@@ -216,8 +216,10 @@ keys whose behavior stays in the base `orchestra_implementation_worker` and `orc
 prompts; they have no internal playbooks. Internal playbooks exist only for
 `repository_context`, `web_research`, `technical_planning`,
 `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and
-`runtime_verification`. Architecture guidance is one shared reference used with
-`technical_planning` or `independent_review` when named; the
+`runtime_verification`. The existing `architecture_guidance.md` is the shared
+architecture and engineering reference consumed by the relevant roles and
+playbooks, including standalone use; operational routing and evidence placement
+live in WORKFLOW "Engineering guidance and evidence". The
 `architecture_analysis` assignment has no separate playbook. Playbooks are
 internal references, not public skills or additional personas. Public skill
 identifiers remain stable except for the additive implicit
