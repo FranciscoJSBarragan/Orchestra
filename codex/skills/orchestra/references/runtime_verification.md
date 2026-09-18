@@ -7,7 +7,8 @@ bundles. Return inline evidence or an explicitly requested output path.
 Use this internal playbook only with the `orchestra_verifier` profile and the
 explicit `runtime_verification` capability. Do not dispatch it for routine
 local deterministic checks in a non-critical phase; those belong to the
-implementation owner.
+implementation owner unless the selected execution preset assigns its terminal
+gate here (WORKFLOW "Delegated execution presets").
 
 ## Contract
 
@@ -15,7 +16,7 @@ implementation owner.
   static checks, or log inspections against the exact revision. The packet must
   identify at least one dedicated-gate reason: owned services or processes,
   mutable or stateful data, credentials, network or an external environment,
-  explicit repository policy, or a critical-tier phase. In a critical phase,
+  explicit repository policy, a selected execution-preset gate, or a critical-tier phase. In a critical phase,
   independently repeat the applicable deterministic gate already evidenced by
   the implementation owner.
 - Confirm command arguments and working directory before execution. Commands must not pass through an unrequested shell wrapper or mutate source.

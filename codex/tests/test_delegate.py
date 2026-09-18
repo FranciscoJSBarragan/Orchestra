@@ -649,5 +649,133 @@ class DelegateTests(unittest.TestCase):
         self.assert_process_stopped(int(pid_file.read_text()))
 
 
+class ExecutionPresetTests(unittest.TestCase):
+    def arguments(self, capability="general_implementation", host="codex", *extra):
+        return delegate.build_parser().parse_args([
+            "--preset", "standard-delegate", "--host", host,
+            "--capability", capability, "--resolve-only", *extra,
+        ])
+
+    def test_shared_assignments_are_identical_across_hosts(self):
+        for host in ("codex", "cursor", "grok"):
+            for capability in ("general_implementation", "frontend_implementation", "difficult_debugging"):
+                with self.subTest(host=host, capability=capability):
+                    route = delegate.resolve_preset(self.arguments(capability, host))
+                    self.assertEqual((route["executor"], route["model"]),
+                                     ("cursor", "claude-fable-5-1-thinking-low"))
+            for capability in ("repository_context", "web_research", "runtime_verification"):
+                route = delegate.resolve_preset(self.arguments(capability, host))
+                self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
+                                 ("grok", "grok-4.6", "high"))
+            review = delegate.resolve_preset(self.arguments("independent_review", host))
+            self.assertEqual(review["model"], "claude-fable-5-1-thinking-medium")
+            self.assertEqual(review["profile"], "orchestra_reviewer")
+
+    def test_planning_reuses_matching_root_without_overriding_its_effort(self):
+        for capability in ("technical_planning", "architecture_analysis"):
+            for host in ("codex", "cursor", "grok"):
+                args = self.arguments(capability, host, "--root-model", "gpt-6-astra")
+                route = delegate.resolve_preset(args)
+                self.assertEqual(route["executor"], "root")
+                self.assertIsNone(route["reasoning_effort"])
+                args.independent_planning = True
+                route = delegate.resolve_preset(args)
+                self.assertEqual(route["executor"], "native" if host == "codex" else "codex")
+                self.assertEqual(route["reasoning_effort"], "low")
+        args = self.arguments("technical_planning", "cursor", "--root-model", "different-model")
+        self.assertEqual(delegate.resolve_preset(args)["executor"], "codex")
+
+    def test_browser_stays_in_owning_host(self):
+        route = delegate.resolve_preset(self.arguments("browser_acceptance"))
+        self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
+                         ("native", "gpt-5.6-luna", "xhigh"))
+        for host in ("cursor", "grok"):
+            route = delegate.resolve_preset(self.arguments("browser_acceptance", host))
+            self.assertEqual(route["executor"], "host")
+            self.assertIsNone(route["model"])
+
+    def test_bounded_recovery_keeps_role_and_selects_codex_transport_by_host(self):
+        for host in ("codex", "cursor", "grok"):
+            for capability in ("general_implementation", "frontend_implementation", "difficult_debugging"):
+                args = self.arguments(capability, host, "--attempt", "2")
+                second = delegate.resolve_preset(args)
+                self.assertEqual(second["model"], "claude-fable-5-1-thinking-high")
+                args.attempt = 3
+                third = delegate.resolve_preset(args)
+                self.assertEqual(third["executor"], "native" if host == "codex" else "codex")
+                self.assertEqual((third["model"], third["reasoning_effort"]), ("gpt-6-astra", "low"))
+                self.assertEqual(third["profile"], second["profile"])
+                if capability == "difficult_debugging":
+                    self.assertEqual(third["profile"], "orchestra_analyst")
+                args.attempt = 4
+                with self.assertRaises(delegate.DelegateInputError):
+                    delegate.resolve_preset(args)
+
+    def test_invalid_selections_fail_before_any_execution(self):
+        for extra in (("--tier", "critical"), ("--attempt", "0"),
+                      ("--executor", "cursor"), ("--model", "other-model"),
+                      ("--effort", "high"), ("--preset", "unknown")):
+            with self.subTest(extra=extra), self.assertRaises(delegate.DelegateInputError):
+                delegate.resolve_preset(self.arguments("independent_review", "codex", *extra))
+        with self.assertRaises(delegate.DelegateInputError):
+            delegate.resolve_preset(self.arguments("independent_review", "codex", "--attempt", "2"))
+
+    def test_custom_assignments_and_malformed_configs(self):
+        source = delegate.default_presets_path().read_text()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "presets.toml"
+            path.write_text(source.replace('model = "grok-4.6"', 'model = "custom-grok"'))
+            args = self.arguments("runtime_verification", "cursor", "--presets-file", str(path))
+            self.assertEqual(delegate.resolve_preset(args)["model"], "custom-grok")
+            for invalid in (
+                source.replace('executor = "grok"', 'executor = "typo"', 1),
+                source.replace('executor = "cursor"', 'executor = "cursor"\nreasoning_effort = "low"', 1),
+                source.replace('executor = "host"', 'executor = "codex"\nmodel = "gpt-6-astra"'),
+                source.replace('reuse_root = true', 'reuse_root = "true"', 1),
+                source.replace('capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]',
+                               'capabilities = ["independent_review"]'),
+                source.replace('[presets.standard-delegate.capabilities.web_research]',
+                               '[presets.standard-delegate.capabilities.typo]'),
+                'not toml',
+            ):
+                path.write_text(invalid)
+                with self.subTest(invalid=invalid[:80]), self.assertRaises(delegate.DelegateInputError):
+                    delegate.resolve_preset(args)
+            path.unlink()
+            with self.assertRaises(delegate.DelegateInputError):
+                delegate.resolve_preset(args)
+
+    def test_cli_resolution_never_launches_or_grants_permissions(self):
+        arguments = ["--preset", "standard-delegate", "--host", "codex",
+                     "--capability", "general_implementation"]
+        with mock.patch.object(delegate, "execute") as execute, mock.patch.object(delegate, "_emit") as emit:
+            self.assertEqual(delegate.main([*arguments, "--resolve-only"]), 0)
+            self.assertNotIn("permissions", emit.call_args.args[0])
+            execute.assert_not_called()
+            self.assertEqual(delegate.main([*arguments, "--attempt", "3"]), 2)
+            execute.assert_not_called()
+            self.assertEqual(delegate.main([*arguments, "--host", "cursor", "--attempt", "3", "--resume", "cursor-id"]), 2)
+            execute.assert_not_called()
+
+    def test_preset_execution_uses_existing_adapter_once_without_retry(self):
+        arguments = ["--preset", "standard-delegate", "--host", "grok",
+                     "--capability", "general_implementation", "--repo", "/repo",
+                     "--expected-head", "0" * 40, "--prompt-file", "/prompt", "--log-file", "/log"]
+        with mock.patch.object(delegate, "execute", return_value=({"status": "partial"}, 1)) as execute, \
+                mock.patch.object(delegate, "_emit") as emit:
+            self.assertEqual(delegate.main(arguments), 1)
+            execute.assert_called_once()
+            args = execute.call_args.args[0]
+            self.assertEqual(args.executor, "cursor")
+            self.assertEqual(args.model, "claude-fable-5-1-thinking-low")
+            self.assertEqual(args.permissions, "default")
+            self.assertEqual(emit.call_args.args[0]["assignment"]["attempt"], 1)
+            command = delegate.build_command(executor=args.executor, repo=Path(args.repo),
+                                             model=args.model, capability=args.capability,
+                                             permissions=args.permissions, prompt="bounded task")
+            self.assertIn("claude-fable-5-1-thinking-low", command)
+            self.assertNotIn("--force", command)
+
+
 if __name__ == "__main__":
     unittest.main()

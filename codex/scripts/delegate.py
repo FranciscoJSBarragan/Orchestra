@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 from typing import Any, Iterable
 import uuid
 
@@ -107,17 +108,25 @@ def build_parser() -> argparse.ArgumentParser:
         allow_abbrev=False,
         description="Run one bounded Cursor, Grok, or Codex delegation.",
     )
-    parser.add_argument("--repo", required=True, help="Git worktree root")
-    parser.add_argument("--executor", required=True, choices=EXECUTORS)
+    parser.add_argument("--repo", help="Git worktree root (required for execution)")
+    parser.add_argument("--executor", choices=EXECUTORS)
     parser.add_argument("--capability", required=True, choices=CAPABILITIES)
-    parser.add_argument("--model", required=True)
+    parser.add_argument("--model")
     parser.add_argument(
         "--effort",
         help="Codex or Grok reasoning effort (Cursor uses its model alias)",
     )
-    parser.add_argument("--prompt-file", required=True)
-    parser.add_argument("--log-file", required=True)
-    parser.add_argument("--expected-head", required=True)
+    parser.add_argument("--preset", help="Explicitly selected execution preset")
+    parser.add_argument("--presets-file", type=Path, help="Explicit alternative to the managed preset file")
+    parser.add_argument("--host", choices=("codex", "cursor", "grok"))
+    parser.add_argument("--tier", default="standard")
+    parser.add_argument("--root-model", help="Observed root model; permits planning reuse without changing its effort")
+    parser.add_argument("--independent-planning", action="store_true")
+    parser.add_argument("--attempt", type=int, default=1, help="Root-selected attempt, never an automatic retry")
+    parser.add_argument("--resolve-only", action="store_true", help="Return the preset assignment without starting a process")
+    parser.add_argument("--prompt-file")
+    parser.add_argument("--log-file")
+    parser.add_argument("--expected-head")
     parser.add_argument("--resume")
     parser.add_argument("--permissions", choices=PERMISSIONS, default="default")
     parser.add_argument(
@@ -128,6 +137,136 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout", type=_positive_timeout, default=DEFAULT_TIMEOUT)
     return parser
+
+
+def default_presets_path() -> Path:
+    root = Path(__file__).resolve().parent.parent
+    source = root / "config/execution-presets.toml"
+    return source if source.is_file() else root / "execution-presets.toml"
+
+
+def load_presets(path: Path) -> dict[str, Any]:
+    """Read the one assignment source; reject typos instead of inventing routes."""
+    try:
+        document = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise DelegateInputError(f"cannot read execution presets at {path}: {error}") from error
+    presets = document.get("presets")
+    if set(document) != {"presets"} or not isinstance(presets, dict) or not presets:
+        raise DelegateInputError("execution presets must contain a non-empty presets table")
+    for name, preset in presets.items():
+        if not isinstance(preset, dict) or set(preset) != {"tier", "capabilities", "hosts", "escalation"}:
+            raise DelegateInputError(f"invalid preset structure: {name}")
+        if preset["tier"] != "standard":
+            raise DelegateInputError("delegated presets currently support only the standard tier")
+        rows = preset["capabilities"]
+        if not isinstance(rows, dict) or set(rows) != set(CAPABILITIES):
+            raise DelegateInputError(f"preset {name} must assign every capability exactly once")
+        for capability, row in rows.items():
+            _validate_preset_row(row, capability)
+            if row["executor"] == "native":
+                raise DelegateInputError("native assignments require an explicit Codex host override")
+        hosts = preset["hosts"]
+        if not isinstance(hosts, dict) or set(hosts) - {"codex", "cursor", "grok"}:
+            raise DelegateInputError(f"invalid preset hosts: {name}")
+        for host, overrides in hosts.items():
+            if not isinstance(overrides, dict) or set(overrides) - set(CAPABILITIES):
+                raise DelegateInputError(f"invalid capability overrides for {host}")
+            for capability, row in overrides.items():
+                _validate_preset_row(row, capability)
+                if row["executor"] == "native" and host != "codex":
+                    raise DelegateInputError("explicit native model overrides currently require Codex")
+        ladder = preset["escalation"]
+        eligible = IMPLEMENTATION_CAPABILITIES | {"difficult_debugging"}
+        if not isinstance(ladder, dict) or set(ladder) != {"capabilities", "attempts"}:
+            raise DelegateInputError("invalid escalation structure")
+        capabilities = ladder["capabilities"]
+        if (not isinstance(capabilities, list) or not capabilities
+                or any(not isinstance(item, str) or item not in eligible for item in capabilities)
+                or len(set(capabilities)) != len(capabilities)):
+            raise DelegateInputError("escalation is limited to implementation and difficult debugging")
+        attempts = ladder["attempts"]
+        if not isinstance(attempts, list) or len(attempts) != 2:
+            raise DelegateInputError("escalation requires exactly two recovery assignments")
+        for row in attempts:
+            for capability in capabilities:
+                _validate_preset_row(row, capability)
+            if row["executor"] not in EXECUTORS:
+                raise DelegateInputError("recovery assignments must identify an executor and model")
+    return presets
+
+
+def _validate_preset_row(row: Any, capability: str) -> None:
+    allowed = {"executor", "model", "reasoning_effort", "prefer_native", "reuse_root"}
+    if not isinstance(row, dict) or set(row) - allowed:
+        raise DelegateInputError(f"invalid preset assignment for {capability}")
+    executor = row.get("executor")
+    if executor not in (*EXECUTORS, "native", "host"):
+        raise DelegateInputError(f"invalid preset executor for {capability}")
+    if executor == "host":
+        if set(row) != {"executor"}:
+            raise DelegateInputError("host assignments use the host matrix without model overrides")
+    else:
+        if not isinstance(row.get("model"), str):
+            raise DelegateInputError(f"preset model is missing for {capability}")
+        _validate_model(row["model"])
+        effort = row.get("reasoning_effort")
+        if effort is not None and (not isinstance(effort, str) or effort not in {
+            "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"
+        }):
+            raise DelegateInputError(f"invalid preset effort for {capability}")
+        if executor == "cursor" and effort is not None:
+            raise DelegateInputError("Cursor preset effort must be encoded in its exact model alias")
+    for key in ("prefer_native", "reuse_root"):
+        if key in row and type(row[key]) is not bool:
+            raise DelegateInputError(f"{key} must be boolean")
+    if row.get("prefer_native") and executor != "codex":
+        raise DelegateInputError("prefer_native requires the Codex executor")
+    if row.get("reuse_root") and capability not in {"technical_planning", "architecture_analysis"}:
+        raise DelegateInputError("only planning and architecture may reuse the root")
+    if capability == "browser_acceptance" and executor not in {"host", "native"}:
+        raise DelegateInputError("preset browser acceptance must stay in the owning host")
+
+
+def resolve_preset(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve one user-selected attempt; no history, launches, or retries."""
+    if args.host is None:
+        raise DelegateInputError("--host is required with --preset")
+    if any(value is not None for value in (args.executor, args.model, args.effort)):
+        raise DelegateInputError("use either --preset or explicit executor/model/effort")
+    presets = load_presets(args.presets_file or default_presets_path())
+    if args.preset not in presets:
+        raise DelegateInputError(f"unknown execution preset: {args.preset}")
+    preset = presets[args.preset]
+    if args.tier != preset["tier"]:
+        raise DelegateInputError("execution preset does not support the selected tier")
+    ladder = preset["escalation"]
+    limit = 3 if args.capability in ladder["capabilities"] else 1
+    if args.attempt < 1 or args.attempt > limit:
+        raise DelegateInputError(f"{args.capability} accepts attempts 1..{limit}; no further automatic escalation")
+    row = preset["hosts"].get(args.host, {}).get(
+        args.capability, preset["capabilities"][args.capability]
+    )
+    if args.attempt > 1:
+        row = ladder["attempts"][args.attempt - 2]
+    executor = row["executor"]
+    effort = row.get("reasoning_effort")
+    if row.get("reuse_root") and args.root_model == row.get("model") and not args.independent_planning:
+        executor, effort = "root", None  # The launcher, not Orchestra, owns root effort.
+    elif row.get("prefer_native") and args.host == "codex":
+        executor = "native"
+    profile = (
+        "orchestra_implementation_worker" if args.capability in IMPLEMENTATION_CAPABILITIES
+        else "orchestra_verifier" if args.capability in VERIFICATION_CAPABILITIES
+        else "orchestra_reviewer" if args.capability == "independent_review"
+        else "orchestra_analyst"
+    )
+    return {
+        "status": "ok", "preset": args.preset, "tier": args.tier,
+        "host": args.host, "capability": args.capability, "attempt": args.attempt,
+        "executor": executor, "model": row.get("model"),
+        "reasoning_effort": effort, "profile": profile,
+    }
 
 
 def _contains_control(value: str) -> bool:
@@ -1262,7 +1401,28 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        route = None
+        if args.preset:
+            route = resolve_preset(args)
+            if args.resolve_only:
+                _emit(route)
+                return 0
+            if route["executor"] not in EXECUTORS:
+                raise DelegateInputError("resolved assignment requires root/native host execution; use --resolve-only and the host adapter")
+            if args.resume and args.attempt == 3:
+                raise DelegateInputError("the rescue assignment requires a fresh session, never a previous executor's resume ID")
+            args.executor, args.model, args.effort = (
+                route["executor"], route["model"], route["reasoning_effort"]
+            )
+        elif (args.resolve_only or args.presets_file or args.host or args.root_model
+              or args.independent_planning or args.attempt != 1 or args.tier != "standard"):
+            raise DelegateInputError("preset routing options require --preset")
+        for field in ("repo", "executor", "model", "prompt_file", "log_file", "expected_head"):
+            if not getattr(args, field):
+                raise DelegateInputError(f"--{field.replace('_', '-')} is required for execution")
         payload, exit_code = execute(args)
+        if route is not None:
+            payload["assignment"] = route
     except DelegateInputError as error:
         _emit({"status": "invalid", "reason": _compact(str(error), limit=500)})
         return 2

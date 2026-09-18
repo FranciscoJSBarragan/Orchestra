@@ -81,6 +81,25 @@ Use $orchestra-delegate to independently review this diff with Grok Build.
 
 Delegation reuses that CLI's own account and session, reports source changes, and hands the result back for review — no billing surprises, no hidden workflow switch.
 
+For repeated mixed-tool work, explicitly select the `standard-delegate`
+execution preset, for example: “Use Orchestra with standard-delegate for this
+change.” The owning conversation keeps its model and effort. Assignments and
+the bounded recovery ladder live in
+[`execution-presets.toml`](codex/config/execution-presets.toml); policy lives in
+[Delegated execution presets](docs/WORKFLOW.md#delegated-execution-presets).
+The preset is available from all three hosts and preserves native browser work.
+It can also route standalone assignments without activating the full workflow.
+Inspect an assignment without running a model:
+
+```sh
+python3 codex/scripts/delegate.py --preset standard-delegate --host codex \
+  --capability independent_review --resolve-only
+```
+
+Use an explicit `--presets-file` for custom executor/model assignments. The
+managed installation remains unchanged; selecting a preset never changes a
+subscription or authorizes a different billing path.
+
 ## Companion skills
 
 | Skill | When |

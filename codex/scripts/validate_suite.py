@@ -56,6 +56,7 @@ REQUIRED_PATHS = (
     "codex/scripts/_common.py",
     "codex/config/roles.native.toml",
     "codex/config/roles.external.toml",
+    "codex/config/execution-presets.toml",
     "codex/runtime/AGENTS.orchestra.md",
     "codex/agents/orchestra_analyst.toml",
     "codex/agents/orchestra_implementation_worker.toml",
@@ -391,6 +392,16 @@ def check_roles_and_profiles(root: Path) -> list[str]:
         return []
 
     failures: list[str] = []
+    # Use the runtime resolver's config validation rather than a second schema.
+    preset_check = subprocess.run(
+        [sys.executable, str(root / "codex/scripts/delegate.py"),
+         "--presets-file", str(root / "codex/config/execution-presets.toml"),
+         "--preset", "standard-delegate", "--host", "codex",
+         "--capability", "repository_context", "--resolve-only"],
+        capture_output=True, text=True, check=False,
+    )
+    if preset_check.returncode:
+        failures.append(f"role-contract: execution preset is invalid: {preset_check.stdout.strip()}")
     tiers_by_config: dict[str, dict[str, object]] = {}
     for modelconfig, roles_path in roles_paths.items():
         relative = roles_path.relative_to(root).as_posix()

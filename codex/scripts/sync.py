@@ -591,6 +591,11 @@ def _inventory(
             "orchestra_home", destination, "file", _read_file(source, str(source))
         )
     workflow_source = source_root / "docs/WORKFLOW.md"
+    preset_source = source_root / "codex/config/execution-presets.toml"
+    preset_content = _read_file(preset_source, str(preset_source))
+    entries[("orchestra_home", "execution-presets.toml")] = _entry(
+        "orchestra_home", "execution-presets.toml", "file", preset_content
+    )
     entries[("orchestra_home", "WORKFLOW.md")] = _entry(
         "orchestra_home",
         "WORKFLOW.md",
@@ -611,6 +616,9 @@ def _inventory(
     )
 
     if _includes_codex(host):
+        entries[("codex_home", "orchestra/execution-presets.toml")] = _entry(
+            "codex_home", "orchestra/execution-presets.toml", "file", preset_content
+        )
         agent_dir = source_root / "codex" / "agents"
         actual_agents = []
         if agent_dir.is_symlink() or not agent_dir.is_dir():
@@ -725,6 +733,7 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             ORCHESTRA_WORKTREE_ROOT_PATH,
             ORCHESTRA_CHECKOUT_MODE_PATH,
             "WORKFLOW.md",
+            "execution-presets.toml",
             "hosts/cursor/roles.toml",
             "hosts/cursor/spawn.md",
             "hosts/grok/roles.toml",
@@ -747,6 +756,7 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
         path
         in {
             "orchestra/roles.toml",
+            "orchestra/execution-presets.toml",
             WORKTREE_ROOT_PATH,
             CHECKOUT_MODE_PATH,
             *RETIRED_RULES_PATHS,

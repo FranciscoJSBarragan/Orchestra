@@ -1,5 +1,12 @@
 # Cursor spawn adapter
 
+When an execution preset is explicitly selected, use `orchestra-delegate` and
+WORKFLOW "Delegated execution presets" to resolve each assignment first. CLI
+results use that helper, root results stay in the owning conversation, and
+native results use this adapter with their exact resolved model and effort.
+A `host` result uses the native matrix below. Do not apply native fallback or
+closest-model substitutions to preset CLI assignments.
+
 Use this reference only when the execution host is Cursor (`Task` exists).
 Never mix Cursor Task with Codex `spawn_agent` / `wait_agent` / `close_agent`
 or Grok `spawn_subagent`.
@@ -39,7 +46,7 @@ Apply the phase verification contract before launching a Task. When the
 `Independent verification gate` is `none`, do not create a verifier Task;
 matrix entries describe available capabilities, not mandatory agents. Create a
 verifier only for a named browser, service/process, mutable-data, credential,
-network/external, repository-policy, or critical-tier gate.
+network/external, repository-policy, critical-tier, or selected execution-preset gate.
 
 ## Product contract vs live Task slugs
 

@@ -1,0 +1,72 @@
+# Optional execution assignments, independent of the owning host's model mode.
+# WORKFLOW "Delegated execution presets" owns selection and escalation policy.
+[presets.standard-delegate]
+tier = "standard"
+
+[presets.standard-delegate.capabilities.repository_context]
+executor = "grok"
+model = "grok-4.6"
+reasoning_effort = "high"
+
+[presets.standard-delegate.capabilities.web_research]
+executor = "grok"
+model = "grok-4.6"
+reasoning_effort = "high"
+
+[presets.standard-delegate.capabilities.technical_planning]
+executor = "codex"
+model = "gpt-6-astra"
+reasoning_effort = "low"
+prefer_native = true
+reuse_root = true
+
+[presets.standard-delegate.capabilities.architecture_analysis]
+executor = "codex"
+model = "gpt-6-astra"
+reasoning_effort = "low"
+prefer_native = true
+reuse_root = true
+
+[presets.standard-delegate.capabilities.difficult_debugging]
+executor = "cursor"
+model = "claude-fable-5-1-thinking-low"
+
+[presets.standard-delegate.capabilities.general_implementation]
+executor = "cursor"
+model = "claude-fable-5-1-thinking-low"
+
+[presets.standard-delegate.capabilities.frontend_implementation]
+executor = "cursor"
+model = "claude-fable-5-1-thinking-low"
+
+[presets.standard-delegate.capabilities.independent_review]
+executor = "cursor"
+model = "claude-fable-5-1-thinking-medium"
+
+[presets.standard-delegate.capabilities.runtime_verification]
+executor = "grok"
+model = "grok-4.6"
+reasoning_effort = "high"
+
+[presets.standard-delegate.capabilities.browser_acceptance]
+executor = "host"
+
+[presets.standard-delegate.hosts.codex.browser_acceptance]
+executor = "native"
+model = "gpt-5.6-luna"
+reasoning_effort = "xhigh"
+
+# One bounded ladder shared by implementation and difficult debugging.
+# Attempt one uses its capability row; no process retries itself.
+[presets.standard-delegate.escalation]
+capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]
+
+[[presets.standard-delegate.escalation.attempts]]
+executor = "cursor"
+model = "claude-fable-5-1-thinking-high"
+
+[[presets.standard-delegate.escalation.attempts]]
+executor = "codex"
+model = "gpt-6-astra"
+reasoning_effort = "low"
+prefer_native = true

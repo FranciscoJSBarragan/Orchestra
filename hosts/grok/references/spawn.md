@@ -1,5 +1,12 @@
 # Grok Build spawn adapter
 
+When an execution preset is explicitly selected, use `orchestra-delegate` and
+WORKFLOW "Delegated execution presets" to resolve each assignment first. CLI
+results use that helper, root results stay in the owning conversation, and
+native results use this adapter with their exact resolved model and effort.
+A `host` result uses the native matrix below. Do not apply native fallback or
+closest-model substitutions to preset CLI assignments.
+
 Use this reference only when the execution host is Grok Build (the Grok TUI
 session, where Codex `spawn_agent` and Cursor `Task` do not exist). Never mix
 the Grok spawn mechanisms below with Codex `spawn_agent` / `wait_agent` /
@@ -58,7 +65,7 @@ Apply the phase verification contract before launching a subagent. When the
 `Independent verification gate` is `none`, do not spawn a verifier; matrix
 entries describe available capabilities, not mandatory agents. Spawn one only
 for a named browser, service/process, mutable-data, credential,
-network/external, repository-policy, or critical-tier gate. Critical phases
+network/external, repository-policy, critical-tier, or selected execution-preset gate. Critical phases
 independently repeat the applicable deterministic gate already evidenced by
 the implementation owner.
 

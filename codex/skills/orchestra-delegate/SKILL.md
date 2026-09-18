@@ -1,6 +1,6 @@
 ---
 name: orchestra-delegate
-description: Execute one user-selected analysis, implementation, review, or verification assignment through Codex CLI, Cursor CLI, or Grok Build CLI, with scoped permissions and explicit session resume. Use when the user asks to delegate to one of those CLIs; supports direct work and approved Orchestra phases without activating the full workflow.
+description: Delegate a bounded assignment through Codex, Cursor, or Grok Build CLI, or resolve an explicitly selected execution preset. Supports standalone work without activating Orchestra.
 ---
 
 # Delegate one capability
@@ -13,6 +13,31 @@ the applicable [role and capability](../orchestra/SKILL.md) router's
 contract; do not forward the full workflow or conversation to the CLI.
 
 ## Prepare the assignment
+
+When a preset is selected, read WORKFLOW `Delegated execution presets` and
+resolve its assignment before the steps below. Example (no process starts):
+
+```sh
+python3 "${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/delegate.py" \
+  --preset standard-delegate --host codex --tier standard \
+  --capability general_implementation --resolve-only
+```
+
+Use the actual owning `--host`. For planning, pass the observed `--root-model`
+to reuse a matching root without changing its effort; add
+`--independent-planning` only for a named independent investigation or missing
+context. CLI results use the execution command below with `--preset` and
+`--host` instead of `--executor`, `--model`, and `--effort`. `root` stays in the
+conversation; `native` uses the owning Codex adapter with the exact returned
+profile/model/effort and fresh context; `host` uses that host's browser matrix.
+Verify native model/protocol availability rather than falling back to CLI.
+
+Use `--attempt 2` or `--attempt 3` only after the root admits the corresponding
+recovery under WORKFLOW. The helper never retries or decides an attempt failed.
+Carry forward the evidence and current edits; the third attempt uses a fresh
+Codex session. A user-supplied `--presets-file` selects customized assignments
+without overwriting the managed file. Keep independent review fresh regardless
+of who implemented the change.
 
 1. Resolve the requested executor, exact model, supported effort, checkout,
    capability, scope, acceptance, and permission authority. Infer already

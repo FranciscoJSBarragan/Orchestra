@@ -29,7 +29,9 @@ useful independently, without requiring the full planned workflow. A user may
 also choose a Codex, Cursor, or Grok CLI executor for a bounded assignment while the
 owning orchestrator retains scope, independent review, and delivery judgment.
 Reuse the user's chosen tools without introducing another workflow engine or
-weakening the quality contract.
+weakening the quality contract. An explicitly selected shared execution preset
+may distribute capabilities across these tools while preserving the owning
+conversation and independent review.
 
 ## Primary users
 
@@ -281,7 +283,9 @@ The overview's review-context index points to exact repository evidence rather
 than replacing it; each phase uses exact, non-glob documentation-maintenance
 paths or explicitly states that none are authorized.
 
-The implementation owner is the first deterministic quality gate. It runs and
+The default implementation owner is the first deterministic quality gate.
+An execution preset may assign terminal checks to a separate verifier under
+WORKFLOW "Delegated execution presets"; neither route waives those checks. It runs and
 autocorrects every required local deterministic check, including the canonical
 full suite when one exists. The independent reviewer judges intent, source,
 diff, tests, and evidence without routinely repeating those gates; it may run

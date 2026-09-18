@@ -160,7 +160,8 @@ is independent of the owning host, tier, and Codex native/external model
 configuration; it changes none of them. Use the exact requested CLI model and
 supported effort after inspecting that CLI's current catalog/help. Do not
 silently fall back to another model, provider, account, or API billing path.
-Native capability assignments remain the default. A delegate is a worker,
+Native capability assignments remain the default; an explicitly selected
+execution preset supplies the overrides described below. A delegate is a worker,
 never a second root running the whole Orchestra workflow.
 
 The same helper is callable from any supported host: a Cursor or Grok root
@@ -226,6 +227,90 @@ Commit, push, PR, merge, production, and deployment authority never travel
 implicitly with a worker's write permissions. The root owns authorized
 delivery. A missing browser transport blocks browser evidence; a successful
 CLI text result cannot substitute for it.
+
+## Delegated execution presets
+
+`standard-delegate` is an optional execution preset on the `standard` tier,
+available from Codex, Cursor, and Grok. Selecting it explicitly authorizes its
+assignments and bounded recovery ladder within the task's existing scope and
+permissions; it never activates Orchestra by itself, changes the root model
+or effort, or grants delivery authority. Ordinary native assignments remain
+the default. Do not combine it with another tier silently: a tier change
+requires an explicit choice to leave the preset or select a compatible one.
+
+The sole assignment source is `codex/config/execution-presets.toml`, installed
+as `${ORCHESTRA_HOME:-$HOME/.orchestra}/execution-presets.toml` with a Codex
+compatibility mirror. Its consumer is `delegate.py --resolve-only`: resolve
+the selected preset, owning host, capability, tier, and root-selected attempt
+before dispatch. It returns an exact CLI assignment, a native Codex assignment,
+root reuse, or the owning host's browser matrix. Check actual model/tool
+availability before use; unavailable assignments block rather than invoking a
+different account, model, host, or billing path. Native Codex assignments must
+be supported by the active protocol; the preset cannot cross native/external
+protocols. Other hosts use Codex CLI for Codex assignments and keep their own
+browser route. Codex browser acceptance stays native, never in Codex CLI.
+An explicitly supplied `--presets-file` may hold user-customized assignments;
+never edit managed installed files to customize one task.
+
+Keep the selection in conversation before approval and in the existing plan
+Decisions afterward, including the exact preset source and resolved assignments.
+On resume compare those assignments; configuration drift requires an explicit
+decision, never an unnoticed reroute. Attempt history stays in the existing
+reports and conversation. There is no retry database, agent registry, new
+artifact kind, or automatic retry process. Direct use stays in conversation.
+
+The launching conversation owns specification, orchestration, final judgment,
+and delivery; its chosen model and effort are authoritative. Reuse the root
+for planning and architecture when its observed model matches the configured
+planner and it has sufficient context, including multi-phase planning. This
+overrides the default requirement to dispatch a planner for complexity alone.
+Dispatch an independent planner only for a named investigation or missing
+context; a nonmatching root uses the configured planner without replacing
+itself. Independent plan and code reviews still follow Review policy.
+
+Delegate coherent assignments, not individual searches or commands. Context
+workers return focused source evidence; the root does not repeat their whole
+investigation. Resume the same logical implementer for accepted fixes and the
+same independent reviewer for meaningful deltas. Never forward the full chat
+or convert an implementer session into its reviewer.
+
+For this preset, the implementer writes or updates tests and runs useful
+development checks. The runtime verifier owns the terminal required tests,
+lint, types, build, and canonical suite in a separate source-read-only session.
+Put their exact argv and cwd in the phase's `Independent verification gate`,
+with reason `execution preset`; keep development checks under `Implementation
+handoff checks`. This is the explicit exception to the default all-checks-owner
+rule: the owner's handoff may name terminal checks as pending verification,
+never as passing. A required user preview still waits for those checks to pass.
+Then perform final independent review with the current verification evidence.
+Failed checks return to the implementer, not to a verifier that edits source.
+Rerun affected checks after fixes and the full gate only when required by
+repository policy. Browser verification remains a separate capability.
+If a repository explicitly requires the implementer itself to run a check,
+preserve that requirement; otherwise avoid duplicating whole suites.
+
+Recovery applies only to implementation and difficult debugging: attempt one
+uses the capability row, attempt two the first configured recovery assignment,
+and attempt three the last recovery assignment. A failed attempt means the
+agent returns with acceptance unmet, establishes a substantive blocker, or
+exhausts an agreed bounded work budget without a solution. An ordinary failing
+test during active development is not an exhausted attempt. Authentication,
+quota, unavailable models, permissions, transport failures, and an ordinary
+wait timeout do not consume attempts or trigger escalation. Scope or authority
+blockers require their existing decision, not a more privileged model.
+
+The root decides each transition from evidence after the previous worker has
+stopped and its changes/resources are inspected. Preserve useful edits. Before
+the second attempt, pass what failed and the current revision; resume with the
+new model only if that CLI supports it, otherwise start fresh. Before the third,
+assemble both attempts' changes, commands/results, failed approaches, discarded
+hypotheses, remaining acceptance, and exact scope in one compact packet. Use a
+fresh Codex subagent on Codex or Codex CLI on another host; never pass a Cursor
+session ID to Codex. Difficult debugging remains read-only; actual fixes use an
+implementation capability with explicit edit scope. The rescue model does not
+replace the preset's independent reviewer or verifier. If the third attempt
+fails, report the concrete blocker and needed decision. Do not reset the ladder
+by renaming the same unresolved assignment or switching its capability.
 
 ## Autonomy within an approved objective
 
@@ -427,7 +512,8 @@ during tier transitions. Legacy Codex `native` and `external` installations
 continue to provide one fixed top-level matrix and do not run session
 detection.
 
-The installed assignment is always attempted first. The only runtime
+Outside an explicit CLI assignment or execution preset, the installed assignment
+is always attempted first. The only runtime
 compatibility exception is `repository_context`: when its assigned model is
 rejected before execution because the internal subagent runtime does not support
 that model, a legacy installation may retain its current Luna-high behavior and
@@ -468,7 +554,10 @@ with the cheap tier. Do not rename the Codex `luna` key.
 
 ### Installed matrices are the assignment truth
 
-The installed TOML matrices, not this document, define every model and
+Explicit CLI and preset overrides follow "CLI delegation" and "Delegated
+execution presets"; the invariants below describe the native matrices.
+
+The installed TOML matrices, not this document, define native model and
 reasoning assignment. The sources are `codex/config/roles.native.toml` and
 `codex/config/roles.external.toml` (installed as
 `$CODEX_HOME/orchestra/roles.toml`, dual installs composing both under
@@ -624,7 +713,9 @@ After explicit activation in an execution-capable mode:
    unprivileged. An `invalid` or `unavailable` result after that correctly
    authorized attempt is reported as lost observability; the root omits the
    task identifier from later packets and continues with full authority.
-9. Final specification confirmation starts formal planning. The task-level
+9. Final specification confirmation starts formal planning. Apply the selected
+   execution preset's root-reuse rule when present; otherwise use the default
+   planner-dispatch criteria below. The task-level
    User preview Decision must already be recorded from tier selection; do not
    introduce it at plan approval. The root authors the plan directly whenever
    the work fits one phase, using the same two-document shape; it dispatches
@@ -1093,6 +1184,11 @@ forces a constrained visual change enables a short re-inspection. Preview
 does not replace `browser_acceptance`, lower the tier, or waive hard gates.
 After `completed`, further taste work is a PR-fix inside approved intent or a
 new task.
+
+The loop below describes default assignment and check ownership. An explicitly
+selected execution preset applies its check-ownership and bounded-recovery
+exceptions from "Delegated execution presets"; all acceptance, independent
+review, source-read-only verification, and delivery gates still apply.
 
 The loop is:
 

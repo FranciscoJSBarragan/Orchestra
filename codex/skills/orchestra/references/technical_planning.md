@@ -32,10 +32,12 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   approved contract.
 - Within each phase's existing `Verification` section, distinguish
   `Implementation handoff checks` from the `Independent verification gate`.
-  Assign every required local deterministic check to the implementation owner,
+  Apply WORKFLOW "Delegated execution presets" when a preset is selected,
+  including its terminal-check ownership and dedicated-gate reason. Otherwise
+  assign every required local deterministic check to the implementation owner,
   including affected tests, lint, type checks, builds, validation commands,
   and the canonical full suite when one exists. Copy literal `.agent/` hard-gate
-  commands into `Implementation handoff checks` and cite those `.agent/` paths
+  commands into the selected gate and cite those `.agent/` paths
   in `Review context`. Also cite the exact `.agent/` convention paths that
   bear on the change in `Review context`, and name in each phase the
   conventions it consumes; do not paste their bodies or add conventions the
@@ -45,7 +47,8 @@ Use this internal playbook only with the `orchestra_analyst` profile and the exp
   review packet must cite the exact `.agent/` seed paths. Do not write `.agent/`
   before plan approval. Set
   the independent gate to `none` for an ordinary deterministic non-critical
-  phase. Assign a verifier only for browser interaction, owned services or
+  phase without an execution-preset gate. Otherwise assign a verifier only for
+  browser interaction, owned services or
   processes, mutable or stateful data, credentials, network or another external
   environment, explicit repository policy, or any critical phase. A critical
   phase requires the implementer to run its deterministic checks and an

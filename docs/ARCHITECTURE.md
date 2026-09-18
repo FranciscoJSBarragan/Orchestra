@@ -231,7 +231,7 @@ root approves or rejects.
 
 The implementation owner, reviewer, and each required capability verifier form
 a bounded phase cohort. Ordinary deterministic non-critical phases have no
-verifier. A required user preview closes the first owner before the pause;
+verifier unless the selected execution preset assigns the terminal gate to one. A required user preview closes the first owner before the pause;
 after resume a fresh owner joins the remainder of the phase. One-shot analysts close after their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
 without carrying implementation state across phases. Analysis agents are
@@ -495,6 +495,14 @@ result plus a private diagnostic log. The native CLI owns its session;
 explicit session IDs provide resumption. There is no delegation database or
 workflow engine. Native host matrices continue to own default assignments;
 the user's explicit executor/model selection is a per-assignment override.
+An optional shared execution preset resolves those overrides from
+`codex/config/execution-presets.toml` through the same helper. The root consumes
+its read-only resolution for native/root dispatch, and CLI execution consumes
+the same result directly. The source is synchronized with the existing managed
+file lifecycle; no selection or retry database is added. This small lookup
+prevents three host adapters from maintaining divergent copies of the user's
+assignment and recovery ladder. Selection, check ownership, root planning reuse,
+and recovery are defined only in WORKFLOW "Delegated execution presets".
 `WORKFLOW.md` ("CLI delegation") owns permissions, independence, recovery,
 and acceptance. Execution results cannot replace reviews or Git evidence.
 

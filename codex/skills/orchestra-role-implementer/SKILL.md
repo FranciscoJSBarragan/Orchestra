@@ -27,7 +27,11 @@ needs. Follow cited `.agent/` conventions exactly; in phase mode, never edit
 an explicitly scoped `.agent/` edit still requires the repository's own
 authority and conventions; do not infer permission from this role.
 
-Run every required local deterministic check, including affected tests, lint,
+When the packet names an execution preset, read WORKFLOW "Delegated execution
+presets" for terminal-check ownership and recovery. Report verifier-owned
+checks as pending, never passing, and keep the tests themselves in your scope.
+Otherwise run every required local deterministic check, including affected
+tests, lint,
 type checks, builds, validation commands, and the canonical full suite when the
 repository provides one. Diagnose and correct failures within scope, then
 rerun affected checks. A weaker, skipped, stale, or manufactured pass is not
@@ -44,8 +48,8 @@ absorption, treat in-scope uncommitted and untracked edits plus authorized
 preexisting commits as the delta.
 
 Keep the same logical implementation owner for accepted fixes and preview
-absorption in phase mode. If that owner is confirmed unavailable, a
-replacement receives the same approved artifact IDs and accepted findings. A
+absorption in phase mode. If that owner is confirmed unavailable or the
+selected preset authorizes a recovery transition, a replacement receives the same approved artifact IDs and accepted findings. A
 context discovery never expands edit authority. Phase documentation
 corrections require the exact discovery, root `persist`, phase-listed path,
 bounded revalidation, affected checks, and the same reviewer's delta review.

@@ -20,7 +20,7 @@ the current checkpoint:
 | --- | --- |
 | Activation and user authority | `Orchestrator behavior`, `Host adapters`, `Autonomy within an approved objective` |
 | Host, tier, and assignment | `Tier flows and models`, `Installed matrices are the assignment truth`, and the selected host adapter |
-| Direct tools or a user-selected CLI executor | `Standalone tools`, `CLI delegation`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
+| Direct tools, CLI executor, or execution preset | `Standalone tools`, `CLI delegation`, `Delegated execution presets`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
 | Context, specification, and plan | `Context and planning`, `Local task plan`, and the named analysis playbook |
 | Phase work and preview | `Phase execution`, `User preview`, `Material context discovery and promotion` |
 | Waiting and teardown | `Agent waiting`, `Phase teardown`, `Test permissions and browser routing` |
@@ -47,13 +47,16 @@ Codex uses [host_codex](references/host_codex.md),
 `spawn_agent`, and `wait_agent`; Cursor uses its Task adapter; Grok Build uses
 its `spawn_subagent` adapter. Resolve the selected host's matrix through that
 adapter. Only Codex dual mode runs the installed `session_model.py`; Cursor
-and Grok read their own host matrices. The selected model configuration is
-immutable for the task and is never inferred from an arbitrary effort value.
+and Grok read their own host matrices. When the user selects an execution
+preset, resolve its capability overrides
+through [orchestra-delegate](../orchestra-delegate/SKILL.md) before native
+assignment lookup; reuse the selected host adapter for native results.
+The selected model configuration is immutable for the task and is never inferred from an arbitrary effort value.
 
 Before resources exist, read `Tier flows and models`, recommend one assigned
 tier with concise risk and cost evidence, and obtain the user's choice. The
-matrix remains the source for model and reasoning assignments; a cheaper tier
-never waives authority, review, verification, or delivery gates.
+matrix supplies native defaults and the explicitly selected preset supplies
+its overrides; a cheaper tier never waives authority, review, verification, or delivery gates.
 
 ## Capability router
 
@@ -96,8 +99,9 @@ Follow the named WORKFLOW sections rather than reproducing their rules here:
    applicable. Confirm the specification and candidate plan according to its
    phase rule, then obtain plan approval.
 4. For each phase, read `Phase execution`, `Review policy`, and
-   `Material context discovery and promotion`. The implementation owner runs
-   every required deterministic handoff check. Every accepted phase requires a
+   `Material context discovery and promotion`. Check ownership follows
+   the selected execution preset, or the implementation owner by default.
+   Every accepted phase requires a
    fresh independent code review; a verifier is added only for the phase's
    named independent gate. Accepted findings return to the same logical owner.
 5. Read `User preview` when the phase declares it. The current owning chat may
@@ -117,7 +121,8 @@ Follow the named WORKFLOW sections rather than reproducing their rules here:
 
 When an owner or reviewer is closed, preserve the logical assignment and the
 exact approved artifact IDs. Resume the same agent when it is available. Spawn
-a replacement only after the prior agent is confirmed unavailable; a replaced
+a replacement only after the prior agent is confirmed unavailable or the
+selected preset authorizes an evidence-backed recovery transition; a replaced
 reviewer is always a fresh independent reviewer. Read the host-specific
 recovery rules in `Phase execution` and `PR path`.
 

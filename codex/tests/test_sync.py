@@ -89,6 +89,10 @@ class SyncTests(unittest.TestCase):
         for directory in ("skills", "agents", "control"):
             shutil.copytree(ROOT / "codex" / directory, fixture / "codex" / directory)
         (fixture / "codex/config").mkdir(parents=True)
+        shutil.copy2(
+            ROOT / "codex/config/execution-presets.toml",
+            fixture / "codex/config/execution-presets.toml",
+        )
         for modelconfig in ("native", "external"):
             shutil.copy2(
                 ROOT / f"codex/config/roles.{modelconfig}.toml",
@@ -1938,6 +1942,30 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "partial")
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
         self.assertEqual(agents.read_bytes(), original)
+
+    def test_execution_preset_resolves_from_each_install_and_is_owned_on_uninstall(self) -> None:
+        for host in ("codex", "cursor", "grok", "all"):
+            with self.subTest(host=host):
+                result = self.run_sync("apply", host=host,
+                                       modelconfig="native" if host in ("codex", "all") else None)
+                self.assertEqual(result["status"], "ok", result)
+                locations = [self.orchestra_root]
+                if host in ("codex", "all"):
+                    locations.append(self.codex_home / "orchestra")
+                for location in locations:
+                    preset = location / "execution-presets.toml"
+                    self.assertEqual(preset.read_bytes(), (ROOT / "codex/config/execution-presets.toml").read_bytes())
+                    resolved = subprocess.run([
+                        sys.executable, str(location / "scripts/delegate.py"),
+                        "--preset", "standard-delegate", "--host", "codex" if host == "all" else host,
+                        "--capability", "independent_review", "--resolve-only",
+                    ], cwd=self.home, capture_output=True, text=True, check=False)
+                    self.assertEqual(resolved.returncode, 0, resolved.stdout + resolved.stderr)
+                    self.assertEqual(json.loads(resolved.stdout)["model"], "claude-fable-5-1-thinking-medium")
+                removed = sync.uninstall(self.home, self.codex_home, host=host)
+                self.assertEqual(removed["status"], "ok", removed)
+                for location in locations:
+                    self.assertFalse((location / "execution-presets.toml").exists())
 
     def test_cursor_host_installs_adapter_without_codex_config(self) -> None:
         preview = self.run_sync(
