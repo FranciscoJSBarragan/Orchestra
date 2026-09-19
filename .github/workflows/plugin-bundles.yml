@@ -1,0 +1,44 @@
+name: Plugin bundles
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11'
+      - name: Validate canonical sources and package contracts
+        run: python3 codex/scripts/validate_suite.py --full
+      - name: Build versioned bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_version=$(python3 -c 'import json; print(json.load(open("packaging/orchestra/.codex-plugin/plugin.json"))["version"])')
+          revision=$(git rev-parse --short=12 HEAD)
+          mkdir -p dist/downloads
+          for target in portable cursor grok; do
+            python3 codex/scripts/package_plugin.py --target "$target" --output "dist/$target/orchestra"
+            tar -czf "dist/downloads/orchestra-$package_version-$revision-$target.tar.gz" -C "dist/$target" orchestra
+          done
+          cd dist/downloads
+          sha256sum ./*.tar.gz > SHA256SUMS
+      - name: Upload candidate bundles
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: orchestra-plugins-${{ github.sha }}
+          path: dist/downloads/
+          if-no-files-found: error
+          retention-days: 14

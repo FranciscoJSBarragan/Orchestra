@@ -36,8 +36,8 @@ For each capability:
 1. Resolve `profile`, `subagent_type`, product `model`, and `effort` from
    `tiers.<selected-tier>.<capability>`.
 2. Launch a **fresh** subagent with that `subagent_type`. Use
-   `spawn_subagent` when the live session schema offers it. Current Grok
-   builds omit it (and it is not reachable through `use_tool`); there,
+   `spawn_subagent` when the live session schema offers it. Some Grok
+   sessions omit it (and it is not reachable through `use_tool`); there,
    dispatch through the host `workflow` script tool with an `agent()` call
    carrying the same fields. Either way pass `background: true`,
    `isolation: none`, and `cwd` set to the exact Orchestra task checkout.

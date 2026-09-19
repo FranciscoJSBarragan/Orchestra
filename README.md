@@ -224,7 +224,13 @@ Every test must prove observable acceptance or pin a named regression risk. Read
 
 ## Status
 
-Orchestra is in active use on real projects by its author and is shared here for developers who want the same process. The skill and helper contracts are stable enough to install; the plugin/marketplace distribution boundary is intentionally deferred until install, update, and both delivery paths are proven in more repositories (see `docs/ROADMAP.md`). Feedback from real tasks is the most useful contribution right now.
+Orchestra is in active use on real projects by its author and is shared here for
+developers who want the same process. Direct sync and local plugin bundles are
+available; CI produces versioned candidate downloads. See the
+[plugin acceptance evidence](packaging/README.md) for the tested hosts and
+limits. Public marketplace publication and broader real-project delivery
+coverage remain in [the roadmap](docs/ROADMAP.md). Feedback from real tasks is
+the most useful contribution right now.
 
 ## License
 

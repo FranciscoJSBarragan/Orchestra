@@ -461,14 +461,13 @@ Shared product, skills, packets, artifacts, Git, and the four role skills are
 host-neutral. Each execution host supplies only spawn/wait/close, the model
 matrix, conversation identity, permissions, and `browser_route`.
 
-The root detects the host from available tools: Codex when `spawn_agent` and
-`wait_agent` exist; otherwise Grok Build when `spawn_subagent` exists;
-otherwise Cursor when `Task` exists. Native dispatch keeps that host's
-protocol; an explicit CLI executor does not change it. Codex keeps
+The root detects the host and resolves its native transport as specified in
+WORKFLOW "Orchestrator behavior" and the host spawn reference. An explicit
+CLI executor does not change the owning host. Codex keeps
 `fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
 phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
-dispatch API. Grok uses a fresh `spawn_subagent` per dispatch, `isolation:
+dispatch API. Grok uses a fresh native subagent per dispatch, `isolation:
 none`, `cwd` equal to the task checkout, may `resume_from` the same
 phase-cohort agent after completion, including the same reviewer for delta
 reviews; first reviews stay fresh spawns.

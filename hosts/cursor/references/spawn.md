@@ -74,6 +74,15 @@ substitute a different model family for an assigned row; when the exact
 effort slug is missing from the live schema, use the same family's closest
 effort without rewriting the product contract.
 
+Some CLI sessions expose only `generalPurpose` for these workers. In that
+schema, use a fresh `generalPurpose` Task with the assigned family's explicit
+model slug and the same role packet. For example, the observed Grok high slug
+`cursor-grok-4.6-high-fast` preserves the family and effort when
+`cursor-grok-4.6-high` is absent. Record the actual worker and model fields;
+the product matrix stays unchanged. If the live schema cannot select the
+assigned family, report the missing capability instead of using an inherited
+model of another family.
+
 ## Wait and cleanup
 
 Wait with the host wait contract: a background Task plus completion

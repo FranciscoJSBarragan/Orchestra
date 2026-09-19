@@ -98,8 +98,8 @@ conversation identity, permissions, and `browser_route`.
   requires completed agents with no retained write-capable resources. Cursor
   sync never writes Codex `config.toml` or Cursor `settings.json`.
 - Grok Build reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Dispatch
-  uses `spawn_subagent` with `general-purpose` plus the existing
-  `orchestra-role-*` skill. Do not use the host workflow tool or
+  uses `general-purpose` plus the existing `orchestra-role-*` skill through
+  the native transport defined by the Grok spawn reference. Do not use
   `isolation: worktree`. Wait uses `get_command_or_subagent_output` with
   `timeout_ms: 600000`. Cleanup requires completed agents with no retained
   write-capable resources. Grok sync never writes `~/.grok/config.toml` or
@@ -599,8 +599,8 @@ not updated for such a change. Structural invariants the matrices must keep:
 - Grok assigns `standard` and `critical` on the live `grok-4.6` catalog with
   identical spawn rows (`critical` raises root scrutiny, not the model) and
   blocks unassigned `minimal`. The Grok spawn reference maps rows onto
-  `spawn_subagent` `general-purpose` without inventing a per-dispatch
-  reasoning field.
+  `general-purpose` through the available native transport, without inventing
+  a per-dispatch reasoning field.
 - Frontend implementation composes `orchestra_implementation_worker`; browser
   acceptance composes `orchestra_verifier`. They never run as one combined
   role.
