@@ -54,6 +54,24 @@ class SyncTests(unittest.TestCase):
         self.codex_version = self.version_patcher.start()
         self.addCleanup(self.version_patcher.stop)
 
+    def subprocess_environment(self) -> dict[str, str]:
+        """Supply the same version fixture across the subprocess boundary."""
+        tools = Path(self.temporary.name) / "bin"
+        tools.mkdir()
+        codex = tools / "codex"
+        codex.write_text(
+            '#!/bin/sh\n'
+            'if [ "$#" -eq 1 ] && [ "$1" = "--version" ]; then\n'
+            '  printf "%s\\n" "codex-cli 0.146.0"\n'
+            'else\n'
+            '  exit 1\n'
+            'fi\n'
+        )
+        codex.chmod(0o700)
+        env = os.environ.copy()
+        env["PATH"] = str(tools) + os.pathsep + env.get("PATH", os.defpath)
+        return env
+
     def run_sync(
         self,
         action: str,
@@ -1406,7 +1424,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(list(external.iterdir()), [])
 
     def test_subprocess_contract_uses_only_explicit_temporary_destinations(self) -> None:
-        env = os.environ.copy()
+        env = self.subprocess_environment()
         env["HOME"] = str(self.home)
         env["CODEX_HOME"] = str(self.codex_home)
         env.pop("ORCHESTRA_WORKTREE_ROOT", None)
@@ -1435,7 +1453,7 @@ class SyncTests(unittest.TestCase):
         )
 
     def test_subprocess_defaults_codex_home_and_installed_helper_resolves(self) -> None:
-        env = os.environ.copy()
+        env = self.subprocess_environment()
         env["HOME"] = str(self.home)
         env.pop("CODEX_HOME", None)
         env.pop("ORCHESTRA_WORKTREE_ROOT", None)
@@ -1484,7 +1502,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(removed.returncode, 0, removed.stderr or removed.stdout)
 
     def test_subprocess_worktree_root_flag_overrides_environment(self) -> None:
-        env = os.environ.copy()
+        env = self.subprocess_environment()
         env["HOME"] = str(self.home)
         env["CODEX_HOME"] = str(self.codex_home)
         environment_root = self.home / "from-environment"
