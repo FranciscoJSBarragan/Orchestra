@@ -229,6 +229,32 @@ Its JSONL evidence consists of the thread ID, agent result and completed turn;
 when the protocol does not report an actual model, keep `observed_model`
 unknown rather than copying the requested model into an observed field.
 
+Launch once through the host's process tool and retain its execution handle.
+Use `Agent waiting` for completion and diagnostics; do not detach the invocation
+and monitor it by repeatedly reading files. Supply a new private `--result-file`
+beside the event log: the helper publishes the complete final JSON atomically
+before stdout, without replacing an existing file. It is recovery evidence for
+this invocation, not task state. Read either that result or the equivalent
+tool output once, then the named evidence needed for judgment. Preserve the
+result and log through review/recovery and remove them together afterward.
+
+If the process has ended but its final output is unavailable, inspect the
+result file and exact native session once. An absent result is not evidence of
+continued execution or success. Reconcile terminal evidence, current Git
+content and owned resources before deciding whether a same-session follow-up
+is needed. A native completed session plus its attributable report and actual
+check logs can recover evidence; missing evidence remains partial or blocked.
+Never repeat implementation or successful checks merely to recreate a launcher
+summary. A host or OS crash can prevent result publication; do not claim that
+the result file makes arbitrary interruptions recoverable automatically.
+
+`session_id` is observed protocol identity; `resume_session_id` preserves the
+explicit request even when the stream fails before reporting identity. Neither
+field proves completion. Classify remote API refusals separately from local
+tool approvals, authentication, quota and transport failures. A provider's
+`403 permission-denied` does not authorize broader filesystem permissions or
+a retry intended to bypass its refusal.
+
 Timeout, interruption, authentication failure, denied permission, quota, or
 malformed/missing terminal evidence returns a bounded failure with the
 observed session and changes. Stop only processes owned by that invocation;
@@ -642,6 +668,11 @@ After explicit activation in an execution-capable mode:
    commands, test-data provenance, and generated paths relevant to the task.
    It also resolves the installed checkout mode. No branch, worktree, plan, or
    fetch mutation happens yet.
+   During authorized execution-readiness work, establish the baseline of cheap
+   required checks such as lint or configuration validation before substantial
+   implementation. Surface existing failures early with their scope and gate
+   implications. Do not run the whole suite speculatively, silently waive a
+   baseline failure, or expand the implementation to unrelated fixes.
 5. The root answers the brief's bounded factual questions itself when its
    read-only preflight already covers them; the criterion is the volume of
    evidence still needed, never the root's familiarity with the repository.
@@ -971,6 +1002,18 @@ its minimum objective and focused questions. Later agents read objective,
 scope, acceptance, verification, plan details, and findings directly from named
 documents. A changed HEAD invalidates only affected evidence.
 
+Load shared instructions once per available context and read only sections
+needed for the checkpoint; reread when the source changed or the relevant
+context is no longer available. Consume a delegated investigation rather than
+repeating it. Reopen source for a named unresolved question or independent
+judgment, not to observe progress. Reports keep enough evidence to establish
+their outcome, while citing exact prior evidence for unchanged facts. A delta
+report names its prior report, current revision, affected findings and new
+verification; it does not replay the full history. Keep raw logs and large
+fingerprint tables in the named evidence location instead of duplicating them
+in packets, reports and the root's response. An inline publication fallback
+must still contain the complete substantive result.
+
 Conventional artifact kinds are `repository-context`, `context-delta`,
 `plan-overview`, `plan-phase`, `plan-review`, `implementation-report`,
 `verification-report`, `implementation-review`, `debugging-report`, and
@@ -1212,8 +1255,8 @@ The loop is:
    the task-worktree implementation is mutable: the root waits and limits
    itself to user dialogue, agent/resource coordination, and root-owned setup
    that does not inspect or exercise the evolving implementation. It does not
-   read the evolving diff, run speculative canaries against it, or send design
-   corrections.
+   read the evolving diff or consume the worker's event transcript as progress,
+   run speculative canaries against it, or send design corrections.
 2. At each stable handoff, the worker publishes a complete
    `implementation-report` for the evaluated revision or returns it inline.
    It cannot return `implemented` while a required deterministic check is
@@ -1520,6 +1563,23 @@ regressions, and defect-prone complexity remain in scope. A defect that
 forces a constrained visual change enables a short re-inspection rather than
 reopening taste.
 
+### Mechanical release metadata
+
+After reviewed implementation and its authorized delivery, the root may prepare
+a separately authorized release's mechanical version and changelog updates
+without dispatching another independent reviewer. Inspect the exact delta,
+derive notes from the released Git range, and use the existing release tooling
+to validate version, tag, changelog and packaging consistency. Preserve all
+repository-required checks and any explicitly required release review; do not
+infer a full-suite exemption from this review exception.
+
+This lane covers only version identifiers and accurate release notes. Changes
+to executable behavior, dependencies, build/release logic, migrations, security
+or compatibility need the normal implementation review. Unresolved semantic
+versioning or compatibility claims require evidence or a focused review, not a
+mechanical-pass label. This is not a new phase, delivery authority, or permission
+to replace the completed plan's terminal revision with an unreviewed commit.
+
 ## Task checkout and branch
 
 Every formal Orchestra task uses a fresh `orchestra/<task-slug>[-N]` branch.
@@ -1620,17 +1680,39 @@ rules.
 
 ## Agent waiting
 
-The root waits on live agents in non-interruptive ten-minute windows
-(`timeout_ms: 600000`). Completion returns immediately; `timed_out` only means
-the agent remains active, so the root waits again without sending a status
-request or using `interrupt: true`. After 30 accumulated minutes, the root may
-assess once for concrete blocker evidence, but elapsed time alone never marks
-the assignment failed. Interruptions are reserved for cancellation, material
-scope changes, or indispensable invalidating information.
+Prefer the host's completion notification or a non-interruptive wait on the
+exact live agent/process handle. Native adapters use ten-minute windows
+(`timeout_ms: 600000`) when supported; obey a shorter active host limit.
+Completion or error must return immediately, including before the first status
+inspection interval. A timeout only means the wait ended, not that work failed.
+Do not replace an event-aware wait with unconditional sleeps or a chain of
+model turns whose only purpose is deciding to sleep again. If the host supports
+only short waits, continue on the same handle without extra Git/log inspection
+or unchanged narration; do not invent a background-notification API.
 
-A normal `timed_out` result is not a user-visible transition and produces no
-progress update unless the user asks. The 30-minute assessment is reported only
-when it establishes a material blocker or another reportable transition.
+For CLI delegation, wait on the launcher process, not an empty redirected file.
+If manual status inspection is necessary, allow at least five minutes after
+dispatch and between inspections. For a review delegated through Cursor CLI,
+allow ten minutes before its first manual inspection unless the user specifies
+otherwise. These intervals limit unsolicited polling, never delay an available
+completion/error or an answer to the user. Apply the mutable-implementation
+boundary from `Phase execution` to active implementers in both phase and
+standalone assignments.
+
+After 30 accumulated minutes, the root may assess once for a concrete blocker;
+a reported error, unavailable process, or known stuck command can justify an
+earlier targeted diagnosis. Inspect only the needed process state or bounded
+diagnostic tail, without dumping full process arguments or event history. The
+owning worker should resolve a stalled command within its assignment. If CLI
+transport cannot receive a message while running, do not pretend otherwise:
+first reconcile the current invocation and its resources, then resume its exact
+session with the focused blocker when necessary. Never replay a mutating prompt.
+Stop only the identified owned resource when justified; elapsed time or silence
+alone never authorizes cancellation, escalation, or a replacement worker.
+
+A normal timeout is not a user-visible transition. Report a material result,
+blocker or decision, and answer explicit status requests, without repeating
+unchanged progress.
 
 ## Commit path
 

@@ -88,7 +88,8 @@ def _emit(payload: dict[str, Any]) -> None:
             ensure_ascii=True,
             sort_keys=True,
             separators=(",", ":"),
-        )
+        ),
+        flush=True,
     )
 
 
@@ -126,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--resolve-only", action="store_true", help="Return the preset assignment without starting a process")
     parser.add_argument("--prompt-file")
     parser.add_argument("--log-file")
+    parser.add_argument("--result-file", help="New private final JSON file outside the checkout; published before stdout")
     parser.add_argument("--expected-head")
     parser.add_argument("--resume")
     parser.add_argument("--permissions", choices=PERMISSIONS, default="default")
@@ -519,6 +521,35 @@ def _prepare_log(path: Path, repo: Path) -> Any:
     except Exception:
         os.close(descriptor)
         raise
+
+
+def _result_path(raw: str, repo: Path) -> Path:
+    path = _absolute_path(raw, "result-file")
+    if _inside(path, repo):
+        raise DelegateInputError("result-file must be outside the repository")
+    if not path.parent.is_dir():
+        raise DelegateInputError("result-file parent must be an existing regular directory")
+    if path.exists():
+        raise DelegateInputError("result-file must name a new private file")
+    return path
+
+
+def _publish_result(path: Path, payload: dict[str, Any]) -> None:
+    """Publish complete recovery evidence atomically, without replacing a file."""
+    temporary: Path | None = None
+    try:
+        if _path_has_symlink(path):
+            raise OSError("result-file cannot use a symbolic-link path")
+        descriptor, name = tempfile.mkstemp(prefix=".orchestra-result-", dir=path.parent)
+        temporary = Path(name)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+            stream.write("\n")
+        # Unlike replace(), link() fails if another invocation owns this name.
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink()
 
 
 def _boundary_prompt(repo: Path, capability: str, prompt: str) -> str:
@@ -992,10 +1023,13 @@ def _run_process(
                 _terminate_process_group(process)
                 break
             events = selector.select(min(remaining, 0.25))
-            if not events and process.poll() is not None:
-                continue
             for key, _ in events:
                 _read_ready(selector, key, protocol, log_stream, stderr_buffer)
+            if process.poll() is not None:
+                # A completed CLI may leave a child holding its pipes. End the
+                # owned group now, then drain buffered evidence in finally.
+                _terminate_process_group(process)
+                break
     except KeyboardInterrupt:
         cancelled = True
     except BaseException as error:
@@ -1112,14 +1146,19 @@ QUOTA_FAILURE_MARKERS = (
 )
 
 
-def _blocked_failure(text: str) -> bool:
-    lowered = text.casefold()
-    return any(
-        marker in lowered
-        for marker in AUTH_FAILURE_MARKERS
-        + PERMISSION_FAILURE_MARKERS
-        + QUOTA_FAILURE_MARKERS
-    )
+def _failure_kind(text: str) -> str | None:
+    lowered = re.sub(r"[-_]", " ", text.casefold())
+    if (re.search(r"(?:status|http status)\W{0,8}403\b", lowered)
+            and ("permission denied" in lowered or "can't help with that request" in lowered)):
+        return "provider_denied"
+    for kind, markers in (
+        ("authentication", AUTH_FAILURE_MARKERS),
+        ("permission", PERMISSION_FAILURE_MARKERS),
+        ("quota", QUOTA_FAILURE_MARKERS),
+    ):
+        if any(marker in lowered for marker in markers):
+            return kind
+    return None
 
 
 def _reason_append(reasons: list[str], value: str) -> None:
@@ -1140,6 +1179,7 @@ def _result_payload(
     status: str,
     reasons: Iterable[str] = (),
     failure: str | None = None,
+    failure_kind: str | None = None,
 ) -> dict[str, Any]:
     protocol = process_capture.protocol if process_capture is not None else None
     paths: list[str] = []
@@ -1162,6 +1202,7 @@ def _result_payload(
         "requested_model": args.model,
         "observed_model": observed_model,
         "session_id": protocol.session_id if protocol is not None else None,
+        "resume_session_id": args.resume,
         "allocated_session_id": allocated_session_id,
         "log_file": args.log_file,
         "exit_code": process_capture.exit_code if process_capture is not None else None,
@@ -1181,6 +1222,8 @@ def _result_payload(
         "cancelled": bool(process_capture and process_capture.cancelled),
         "transport_error": process_capture.transport_error if process_capture else None,
     }
+    if failure_kind is not None:
+        payload["failure_kind"] = failure_kind
     all_reasons = list(reasons)
     if failure:
         payload["failure"] = failure[:2_000]
@@ -1249,6 +1292,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     reasons: list[str] = []
     status = "ok"
     failure: str | None = None
+    failure_kind: str | None = None
     try:
         if args.executor == "grok" and args.resume is None:
             allocated_session_id = str(uuid.uuid4())
@@ -1329,9 +1373,9 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             status = "partial" if status == "ok" else status
             _reason_append(reasons, f"delegation timed out after {args.timeout:g} seconds")
         elif process_capture.exit_code != 0:
-            if _blocked_failure(failure_text):
+            if failure_kind := _failure_kind(failure_text):
                 status = "blocked"
-                _reason_append(reasons, "executor reported an authentication, permission, or quota failure")
+                _reason_append(reasons, f"executor reported {failure_kind}; no automatic retry or permission expansion")
             else:
                 status = "partial" if status == "ok" else status
                 _reason_append(reasons, f"executor exited with code {process_capture.exit_code}")
@@ -1342,9 +1386,9 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "executor exited without a final result (terminal evidence missing or invalid)",
             )
         elif protocol.failure_detail:
-            if _blocked_failure(protocol.failure_detail + " " + process_capture.stderr):
+            if failure_kind := _failure_kind(failure_text):
                 status = "blocked"
-                _reason_append(reasons, "executor reported an authentication, permission, or quota failure")
+                _reason_append(reasons, f"executor reported {failure_kind}; no automatic retry or permission expansion")
             else:
                 status = "partial" if status == "ok" else status
                 failure = protocol.failure_detail
@@ -1393,6 +1437,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         status=status,
         reasons=reasons,
         failure=failure,
+        failure_kind=failure_kind,
     )
     return payload, 0 if status == "ok" else 1
 
@@ -1400,11 +1445,14 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    result_path: Path | None = None
     try:
         route = None
         if args.preset:
             route = resolve_preset(args)
             if args.resolve_only:
+                if args.result_file:
+                    raise DelegateInputError("--result-file is for execution, not preset resolution")
                 _emit(route)
                 return 0
             if route["executor"] not in EXECUTORS:
@@ -1420,6 +1468,13 @@ def main(argv: list[str] | None = None) -> int:
         for field in ("repo", "executor", "model", "prompt_file", "log_file", "expected_head"):
             if not getattr(args, field):
                 raise DelegateInputError(f"--{field.replace('_', '-')} is required for execution")
+        if args.result_file:
+            result_path = _result_path(args.result_file, _absolute_path(args.repo, "repo"))
+            if result_path in {
+                _absolute_path(args.prompt_file, "prompt-file"),
+                _absolute_path(args.log_file, "log-file"),
+            }:
+                raise DelegateInputError("result-file must differ from prompt-file and log-file")
         payload, exit_code = execute(args)
         if route is not None:
             payload["assignment"] = route
@@ -1429,7 +1484,26 @@ def main(argv: list[str] | None = None) -> int:
     except DelegateUnavailable as error:
         _emit({"status": "blocked", "reason": _compact(str(error), limit=500)})
         return 1
-    _emit(payload)
+    if result_path is not None:
+        payload["result_file"] = os.fspath(result_path)
+        try:
+            _publish_result(result_path, payload)
+        except OSError as error:
+            payload["status"] = "partial" if payload["status"] == "ok" else payload["status"]
+            payload["reason"] = "; ".join(filter(None, (
+                payload.get("reason"), f"cannot publish result-file: {error}",
+            )))
+            exit_code = 1
+    try:
+        _emit(payload)
+    except BrokenPipeError:
+        # The host may close its output while the CLI finishes independently.
+        # A published result remains valid evidence; never replay the request.
+        try:
+            sys.stdout.close()
+        except BrokenPipeError:
+            pass
+        return exit_code if result_path is not None else 1
     return exit_code
 
 

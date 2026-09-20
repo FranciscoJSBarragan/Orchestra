@@ -76,10 +76,10 @@ a workflow script. Children cannot spawn children; do not ask them to.
 ## Wait and cleanup
 
 Wait with `get_command_or_subagent_output` in non-interruptive ten-minute
-windows (`timeout_ms: 600000`). Timeout is continued work, not a user-visible
-transition. After 30 accumulated minutes, assess once for concrete blocker
-evidence. Cancel only with `kill_command_or_subagent` for an explicit
-cancellation or invalidating scope change.
+windows (`timeout_ms: 600000`) when supported by the active host. WORKFLOW
+"Agent waiting" owns completion and diagnosis. Explicit CLI delegates use
+their launcher process handle. Use `kill_command_or_subagent` only for a
+cancellation authorized under that contract.
 
 Grok has no `close_agent`. Require every phase agent to be `completed` with
 no active descendant or retained write-capable resource before commit, matching

@@ -29,6 +29,10 @@ Keep the root responsible for reading the user's delivery direction and making t
 
 Opening a PR authorizes the create/review/fix/commit/push loop through clean status. It never authorizes merge. Local integration authority does not authorize release, deployment, publication, or production mutation. Delivery selection never changes a completed local plan back into execution state. Return only `ok`, `partial`, or `blocked` with compact evidence.
 
+For a subsequent explicitly authorized release, use the repository's release
+tooling and WORKFLOW "Review policy" / "Mechanical release metadata". That lane
+does not replace the implementation review or terminal-revision delivery gate.
+
 An accepted PR fix that remains inside approved intent may advance the affected
 phase's terminal manifest commit after verification, review, and phase commit;
 update it before push. New scope or user-visible behavior after `completed` or

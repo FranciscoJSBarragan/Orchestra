@@ -77,6 +77,12 @@ Never bypass a denial or weaken a deterministic syntax, type, compile, lint,
 import, assertion, validation, or CLI-usage failure. Missing external services,
 credentials, or dependencies may be `blocked`, never an authority expansion.
 
+Use bounded reads and searches for the named question. A shell command moved
+to the background has not passed; retain its handle and inspect its exit when
+complete. Diagnose a supposedly short read that stalls before stacking more
+commands on it. Capture the original check's exit status with a shell-safe
+variable, not the status of a later logging command.
+
 Separate observed facts, supported inference, and uncertainty. Redact secrets,
 tokens, credentials, payment data, and personal data while naming the safe
 category or locator. In `orchestra_phase` mode, do not address the user or
@@ -110,6 +116,9 @@ root, normally the next `<NN>-<kind>.md` under
 publication is unavailable, return the complete report inline; never
 retry-loop or make publication failure a workflow blocker. Do not replay
 packet contents, unchanged context, routine narration, or duplicate evidence.
+Use WORKFLOW "Coordination snapshots and artifacts" for compact evidence and
+delta reports. After successful publication, the handoff is the outcome, exact
+artifact ID and material blockers/risks, not a second copy of the report.
 
 Only in `orchestra_phase` mode, when a coordination task ID is supplied, use
 only the installed `coordination.py` helper for material start, final, or

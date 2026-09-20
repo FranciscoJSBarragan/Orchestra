@@ -32,10 +32,9 @@ the applicable deterministic gate already evidenced by the implementation
 owner.
 
 Wait for live agents with `wait_agent` in non-interruptive ten-minute windows
-(`timeout_ms: 600000`). Completion wakes the root immediately; `timed_out`
-means continue waiting without `send_input` or `interrupt: true`. A normal
-timeout is not a user-visible transition. After 30 accumulated minutes, assess
-once only for concrete blocker evidence.
+(`timeout_ms: 600000`) when the active host supports that duration. Follow
+WORKFLOW "Agent waiting" for completion, shorter host limits and diagnosis.
+Explicit CLI delegates use their launcher process handle, not `wait_agent`.
 
 After owner cleanup, retire the cohort using completed agents with no live
 children or retained resources. Follow WORKFLOW "Phase teardown" for exceptions.

@@ -86,9 +86,8 @@ model of another family.
 ## Wait and cleanup
 
 Wait with the host wait contract: a background Task plus completion
-notification, in non-interruptive ten-minute windows. Timeout is continued
-work, not a user-visible transition. After 30 accumulated minutes, assess once
-for concrete blocker evidence.
+notification. WORKFLOW "Agent waiting" owns intervals, completion and diagnosis.
+Explicit CLI delegates use their launcher process handle, not the Task wait.
 
 Cursor has no `close_agent`. Require every phase agent to be `completed` with
 no active descendant or retained write-capable resource before commit, matching

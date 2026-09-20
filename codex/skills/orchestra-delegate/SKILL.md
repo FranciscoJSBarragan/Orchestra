@@ -8,7 +8,7 @@ description: Delegate a bounded assignment through Codex, Cursor, or Grok Build 
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 Keep scope, routing, acceptance, and delivery in the owning conversation. Read
-`Standalone tools` and `CLI delegation` in
+`Standalone tools`, `CLI delegation`, and `Agent waiting` in
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (source fallback:
 [runtime resources](../orchestra/runtime.md)). Those sections own the policy. Use
 the applicable [role and capability](../orchestra/SKILL.md) router's
@@ -51,7 +51,7 @@ of who implemented the change.
    Cursor or Grok root. Keep browser acceptance in the owning host; Codex CLI
    cannot provide the Desktop browser and does not accept that capability.
 2. Inspect current HEAD and dirty paths. Bound ownership before launching
-   another writer. Create the prompt and a unique event-log path in a private
+   another writer. Create the prompt and unique event-log and result paths in a private
    directory outside the repository. The prompt names the role skill,
    objective, allowed paths, evidence, acceptance, constraints, and expected
    output. Approved phases also supply their exact artifact IDs and required
@@ -69,6 +69,7 @@ python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/
   --repo <checkout> --executor <codex|cursor|grok> --capability <capability> \
   --model <exact-cli-model> --expected-head <current-sha> \
   --prompt-file <private-prompt> --log-file <new-private-log> \
+  --result-file <new-private-result.json> \
   --permissions <default|trusted> --timeout <seconds>
 ```
 
@@ -81,6 +82,11 @@ constitute an OS sandbox or authorize delivery. The helper does not modify
 global permission settings.
 Codex resume requires a UUID. Read the helper's observed session and terminal
 result; an unknown observed model is not evidence of a different model.
+Keep the host process handle and use its completion-aware wait. The final
+result file is published before stdout; do not redirect stdout into that same
+path or use file polling as the wait mechanism. Follow WORKFLOW `CLI delegation`
+for incomplete output, session identity and recovery; it does not authorize a
+new attempt or broader permissions.
 
 For verification that writes a report inside the checkout, declare each new
 untracked output file with `--output-path <repo-relative-file>`. This cannot
@@ -88,15 +94,17 @@ authorize tracked source changes. Ordinary ignored build outputs are outside
 the Git content comparison; inspect relevant evidence separately. Prefer a
 private output directory outside source for runtime reports.
 
-Read the complete compact JSON result, including status, session, terminal
-evidence, HEAD, changed paths, and diagnostic log. Do not load all raw events
-by default. Inspect the actual diff and required checks before acceptance.
+Read the compact JSON result, including status, session, terminal evidence,
+HEAD, changed paths, and diagnostic log, from either the tool or result file.
+Consume a published report once; an inline fallback is already the report.
+Do not load all raw events by default. Inspect the actual diff at the stable
+handoff and required checks before acceptance.
 An `ok` execution is not an independent review or proof of quality. On a
 partial or blocked result, inspect any edits before choosing an explicit
 resume; never replay a mutating prompt automatically. Authentication, quota,
 permission, and unsupported model failures stay with the selected executor.
 
 Return the actual result and remaining limitation to the owning conversation.
-Remove prompt files when no longer needed; retain private logs only through
+Remove prompt files when no longer needed; retain private results and logs only through
 the assignment's review/recovery lifecycle. Continue review and authorized
 delivery through the existing role and delivery tools.

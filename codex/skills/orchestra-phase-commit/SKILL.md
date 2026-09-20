@@ -39,6 +39,9 @@ absent, or not supplied by the evidence. A standalone commit records the
 requested change and its evidence but never certifies independent review.
 Return the commit result inline unless the caller supplies an explicit output
 path.
+For subsequent authorized release preparation, apply WORKFLOW "Mechanical
+release metadata" rather than creating a new phase or reviewer dispatch merely
+to commit release metadata.
 
 ## Execute the direct path
 

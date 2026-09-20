@@ -76,6 +76,7 @@ class DelegateTests(unittest.TestCase):
         resume: str | None = None,
         expected_head: str | None = None,
         output_paths: tuple[str, ...] = (),
+        result_file: Path | None = None,
         env: dict[str, str] | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], dict]:
         arguments = [
@@ -102,6 +103,8 @@ class DelegateTests(unittest.TestCase):
             arguments.extend(("--timeout", timeout))
         if resume is not None:
             arguments.extend(("--resume", resume))
+        if result_file is not None:
+            arguments.extend(("--result-file", str(result_file)))
         for output_path in output_paths:
             arguments.extend(("--output-path", output_path))
         child_env = os.environ.copy()
@@ -421,6 +424,102 @@ class DelegateTests(unittest.TestCase):
         else:
             self.fail("delegation child process survived timeout cleanup")
 
+    def test_grok_provider_denial_preserves_resume_identity(self) -> None:
+        self.fake_cli("grok", '''
+            import json
+            print(json.dumps({"type":"error","message":
+                "API error (status 403 Forbidden): permission-denied: I can't help with that request."}), flush=True)
+            raise SystemExit(1)
+        ''')
+        result, payload = self.run_cli(
+            "grok", capability="runtime_verification", permissions="trusted",
+            resume="7a4cba5d-fca3-49da-80bb-d6006d9cbcf0",
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertEqual(payload["failure_kind"], "provider_denied")
+        self.assertEqual(payload["resume_session_id"], "7a4cba5d-fca3-49da-80bb-d6006d9cbcf0")
+        self.assertIsNone(payload["session_id"])
+        self.assertFalse(payload["final_seen"])
+
+    def test_benign_stderr_does_not_classify_success_or_timeout_as_provider_failure(self) -> None:
+        for times_out, diagnostic in (
+            (False, "warning: using credential helper osxkeychain"),
+            (True, "notice: billing report loaded"),
+        ):
+            with self.subTest(times_out=times_out):
+                self.log.unlink(missing_ok=True)
+                self.fake_cli("cursor-agent", f'''
+                    import json, sys, time
+                    print({diagnostic!r}, file=sys.stderr, flush=True)
+                    if {times_out!r}:
+                        time.sleep(30)
+                    print(json.dumps({{"type":"result","subtype":"success","is_error":False,"result":"DONE"}}), flush=True)
+                ''')
+                result, payload = self.run_cli("cursor", timeout="0.5" if times_out else "4")
+                self.assertEqual(result.returncode, 1 if times_out else 0)
+                self.assertEqual(payload["status"], "partial" if times_out else "ok")
+                self.assertEqual(payload["timed_out"], times_out)
+                self.assertNotIn("failure_kind", payload)
+
+    def test_result_file_preserves_success_after_stdout_disconnect(self) -> None:
+        self.fake_cli("cursor-agent", '''
+            import json
+            print(json.dumps({"type":"result","subtype":"success","is_error":False,"result":"DONE"}), flush=True)
+        ''')
+        result_file = self.root / "result.json"
+        env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ.get("PATH", ""))
+        command = [sys.executable, str(HELPER), "--repo", str(self.repo),
+                   "--executor", "cursor", "--capability", "general_implementation",
+                   "--model", "test-model", "--expected-head", self.head,
+                   "--prompt-file", str(self.prompt), "--log-file", str(self.log),
+                   "--result-file", str(result_file)]
+        process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        assert process.stdout is not None
+        process.stdout.close()
+        _, stderr = process.communicate(timeout=8)
+        self.assertEqual(process.returncode, 0, stderr)
+        payload = json.loads(result_file.read_text())
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["result"], "DONE")
+        self.assertTrue(payload["final_seen"])
+        self.assertEqual(stat.S_IMODE(result_file.stat().st_mode), 0o600)
+        self.assertEqual(list(self.root.glob(".orchestra-result-*")), [])
+
+    def test_result_file_rejects_existing_unsafe_and_overlapping_paths_before_launch(self) -> None:
+        started = self.root / "started"
+        self.fake_cli("cursor-agent", f'''
+            from pathlib import Path
+            Path({str(started)!r}).touch()
+        ''')
+        existing = self.root / "existing.json"
+        existing.write_text("preserve")
+        link = self.root / "link.json"
+        link.symlink_to(existing)
+        for result_file in (existing, link, self.repo / "result.json", self.log):
+            with self.subTest(path=result_file):
+                result, payload = self.run_cli("cursor", result_file=result_file)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(payload["status"], "invalid")
+                self.assertFalse(started.exists())
+        self.assertEqual(existing.read_text(), "preserve")
+
+    def test_result_publication_does_not_overwrite_late_collision(self) -> None:
+        result_file = self.root / "result.json"
+        self.fake_cli("cursor-agent", f'''
+            import json
+            from pathlib import Path
+            Path({str(result_file)!r}).write_text('other invocation')
+            print(json.dumps({{"type":"result","subtype":"success","is_error":False,"result":"DONE"}}), flush=True)
+        ''')
+        result, payload = self.run_cli("cursor", result_file=result_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "partial")
+        self.assertIn("cannot publish result-file", payload["reason"])
+        self.assertEqual(result_file.read_text(), "other invocation")
+        self.assertEqual(list(self.root.glob(".orchestra-result-*")), [])
+
     def test_head_binding_blocks_moved_head(self) -> None:
         self.fake_cli(
             "cursor-agent",
@@ -584,6 +683,7 @@ class DelegateTests(unittest.TestCase):
 
     def test_sigterm_returns_partial_changes_and_stops_owned_group(self) -> None:
         pid_file = self.root / "running.pid"
+        result_file = self.root / "result.json"
         self.fake_cli("cursor-agent", f'''
             import os, time
             from pathlib import Path
@@ -595,7 +695,8 @@ class DelegateTests(unittest.TestCase):
         command = [sys.executable, str(HELPER), "--repo", str(self.repo),
                    "--executor", "cursor", "--capability", "general_implementation",
                    "--model", "test-model", "--expected-head", self.head,
-                   "--prompt-file", str(self.prompt), "--log-file", str(self.log)]
+                   "--prompt-file", str(self.prompt), "--log-file", str(self.log),
+                   "--result-file", str(result_file)]
         process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True)
         unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
@@ -611,6 +712,7 @@ class DelegateTests(unittest.TestCase):
             self.assertTrue(payload["cancelled"])
             self.assertEqual(payload["changed_paths"], ["source.txt"])
             self.assertEqual(payload["after_head"], self.head)
+            self.assertEqual(json.loads(result_file.read_text()), payload)
             self.assert_process_stopped(int(pid_file.read_text()))
             self.assertIsNone(unrelated.poll())
         finally:
@@ -635,6 +737,25 @@ class DelegateTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "ok")
         self.assert_process_stopped(int(pid_file.read_text()))
+
+    def test_completed_cli_does_not_wait_for_inherited_child_pipes(self) -> None:
+        for terminal in (True, False):
+            with self.subTest(terminal=terminal):
+                self.log.unlink(missing_ok=True)
+                pid_file = self.root / "child.pid"
+                self.fake_cli("cursor-agent", f'''
+                    import json, subprocess, sys
+                    from pathlib import Path
+                    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])
+                    Path({str(pid_file)!r}).write_text(str(child.pid))
+                    if {terminal!r}:
+                        print(json.dumps({{"type":"result","subtype":"success","is_error":False,"result":"DONE"}}), flush=True)
+                ''')
+                _, payload = self.run_cli("cursor", timeout="4")
+                self.assertFalse(payload["timed_out"])
+                self.assertEqual(payload["status"], "ok" if terminal else "partial")
+                self.assertEqual(payload["final_seen"], terminal)
+                self.assert_process_stopped(int(pid_file.read_text()))
 
     def test_log_write_failure_stops_process_and_returns_transport_error(self) -> None:
         pid_file = self.root / "transport.pid"

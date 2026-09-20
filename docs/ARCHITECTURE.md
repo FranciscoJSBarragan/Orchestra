@@ -487,7 +487,12 @@ skill, new agent profile, or parallel implementation of the role is needed.
 `orchestra-delegate` routes a selected capability to `scripts/delegate.py`.
 The helper adapts Codex, Cursor, and Grok headless arguments and event output, checks
 Git identity and worktree content around one process, and returns a compact
-result plus a private diagnostic log. The native CLI owns its session;
+result plus a private diagnostic log. An optional private result file preserves
+the same final JSON before stdout delivery; it is atomically published once,
+never used as a running-state registry, and shares the log's recovery lifecycle.
+The host owns completion-aware waiting. Leader exit triggers bounded pipe
+drain and owned-child cleanup rather than waiting for the assignment timeout.
+The native CLI owns its session;
 explicit session IDs provide resumption. There is no delegation database or
 workflow engine. Native host matrices continue to own default assignments;
 the user's explicit executor/model selection is a per-assignment override.
