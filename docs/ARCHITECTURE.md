@@ -507,6 +507,23 @@ and recovery are defined only in WORKFLOW "Delegated execution presets".
 `WORKFLOW.md` ("CLI delegation") owns permissions, independence, recovery,
 and acceptance. Execution results cannot replace reviews or Git evidence.
 
+### Lite companion worker
+
+`orchestra-lite` is an instruction-only companion skill for one externally
+coordinated, approved task. A fresh worker receives a fixed-field
+`ORCHESTRA_LITE_SPEC` kickoff, reuses the standalone role and commit
+contracts, publishes its task branch, and returns a fixed-key
+`ORCHESTRA_LITE_RESULT` JSON object that the coordinator parses. Tier and
+model selection, independent review, and merge stay outside the worker, so
+the route adds no parser, executor, validator CLI, workflow state,
+coordinator service, model-selection helper, or persisted evaluation engine,
+and it does not consume `task_state.py`, `pr.py`, or `orchestra-pr-open`. Its
+only artifacts are the skill, a copyable kickoff template, and one canonical
+result example, distributed through the existing sync inventory and plugin
+bundles; the canonical validator pins the kickoff fields and result keys as
+machine-consumed shapes. Policy lives in `docs/WORKFLOW.md` ("Orchestra Lite
+companion").
+
 ## Model and reasoning configuration
 
 The user's root and the host catalog determine native model availability.

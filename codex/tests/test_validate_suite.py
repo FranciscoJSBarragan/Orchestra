@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import re
@@ -456,6 +457,40 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertEqual(quick.returncode, 0, quick.stdout + quick.stderr)
         self.assertNotEqual(full.returncode, 0)
         self.assertIn("python-syntax: codex/tests/invalid_fixture.py", full.stdout)
+
+    def test_lite_result_object_key_order_is_not_part_of_the_contract(self) -> None:
+        example = self.root / "codex/skills/orchestra-lite/result-example.json"
+        payload = json.loads(example.read_text(encoding="utf-8"))
+        payload = dict(reversed(list(payload.items())))
+        payload["Rama"] = dict(reversed(list(payload["Rama"].items())))
+        payload["Checks"] = [dict(reversed(list(item.items()))) for item in payload["Checks"]]
+        example.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = self.run_validator()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_lite_result_and_kickoff_contracts_are_actionable(self) -> None:
+        skill_dir = self.root / "codex/skills/orchestra-lite"
+        example = skill_dir / "result-example.json"
+        original_example = example.read_text(encoding="utf-8")
+        payload = json.loads(original_example)
+        payload["Estado nuevo"] = payload.pop("Estado")
+        example.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lite-contract: result-example.json must contain exactly", result.stdout)
+        example.write_text("{not json", encoding="utf-8")
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lite-contract: result-example.json is invalid JSON", result.stdout)
+        example.write_text(original_example, encoding="utf-8")
+
+        template = skill_dir / "kickoff-template.md"
+        template.write_text(
+            template.read_text(encoding="utf-8").replace("\nPR:\n", "\n", 1), encoding="utf-8"
+        )
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("kickoff template is missing mandatory field PR", result.stdout)
 
     def test_missing_common_helper_fails_quick(self) -> None:
         (self.root / "codex/scripts/_common.py").unlink()

@@ -65,6 +65,14 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-repo-onboard/agents/openai.yaml",
     "codex/skills/orchestra-delegate/SKILL.md",
     "codex/skills/orchestra-delegate/agents/openai.yaml",
+    "codex/skills/orchestra-lite/SKILL.md",
+    "codex/skills/orchestra-lite/agents/openai.yaml",
+    "codex/skills/orchestra-lite/kickoff-template.md",
+    "codex/skills/orchestra-lite/result-example.json",
+    "codex/tests/test_orchestra_lite.py",
+    "codex/tests/fixtures/orchestra-lite/README.md",
+    "codex/tests/fixtures/orchestra-lite/make_fixture.py",
+    "codex/tests/fixtures/orchestra-lite/gh_shim.py",
     "codex/skills/orchestra/references/repository_context.md",
     "codex/skills/orchestra/references/web_research.md",
     "codex/skills/orchestra/references/technical_planning.md",
@@ -228,6 +236,7 @@ SKILL_NAMES = (
     "orchestra-project-start",
     "orchestra-repo-onboard",
     "orchestra-delegate",
+    "orchestra-lite",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -239,6 +248,31 @@ SKILL_NAMES = (
     "orchestra-role-reviewer",
     "orchestra-role-verifier",
 )
+LITE_KICKOFF_MARKER = "ORCHESTRA_LITE_SPEC"
+LITE_MANDATORY_FIELDS = (
+    "Repo",
+    "Base",
+    "Slug",
+    "Rama",
+    "PR",
+    "Autorización",
+    "Objetivo",
+    "Aceptación",
+)
+LITE_RESULT_KEYS = (
+    "Estado",
+    "PR",
+    "Rama",
+    "Publicada",
+    "Commits",
+    "Checks",
+    "CI",
+    "Decisiones tomadas",
+    "Riesgos / no hecho",
+    "Pendiente para merge",
+    "Bloqueo",
+)
+LITE_CHECK_KEYS = ("Comando", "Resultado", "Código de salida")
 VALID_MODELS = {
     "gpt-6-astra",
     "gpt-5.6-sol",
@@ -701,6 +735,58 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         skill = root / f"codex/skills/{name}/SKILL.md"
         if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
             failures.append(f"runtime-contract: {name} must state the Orchestra home")
+    return failures
+
+
+def check_orchestra_lite(root: Path) -> list[str]:
+    """Pin the machine-consumed Lite kickoff and result shapes without freezing prose."""
+    failures: list[str] = []
+    skill_dir = root / "codex/skills/orchestra-lite"
+    skill = skill_dir / "SKILL.md"
+    template = skill_dir / "kickoff-template.md"
+    example = skill_dir / "result-example.json"
+    workflow = root / "docs/WORKFLOW.md"
+    if not all(path.is_file() for path in (skill, template, example, workflow)):
+        return failures  # Required-path validation owns missing files.
+
+    skill_text = skill.read_text(encoding="utf-8")
+    links = {target.split("#", 1)[0] for target in _local_markdown_links(skill_text)}
+    for resource in (template.name, example.name):
+        if resource not in links:
+            failures.append(f"lite-contract: orchestra-lite must link {resource}")
+    section = "Orchestra Lite companion"
+    if f"## {section}" not in workflow.read_text(encoding="utf-8"):
+        failures.append(f"lite-contract: docs/WORKFLOW.md must define the {section} section")
+    if section not in skill_text:
+        failures.append(f"lite-contract: orchestra-lite must route to WORKFLOW {section}")
+
+    template_text = template.read_text(encoding="utf-8")
+    template_lines = {line.split(":", 1)[0].strip() for line in template_text.splitlines()}
+    if LITE_KICKOFF_MARKER not in template_lines:
+        failures.append(f"lite-contract: kickoff template must start with {LITE_KICKOFF_MARKER}")
+    for field in LITE_MANDATORY_FIELDS:
+        if field not in template_lines:
+            failures.append(f"lite-contract: kickoff template is missing mandatory field {field}")
+
+    try:
+        payload = json.loads(example.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as error:
+        return [*failures, f"lite-contract: result-example.json is invalid JSON: {error}"]
+    if not isinstance(payload, dict) or set(payload) != set(LITE_RESULT_KEYS):
+        failures.append(
+            "lite-contract: result-example.json must contain exactly the fixed result keys"
+        )
+        return failures
+    branch = payload["Rama"]
+    if not isinstance(branch, dict) or set(branch) != {"Nombre", "SHA"}:
+        failures.append("lite-contract: result Rama must be an object with Nombre and SHA")
+    checks = payload["Checks"]
+    if not isinstance(checks, list) or any(
+        not isinstance(item, dict) or set(item) != set(LITE_CHECK_KEYS) for item in checks
+    ):
+        failures.append(
+            "lite-contract: every result Checks item must record Comando, Resultado, and Código de salida"
+        )
     return failures
 
 
@@ -1202,6 +1288,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_roles_and_profiles,
     check_skills_and_runtime,
+    check_orchestra_lite,
     check_repository_conventions,
     check_direct_sync,
     check_cursor_host,

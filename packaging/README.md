@@ -1,6 +1,6 @@
 # Orchestra plugin bundles
 
-The plugin contains the native Orchestra workflow, fifteen skills, four behavior
+The plugin contains the native Orchestra workflow, sixteen skills, four behavior
 profiles, local Python helpers, execution presets, and the Codex, Cursor, and
 Grok Build adapters. Python 3.11+ and Git are required; GitHub CLI is required
 only for PR delivery. A host must provide the adapter's native agent tools and
@@ -161,7 +161,7 @@ extra database directory inside the checkout's guarded `.orchestra/` layout.
 Keep authentication out of reports. Record the host version,
 bundle source revision, effective model assignments, installation route,
 and actual resolved runtime paths. Python and Git must be ready before the
-workflow starts. Discovering all fifteen plugin skills without duplicates
+workflow starts. Discovering all sixteen plugin skills without duplicates
 is the readiness check, not the acceptance result.
 
 A small standard-library Python parser and CLI provide a representative
@@ -204,6 +204,32 @@ migration, update, and removal, and check that each public skill has exactly
 one discovered source. `uninstall` has no
 dry-run flag; do not substitute an unverified command. The active installation
 is a separate user-selected migration.
+
+## Orchestra Lite worker route
+
+`orchestra-lite` ships inside every target as an ordinary skill with its
+kickoff template and result example; no extra manifest entry, helper, or
+hook is needed. The first installation route selected for Lite worker
+validation is the **Cursor plugin bundle**: build `--target cursor`
+into a new directory and load it in the worker's session with
+`cursor-agent --plugin-dir`. Pushing the repository to GitHub does not
+install the skill anywhere; the coordinator must make the bundle available
+to the worker's environment. Direct sync and the other targets carry the same
+skill but are outside this first route's validation scope.
+
+Two milestones require separate evidence. The local milestone, "implemented
+and tested locally", requires passing canonical validation and package tests,
+a candidate Cursor bundle built from the same sources, and observed results
+from a fresh local agent following the fixture recipe in
+`codex/tests/fixtures/orchestra-lite/README.md`. Those trials exercise blocked
+preflight, delivery, supplied-branch handoff, missing PR tooling, required
+pre-commit review and resumption, and failed publication against
+disposable repositories, bare remotes, and a simulated `gh`. The cloud
+milestone requires an external coordinator to run one real task on a cloud
+worker and prove skill discovery, resolved bundled references, the model and
+effort actually applied at launch, executed checks, verified publication, and
+the draft PR or handoff. A local bundle or a green validator does not
+establish that cloud support; do not claim it until that evidence exists.
 
 ## Optional companions and lifecycle
 

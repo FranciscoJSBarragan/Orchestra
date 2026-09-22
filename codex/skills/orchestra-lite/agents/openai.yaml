@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Lite"
+  short_description: "Deliver one coordinated task from an ORCHESTRA_LITE_SPEC kickoff"
+  default_prompt: "Use $orchestra-lite to implement the ORCHESTRA_LITE_SPEC assignment in this kickoff, run the repository checks, publish the task branch, and return the ORCHESTRA_LITE_RESULT."
+policy:
+  allow_implicit_invocation: true

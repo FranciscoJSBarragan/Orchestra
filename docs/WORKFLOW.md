@@ -350,6 +350,170 @@ replace the preset's independent reviewer or verifier. If the third attempt
 fails, report the concrete blocker and needed decision. Do not reset the ladder
 by renaming the same unresolved assignment or switching its capability.
 
+## Orchestra Lite companion
+
+`orchestra-lite` is a companion worker route for one externally coordinated,
+already approved task. An external coordinator selects the tier as a resource
+choice, launches the worker with the resolved model and effort, and organizes
+independent review; the worker implements, verifies, commits, publishes its
+task branch, and returns a draft PR or a concrete handoff without interactive
+approvals. Merge and deployment stay human. The coordinator may consult the
+installed host matrix for a tier's model and effort rows; the worker never
+reads them to change its own assignment. The route reuses the standalone
+role and commit contracts above and never activates `$orchestra`, negotiates
+a tier, runs phases, writes `plan.md`, uses `task_state.py`, `pr.py`, or
+`orchestra-pr-open`, dispatches agents, or claims delivery authority beyond
+the kickoff's explicit authorization. It adds no parser, executor, workflow
+state, coordinator service, or persisted evaluation; the contract below is an
+agent instruction.
+
+### Activation and kickoff
+
+The route activates on an explicit `$orchestra-lite` or `/orchestra-lite`
+invocation, or when the first message delivers an `ORCHESTRA_LITE_SPEC` block
+as the actual assignment. A quoted marker in documentation, a specification
+the user asks to analyze, or an ordinary request never activates it.
+
+The kickoff block uses fixed Spanish field names; the skill ships a copyable
+template. Mandatory fields are `Repo`, `Base`, `Slug`, `Rama`, `PR`,
+`Autorización`, `Objetivo`, and `Aceptación`. Defaults are `Checks: auto`,
+`Revisión: coordinador`, `Actualizar STATUS: no`, empty `Exclusiones` and
+`Decisiones`, and chat-only output when `Reporte` is omitted. `Tier` and
+`Recursos` are informational; when absent the worker does not invent them.
+`Repo` identifies the GitHub repository as `owner/name` and must match the
+checkout's origin.
+
+A missing or invalid mandatory field, an `Autorización` that does not
+explicitly name the implementation and delivery actions the worker will
+perform, `Revisión: ninguna`, or `Tier: critical` returns `BLOCKED` before any
+branch creation or source edit. Critical work belongs to the full `$orchestra`
+workflow, which the worker never starts on its own. The worker never guesses
+who opens the PR: `PR` ownership decides, and authorization to open a draft
+does not move that ownership.
+
+### Preflight and branch
+
+Preflight is read-only: confirm the repository, `Base`, and its current
+revision; read `orchestra.toml`, `.agent/`, and `AGENTS.md` or
+`PROJECT_CONTEXT.md` when present; derive check commands from repository
+configuration for `Checks: auto`; record the available tools (`git`, `gh`,
+Python, Node, Browser Use); and confirm task ownership and preexisting dirty
+changes. A missing `gh` or browser is not itself a blocker when the acceptance
+can still be met with the available capabilities; ambiguous ownership of dirty
+work blocks. Checks must exercise the exact task tree that will be committed;
+unrelated dirty changes cannot contribute to a passing result. If they cannot
+be excluded without modifying others' work, preserve them and return `BLOCKED`
+for an isolated checkout.
+
+`Rama: auto` creates `orchestra/<slug>` from `Base`; otherwise the worker uses
+the supplied task branch and creates no other. The working branch is always a
+task branch distinct from `Base`. Preexisting unrelated work is preserved and
+commits stage only task files. A branch collision or divergence blocks without
+force-push. Resuming the same assignment continues its preserved task branch
+when ownership is established; it does not create the branch again. In a fresh
+environment, continuation requires the coordinator to name the existing branch
+in `Rama` and confirm the same assignment and expected full branch SHA in
+`Decisiones`; verify that SHA before continuing. `Rama: auto` against an
+existing local or remote branch always blocks. A changed remote SHA requires
+reconciliation by the coordinator, not a guessed continuation. A supplied
+branch without that continuation confirmation must point at the current
+`Base` revision; otherwise return `BLOCKED` before editing.
+
+### Implementation, checks, and self-review
+
+Give a brief plan in the chat. Keep any resume note in the conversation.
+`Reporte` contains only the result JSON, including a partial `BLOCKED` result;
+no separate task-state file exists. Implement within `Objetivo` and `Aceptación`,
+respecting `Exclusiones` and `Decisiones`. A reversible technical choice takes
+the conservative option and is recorded under `Decisiones tomadas`; a material
+decision (scope, data, money, cross-system contracts) returns `BLOCKED`.
+Knowledge and policy files, including `.agent/`, change only when the kickoff
+includes them explicitly; otherwise discoveries are reported.
+`Actualizar STATUS: sí` authorizes only the supplied status path. Update it
+before the final checks and self-review, and include it in the delivered
+commit range and the same PR; do not leave a post-publication status edit
+uncommitted.
+
+`Checks` always include the repository's mandatory local checks (the `.agent/`
+hard gate and configured checks) even when the kickoff supplies explicit
+commands; CI is reported separately. When `auto` finds no maintained check,
+use an acceptance-specific executable scenario within the granted authority
+and report that no configured suite exists; if acceptance cannot be proven,
+return `BLOCKED`. Every required check runs to green before
+handoff; a weakened, skipped, or stale pass is a failure. Self-review applies
+the shared engineering guidance (correctness, regressions, tests, security,
+Spanish user-facing text where applicable) and records what the independent
+reviewer should inspect; it never substitutes for that review, and the worker
+never dispatches a reviewer. When repository policy requires independent
+review before commit, the worker blocks only while applicable independent
+review evidence is missing, outdated, or has unresolved required findings.
+Preserve the changes uncommitted and return `BLOCKED` with the current
+revision, dirty paths, and the required review. Provide reviewer access to the
+same preserved checkout or an accessible private patch containing every task
+change, including new files and binary changes. For a portable patch, stage
+only the exact task paths and export `git diff --cached --binary HEAD --
+<task-paths>`; record its SHA-256 and full HEAD in `Bloqueo`, along with its
+accessible location. Do not expose secrets or claim a VM-local path is remotely
+readable. If no artifact transfer exists, name that concrete blocker.
+The coordinator organizes the review; once its evidence covers that HEAD and
+complete diff (the same patch digest for a transferred review) and
+required findings are resolved, resume the preserved task through the
+authorized commit and publication. A changed diff requires review of that
+delta under the repository's policy. Before committing, verify the reviewed
+patch identity and that no task edit remains outside the staged diff. The
+validated source tree must equal the committed tree; changed inputs invalidate
+affected checks. Review applicability follows the review
+target and current Git evidence, without a separate review registry. Absent
+such a policy, the standalone commit records honest review status without
+certifying independent review.
+
+### Commit, publication, and PR
+
+Commits are small English `type(scope): summary` commits containing only task
+paths. Push the task branch and verify with `git ls-remote` that the remote
+SHA equals the delivered SHA; publication is successful only on that exact
+match, and a mismatch or rejected push preserves the local work and returns
+`BLOCKED`. Never force-push, merge, deploy, rebase or change `Base`, modify or
+expose secrets, or alter credentials; using already configured authentication
+is not authority to change it.
+
+`PR: worker` reconciles an existing PR for the branch before creating one,
+uses the environment's integration or `gh` with explicit repository, base and
+head parameters (`--repo`, `--base`, `--head` for `gh`), opens the PR as a draft, and
+verifies repository, base, head, and draft state. An existing closed, merged or
+non-draft PR returns `BLOCKED` for coordinator reconciliation; do not silently
+reopen, alter its readiness or create a replacement. `PR: coordinador` or
+`PR: plataforma` opens nothing and reports the handoff. The PR body keeps the
+fixed sections `Spec`, `Cambios`, `Checks ejecutados` (command and result),
+`Decisiones tomadas`, `Riesgos`, `No hecho`, and `Pendiente: revisión
+independiente y CI`. Before the handoff the worker closes only task-owned
+processes and browser resources, preserving useful code and evidence.
+
+### Result contract
+
+The worker always ends, including on `BLOCKED`, with the literal line
+`ORCHESTRA_LITE_RESULT`, exactly one fenced `json` object, and a brief human
+summary in Spanish; no duplicate structured text report. When `Reporte` is
+supplied, the same JSON object is written there. The top-level keys are fixed:
+`Estado` (`DONE`, `DONE_PR_PENDING`, or `BLOCKED`); `PR` (URL string or
+`null`); `Rama` (`{"Nombre": string|null, "SHA": string|null}`); `Publicada`
+(boolean, verified against the remote); `Commits` (array); `Checks` (array of
+`{"Comando", "Resultado", "Código de salida"}` items, exit code `null` when
+unavailable); `CI` (string, default `"no consultado"`); `Decisiones tomadas`,
+`Riesgos / no hecho`, and `Pendiente para merge` (arrays); and `Bloqueo`
+(string when `BLOCKED`, otherwise `null`). Unknown early branch or SHA values
+are `null`. The skill's `result-example.json` is the canonical shape; JSON
+object key order is not part of the contract.
+
+`DONE` requires met acceptance and green mandatory local checks, the exact
+published SHA, and a PR verified as a draft. `DONE_PR_PENDING` requires the
+same implementation, check, and publication evidence with no PR yet.
+`BLOCKED` names the missing authority, information, or evidence, the partial
+work done, and the next action. A mandatory acceptance criterion that cannot
+be verified with the available tools is `BLOCKED`, never `DONE`. Independent
+review and CI may remain pending in both success states, and `Pendiente para
+merge` lists them; success never means merge-ready.
+
 ## Autonomy within an approved objective
 
 The root is the technical lead: it receives the objective, hard constraints,

@@ -61,6 +61,15 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
+    def test_every_target_bundles_the_lite_kickoff_template_and_result_example(self) -> None:
+        source = ROOT / "codex/skills/orchestra-lite"
+        for target in TARGETS:
+            with self.subTest(target=target):
+                lite = self.build(target) / "skills/orchestra-lite"
+                for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json"):
+                    self.assertEqual((lite / relative).read_bytes(), (source / relative).read_bytes(), relative)
+                self.assertIsInstance(json.loads((lite / "result-example.json").read_text()), dict)
+
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
         manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json"}

@@ -1,0 +1,37 @@
+{
+  "Estado": "DONE",
+  "PR": "https://github.com/acme/shop/pull/128",
+  "Rama": {
+    "Nombre": "orchestra/orders-csv-export",
+    "SHA": "9f2c1d4e8b7a6c5d4e3f2a1b0c9d8e7f6a5b4c3d"
+  },
+  "Publicada": true,
+  "Commits": [
+    "1a2b3c4 feat(orders): add CSV export helper",
+    "5d6e7f8 test(orders): cover CSV column order"
+  ],
+  "Checks": [
+    {
+      "Comando": "python3 -m pytest -q",
+      "Resultado": "ok",
+      "Código de salida": 0
+    },
+    {
+      "Comando": "npm run lint",
+      "Resultado": "ok",
+      "Código de salida": 0
+    }
+  ],
+  "CI": "no consultado",
+  "Decisiones tomadas": [
+    "Se reutiliza el serializador CSV existente en lugar de añadir una dependencia."
+  ],
+  "Riesgos / no hecho": [
+    "No se verificó la descarga en Safari: la VM no tiene navegador."
+  ],
+  "Pendiente para merge": [
+    "revisión independiente",
+    "CI"
+  ],
+  "Bloqueo": null
+}

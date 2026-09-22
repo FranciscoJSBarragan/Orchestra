@@ -109,8 +109,33 @@ subscription or authorizes a different billing path.
 | `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
 | `orchestra-task` | Capture and prepare a task card (`A1`, `A2`, …) from any chat without starting anything; adopt it later from a native host chat |
 | `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, or Grok Build CLI with scoped permissions |
+| `orchestra-lite` | Another agent coordinates: it hands one approved task to a fresh worker with an `ORCHESTRA_LITE_SPEC` kickoff; the worker implements, runs the repository checks, publishes `orchestra/<slug>`, and returns a draft PR or handoff plus a JSON `ORCHESTRA_LITE_RESULT`. No tier negotiation, phases, or review dispatch inside the worker |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
+
+### Orchestra Lite: one task, one fresh worker, one draft PR
+
+When another agent already split the work and approved each task, the full
+workflow is more process than the worker needs. `orchestra-lite` covers that
+case: the coordinator picks the tier as a resource choice (model and effort
+at launch), writes the kickoff from
+[`kickoff-template.md`](codex/skills/orchestra-lite/kickoff-template.md),
+and organizes independent review; the worker runs without questions, stops
+only with `BLOCKED`, and always ends with the
+[`ORCHESTRA_LITE_RESULT`](codex/skills/orchestra-lite/result-example.json)
+JSON. `critical` work stays on `$orchestra`, and `DONE` never means
+merge-ready. The policy is in
+[Orchestra Lite companion](docs/WORKFLOW.md#orchestra-lite-companion).
+
+The first documented installation route for a Lite worker is the Cursor
+plugin bundle below; a local trial recipe with disposable repositories, bare
+remotes, and a simulated `gh` lives in
+[`codex/tests/fixtures/orchestra-lite`](codex/tests/fixtures/orchestra-lite/README.md).
+Local tests and fixture trials provide local evidence only. Cloud validation
+requires a coordinator to run a real task on a cloud worker and prove
+discovery, resolved references, the launched model and effort, checks,
+publication, and the draft or handoff. The acceptance milestones are described
+in [the packaging guide](packaging/README.md#orchestra-lite-worker-route).
 
 ## Install as a plugin
 
@@ -200,7 +225,7 @@ docs/WORKFLOW.md       the canonical behavior contract, request → delivery
 docs/ARCHITECTURE.md   components, contracts, host adapters, installation boundary
 docs/ROADMAP.md        non-canonical; deferred distribution and benchmarks
 AGENTS.md              concise executable rules for agents working on Orchestra itself
-codex/skills/          the 15 skills and their internal playbooks
+codex/skills/          the 16 skills and their internal playbooks
 codex/agents/          the four namespaced agent profiles
 codex/config/          Codex role matrix and permission defaults
 codex/scripts/         sync.py, validate_suite.py, coordination and task-control helpers
