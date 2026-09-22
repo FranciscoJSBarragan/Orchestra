@@ -166,6 +166,193 @@ standalone role use does not waive those contracts. They do not require legacy
 `commitbot`, `prbot`, `openprbot`, or `prmerge`. Direct code or PR analysis may
 use the reviewer role without creating Orchestra delivery state.
 
+## Modular engineering
+
+Orchestra supplies reusable engineering capabilities as well as an explicitly
+selected planned workflow. `orchestra-engineering` can be discovered for an
+ordinary investigation, explanation, design, implementation or evidence task;
+it preserves that task's outcome, authority and chosen flow. It does not select
+a tier, create task state, dispatch agents, require phase reports or activate
+`$orchestra`. `orchestra-project-verification` maintains and executes reusable
+project verification knowledge under the lifecycle below. Installed metadata
+makes skills discoverable, not guaranteed to run; hosts without automatic skill
+routing can invoke the same skill explicitly or link it from an authorized
+project instruction. Never claim universal enforcement from installation.
+
+Route by the required result, not by a list of mandatory activities. An
+implementation can investigate, try a bounded experiment, change code and test
+it within its existing authority. A read-only question stays read-only. A
+simple edit does not acquire an architect, research pass or verification map.
+Use independent roles when their responsibility or evidence independence is
+needed. A selected role keeps its limits; reading a playbook's engineering
+technique does not make an implementer an independent reviewer or grant an
+analyst write authority. Existing custom workflows may consume these resources
+without producing Orchestra artifacts.
+
+The substantive criteria live in `architecture_guidance.md`; capability
+playbooks add domain technique, and role skills define bounded assignments.
+Conventions can be improved when evidence supports a better mechanism. Within
+authorized scope, propose and review that change at its canonical source;
+an existing convention is evidence and a current constraint, not an immutable
+product decision. Until an authorized change is accepted, do not silently
+ignore normative instructions. New rules must address the demonstrated cause
+rather than accumulate prohibitions after every failure.
+
+## Project verification
+
+`orchestra-project-verification` supports four operations: prepare a useful
+feature map, run selected journeys, refresh affected knowledge, or audit a named
+map. The direct brief or approved phase supplies authority; no separate tier,
+plan, report schema or global install is required. Reuse maintained repository
+documentation and tests. If no entry exists, `.agent/verification/README.md`
+may index short feature recipes and existing commands. Keep helpers with the
+repository's test tooling and retain them only for a recurring interaction the
+current tools cannot express cheaply. Do not wrap adequate tools for symmetry.
+
+Preparation discovers real commands, entry points, supported test data and
+runtime prerequisites. Start with the most useful three to five journeys (or
+fewer for a smaller product), then prove one end to end when execution is
+within scope. This is a starting set, not a coverage claim or universal quota.
+A read-only preparation produces a proposed map and unexecuted recipes; it
+never claims that a runnable application was observed. Recipe content and proof
+standards are in shared engineering guidance, "Verification recipes".
+
+A run uses the selected recipes against the actual instance and revision. The
+executor verifies readiness, performs the named behavior, inspects its effects,
+and retains evidence outside disposable runtime data before cleanup. A cold
+agent should be able to follow the entry without prior conversation: provide
+only the prerequisites and references needed for that journey. Authentication
+requirements name credential categories and safe provisioning, never values.
+Missing credentials, unsafe reset or unavailable interaction capabilities are
+explicit gaps, not permission to bypass them.
+
+Refresh follows affected behavior and dependencies. An explicit full audit
+covers every entry in the named map, including blocked/unexecuted ones; it does
+not silently expand ordinary maintenance to the whole application. Classify a
+failure as recipe drift, insufficient interaction tooling or a product defect
+using current evidence. Correct an authorized stale command or helper and
+re-exercise it; never change the expected result merely to fit a regression.
+Record draft versus demonstrated recipes and their relevant revision/environment
+without appending a history of every run. A feature list is not test evidence.
+
+An authorized implementation may maintain affected descriptive recipes and
+necessary test helpers in its named scope, including operational `.agent/`
+paths. A planner names those paths when a phase needs them. Normative policy
+(hard gates, product expectations, required architecture or prohibitions) still
+follows "Repository conventions"; moving policy into a recipe never evades its
+authority. Per-run screenshots, logs and task progress belong to existing task
+reports/private evidence, not the reusable knowledge store or plugin cache.
+The normal review/check loop assesses meaningful recipe changes with the code.
+
+## Initiative coordination
+
+`orchestra-coordinate` is an explicit route for an initiative with genuinely
+independent project, repository, acceptance or task-root boundaries. It does not
+activate from a multi-file edit and does not require Task Control, Hub or Bridge.
+Keep ordinary work in one task with proportional phases. An initiative may
+include several repositories in one project or projects on different hosts;
+resolve actual Git roots, applicable instructions and execution environments
+instead of treating a project name or primary folder as the whole scope.
+
+The parent owns shared intent, contracts, dependency ordering, resource/tier
+choices within the user's selection, cross-child decisions and combined
+acceptance. Each child owns its bounded plan/workflow, local implementation,
+review, verification and permitted delivery. Choose full Orchestra, Lite or an
+explicit custom/standalone flow according to the work. A full child is a task
+root that may use the normal four role agents; it is not a leaf capability sent
+through `delegate.py`. Lite retains its no-delegation worker contract. This
+version supports one parent and independent child roots; children do not create
+another initiative hierarchy or sibling tasks.
+
+Before dispatch, the approved initiative identifies each child's outcome,
+repository and scope, exclusions, acceptance, selected supported tier/route,
+shared contract and dependency conditions. Explicit authority is inherited only
+within those bounds: implementation, phase commits and each delivery action are
+separate grants. The parent may accept derived child plans within the already
+approved implementation scope; it must not pretend the user approved an unseen
+artifact or reopen settled approval at every child. Children route unresolved
+material product, public-contract, security, cost or destructive decisions to
+the parent, which asks the user when the existing authority does not settle
+them. Host permission prompts remain user/host decisions. Unsupported models,
+required tools or authorization produce a precise blocker, never a silent
+substitution. Independent unaffected work may continue while one child waits.
+
+Keep a single compact initiative index in an existing parent task document or a
+caller-owned private file outside source. Record the approved brief reference,
+repositories/checkouts, shared contract, child route and host/session handle,
+dependency condition, links to child plans/results, accepted full SHAs and joint
+verification. Write a pending dispatch intent before launch and replace it with
+the observed handle. This is a recovery/navigation aid: Git and the host own
+actual state, child plans own phase state, and the index grants no authority.
+It has a named parent/resume consumer and lives through acceptance/recovery;
+retain final links/evidence at handoff and remove private transient prompts or
+logs only when no continuation needs them. No new allocator, schema, database,
+scheduler, status service or file-change watcher is required.
+
+Dispatch only through a host surface that supports the selected responsibility.
+Use native user-owned tasks when the user requested separate tasks and the app
+supports them; use native agents for internal delegated roles, not as a claim of
+persistent task-root capabilities they lack. An explicitly selected supported
+CLI may run a root session directly. Consult `orchestra-coordinate/host-transports.md` under the resolved skills
+root for concrete host primitives. Check availability before launch, preserve exact
+session identities and use argument APIs/safe quoting. Do not use the leaf
+wrapper to run a root, strip its protections, enable hidden bypass permissions,
+or infer that installing a plugin provides unavailable host tools.
+
+Choose exactly one checkout creator/owner: the native task transport or the
+child's normal setup. A clean host-supplied isolated checkout may be adopted
+under "Task checkout and branch". Never let both create worktrees. For a project
+with several mutable repositories, assign separate checkouts/owners or explicitly
+serialize writes; load each repository's relevant instructions. Do not run two
+writers in one checkout. Read dependencies from accepted revisions or a fixed
+contract, not from a sibling's evolving files. Use `completed` evidence for a
+reviewed child revision and `delivered` evidence only when integration into the
+required base/environment has actually occurred. Existing Task Control cards
+may expose those facts, but are not a dependency of this route.
+
+Waiting follows "Agent waiting": completion/attention events with known
+handles and cursors, compact summaries at stable handoff, no active diff/file
+inspection or repeated transcript reads to infer progress. An interactive CLI
+may be appropriate for its actual tool requirements; it does not cure wasteful
+polling by itself. On a stable result, read full child evidence only when a
+missing fact or concrete failure requires it. Process success alone establishes
+neither acceptance, independent review nor delivery.
+
+After interruption or ambiguous launch, reconcile the existing host handle,
+checkout and Git revision before resuming. A pending-dispatch entry does not
+mean nothing launched. Look up the actual host task/session; never replay a
+mutating packet or create a replacement while an earlier owner may be active.
+If the host cannot settle that ambiguity, block that child for reconciliation.
+Resume the same logical child with current revision, accepted correction scope
+and changed dependency evidence. A confirmed unavailable owner may be replaced
+only after its writes stop and the preserved checkout/evidence are handed over.
+No whole-initiative restart is required for a local failure.
+
+Every child handoff identifies repository, checkout, base and final full SHA,
+acceptance, checks, independent review status, evidence/recipe paths, blockers,
+remaining assumptions, delivery state and resource cleanup. The parent consumes
+that evidence once, then runs the real cross-project journey against the exact
+set of accepted revisions and relevant environment/configuration. Individual
+green suites cannot establish a shared contract. Name which revisions actually
+ran, including non-Git dependency versions when they determine behavior.
+
+A joint failure goes to its owning child as a focused repair; retain the same
+child/reviewer when supported. Repairs within approved intent reopen only that
+child's affected implementation/review/check cycle and update its terminal SHA
+and existing plan. Unchanged sibling evidence stays valid; changed interfaces
+invalidate dependent acceptance even if a sibling's code did not change. This
+is the same bounded correction exception as an accepted PR fix, and applies only
+before that child's delivery. After verified delivery, a repair becomes a new
+bounded child task/PR from the actual delivered base, under the initiative's
+remaining authority; never reuse a merged PR or its pre-squash branch. Check
+whether delivery of that new task is covered by the existing grant. Preserve
+the old completed plan and delivery evidence rather than rewriting them.
+The parent reviews shared
+contract/integration consequences rather than repeating unchanged local code
+reviews. Completion requires joint acceptance and honest delivery state, not a
+list of successful child messages. Merge, push, release and deployment remain
+separately scoped actions under the existing delivery policy.
+
 ## CLI delegation
 
 On explicit user selection, the root may execute one bounded capability with
@@ -797,6 +984,11 @@ not updated for such a change. Structural invariants the matrices must keep:
 
 ## Context and planning
 
+For an explicitly coordinated child root, resolve inherited approval and the
+supplied checkout through "Initiative coordination" and "Task checkout and
+branch" before this sequence. Reuse settled scope, tier and authority rather
+than presenting the same approval as a new user decision.
+
 After explicit activation in an execution-capable mode:
 
 1. The root reuses the prior conversation, classifies the internal checkpoint
@@ -882,7 +1074,7 @@ After explicit activation in an execution-capable mode:
    confirms the final specification with Objective, User-visible behavior,
    Constraints, Acceptance, Exclusions, Decisions, and Open questions, then
    recommends any justified tier change; the user chooses whether to change
-   it. If the worktree has no `.agent/` directory, include the missing-store
+   it. If the worktree has no normative project conventions, include the missing-store
    checkpoint in that same consolidated request rather than a later turn.
 7. For a task the root judges single-phase on a non-critical tier, it may
    present the specification and the candidate plan in the same message,
@@ -973,8 +1165,12 @@ After explicit activation in an execution-capable mode:
    evidence.
 11. After the complete bundle exists, the root reads the overview, phase
    index, named risks, and only the detail needed for judgment. It may skip
-   independent plan review for a single-phase non-critical plan. A non-trivial
-   multi-phase or cross-component plan receives one review. A critical plan
+   independent plan review when current evidence settles the material design
+   choices. Dispatch it for a concrete unresolved architectural alternative,
+   consequential contract, migration or recovery assumption, unfamiliar
+   dependency, or costly-to-reverse decision. Phase/file counts alone do not
+   create the gate. Resolve empirical uncertainty with a bounded authorized
+   experiment when that can answer it more directly. A critical plan always
    receives a focused review naming its measurable risk, supporting evidence,
    affected area, and detectable defect class. Every plan-review mandate asks
    first whether fewer phases or a smaller mechanism preserves the approved
@@ -1005,7 +1201,8 @@ task branch. Scoped dirty adoption remains available only into a managed task
 worktree unless the user explicitly authorizes carrying named changes in place.
 
 Standard and critical implementation does not begin until the user explicitly
-approves the aligned plan. That approval covers implementation and successful
+approves the aligned plan, or the authorized initiative parent accepts the
+derived child plan under "Initiative coordination". That approval covers implementation and successful
 commits at the approved phase boundaries; it does not authorize merge, release,
 deployment, production mutation, or another delivery action. If adopted
 committed work passes unchanged, completion does not require an artificial
@@ -1075,7 +1272,8 @@ updates its manifest entry. A material scope, public-contract, or user-visible
 behavior change requires renewed user approval.
 
 Setting the plan to `completed` freezes its approved objective, acceptance,
-and artifact selection. During an authorized PR review, an accepted fix may
+and artifact selection. During an authorized PR review or an initiative's
+bounded joint-acceptance repair before child delivery, an accepted fix may
 advance the affected phase's terminal commit only when it remains inside that
 approved intent and is verified, reviewed, and committed through the existing
 phase path; the root updates the manifest before pushing it. A new objective,
@@ -1239,9 +1437,10 @@ disposition or machine state:
   already listed under the phase's `Context maintenance paths`; if no such
   phase exists, the root uses `replan` when the change remains within
   approved authority, and otherwise reports the follow-up or requests the
-  newly required authority. An `.agent/**` destination is a root write at the
-  next approved-phase stable handoff; do not list `.agent/` under `Context
-  maintenance paths`. A `normative` or `uncertain` conflict is never
+  newly required authority. Normative `.agent/` conventions remain root-owned;
+  descriptive operational recipes follow "Project verification" and may be
+  exact `Context maintenance paths` owned by the implementer. A `normative` or
+  `uncertain` conflict is never
   rewritten to match current code automatically; executable configuration,
   databases, generated data, and operational data remain normal
   implementation scope; or
@@ -1294,7 +1493,7 @@ The phase's existing `Verification` section distinguishes `Implementation
 handoff checks` from the `Independent verification gate`. The implementation
 owner runs every required local deterministic check: affected tests, lint, type
 checks, builds, validation commands, and the canonical full suite when one
-exists; the suite is the `.agent/` hard gate when that store exists. The owner diagnoses and corrects failures within approved scope before
+exists; the suite includes each applicable `.agent/` hard gate when configured. The owner diagnoses and corrects failures within approved scope before
 handoff. An ordinary deterministic non-critical phase sets the independent
 gate to `none`. A verifier is required only for browser interaction, owned
 services or processes, mutable or stateful data, credentials, network or
@@ -1432,7 +1631,7 @@ The loop is:
    generated effects and cleanup, and residual risk.
    The root performs at most one bounded check of exact
    Git identity, status, allowed-path scope, `git diff --check`, and the declared
-   evidence inventory. That check exempts root-authored `.agent/**` deltas.
+   evidence inventory. That check exempts only the root's exact authorized normative `.agent/` paths.
    When a `frontend_implementation` phase changed a user-visible surface and
    its preview line is `none`, the root also opens the cited screenshots
    where the host renders images and judges basic visual quality — layout,
@@ -1523,13 +1722,13 @@ The loop is:
    `persist` needed by the named consumer; otherwise it uses `discard` without
    dispatch. Only a confirmed `descriptive` claim at an exact authorized
    versioned documentation path receives `persist`. Product documentation
-   returns to the same owner; an `.agent/**` destination remains root-authored
-   at this stable handoff.
+   returns to the same owner, including scoped operational recipes; normative
+   `.agent/` policy remains root-authored at this stable handoff.
    `normative` or `uncertain` conflicts are corrected as implementation defects,
    replanned, reported as follow-ups, or taken to the applicable authority
    boundary rather than rewritten to follow code automatically.
-6. After the owner edits product documentation or the root writes an authorized
-   `.agent/**` `persist`, the same implementation owner reruns affected
+6. After the authorized owner edits documentation or the root writes normative
+   `.agent/` policy, the same implementation owner reruns affected
    deterministic handoff checks and publishes a replacement
    `implementation-report` for that dirty revision. If the `.agent/` change
    adds or changes a hard gate, the owner must run the new literal hard-gate
@@ -1746,7 +1945,36 @@ to replace the completed plan's terminal revision with an unreviewed commit.
 
 ## Task checkout and branch
 
-Every formal Orchestra task uses a fresh `orchestra/<task-slug>[-N]` branch.
+Every formal Orchestra task normally uses a fresh `orchestra/<task-slug>[-N]`
+branch. An initiative child may instead adopt the clean isolated checkout and
+non-base task branch supplied by its host, after verifying repository identity,
+captured base/HEAD, branch ownership and no other writer. A detached checkout
+gets one collision-free task branch at that captured revision. Record the
+actual checkout creator and branch in the existing plan Decisions. This
+exception reuses the host checkout; it never creates a second worktree or
+updates the canonical base implicitly. Supplied task branches are not mistaken
+for the starting base. The child uses managed checkout semantics. If the
+supplied branch is outside
+`orchestra/*`, declare before setup that optional Coordinator registration and
+its Hub projection are skipped; use the child plan and parent index for
+visibility. Do not attempt registration only to rediscover the namespace
+failure. If adopting a prepared Task Control card or requiring that projection,
+select an owned `orchestra/*` branch in the same checkout before registration;
+never silently lose a required card's identity.
+
+For a host-owned managed checkout, pass `--preserve-task-resources` to
+`pr.py merge` or `integrate_local.py`. It preserves the worktree and private
+evidence for host-owned release, with no policy, review, freshness or check
+waiver. PR delivery still attempts the existing SHA/lease-guarded remote-branch
+cleanup and reports moved or inaccessible refs. The checked-out local task ref
+cannot be removed yet: the helper reports verified delivery with `partial`
+cleanup and a `retained_resources` handoff. The parent records the exact local
+ref, delivered SHA and cleanup owner; after the host releases the checkout it
+uses existing guarded cleanup rules to remove only an unchanged reviewed ref.
+Do not rerun merge/integration merely to finish cleanup. Keep preserved evidence
+accessible until the parent no longer needs it. Other managed and hybrid tasks
+keep their existing cleanup.
+
 The installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` file selects
 `managed` by default or opt-in `hybrid`; an explicit task direction may override
 that value and is recorded in the approved plan. If that file is missing, read
@@ -1904,70 +2132,51 @@ it is not part of direct Git or `commit_phase.py`.
 
 ## Repository conventions
 
-A consumer repository may store durable agent operating conventions in tracked
-`.agent/` topic files. That store is not task-private `.orchestra/` state, not
-host-injected `AGENTS.md`, and not `orchestra.toml` delivery argv. Files use a
-fixed taxonomy when present: scope, hard gate with exact argv and cwd,
-diagnostic-only commands, forbidden substitutions, opt-in gates,
-prerequisites, and conventions. There is no closed file enum and no empty stub.
+A consumer repository may keep tracked `.agent/` knowledge. Distinguish three
+kinds by meaning, not just directory: normative operating policy; descriptive
+setup/verification instructions; and per-run evidence. The last belongs to task
+reports, not durable `.agent/` knowledge. Reuse existing canonical contributor,
+test or product docs rather than duplicate them. `orchestra.toml` remains the
+source of delivery argv; host `AGENTS.md` and task-private `.orchestra/` have
+their existing responsibilities.
 
-For a reusable verification recipe, follow "Engineering guidance and evidence"
-and cite maintained project instructions before considering a new entry.
-Persist only a verified, non-obvious gap with a named future consumer, using
-the existing prerequisites and command categories in the relevant `.agent/`
-topic. Record unexecuted commands as unverified rather than successful checks;
-they cannot establish a verified recipe. New hard gates or normative additions
-still require the confirmation below.
+Normative topic files use the established taxonomy where relevant: scope, hard
+gates with exact argv/cwd, diagnostics, forbidden substitutions, opt-in gates,
+prerequisites and conventions. No empty stubs or closed file enum. A convention
+records a non-obvious intended constraint or failure it prevents, not general
+engineering advice or a linter's defaults. A hard gate names a literal command.
+New or changed policy requires user confirmation unless the current approved
+scope already authorizes that exact policy change. Descriptive operational
+recipes use "Project verification" and may be maintained by their authorized
+implementation owner; they do not need to masquerade as hard gates.
 
-Conventions are `normative` code conventions of that repository: local
-architecture boundaries, required or forbidden patterns, preferred libraries,
-and test policy. A convention is short and covers only what a competent agent
-would otherwise get wrong in that repository; it never restates general
-engineering principles, style preferences a linter already enforces, or facts
-the code demonstrates. A convention is not a hard gate unless it names an exact
-command. The plan cites the exact `.agent/` convention paths in `Review
-context` and each phase names the ones it consumes; an implementation that
-violates a packet-cited convention is a review finding, while uncited
-conventions and style never become required work. Adding or changing a
-convention is new normative policy and follows the confirmation rule below.
+Lookup reads relevant `.agent/` entries, applicable `AGENTS.md`, maintained docs,
+Makefile/CI/manifests and `orchestra.toml`. Packets cite exact paths instead of
+pasting bodies. Formal plans name task-relevant conventions in `Review context`
+and copy literal mandatory commands into handoff checks. Applicable repository
+instructions remain binding independently of packet citation. Conflicting
+normative sources are an authority question; current implementation never
+silently wins. Stale descriptive setup can be corrected from observed evidence
+within scope, without changing what the product is expected to do.
 
-Lookup reads `.agent/` first, then applicable `AGENTS.md` files if present, then
-Makefile, CI, package manifests, and `orchestra.toml` as evidence. Packets name
-exact `.agent/` paths and do not paste file bodies. The plan copies literal
-hard-gate commands into `Implementation handoff checks`. If `.agent/` disagrees
-with `AGENTS.md` or delivery checks, block and do not guess. Resolve that with
-the existing canonical-source rule: a `normative` or `uncertain` conflict is an
-authority boundary and is never rewritten to match current code automatically.
+After first `repository_context`, absence of normative project conventions is
+one consolidated question with specification confirmation: offer only a useful,
+evidence-backed seed or the explicit `orchestra-repo-onboard` route. A directory
+containing only operational recipes does not establish normative policy.
+If the user declines, infer and cite existing instructions/checks for this task;
+do not repeatedly interrupt the same task or require an empty store. Greenfield
+work may already have authorized operational recipes; the first full Orchestra
+plan includes only any still-needed normative seed Decision and exact paths.
 
-After first `repository_context` and before the product plan, a missing `.agent/`
-directory is a missing-store checkpoint batched into the same consolidated user
-request as spec confirmation. Recommend creating conventions from verified
-analysis: the in-task seed below covers only what this task needs, while
-`$orchestra-repo-onboard` is the complete path when the user wants the store
-built from a broader analysis and their answers, on its own branch, before or
-after this task. Explicit "not now" infers commands for this task only; the next
-`$orchestra` on the same repo asks again until `.agent/` exists. Never create
-the store in silence. A new project skips that checkpoint: the first Orchestra
-plan automatically includes the seed Decision in `plan.md`, and the first phase
-names the exact `.agent/` paths in its scope and outputs.
-
-The checkpoint or greenfield auto-include is only that decision, not a disk
-write. For that seed, the root writes only `.agent/**` at the first approved
-phase's stable handoff, before dispatching review, never before plan approval
-and never as a setup mutation analogous to `plan.md`. Abort or reject of the
-plan therefore leaves no versioned `.agent/` orphans. Seed handoff order is
-owner delivers, then the root writes `.agent/`, then the independent gate
-(`none` for ordinary convention docs), then initial review that must cite the
-exact `.agent/` seed paths, then commit. Subagents suggest later convention
-updates only as `Context discoveries` whose named consumer is an exact
-`.agent/` path. Evidenced descriptive corrections may persist after validation
-without a second ask; after the root write they follow the affected-check,
-replacement-report, factual revalidation and delta-review rules in `Material
-context discovery and promotion`. New normative policy waits for user
-confirmation; a task shortcut is `discard`. `persist` forks by destination as
-specified above. The allowed-path check exempts root-authored `.agent/**`
-deltas; implementer allowed paths exclude `.agent/`. Delivery checks remain in
-`orchestra.toml`.
+Normative seed writes remain root-owned at the approved phase's stable handoff,
+before independent review and commit, never before plan approval. The root's
+exact authorized policy paths are the allowed-path exception; implementers may
+own explicitly scoped descriptive verification entries. Onboarding first reads
+and proposes policy, then uses its existing confirmation boundary. That same
+confirmation may authorize bounded recipe execution and helpers; it is not
+product-feature or production authority. All meaningful knowledge changes use
+the affected checks and review under "Material context discovery and promotion".
+Discovery alone grants no authority. Delivery checks remain in `orchestra.toml`.
 
 ## Durable knowledge checkpoint
 
@@ -1996,19 +2205,21 @@ never gain authority to rewrite their own skills or policies from a failure.
 
 Keep the implementation owner and reviewer available until any authorized
 knowledge correction, affected checks, and delta review
-finish. The only destination is an exact `.agent/` path under the existing taxonomy.
+finish. The destination is the existing canonical repository documentation
+or an exact `.agent/` path under "Repository conventions"; do not create a
+second copy of already maintained knowledge.
 A candidate qualifies only when it is verified against the current revision,
 non-obvious, not already represented in `.agent/`, `AGENTS.md`, source, or
 canonical documentation, and not task progress, approvals, branch state,
 secrets, or a user preference. Anything that fails that test is dropped in
 silence; the checkpoint is never mentioned to the user when nothing qualifies.
 
-A qualifying descriptive correction persists under the existing `.agent/**`
-`persist` rules. A qualifying normative addition is new policy: the root names
+A qualifying descriptive correction persists through its authorized owner and
+exact documentation scope under the `persist` rules. A qualifying normative addition is new policy: the root names
 the exact path and one-line content in the same consolidated final request
 that carries the delivery decision, never as a separate turn, and writes it
-only on confirmation. Either write follows the documented order (root write,
-same owner rerun of affected checks, delta review by the same reviewer, phase
+only on confirmation. Either write follows the documented order (authorized owner write,
+affected checks, delta review by the same reviewer, phase
 commit); that commit becomes the terminal commit before `completed`. The
 checkpoint never reopens scope, adds product behavior, or blocks delivery when
 the user declines. Once the terminal phase commit is accepted, setting

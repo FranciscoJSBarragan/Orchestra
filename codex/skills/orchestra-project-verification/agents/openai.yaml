@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Project Verification"
+  short_description: "Prepare and maintain repeatable product verification"
+  default_prompt: "Use $orchestra-project-verification to prepare or exercise the relevant project journeys."
+policy:
+  allow_implicit_invocation: true

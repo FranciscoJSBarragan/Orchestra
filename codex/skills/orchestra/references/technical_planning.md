@@ -4,10 +4,15 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_analyst` profile and the
+For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the
 explicit `technical_planning` capability. Use the relevant sections of
 [shared engineering guidance](architecture_guidance.md) to identify design
 risks, consequential assumptions, and proportionate evidence in either mode.
+
+Technical techniques may also be consulted in the caller's current workflow
+under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
+artifacts and independent-gate rules apply when that assignment is selected;
+reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
@@ -50,8 +55,10 @@ risks, consequential assumptions, and proportionate evidence in either mode.
   in `Review context`. Also cite the exact `.agent/` convention paths that
   bear on the change in `Review context`, and name in each phase the
   conventions it consumes; do not paste their bodies or add conventions the
-  task does not touch. Never put `.agent/` in `Context maintenance paths`. A
-  greenfield first plan records the seed Decision in `plan.md`; the first phase
+  task does not touch. Descriptive operational recipe paths may be exact
+  `Context maintenance paths`; normative policy remains root-owned under
+  WORKFLOW "Repository conventions". A greenfield first plan records any
+  still-needed normative seed Decision in `plan.md`; the first phase
   names those exact `.agent/` paths in its scope and outputs; the first-phase
   review packet must cite the exact `.agent/` seed paths. Do not write `.agent/`
   before plan approval. Set
@@ -103,10 +110,10 @@ risks, consequential assumptions, and proportionate evidence in either mode.
   and reset, commands, and generated paths. Add a preparation phase only when
   current evidence demonstrates that the task needs one.
 - Expect the root to decide whether the complete candidate bundle needs
-  independent review. A single-phase non-critical bundle may skip it;
-  non-trivial multi-phase or cross-component bundles require one review, and a
-  critical bundle requires a review focused on its named measurable risk. A
-  plan-review mandate asks first whether fewer phases or a smaller mechanism
+  independent review under WORKFLOW "Context and planning". Name concrete
+  unresolved design risks rather than using phase or file counts as the gate;
+  propose an authorized experiment when it can settle an empirical question.
+  A plan-review mandate asks first whether fewer phases or a smaller mechanism
   preserves the approved result.
 - Remain available while a dispatched plan review is active. Read the exact
   `plan-review` artifact and accepted finding identifiers, then publish complete
@@ -133,3 +140,9 @@ is unresolved, scope is materially ambiguous, canonical sources conflict, a
 public or high-impact decision remains unresolved, or the work is too large for
 one phase yet no WORKFLOW boundary separates it. Being able to fit the work in
 one phase is never a blocker.
+
+For reusable feature maps and recipe maintenance, use
+[project verification](../../orchestra-project-verification/SKILL.md) and its
+WORKFLOW lifecycle. Planning cites affected entries; verifiers execute their
+assigned journeys and report stale instructions separately from product defects.
+The selected role's source and execution authority remains unchanged.

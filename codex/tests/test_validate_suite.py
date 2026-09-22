@@ -51,6 +51,29 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("quick conformance passed", result.stdout)
 
+    def test_modular_entry_requires_its_runtime_and_reusable_recipe_route(self) -> None:
+        skill = self.root / "codex/skills/orchestra-engineering/SKILL.md"
+        skill.write_text(skill.read_text().replace(
+            "(../orchestra-project-verification/SKILL.md)", "(../orchestra-role-verifier/SKILL.md)"
+        ))
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("modular-routing: orchestra-engineering must link ../orchestra-project-verification/SKILL.md", result.stdout)
+
+    def test_parent_requires_root_transport_resource(self) -> None:
+        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        skill.write_text(skill.read_text().replace("(host-transports.md)", "(packet-example.md)"))
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("modular-routing: orchestra-coordinate must link host-transports.md", result.stdout)
+
+    def test_parent_cannot_be_made_implicitly_selected(self) -> None:
+        metadata = self.root / "codex/skills/orchestra-coordinate/agents/openai.yaml"
+        metadata.write_text(metadata.read_text().replace("false", "true"))
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("orchestra-coordinate must remain explicit-only", result.stdout)
+
     def test_repository_conventions_contract_requires_agent_hard_gate(self) -> None:
         conventions = self.root / ".agent/backend-testing.md"
         conventions.write_text(

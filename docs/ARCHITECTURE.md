@@ -188,7 +188,9 @@ registry: the overview carries a provenance-preserving `Review context` index
 and each phase names its exact evidence dependencies plus exact non-glob
 `Context maintenance paths` or `none`. Repository conventions, including
 normative code conventions, live in the consumer's tracked `.agent/` files and
-reach workers only as exact cited paths. Disposition and persistence mechanics
+reach workers as exact cited paths; applicable repository instructions retain
+their own authority. Operational recipes follow the separate maintenance
+lifecycle in WORKFLOW "Project verification". Disposition and persistence mechanics
 live in `docs/WORKFLOW.md` ("Material context discovery").
 
 ### Base profiles and capabilities
@@ -307,6 +309,8 @@ not establish a finding.
 Skills describe the behavioral route and call deterministic helpers. Expected
 public lanes are:
 
+- modular engineering and project verification;
+- explicit initiative coordination across independent task roots;
 - implicit greenfield project start;
 - explicit repository onboarding into `.agent/` conventions;
 - explicit orchestration and discovery;
@@ -421,7 +425,7 @@ does not promote them automatically. `repository_context` alone may validate a
 reported candidate into a targeted `context-delta`. No discovery registry,
 global context file, coordination column, or additional artifact kind exists.
 The durable knowledge checkpoint before completion is one root judgment with
-`.agent/` as its only destination; it adds no store, helper, or agent
+the existing canonical repository knowledge path as its destination; it adds no store, helper, or agent
 (`docs/WORKFLOW.md`, "Durable knowledge checkpoint").
 
 Each discovery classifies its claim as `descriptive` current-state
@@ -454,6 +458,24 @@ transactional decomposition, DAG validation, dependency satisfaction, and
 native-chat delivery registration; the CLI supplies current Git identity and
 ancestry evidence. The Hub accepts control schemas v3 through v6 during migration,
 projects initiative/dependency fields through an allowlist, and stays GET-only.
+
+## Modular composition
+
+`orchestra-engineering` routes ordinary technical work to the shared guidance
+without forcing it through standalone leaf roles or the full planned route.
+`orchestra-project-verification` owns the consumer-facing entry for preparing,
+executing and maintaining repository feature maps and recipes. These entries
+reuse the existing four roles and seven playbooks; no additional persona or
+model matrix is introduced. Operational authority and lifecycle live in
+WORKFLOW "Modular engineering", "Project verification" and "Repository conventions".
+
+`orchestra-coordinate` owns an explicitly selected parent responsibility across
+independent task roots. Its native host tasks or supported CLI root sessions
+retain child context. The existing leaf delegate remains deliberately narrower.
+One compact private index links handles, plans, accepted revisions and joint
+evidence for the parent/resume consumer; it does not mirror child phase state
+or create a scheduler. Host-created worktrees are adopted once and retained for
+host-owned cleanup. WORKFLOW "Initiative coordination" owns the contract.
 
 ## Host adapters
 

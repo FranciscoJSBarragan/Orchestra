@@ -4,7 +4,12 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach, recommending a tier change, or asking the user.
+For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach, recommending a tier change, or asking the user.
+
+Technical techniques may also be consulted in the caller's current workflow
+under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
+artifacts and independent-gate rules apply when that assignment is selected;
+reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 

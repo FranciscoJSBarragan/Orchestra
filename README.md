@@ -100,6 +100,21 @@ Use an explicit `--presets-file` for custom executor/model assignments. The
 managed installation remains unchanged; selecting a preset never changes a
 subscription or authorizes a different billing path.
 
+## Modular use
+
+Use `$orchestra-engineering` for focused understanding, design, implementation
+or debugging in your current workflow. `$orchestra-project-verification` builds
+or maintains a small map of how to operate and verify the actual application.
+Both reuse the same engineering guidance without creating phases or task state.
+Hosts that discover skills automatically can select these entries; explicit
+invocation remains available when they do not.
+
+Use `$orchestra-coordinate` when the outcome requires independent projects or
+task roots. The parent sets shared contracts and checks the combined result;
+each child can use full Orchestra, Lite or the chosen custom flow. Available
+host tools determine the transport. See [the coordination packet](codex/skills/orchestra-coordinate/packet-example.md)
+and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
+
 ## Companion skills
 
 | Skill | When |
@@ -225,7 +240,7 @@ docs/WORKFLOW.md       the canonical behavior contract, request → delivery
 docs/ARCHITECTURE.md   components, contracts, host adapters, installation boundary
 docs/ROADMAP.md        non-canonical; deferred distribution and benchmarks
 AGENTS.md              concise executable rules for agents working on Orchestra itself
-codex/skills/          the 16 skills and their internal playbooks
+codex/skills/          the shared skills and their internal playbooks
 codex/agents/          the four namespaced agent profiles
 codex/config/          Codex role matrix and permission defaults
 codex/scripts/         sync.py, validate_suite.py, coordination and task-control helpers

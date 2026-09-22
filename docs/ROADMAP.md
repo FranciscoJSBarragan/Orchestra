@@ -67,3 +67,18 @@ assignments using correctness, defects found by independent review, verification
 reliability, latency, and token use. The benchmark informs a later explicit
 product decision; it does not silently rewrite assignments, add a benchmarking
 profile, persist workflow telemetry, or require a benchmark control plane.
+
+## Modular workflow acceptance
+
+Reusable engineering and project-verification entries plus an explicit parent
+coordinator now compose with full Orchestra, Lite and custom child workflows.
+[Modular acceptance](evaluation/MODULAR_ACCEPTANCE.md) separates source/routing
+checks, the two-repository integration canary, live host trials and matched
+quality evaluation. Host-provided checkouts are retained for host cleanup after
+authorized delivery. The same four roles and seven internal playbooks remain.
+
+Broader live parent/child acceptance, active-installation updates and public
+distribution remain explicit subsequent work. Current source tests do not prove
+that every host discovers a skill, that cloud resume works in all environments,
+or that generated code improves. Keep comparative evaluation after bounded
+plugin acceptance and preserve the pending distribution and Bridge work above.

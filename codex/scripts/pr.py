@@ -528,6 +528,7 @@ def merge_pr(
     checkout_mode: str = "managed",
     start_revision: str | None = None,
     acknowledged_feedback: tuple[str, ...] = (),
+    preserve_task_resources: bool = False,
 ) -> dict[str, Any]:
     """Merge only an explicitly authorized, freshly checked current PR head."""
     if not authorized:
@@ -540,6 +541,8 @@ def merge_pr(
     if error:
         return blocked("base worktree is invalid")
     assert base is not None
+    if preserve_task_resources and checkout_mode != "managed":
+        return blocked("preserving host-owned task resources requires managed checkout mode")
     if checkout_mode not in {"managed", "hybrid"}:
         return blocked("checkout mode must be managed or hybrid")
     if checkout_mode == "managed" and repo == base:
@@ -677,6 +680,28 @@ def merge_pr(
         "delivery_verified": True,
         "delivery_revision": post["mergeCommit"]["oid"],
     }
+    if preserve_task_resources:
+        retained = [_retained(
+            "local_branch", "parent must clean the exact task ref after the host releases its worktree"
+        )]
+        cleaned: list[str] = []
+        if (
+            _worktree_clean(repo)
+            and _resolve_commit(repo, "HEAD") == clean_head
+            and _checked_out_branch(repo) == task_branch
+        ):
+            cleaned, remote_retained = _cleanup_remote_branch(repo, task_branch, remote, clean_head)
+            retained.extend(remote_retained)
+        else:
+            retained.append(_retained("remote_branch", "post-merge checkout identity changed"))
+        result.update({
+            "status": "partial",
+            "reason": "merge verified; local task ref cleanup awaits host worktree release",
+            "cleanup": cleaned,
+            "retained_resources": retained,
+            "preserved": ["worktree", "private_state"],
+        })
+        return result
     if checkout_mode == "hybrid":
         cleanup = _cleanup_merged_hybrid_task(
             repo,
@@ -1009,6 +1034,7 @@ def parse_args() -> argparse.Namespace:
     merge_parser.add_argument("--policy", type=Path)
     merge_parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
     merge_parser.add_argument("--start-revision")
+    merge_parser.add_argument("--preserve-task-resources", action="store_true")
     merge_parser.add_argument("--acknowledged-feedback", action="append", default=[])
     return parser.parse_args()
 
@@ -1049,6 +1075,7 @@ def main() -> int:
             args.checkout_mode,
             args.start_revision,
             tuple(args.acknowledged_feedback),
+            args.preserve_task_resources,
         )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

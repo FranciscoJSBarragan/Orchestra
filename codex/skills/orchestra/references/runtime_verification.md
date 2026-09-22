@@ -4,11 +4,16 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_verifier` profile and the
+For a delegated capability assignment, use this playbook with the `orchestra_verifier` profile and the
 explicit `runtime_verification` capability. Do not dispatch it for routine
 local deterministic checks in a non-critical phase; those belong to the
 implementation owner unless the selected execution preset assigns its terminal
 gate here (WORKFLOW "Delegated execution presets").
+
+Technical techniques may also be consulted in the caller's current workflow
+under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
+artifacts and independent-gate rules apply when that assignment is selected;
+reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
@@ -47,3 +52,9 @@ gate here (WORKFLOW "Delegated execution presets").
 - Re-run only checks affected by an accepted fix unless a canonical full-suite gate is explicitly required.
 
 Return `blocked` when the environment, dependency, credential, test data, revision, or evidence source is unavailable or unsafe. Return `failed` when trustworthy evidence demonstrates unmet acceptance or a regression.
+
+For reusable feature maps and recipe maintenance, use
+[project verification](../../orchestra-project-verification/SKILL.md) and its
+WORKFLOW lifecycle. Planning cites affected entries; verifiers execute their
+assigned journeys and report stale instructions separately from product defects.
+The selected role's source and execution authority remains unchanged.

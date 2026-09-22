@@ -747,6 +747,44 @@ else:
         self.assertEqual(self.remote_head(), self.head)
         self.assertTrue(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
+    def test_host_checkout_retained_and_remote_ref_cleaned_after_verified_merge(self) -> None:
+        self.write_policy(passing=True)
+        result, payload = self.run_pr(*self.merge_args(), "--preserve-task-resources")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "partial")
+        self.assertTrue(payload["delivery_verified"])
+        self.assertEqual(payload["delivery_revision"], self.head)
+        self.assertEqual(payload["cleanup"], ["remote_branch"])
+        self.assertEqual(payload["retained_resources"][0]["resource"], "local_branch")
+        self.assertIn("worktree", payload["preserved"])
+        self.assertTrue(self.repo.is_dir())
+        self.assertEqual(self.git("branch", "--show-current").stdout.strip(), "feature")
+        self.assertIsNone(self.remote_head())
+
+    def test_preserved_checkout_keeps_a_moved_remote_ref(self) -> None:
+        moved = self.git("rev-parse", "main").stdout.strip()
+        subprocess.run(
+            ["git", "--git-dir", str(self.remote), "update-ref", "refs/heads/feature", moved],
+            check=True, capture_output=True,
+        )
+        result, payload = self.run_pr(*self.merge_args(), "--preserve-task-resources")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(payload["delivery_verified"])
+        self.assertEqual(self.remote_head(), moved)
+        self.assertEqual(
+            {item["resource"] for item in payload["retained_resources"]},
+            {"local_branch", "remote_branch"},
+        )
+        self.assertTrue(self.repo.is_dir())
+
+    def test_preservation_does_not_waive_merge_checks(self) -> None:
+        self.write_policy(passing=False)
+        result, payload = self.run_pr(*self.merge_args(), "--preserve-task-resources")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
+        self.assertTrue(self.repo.is_dir())
+
     def test_merge_fake_success_uses_selected_method(self) -> None:
         self.write_policy(passing=True)
         private = self.repo / ".orchestra"

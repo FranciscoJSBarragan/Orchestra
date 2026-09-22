@@ -52,9 +52,11 @@ When existing commands leave a material acceptance gap, assess the missing
 parts using [shared engineering guidance](../orchestra/references/architecture_guidance.md)
 ("Verification recipes"). Cite maintained project instructions and distinguish
 source-backed commands from runs actually observed at a named revision. Record
-unresolved prerequisites or execution as such; do not start services or mutate
-data to turn onboarding into runtime verification. Reusable entries still obey
-WORKFLOW "Repository conventions" and the confirmation boundary below.
+unresolved prerequisites or execution as such. Analysis remains read-only.
+Offer [project verification](../orchestra-project-verification/SKILL.md) when a
+feature map, interaction helper or proven journey would close the gap. Include
+its exact writes, safe data, execution and cleanup in the confirmation below;
+only after that boundary may onboarding execute the authorized recipe.
 
 ## Ask only what evidence cannot settle
 
@@ -71,19 +73,23 @@ existing document already settles.
 A candidate entry qualifies when a competent agent reading the code would
 otherwise get it wrong, and its evidence or the user's answer supports it.
 Reject general engineering principles, restatements of tooling defaults, facts
-the code demonstrates on its own, descriptions of the repository, task or
-branch state, secrets, and personal preferences. Prefer fewer, shorter files.
+the code demonstrates on its own, task or branch state, secrets, and personal preferences. Descriptive setup and
+verification entries qualify when they have the concrete future consumer and
+proof level defined by WORKFLOW "Project verification". Prefer fewer, shorter files.
 Every hard gate names its exact argv and cwd. Every convention is one to three
 sentences with the reason or the failure it prevents.
 
 ## Confirm, write, verify
 
-Present one mutation summary: the exact `.agent/` paths and their content, the
-branch to use, and the check that will run. Require explicit confirmation
-before writing; `.agent/` is normative policy and is never created in silence.
-On confirmation, write only those files on a branch that is not the starting
-branch, run the repository's own hard gate when one exists and read its
-result, and commit. Do not push, merge, open a PR, or write `orchestra.toml`
+Present one mutation summary: exact policy and operational-documentation paths,
+any needed verification helper, the branch, commands, data and cleanup. Require
+explicit confirmation before writing or running the proposed environment;
+existing explicit approval of that same summary satisfies the boundary.
+On confirmation, write only those files on the agreed task branch, execute the
+authorized representative journey and repository hard gate when present, read
+the results, and commit under the repository's review policy. Preserve draft
+labels for recipes that could not run; do not implement product fixes merely
+because verification discovered them. Do not push, merge, open a PR, or write `orchestra.toml`
 unless the user chose the delivery policy in the same confirmation.
 
 ## Hand off

@@ -4,12 +4,17 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_analyst` profile and the explicit `repository_context` capability.
+For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the explicit `repository_context` capability.
+
+Technical techniques may also be consulted in the caller's current workflow
+under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
+artifacts and independent-gate rules apply when that assignment is selected;
+reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
 - Answer only the focused repository questions in the packet; do not plan or implement the change.
-- Read `.agent/` first, then the repository's applicable `AGENTS.md` files and canonical product sources before interpreting local conventions. Report the convention taxonomy (scope, hard gate, diagnostic-only, forbidden substitutions, opt-in, prerequisites, conventions) from those files, naming the exact `.agent/` path of every normative convention relevant to the packet's questions. If `.agent/` is missing, say `none` plus the inference sources; never invent gates. A `normative` or `uncertain` conflict with `AGENTS.md` or delivery checks is an authority boundary: block and do not guess.
+- Read `.agent/` first, then the repository's applicable `AGENTS.md` files and canonical product sources before interpreting local conventions. Distinguish descriptive operational recipes from normative policy under WORKFLOW "Repository conventions". Report the convention taxonomy (scope, hard gate, diagnostic-only, forbidden substitutions, opt-in, prerequisites, conventions) from those files, naming the exact `.agent/` path of every normative convention relevant to the packet's questions. If `.agent/` is missing, say `none` plus the inference sources; never invent gates. A `normative` or `uncertain` conflict with `AGENTS.md` or delivery checks is an authority boundary: block and do not guess.
 - Inspect the smallest relevant domain and prefer a changed context delta over rereading evidence that is still valid.
 - For a consequential assumption or proposed guard removal in the focused
   questions, use [shared engineering guidance](architecture_guidance.md)

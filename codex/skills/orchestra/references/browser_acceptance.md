@@ -4,10 +4,15 @@ For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
-Use this internal playbook only with the `orchestra_verifier` profile and the
-explicit `browser_acceptance` capability. Browser acceptance is always a
+For a delegated capability assignment, use this playbook with the `orchestra_verifier` profile and the
+explicit `browser_acceptance` capability. In Orchestra phase mode this is a
 dedicated independent gate, never an `Implementation handoff check`, and uses
-the active user-selected tier.
+the active user-selected tier. Direct role use follows the standalone contract.
+
+Technical techniques may also be consulted in the caller's current workflow
+under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
+artifacts and independent-gate rules apply when that assignment is selected;
+reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
@@ -35,3 +40,9 @@ the active user-selected tier.
 - Follow shared resource hygiene: close the dedicated task tab before every handoff, whether successful, failed, or blocked, and open a fresh one for every rerun. Never retain the task tab or another owned resource across a browser-acceptance handoff; return `retained_resources: none`. A close failure is `cleanup: partial` and does not authorize closing unrelated browser state. Browser control for the run ends when its task tab is closed; never close the browser application or a shared window to end it.
 
 Return `blocked` when the selected route or, for `auto`, its defined fallback is unavailable, a dedicated tab cannot be opened safely, required access or test data is unavailable, or the scenario would disturb unrelated state or cross a destructive, production, payment, security, privacy, or irreversible boundary.
+
+For reusable feature maps and recipe maintenance, use
+[project verification](../../orchestra-project-verification/SKILL.md) and its
+WORKFLOW lifecycle. Planning cites affected entries; verifiers execute their
+assigned journeys and report stale instructions separately from product defects.
+The selected role's source and execution authority remains unchanged.

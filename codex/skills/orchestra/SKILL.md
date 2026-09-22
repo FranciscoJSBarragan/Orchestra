@@ -42,6 +42,11 @@ capture, and direct implementation remain outside this route. In a
 planning-only host, read `Orchestrator behavior`, pause before task setup, and
 continue in the same conversation once the host becomes execution-capable.
 
+When dispatched as an explicitly authorized initiative child root, first read
+WORKFLOW "Initiative coordination" and the supplied-checkout rule in "Task
+checkout and branch". Reuse inherited scope/tier/authority and the existing
+owned checkout; preserve this route's independent implementation review.
+
 Identify the execution host from its available adapter and use its native
 spawn protocol. Explicit CLI delegation follows its separate executor contract.
 Codex uses [host_codex](references/host_codex.md),

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Coordinate"
+  short_description: "Coordinate independent projects and task roots"
+  default_prompt: "Use $orchestra-coordinate to coordinate this initiative across its independent tasks and verify the combined result."
+policy:
+  allow_implicit_invocation: false

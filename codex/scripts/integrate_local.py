@@ -38,6 +38,7 @@ def integrate_local(
     expected_task_revision: str,
     checkout_mode: str = "managed",
     start_revision: str | None = None,
+    preserve_task_resources: bool = False,
 ) -> dict[str, Any]:
     """Verify, fast-forward, confirm containment, and clean only safe resources."""
     if not authorized:
@@ -46,6 +47,8 @@ def integrate_local(
     base = _worktree_root(base_worktree)
     if checkout_mode not in {"managed", "hybrid"}:
         return blocked("checkout mode must be managed or hybrid")
+    if preserve_task_resources and checkout_mode != "managed":
+        return blocked("preserving host-owned task resources requires managed checkout mode")
     if task is None or base is None:
         return blocked("task and base must be Git worktree roots")
     if checkout_mode == "managed" and task == base:
@@ -186,6 +189,24 @@ def integrate_local(
             "preserved": ["worktree"],
         }
 
+    if preserve_task_resources:
+        return {
+            "status": "partial",
+            "reason": "integration verified; local task ref cleanup awaits host worktree release",
+            "action": "integrated",
+            "task_sha": task_sha,
+            "delivery_verified": True,
+            "delivery_revision": task_sha,
+            "base_branch": base_branch,
+            "checks": check_result["checks"],
+            "cleanup": [],
+            "preserved": ["worktree", "private_state"],
+            "retained_resources": [{
+                "resource": "local_branch",
+                "reason": "parent must clean the exact task ref after the host releases its worktree",
+            }],
+        }
+
     merged = _git(base, "branch", "--merged", base_branch, "--format=%(refname:short)")
     merged_branches = set(merged.stdout.splitlines()) if not merged.returncode else set()
     if task_branch not in merged_branches:
@@ -252,6 +273,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--policy", type=Path)
     parser.add_argument("--checkout-mode", choices=("managed", "hybrid"), default="managed")
     parser.add_argument("--start-revision")
+    parser.add_argument("--preserve-task-resources", action="store_true")
     return parser.parse_args()
 
 
@@ -267,6 +289,7 @@ def main() -> int:
         args.expected_task_revision,
         args.checkout_mode,
         args.start_revision,
+        args.preserve_task_resources,
     )
     print(json.dumps(result, sort_keys=True))
     return 1 if result["status"] == "blocked" else 0

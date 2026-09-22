@@ -24,6 +24,13 @@ explicitly invokes Orchestra, it supplies the smallest dependable process that
 puts intelligence where it has leverage: confirming the specification, planning
 the work, implementing carefully, finding real bugs, and verifying behavior.
 
+Reusable engineering and project-verification skills also support ordinary and
+custom workflows, with proportional evidence and no implicit full activation.
+An explicitly requested initiative can coordinate independent task roots across
+projects and repositories while preserving their local review and shared
+acceptance. Its parent handles global decisions without importing every child
+transcript; Task Control and Hub remain optional.
+
 The same analysis, implementation, review, verification, and commit tools are
 useful independently, without requiring the full planned workflow. A user may
 also choose a Codex, Cursor, or Grok CLI executor for a bounded assignment while the
@@ -235,7 +242,7 @@ change, including tracked `.agent/` convention files when that store is in
 use. Normative sources express intent or constraints and never follow current
 code automatically merely because the two conflict. Before a task completes,
 the root judges once whether it learned something about the repository worth
-keeping and proposes only an exact `.agent/` path; Orchestra owns no memory
+keeping and uses the existing canonical repository knowledge path; Orchestra owns no memory
 store of its own. The disposition, persistence, and checkpoint mechanics live
 in `docs/WORKFLOW.md`.
 

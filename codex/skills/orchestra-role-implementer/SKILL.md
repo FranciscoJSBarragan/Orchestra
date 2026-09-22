@@ -27,13 +27,14 @@ in either mode. Carry the relevant evidence and any unresolved assumptions in
 the existing checks, decisions, and residual-risk output; do not turn the
 reference into a checklist for unrelated work.
 
-Before editing in either mode, require the brief or packet to name canonical
-setup, runtime, dependencies, services, permissions, test-data provenance and
-reset, generated paths, and every required check that the requested change
-needs. Follow cited `.agent/` conventions exactly; in phase mode, never edit
-`.agent/` unless the root is writing an authorized path. In standalone mode,
-an explicitly scoped `.agent/` edit still requires the repository's own
-authority and conventions; do not infer permission from this role.
+Before editing, resolve the readiness and checks this change actually needs
+from the brief and focused repository evidence. Fill ordinary factual gaps
+without asking for a fully populated packet; stop for missing material
+information or authority. Follow applicable project conventions. WORKFLOW
+"Repository conventions" owns the distinction between root-owned normative
+policy and descriptive operational knowledge. Maintain explicitly scoped
+recipes through [project verification](../orchestra-project-verification/SKILL.md)
+when the behavior changes, without weakening expected outcomes or hard gates.
 
 When the packet names an execution preset, read WORKFLOW "Delegated execution
 presets" for terminal-check ownership and recovery. Report verifier-owned

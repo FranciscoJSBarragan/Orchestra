@@ -82,6 +82,7 @@ class LocalIntegrationTests(unittest.TestCase):
         expected_task_revision: str | None = None,
         checkout_mode: str = "managed",
         start_revision: str | None = None,
+        preserve_task_resources: bool = False,
     ) -> tuple[subprocess.CompletedProcess[str], dict]:
         command = [
             sys.executable,
@@ -101,6 +102,8 @@ class LocalIntegrationTests(unittest.TestCase):
             command.append("--authorized")
         if checkout_mode != "managed":
             command.extend(("--checkout-mode", checkout_mode))
+        if preserve_task_resources:
+            command.append("--preserve-task-resources")
         if start_revision:
             command.extend(("--start-revision", start_revision))
         result = subprocess.run(
@@ -111,6 +114,26 @@ class LocalIntegrationTests(unittest.TestCase):
             text=True,
         )
         return result, json.loads(result.stdout)
+
+    def test_host_owned_checkout_is_preserved_after_verified_integration(self) -> None:
+        private = self.initialize_state(self.task)
+        process, result = self.run_helper(preserve_task_resources=True)
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(result["status"], "partial")
+        self.assertEqual(result["delivery_revision"], self.task_sha)
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
+        self.assertEqual(self.git(self.task, "branch", "--show-current").stdout.strip(), "task")
+        self.assertTrue((private / "plan.md").is_file())
+        self.assertEqual(result["cleanup"], [])
+        self.assertEqual(result["retained_resources"][0]["resource"], "local_branch")
+
+    def test_preservation_does_not_waive_authority_or_head_checks(self) -> None:
+        for options in ({"authorized": False}, {"expected_task_revision": "0" * 40}):
+            with self.subTest(options=options):
+                process, result = self.run_helper(preserve_task_resources=True, **options)
+                self.assertEqual(process.returncode, 1)
+                self.assertEqual(result["status"], "blocked")
+                self.assertNotEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), self.task_sha)
 
     def test_clean_fast_forward_integrates_and_cleans_resources(self) -> None:
         self.initialize_state(self.task)

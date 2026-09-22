@@ -19,3 +19,10 @@ Keep the integration decision, helper invocation, and blocker handling at the ro
 6. Return `partial` when integration succeeded but conservative cleanup could not finish; return `blocked` before mutation on dirty, divergent, unmerged, ambiguous, unauthorized, or failed-check state.
 
 Never force, reset, clean, rewrite history, remove dirty or unmerged resources, release, deploy, publish, or mutate production.
+
+For an adopted host-owned isolated checkout, follow WORKFLOW "Task checkout and
+branch": pass `--preserve-task-resources` in managed mode. The helper still
+requires authority, exact revisions and checks. Follow the returned partial
+cleanup handoff for the local ref after host release; PR merge still performs
+guarded remote-ref cleanup. Preserving the checkout does not silently abandon
+child-created refs.

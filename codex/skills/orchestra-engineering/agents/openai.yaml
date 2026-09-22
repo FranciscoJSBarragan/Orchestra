@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Engineering"
+  short_description: "Engineering practices for your existing workflow"
+  default_prompt: "Use $orchestra-engineering to handle this engineering task with proportional evidence."
+policy:
+  allow_implicit_invocation: true

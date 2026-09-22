@@ -27,9 +27,10 @@ do not silently fall back to another installed version.
 | Cursor/Grok matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
 | Role skills and shared references | `<skills-root>/<skill>/` | `<skills-root>/<skill>/` |
 
-Every delegated packet includes the absolute `role_skill` path and the selected
+Every delegated role packet includes the absolute `role_skill` path and the selected
 runtime and skills roots. Resolve sibling skills and references from that same
-root. Host behavior, including the plugin's Codex profile composition, is
+root. A task-root packet instead names its selected entry skill and those same roots
+under WORKFLOW "Initiative coordination". Host behavior, including the plugin's Codex profile composition, is
 specified in WORKFLOW "Host adapters" and the selected spawn reference.
 
 The package is read-only. Task Control and coordination data stay under

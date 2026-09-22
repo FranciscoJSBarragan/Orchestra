@@ -60,8 +60,10 @@ Initialize Git only when the user approved it.
 When canonical commands alone do not establish the confirmed journey, use
 [shared engineering guidance](../orchestra/references/architecture_guidance.md)
 ("Verification recipes") to complete the runnable handoff and capture the
-observed result. Reuse those instructions in the handoff below; do not create
-a second verification document or a new gate for an already proven journey.
+observed result. Use [project verification](../orchestra-project-verification/SKILL.md)
+to retain a small operational entry in the approved foundation when future
+agents need it. Reuse that entry in the handoff rather than duplicate it. A
+recipe is descriptive evidence, not a new normative gate.
 
 Run the smallest sufficient fresh checks and read their results. Classify
 deterministic failures directly. Orchestra synchronizes Guardian
@@ -88,5 +90,7 @@ Then offer planned continuation through Orchestra in plain language. Do not
 activate `$orchestra` automatically. If the user explicitly accepts, that
 instruction activates Orchestra, which reuses this brief, decisions, readiness,
 acceptance, and fresh evidence instead of restarting discovery. The first
-Orchestra plan includes the seed Decision from these verified commands; do not
-write `.agent/` during greenfield-only work or before plan approval.
+Orchestra plan reuses the verified operational recipes and includes only any
+still-needed normative seed Decision. Normative conventions follow WORKFLOW
+"Repository conventions"; their authority is separate from preparing the
+approved runnable foundation.

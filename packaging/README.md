@@ -249,3 +249,14 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 [Codex plugins](https://developers.openai.com/plugins/build/plugins),
 [Cursor plugins](https://cursor.com/docs/reference/plugins), and
 [Grok plugins](https://docs.x.ai/build/features/skills-plugins-marketplaces).
+
+## Modular entries
+
+All targets and direct sync include `orchestra-engineering`,
+`orchestra-project-verification` and `orchestra-coordinate` from canonical
+sources, alongside `orchestra-lite`. References relocate with the bundle.
+Engineering and verification entries allow host discovery; the initiative
+coordinator requires an explicit request. Distribution makes resources
+available, not guaranteed selection or native root-task APIs. See
+[modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
+local integration canaries and the separate live-host evaluation boundary.

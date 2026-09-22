@@ -48,6 +48,33 @@ fail-soft, and separate from authority and Git truth.
   when their cost is concrete. Line counts, stylistic taste, and abstraction
   counts alone are not findings.
 
+## Understand the system
+
+For an explanation or investigation, start at the relevant caller and trace
+the data, decisions, effects and failure path far enough to answer the question.
+Show a concrete example and exact source references; do not narrate the entire
+repository. Separate what the implementation does from why it was designed
+that way. Consult targeted history, tests, issues or dependency documentation
+only when they can settle that rationale. An absent rationale stays an
+inference; a historical comment is not proof of current behavior. Ask for
+clarification only when the unresolved meaning changes the requested result.
+
+## Resolve uncertainty experimentally
+
+When an implementation choice rests on uncertain library behavior, integration
+semantics or feasibility, prefer a small discriminating experiment over a more
+elaborate speculative plan. State the question, expected observations and
+decision it will inform. Reuse a fixture, scratch checkout or existing test
+tool and preserve the result, actual versions and limitations. A prototype's
+success proves only the behavior it exercised, not production readiness.
+
+Experiments obey the caller's mutation, data and cost authority. A read-only
+analyst may propose a probe or inspect existing results; it cannot install,
+write or start services merely by calling the action research. Keep disposable
+code private, clean up owned resources, and retain a helper only if it has a
+continuing repository consumer. Choose the smallest supported mechanism from
+the observations; do not create an experiment phase for routine certainty.
+
 ## Evidence for consequential changes
 
 - Identify assumptions that determine correctness, including indirect callers,
@@ -67,6 +94,15 @@ fail-soft, and separate from authority and Git truth.
   failure cannot be reproduced safely or proportionately, state that limit and
   the alternative evidence; never manufacture a failure or claim an unobserved
   before/after result.
+- Check test sensitivity where false confidence is a material risk: confirm the
+  targeted reproducer detects the original defect, a controlled incorrect
+  result, or the relevant boundary case. Inspect whether a mock bypasses the
+  behavior being claimed. Do not add mutation testing or new tests to every
+  edit; prefer one discriminating check over many assertions of the same fact.
+- Nearby code is context, not automatic design authority. Before copying a
+  pattern that affects correctness, check its actual consumers and constraints.
+  Improve a demonstrated local defect within scope; propose broader policy or
+  pattern changes separately when they were not authorized.
 
 ## State and repeated changes
 
@@ -94,6 +130,10 @@ separate the result from normal variation. Preserve correctness checks and
 report relevant resource or latency regressions. A noisy or unmatched result
 is inconclusive, not an improvement. Use existing benchmarks or a bounded
 task-local measurement; ordinary work does not acquire a benchmark requirement.
+Use a runtime profile, query plan or trace when it can distinguish the proposed
+bottleneck from competing explanations. Report what was measured, including
+correctness and resource tradeoffs; less code or a plausible optimization is
+not measured speed. Avoid changing several independent mechanisms at once.
 
 ## Verification recipes
 
@@ -104,6 +144,13 @@ cwd; an observable readiness condition when a service is needed; the
 representative user journey or runtime scenario and expected results; evidence
 to capture; and cleanup of owned resources or data. Omit inapplicable parts and
 reference maintained instructions instead of copying them.
+
+For visual or interaction acceptance, identify the actual state, viewport and
+reference before comparison. Exercise relevant controls, error/empty states and
+responsive behavior; inspect screenshots at matching states and account for
+dynamic data. A reachable page, attractive screenshot or changed snapshot is
+not proof of functional correctness or parity. Use the existing design system
+and user-approved visual intent rather than inventing taste-based gates.
 
 Distinguish a recipe established from source from a run actually observed at a
 named revision. A command exit or reachable page is sufficient only when it

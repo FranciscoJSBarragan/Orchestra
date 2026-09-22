@@ -20,3 +20,10 @@ Keep verification, direct helper invocation, and the merge decision at the root.
 7. Return `ok` when merge and every cleanup action finish. Return `partial` after a successful merge only when intended post-state verification or cleanup is incomplete, with every retained resource named.
 
 Never merge on stale clean evidence, bypass policy or configured checks, rewrite a moved ref, delete a dirty or ambiguous worktree, release, deploy, publish, or mutate production.
+
+For an adopted host-owned isolated checkout, follow WORKFLOW "Task checkout and
+branch": pass `--preserve-task-resources` in managed mode. The helper still
+requires authority, exact revisions and checks. Follow the returned partial
+cleanup handoff for the local ref after host release; PR merge still performs
+guarded remote-ref cleanup. Preserving the checkout does not silently abandon
+child-created refs.

@@ -66,6 +66,18 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-delegate/SKILL.md",
     "codex/skills/orchestra-delegate/agents/openai.yaml",
     "codex/skills/orchestra-lite/SKILL.md",
+    "codex/skills/orchestra-engineering/SKILL.md",
+    "codex/skills/orchestra-engineering/agents/openai.yaml",
+    "codex/skills/orchestra-project-verification/SKILL.md",
+    "codex/skills/orchestra-project-verification/agents/openai.yaml",
+    "codex/skills/orchestra-coordinate/SKILL.md",
+    "codex/skills/orchestra-coordinate/agents/openai.yaml",
+    "codex/skills/orchestra-project-verification/feature-example.md",
+    "codex/skills/orchestra-coordinate/packet-example.md",
+    "codex/skills/orchestra-coordinate/host-transports.md",
+    "docs/evaluation/MODULAR_ACCEPTANCE.md",
+    "codex/tests/fixtures/modular_engineering/make_fixture.py",
+    "codex/tests/test_modular_fixture.py",
     "codex/skills/orchestra-lite/agents/openai.yaml",
     "codex/skills/orchestra-lite/kickoff-template.md",
     "codex/skills/orchestra-lite/result-example.json",
@@ -237,6 +249,9 @@ SKILL_NAMES = (
     "orchestra-repo-onboard",
     "orchestra-delegate",
     "orchestra-lite",
+    "orchestra-engineering",
+    "orchestra-project-verification",
+    "orchestra-coordinate",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -603,11 +618,11 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                 failures.append(
                     f"skill-contract: {name} default_prompt must mention ${name}"
                 )
-            if name == "orchestra-project-start" and (
+            if name in {"orchestra-project-start", "orchestra-engineering", "orchestra-project-verification"} and (
                 "allow_implicit_invocation: true" not in ui
             ):
                 failures.append(
-                    "skill-contract: orchestra-project-start must allow implicit invocation"
+                    f"skill-contract: {name} must allow implicit invocation"
                 )
 
     references = root / "codex/skills/orchestra/references"
@@ -657,6 +672,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "orchestra-role-verifier",
             "orchestra-repo-onboard",
             "orchestra-project-start",
+            "orchestra-engineering",
+            "orchestra-project-verification",
         )),
         *(f"codex/skills/orchestra/references/{name}.md" for name in (
             "repository_context",
@@ -730,11 +747,41 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         if "$orchestra" not in text:
             failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
-    exempt = {"orchestra-project-start", *ROLE_SKILL_BY_PROFILE.values()}
+    exempt = {"orchestra-project-start", "orchestra-engineering",
+              "orchestra-project-verification", "orchestra-coordinate",
+              *ROLE_SKILL_BY_PROFILE.values()}
     for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
         if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
             failures.append(f"runtime-contract: {name} must state the Orchestra home")
+    return failures
+
+
+
+def check_modular_routing(root: Path) -> list[str]:
+    """Keep public modular entries connected to their canonical resources."""
+    failures: list[str] = []
+    routes = {
+        "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
+        "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
+        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "../orchestra-lite/SKILL.md", "../orchestra/SKILL.md")),
+    }
+    workflow = root / "docs/WORKFLOW.md"
+    policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
+    for name, (section, resources) in routes.items():
+        skill = root / f"codex/skills/{name}/SKILL.md"
+        if not skill.is_file():
+            continue  # Required-path validation owns missing files.
+        content = skill.read_text(encoding="utf-8")
+        if f"## {section}" not in policy or section not in " ".join(content.split()):
+            failures.append(f"modular-routing: {name} must route to WORKFLOW {section}")
+        links = {target.split("#", 1)[0] for target in _local_markdown_links(content)}
+        for target in ("../orchestra/runtime.md", *resources):
+            if target not in links:
+                failures.append(f"modular-routing: {name} must link {target}")
+    metadata = root / "codex/skills/orchestra-coordinate/agents/openai.yaml"
+    if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
+        failures.append("modular-routing: orchestra-coordinate must remain explicit-only")
     return failures
 
 
@@ -1289,6 +1336,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_roles_and_profiles,
     check_skills_and_runtime,
     check_orchestra_lite,
+    check_modular_routing,
     check_repository_conventions,
     check_direct_sync,
     check_cursor_host,

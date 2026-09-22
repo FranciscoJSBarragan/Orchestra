@@ -48,7 +48,9 @@ class PluginPackagingTests(unittest.TestCase):
                 for profile in AGENTS:
                     self.assertEqual((plugin / "profiles" / f"{profile}.toml").read_bytes(), (ROOT / "codex/agents" / f"{profile}.toml").read_bytes())
                 self.assertEqual((plugin / "WORKFLOW.md").read_bytes(), (ROOT / "docs/WORKFLOW.md").read_bytes())
-                for source in (ROOT / "codex/skills").rglob("*.md"):
+                skill_root = ROOT / "codex/skills"
+                resources = (*skill_root.rglob("*.md"), *skill_root.glob("*/agents/openai.yaml"))
+                for source in resources:
                     self.assertEqual((plugin / "skills" / source.relative_to(ROOT / "codex/skills")).read_bytes(), source.read_bytes())
                 for host in ("codex", "cursor", "grok"):
                     with (plugin / "hosts" / host / "roles.toml").open("rb") as handle:

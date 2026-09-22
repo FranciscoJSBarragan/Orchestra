@@ -78,7 +78,8 @@ capability, target, revision, blockers, risks, and decisions. In `standalone`
 mode return the complete evidence-backed result inline and omit artifact IDs
 unless an explicit output path was supplied. In `orchestra_phase` mode return
 the exact artifact ID or candidate bundle; a plan remains advisory until the
-user approves the exact bundle and only the root writes the active local plan.
+user (or authorized initiative parent under WORKFLOW) accepts the bundle; only
+the owning root writes the active local plan.
 For repository context, make the complete targeted result or delta
 self-contained and name every material source and unresolved fact.
 

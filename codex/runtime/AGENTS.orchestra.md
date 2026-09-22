@@ -3,6 +3,10 @@
 
 Orchestra is an explicit planned-work route, not the default implementation route. Activate `$orchestra` only through an explicit `$orchestra` invocation or an unequivocal imperative to use or start Orchestra. Ordinary plan requests, descriptive mentions, and direct change, fix, or implementation work remain outside Orchestra. In a planning-only host mode, reuse the conversation and pause before branch, worktree, plan, implementation, or commit mutation; continue without a second invocation once the host is execution-capable. Orchestra observes the current host mode and never changes it.
 
+Ordinary technical work may use `$orchestra-engineering` and maintained project
+verification recipes without activating the planned route. WORKFLOW "Modular
+engineering" owns their composition.
+
 Workflow policy has one canonical home: `${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md`, routed by `$orchestra`. This managed block is the Codex host overlay and adds only host runtime facts:
 
 - Use `${ORCHESTRA_HOME:-$HOME/.orchestra}` as the shared runtime home; helpers live at `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/` with fallback `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/`.
