@@ -34,7 +34,7 @@ Tailscale, and Hermes (a JSON-consuming agent). It observes; it never governs.
 - **Event table / ledger** — only if snapshot polling demonstrably misses
   needed transitions in real use.
 - **Hub-owned schema migrations or workflow tables** — never; the Hub remains
-  a pure consumer of Control schemas v3 through v7 (including both v5 column
+  a pure consumer of Control schemas v3 through v8 (including both v5 column
   shapes) and Coordinator schema v1.
 - **Controlled `status`/`stage` vocabulary** — only after real use shows the
   conservative attention feed is insufficient; it would be a workflow-docs

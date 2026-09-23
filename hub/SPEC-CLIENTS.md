@@ -13,7 +13,7 @@ the shared Task Control CLI, merges only Hub progress by exact UUID, and
 remains usable when the Hub is unavailable. It supports card capture, draft
 editing, notes, archive/restore, recoverable trash, restricted permanent purge,
 safe-stop request/withdraw, and reopening a cancelled task. Its neutral start
-action copies an instruction for Codex, Cursor, or Grok; it never adopts,
+action copies an instruction for Codex, Cursor, Grok, or Devin; it never adopts,
 acknowledges a stop, finishes work, controls a host, or mutates Git resources.
 The app installer owns only the app and its RunAtLoad LaunchAgent, with no
 KeepAlive; sync remains the sole owner of the shared runtime. The detailed

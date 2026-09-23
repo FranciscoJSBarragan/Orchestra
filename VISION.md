@@ -11,10 +11,10 @@ quality-to-cost ratio.
 ## Vision
 
 Orchestra should make it practical to hand a well-defined implementation to a
-Codex, Cursor, or Grok Build orchestrator and trust it to reach a correct, reviewed, and
+Codex, Cursor, Grok Build, or Devin orchestrator and trust it to reach a correct, reviewed, and
 committed result. The user remains the product owner and final authority; the
 orchestrator acts as the technical lead responsible for execution. Codex,
-Cursor, and Grok Build are first-class execution hosts; they share one product, skills, helpers,
+Cursor, Grok Build, and Devin are first-class execution hosts; they share one product, skills, helpers,
 and Git workflow, and each host supplies only spawn, models, conversation
 identity, permissions, and browser routing.
 
@@ -26,7 +26,7 @@ the work, implementing carefully, finding real bugs, and verifying behavior.
 
 The same analysis, implementation, review, verification, and commit tools are
 useful independently, without requiring the full planned workflow. A user may
-also choose a Codex, Cursor, or Grok CLI executor for a bounded assignment while the
+also choose a Codex, Cursor, Grok, or Devin CLI executor for a bounded assignment while the
 owning orchestrator retains scope, independent review, and delivery judgment.
 Reuse the user's chosen tools without introducing another workflow engine or
 weakening the quality contract. An explicitly selected shared execution preset
@@ -81,7 +81,8 @@ workflow, and phase agents do not create user-facing visualizations.
 The active tier controls assignment intensity, not user authority. Each host
 provides its own native capability matrix. Codex offers standard and critical;
 Cursor also offers minimal for ordinary work where cost or speed matters.
-Grok Build offers standard and critical and has no cheaper assigned tier.
+Grok Build and Devin offer standard and critical and have no cheaper assigned
+tier.
 The user chooses among assigned tiers after a concise risk recommendation.
 Independent authority boundaries for production, security, payments,
 destructive actions, and delivery remain in force.
@@ -96,9 +97,9 @@ or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
 scrutiny for actual high-impact risk. On Cursor it recommends `standard`,
 `minimal` when the user prioritizes
-cost or speed, and `critical` for matching high-impact risk. On Grok Build it
-recommends `standard` and offers `critical` for matching high-impact risk;
-unassigned Grok `minimal` remains blocked. The
+cost or speed, and `critical` for matching high-impact risk. On Grok Build and
+Devin it recommends `standard` and offers `critical` for matching high-impact
+risk; unassigned `minimal` remains blocked on both. The
 user makes the final tier choice among assigned tiers.
 
 ### Prepared-task Kanban and native-chat continuity
@@ -122,7 +123,7 @@ kept separately as `worktree`. Linked worktrees therefore stay grouped under
 the same repository without depending on GitHub, remotes, or network access;
 two independent clones remain distinct. Historical rows are not backfilled.
 
-The user starts a ready card from a native Codex, Cursor, or Grok Build chat by asking that chat to
+The user starts a ready card from a native Codex, Cursor, Grok Build, or Devin chat by asking that chat to
 adopt its human ID with Orchestra. The chat becomes the visible conversational
 owner, inherits its current permissions, and follows the normal Orchestra
 checkout and approval flow. Revision-bound prepared context is reused when
@@ -202,8 +203,8 @@ read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor and Grok observe the host permission choice and
-never write Codex, Cursor, or Grok permission configuration. The active permission
+Auto-review) as the default. Cursor, Grok, and Devin observe the host permission choice and
+never write Codex, Cursor, Grok, or Devin permission configuration. The active permission
 choice for the task, host, or launcher remains authoritative; the complete
 permission rules live in `docs/WORKFLOW.md`. Deterministic product, assertion,
 compilation, or CLI-usage failures remain real failures.
@@ -355,7 +356,7 @@ external or integration mutation.
 Orchestra succeeds when:
 
 - a task can be prepared durably without starting Orchestra, then adopted in a
-  visible native Codex, Cursor, or Grok Build chat without losing its origin, human ID, or
+  visible native Codex, Cursor, Grok Build, or Devin chat without losing its origin, human ID, or
   UUID;
 - ordinary tasks finish without workflow repair or manual state cleanup;
 - accepted phases leave no active write-capable agent or owned test process;
@@ -395,8 +396,8 @@ Orchestra succeeds when:
 - Selecting an approved artifact by recency, or duplicating Git/GitHub facts as
   semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
-- Porting to Hermes, Devin, or any harness beyond the approved Codex and
-  Cursor hosts.
+- Porting to Hermes or any harness beyond the approved Codex, Cursor, Grok
+  Build, and Devin hosts.
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
 

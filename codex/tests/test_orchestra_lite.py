@@ -85,6 +85,7 @@ class LiteSkillContractTests(unittest.TestCase):
             "codex/config/roles.native.toml",
             "hosts/cursor/config/roles.cursor.toml",
             "hosts/grok/config/roles.grok.toml",
+            "hosts/devin/config/roles.devin.toml",
         ):
             tiers = tomllib.loads((ROOT / matrix).read_text(encoding="utf-8"))["tiers"]
             for tier, assignments in tiers.items():

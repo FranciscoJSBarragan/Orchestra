@@ -75,7 +75,10 @@ reviewer is closed, record it unavailable and replace it with the same logical
 assignment and exact approved artifact IDs; a replacement reviewer is always
 a fresh independent reviewer. Cursor: `Task` exists; use a fresh isolated Task per
 dispatch, resume only the same phase-cohort agent id while available, and never
-`resume: self` for a reviewer. On every host, the first review is fresh and
+`resume: self` for a reviewer. Devin: `run_subagent` and `read_subagent`
+exist; use a fresh subagent per dispatch in foreground by default and resume
+only the same phase-cohort subagent while it remains available. On every
+host, the first review is fresh and
 later delta reviews reuse that reviewer only while it remains available; a
 closed reviewer is replaced by a fresh independent reviewer with the same
 review target and evidence. Native agent dispatch always uses the owning
@@ -104,6 +107,22 @@ conversation identity, permissions, and `browser_route`.
   `timeout_ms: 600000`. Cleanup requires completed agents with no retained
   write-capable resources. Grok sync never writes `~/.grok/config.toml` or
   Codex `config.toml`.
+- Devin reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml`. Dispatch
+  uses `run_subagent` with the custom Devin profile named by the matrix plus
+  the existing `orchestra-role-*` skill; a plugin installation namespaces that
+  profile as `orchestra:<name>`. Foreground is the default and returns the
+  result inline; use background only when the owner must stay available and
+  every needed tool is pre-approved, then wait on the completion notification
+  plus `read_subagent` without busy-polling. Resume
+  only the same phase-cohort subagent for delta reviews. Devin has no
+  `close_agent`: the `read_subagent` result or foreground return is the
+  required completed-state evidence before commit. Task Control identity is
+  `ORCHESTRA_DEVIN_THREAD_ID` from the `SessionStart` hook's `session_id`;
+  adopt is `blocked` without it. Permissions are observed, never written.
+  Every mapped `browser_route` is `blocked`, so browser acceptance falls back
+  to User preview. Devin sync installs profiles and skills under
+  `~/.config/devin/` and merges only the managed `SessionStart` hook into
+  `config.json`, preserving unrelated hooks and permission settings.
 
 Resolve executable resources using `orchestra/runtime.md` alongside the loaded
 skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
@@ -114,7 +133,7 @@ selected installation's mapping. Settings remain outside the plugin under
 `$HOME/.orchestra` or their explicit `--state-root`.
 
 Plugins do not register Codex agent types or edit global configuration. For a
-plugin dispatch, read the selected behavior profile, spawn a native `default`
+Codex plugin dispatch, read the selected behavior profile, spawn a native `default`
 agent with the matrix's explicit model and effort, and include that profile's
 instructions and the exact role skill path in the bounded packet. Direct sync
 uses its registered profile type. Both routes preserve the same responsibility,
@@ -608,14 +627,16 @@ digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
 legacy `runs`, `turns`, and `interactions` remain readable after migration but
 new code never writes or exposes App Server operations.
 
-Adoption occurs only inside the user's current native Codex, Cursor, or Grok
-Build chat.
+Adoption occurs only inside the user's current native Codex, Cursor, Grok
+Build, or Devin chat.
 `task adopt` requires the adapter-provided conversation identity; no caller may
 invent or override that identity. On Codex that identity is `CODEX_THREAD_ID`
 (UUID). On Cursor the plugin's `sessionStart` hook verifies that `session_id`
 matches `conversation_id` and exposes that exact value through
 `ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. On Grok
 Build that identity is `GROK_SESSION_ID`; if it is unavailable, adopt is
+`blocked`. On Devin that identity is `ORCHESTRA_DEVIN_THREAD_ID`, supplied by
+the `SessionStart` hook's `session_id`; if it is unavailable, adopt is
 `blocked`. The chat then explicitly activates Orchestra,
 inherits its current permissions, and applies the installed checkout policy. Matching Git
 reuses prepared context; changed Git requires a focused `repository_context`
@@ -683,8 +704,9 @@ After the current owner reaches a stable handoff, it closes its exact owned
 resources using the normal cleanup contract, writes the existing approved plan
 as `blocked` with the safe stop as blocker and resume as next action, then runs
 `task acknowledge-stop` with the adapter-provided owner identity. Codex uses
-`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, and Grok uses
-`GROK_SESSION_ID`. Acknowledgement changes the card to `cancelled`, releases
+`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, Grok uses
+`GROK_SESSION_ID`, and Devin uses `ORCHESTRA_DEVIN_THREAD_ID`. Acknowledgement
+changes the card to `cancelled`, releases
 current ownership to the matching previous owner fields, and preserves the
 checkout and plan. `task reopen` returns it to `ready`; the same previous owner
 may adopt it and must resume the exact checkout and blocked plan instead of
@@ -725,6 +747,14 @@ Selecting `minimal` blocks: there is no cheaper Grok row. `critical` uses the
 same spawn rows and raises root scrutiny; it does not change model or
 reasoning.
 
+On Devin, the root reads
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml`. Devin offers
+`minimal`, `standard`, and `critical`. This cut assigns `standard` and
+`critical`: every capability pins `swe-2-max`, whose slug already encodes
+maximum reasoning, so there is no cheaper Devin row. The root recommends
+`standard`. Selecting `minimal` blocks. `critical` uses the same spawn rows
+and raises root scrutiny; it does not change model or reasoning.
+
 For every spawned dispatch, select a capability, profile, and explicit model
 and effort from the owning host's matrix, unless an explicit CLI assignment or
 execution preset overrides it. An unavailable assignment blocks that dispatch
@@ -756,7 +786,8 @@ evidence".
 
 Codex offers `standard` and `critical`, with `standard` as the default
 recommendation. Cursor additionally assigns `minimal` for ordinary work when
-cost or speed is the priority. Grok has no cheap assigned tier. A tier choice
+cost or speed is the priority. Grok and Devin have no cheaper assigned tier.
+A tier choice
 never waives production, migration, data, security, payment, destructive-action,
 or delivery authority gates. Tier transitions remain user-directed.
 
@@ -767,8 +798,8 @@ execution presets"; the invariants below describe the native matrices.
 
 The installed TOML matrices, not this document, define native model and
 reasoning assignment. The sources are `codex/config/roles.native.toml`
-(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`, and
-`hosts/grok/config/roles.grok.toml` (installed under
+(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`,
+`hosts/grok/config/roles.grok.toml`, and `hosts/devin/config/roles.devin.toml` (installed under
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/<host>/roles.toml`). Reassigning a
 model or reasoning effort edits only the matching TOML file; this document is
 not updated for such a change. Structural invariants the matrices must keep:
@@ -791,6 +822,12 @@ not updated for such a change. Structural invariants the matrices must keep:
   blocks unassigned `minimal`. The Grok spawn reference maps rows onto
   `general-purpose` through the available native transport, without inventing
   a per-dispatch reasoning field.
+- Devin assigns `standard` and `critical` with every capability on `swe-2-max`
+  at `inherit` effort (`critical` raises root scrutiny, not the model) and
+  blocks unassigned `minimal`. The model is pinned in each installed Devin
+  agent profile; `run_subagent` accepts no per-dispatch model or reasoning
+  field. The Devin spawn reference maps `subagent_type` onto that custom
+  profile name, namespaced `orchestra:<name>` under a plugin installation.
 - Frontend implementation composes `orchestra_implementation_worker`; browser
   acceptance composes `orchestra_verifier`. They never run as one combined
   role.
@@ -1619,8 +1656,8 @@ consumed and can never affect the commit result.
 ### Test permissions and browser routing
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor and Grok observe the host permission
-choice and never write permission configuration. The active permission choice for the
+Auto-review) as the default. Cursor, Grok, and Devin observe the host
+permission choice and never write permission configuration. The active permission choice for the
 task, host, or launcher remains authoritative: Orchestra never changes it or
 blocks execution solely because it differs. When Codex Guardian is active,
 commands inside the workspace run
@@ -1640,11 +1677,15 @@ carry `browser_route: auto | in_app | chrome`:
   supported connection recovery, it may fall back to Codex's in-app Browser
   only when Chrome is unavailable or has a technical capability gap that the
   in-app Browser can satisfy. On Cursor, `auto` and `chrome` map to Browser Use.
-  On Grok Build, `auto` maps to Playwright.
-- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor
-  and Grok.
+  On Grok Build, `auto` maps to Playwright. On Devin, `auto` is `blocked`.
+- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor,
+  Grok, and Devin.
 - `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
-  Use on Cursor, and is `blocked` on Grok.
+  Use on Cursor, and is `blocked` on Grok and Devin.
+
+Devin has no native browser surface; every mapped route is `blocked`, so UI
+acceptance falls back to User preview, where the user verifies render and
+behavior manually.
 
 An explicit route from the user, relayed by the root or given directly in the
 agent conversation, must be attempted even when the scenario is a canary for a
@@ -1782,8 +1823,8 @@ profile, workspace-root list, execpolicy rule, or Git helper is installed.
 Older or unreadable clients block before any destination changes. Historical
 manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
 remains version-independent and restores the exact prior configuration.
-Cursor and Grok synchronization never write those Codex permission keys or
-Grok permission configuration.
+Cursor, Grok, and Devin synchronization never write those Codex permission
+keys or Grok or Devin permission configuration.
 
 Native host chats inherit their configured permission choice; Task Control
 never launches an execution host or supplies a permission override. Explicit
@@ -2112,7 +2153,7 @@ It does not authorize release, deployment, or production mutation.
 ## Maturity
 
 Automated checks and representative canaries provide evidence. Codex, Cursor,
-and Grok Build are approved execution hosts. Hermes, Devin, and any further
+Grok Build, and Devin are approved execution hosts. Hermes and any further
 harness remain deferred.
 
 ## User-facing progress and handoff

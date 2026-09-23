@@ -22,7 +22,8 @@ Use this internal playbook only with the `orchestra_implementation_worker` profi
   `in_app`, and `chrome`. On Cursor, `auto` and `chrome` map to Browser Use and
   `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
   connector first and may fall back to Codex's in-app Browser only for a
-  technical gap. On Grok, `auto` maps to Playwright.
+  technical gap. On Grok, `auto` maps to Playwright. On Devin, every mapped
+  route is `blocked`.
 - On Cursor, drive Browser Use MCP with `new_tab` then `wait_for_load`. If the
   MCP process client is not registered, authenticate once and retry; if it still
   cannot run, or Chrome remote-debugging Allow is missing, return `blocked`. Do

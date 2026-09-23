@@ -147,7 +147,7 @@ PERMANENT_DOCS = (
 
 IDENTITY = (
     "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,\n"
-    "Cursor, and Grok Build."
+    "Cursor, Grok Build, and Devin."
 )
 
 HISTORICAL_NARRATIVES = (

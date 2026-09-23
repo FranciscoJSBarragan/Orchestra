@@ -5,8 +5,9 @@ actually loaded (resolve symlinks), never from the project working directory. Se
 `ORCHESTRA_SKILLS_ROOT` to the parent of that skill's directory. For a reference
 or a delegated packet, reuse the owning skill's resolved root.
 
-When the parent of that skills root contains `.codex-plugin/plugin.json`, this
-is a plugin: set `ORCHESTRA_RUNTIME_ROOT` to that parent. Otherwise this is a
+When the parent of that skills root contains `.codex-plugin/plugin.json` or a
+host plugin manifest such as `.devin-plugin/plugin.json`, this is a plugin:
+set `ORCHESTRA_RUNTIME_ROOT` to that parent. Otherwise this is a
 direct-sync installation: use `${ORCHESTRA_HOME:-$HOME/.orchestra}`. For explicit
 source development, use `codex/scripts`, `codex/agents`, `codex/config`, and
 `docs/WORKFLOW.md` in that same source checkout instead of installed copies.
@@ -24,8 +25,13 @@ do not silently fall back to another installed version.
 | Execution presets | `<runtime>/execution-presets.toml` | `<runtime>/execution-presets.toml` |
 | Codex matrix | `<runtime>/hosts/codex/roles.toml` | `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` |
 | Codex behavior profiles | `<runtime>/profiles/<profile>.toml` | `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml` |
-| Cursor/Grok matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
+| Devin agent profiles | `<runtime>/agents/<profile>.md` | `~/.config/devin/agents/<profile>.md` |
+| Cursor/Grok/Devin matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
 | Role skills and shared references | `<skills-root>/<skill>/` | `<skills-root>/<skill>/` |
+
+Under a Devin direct-sync installation the skills root is
+`~/.config/devin/skills`; under the Devin plugin bundle it is
+`<runtime>/skills`.
 
 Every delegated packet includes the absolute `role_skill` path and the selected
 runtime and skills roots. Resolve sibling skills and references from that same

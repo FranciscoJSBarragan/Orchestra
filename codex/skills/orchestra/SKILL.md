@@ -46,8 +46,9 @@ Identify the execution host from its available adapter and use its native
 spawn protocol. Explicit CLI delegation follows its separate executor contract.
 Codex uses [host_codex](references/host_codex.md),
 `spawn_agent`, and `wait_agent`; Cursor uses its Task adapter; Grok Build uses
-its `spawn_subagent` adapter. Resolve the selected host's matrix through that
-adapter. Each host reads its native matrix directly. When the user selects an
+its `spawn_subagent` adapter; Devin uses its `run_subagent` adapter. Resolve
+the selected host's matrix through that adapter. Each host reads its native
+matrix directly. When the user selects an
 execution preset, resolve capability overrides through
 [orchestra-delegate](../orchestra-delegate/SKILL.md) before native assignment
 lookup. Apply WORKFLOW "Tier flows and models" before resuming a task from the

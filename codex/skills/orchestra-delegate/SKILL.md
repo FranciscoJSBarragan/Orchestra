@@ -49,7 +49,7 @@ of who implemented the change.
    availability or flags are not current. Never substitute a model silently.
    For Codex, use `codex exec --help` and the configured model catalog;
    `--effort` maps to `model_reasoning_effort`. Codex is a valid worker for a
-   Cursor or Grok root. Keep browser acceptance in the owning host; Codex CLI
+   Cursor, Grok, or Devin root. Keep browser acceptance in the owning host; Codex CLI
    cannot provide the Desktop browser and does not accept that capability.
    For Devin, the helper runs
    `devin -p --model <model> --permission-mode <mode> --prompt-file <file>
