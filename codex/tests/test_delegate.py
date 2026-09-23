@@ -70,10 +70,11 @@ class DelegateTests(unittest.TestCase):
         executor: str,
         capability: str = "general_implementation",
         *,
-        model: str = "test-model",
+        model: str | None = "test-model",
         permissions: str = "default",
         timeout: str | None = None,
         resume: str | None = None,
+        effort: str | None = None,
         expected_head: str | None = None,
         output_paths: tuple[str, ...] = (),
         result_file: Path | None = None,
@@ -88,8 +89,6 @@ class DelegateTests(unittest.TestCase):
             executor,
             "--capability",
             capability,
-            "--model",
-            model,
             "--prompt-file",
             str(self.prompt),
             "--log-file",
@@ -99,6 +98,10 @@ class DelegateTests(unittest.TestCase):
             "--permissions",
             permissions,
         ]
+        if model is not None:
+            arguments.extend(("--model", model))
+        if effort is not None:
+            arguments.extend(("--effort", effort))
         if timeout is not None:
             arguments.extend(("--timeout", timeout))
         if resume is not None:
@@ -170,7 +173,7 @@ class DelegateTests(unittest.TestCase):
             capability="general_implementation",
             permissions="trusted",
             prompt="brief",
-            grok_prompt_file=self.prompt,
+            prompt_file=self.prompt,
             session_id="11111111-1111-4111-8111-111111111111",
         )
         self.assertIn("--permission-mode", grok_trusted)
@@ -186,7 +189,7 @@ class DelegateTests(unittest.TestCase):
             capability="runtime_verification",
             permissions="trusted",
             prompt="brief",
-            grok_prompt_file=self.prompt,
+            prompt_file=self.prompt,
             session_id="11111111-1111-4111-8111-111111111111",
         )
         self.assertIn("bypassPermissions", grok_readonly)
@@ -236,6 +239,235 @@ class DelegateTests(unittest.TestCase):
             payload["allocated_session_id"],
             re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"),
         )
+
+    def test_devin_command_uses_print_mode_prompt_file_and_trust_bypass(self) -> None:
+        command = delegate.build_command(
+            executor="devin",
+            repo=self.repo,
+            model="devin-model",
+            capability="general_implementation",
+            permissions="trusted",
+            prompt="inline prompt is never forwarded",
+            prompt_file=self.prompt,
+        )
+        self.assertEqual(
+            command,
+            [
+                "devin", "-p", "--model", "devin-model",
+                "--permission-mode", "dangerous",
+                "--prompt-file", os.fspath(self.prompt),
+                "--respect-workspace-trust", "false",
+            ],
+        )
+        self.assertNotIn("inline prompt is never forwarded", command)
+
+        for capability, permissions, expected_mode in (
+            ("repository_context", "default", "auto"),
+            ("independent_review", "default", "auto"),
+            ("independent_review", "trusted", "auto"),
+            ("technical_planning", "trusted", "auto"),
+            ("general_implementation", "default", "auto"),
+            ("frontend_implementation", "default", "auto"),
+            ("runtime_verification", "default", "auto"),
+            ("general_implementation", "trusted", "dangerous"),
+            ("frontend_implementation", "trusted", "dangerous"),
+            ("runtime_verification", "trusted", "dangerous"),
+        ):
+            with self.subTest(capability=capability, permissions=permissions):
+                variant = delegate.build_command(
+                    executor="devin",
+                    repo=self.repo,
+                    model="devin-model",
+                    capability=capability,
+                    permissions=permissions,
+                    prompt="brief",
+                    prompt_file=self.prompt,
+                )
+                self.assertEqual(
+                    variant[variant.index("--permission-mode") + 1], expected_mode
+                )
+
+        without_model = delegate.build_command(
+            executor="devin",
+            repo=self.repo,
+            model=None,
+            capability="independent_review",
+            permissions="default",
+            prompt="brief",
+            prompt_file=self.prompt,
+        )
+        self.assertNotIn("--model", without_model)
+
+        with self.assertRaises(delegate.DelegateInputError):
+            delegate.build_command(
+                executor="devin",
+                repo=self.repo,
+                model="devin-model",
+                capability="general_implementation",
+                permissions="default",
+                prompt="brief",
+                prompt_file=self.prompt,
+                resume="devin-session-id",
+            )
+        with self.assertRaises(delegate.DelegateInputError):
+            delegate.build_command(
+                executor="devin",
+                repo=self.repo,
+                model="devin-model",
+                capability="general_implementation",
+                permissions="default",
+                prompt="brief",
+            )
+
+    def test_devin_rejects_effort_instead_of_translating_it(self) -> None:
+        with self.assertRaises(delegate.DelegateInputError):
+            delegate.build_command(
+                executor="devin",
+                repo=self.repo,
+                model="devin-model",
+                capability="general_implementation",
+                permissions="default",
+                prompt="brief",
+                effort="high",
+                prompt_file=self.prompt,
+            )
+        result, payload = self.run_cli("devin", effort="high")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(payload["status"], "invalid")
+
+    def test_devin_plain_stdout_is_the_result(self) -> None:
+        argv_file = self.root / "devin-argv.json"
+        self.fake_cli(
+            "devin",
+            f"""
+            import json
+            import sys
+            from pathlib import Path
+            argv = sys.argv[1:]
+            prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text(encoding="utf-8")
+            Path({str(argv_file)!r}).write_text(
+                json.dumps({{"argv": argv, "prompt": prompt}}), encoding="utf-8"
+            )
+            print("DEVIN_OK")
+            print("second line")
+            """,
+        )
+        result, payload = self.run_cli("devin", model="devin-model")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["result"], "DEVIN_OK\nsecond line\n")
+        self.assertTrue(payload["final_seen"])
+        self.assertTrue(payload["terminal_seen"])
+        self.assertIsNone(payload["session_id"])
+        self.assertIsNone(payload["observed_model"])
+        captured = json.loads(argv_file.read_text(encoding="utf-8"))
+        argv = captured["argv"]
+        self.assertEqual(argv[0], "-p")
+        self.assertEqual(argv[argv.index("--model") + 1], "devin-model")
+        self.assertEqual(argv[argv.index("--permission-mode") + 1], "auto")
+        self.assertIn("Inspect the fixture.", captured["prompt"])
+        self.assertEqual(argv[argv.index("--respect-workspace-trust") + 1], "false")
+
+    def test_devin_without_model_uses_the_cli_default(self) -> None:
+        argv_file = self.root / "devin-argv.json"
+        self.fake_cli(
+            "devin",
+            f"""
+            import json
+            import sys
+            from pathlib import Path
+            Path({str(argv_file)!r}).write_text(json.dumps(sys.argv[1:]), encoding="utf-8")
+            print("DEFAULT_MODEL_OK")
+            """,
+        )
+        result, payload = self.run_cli("devin", model=None)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["result"], "DEFAULT_MODEL_OK\n")
+        self.assertIsNone(payload["requested_model"])
+        argv = json.loads(argv_file.read_text(encoding="utf-8"))
+        self.assertNotIn("--model", argv)
+        self.assertEqual(argv[argv.index("--permission-mode") + 1], "auto")
+
+    def test_devin_timeout_has_no_terminal_evidence(self) -> None:
+        self.fake_cli(
+            "devin",
+            """
+            import time
+            print("partial output", flush=True)
+            time.sleep(30)
+            """,
+        )
+        result, payload = self.run_cli("devin", timeout="0.5")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "partial")
+        self.assertTrue(payload["timed_out"])
+        self.assertFalse(payload["terminal_seen"])
+
+    def test_devin_stdout_result_is_bounded(self) -> None:
+        protocol = delegate.ProtocolCapture(executor="devin", requested_model="devin-model")
+        protocol.feed(b"x" * (delegate.MAX_RESULT_CHARS + 20000))
+        protocol.finish(process_terminated=True)
+        self.assertIsNotNone(protocol.final_result)
+        self.assertLessEqual(
+            len(protocol.final_result), delegate.MAX_RESULT_CHARS + 4096
+        )
+
+        self.fake_cli(
+            "devin",
+            """
+            import sys
+            sys.stdout.write("x" * 150000)
+            """,
+        )
+        result, payload = self.run_cli("devin")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(len(payload["result"]), delegate.MAX_RESULT_CHARS)
+
+    def test_devin_empty_stdout_and_nonzero_exit_are_not_ok(self) -> None:
+        self.fake_cli("devin", "pass")
+        result, payload = self.run_cli("devin")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "partial")
+        self.assertIn("without a final result", payload["reason"])
+
+        self.log.unlink()
+        self.fake_cli("devin", "raise SystemExit(3)")
+        result, payload = self.run_cli("devin")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "partial")
+        self.assertIn("exited with code 3", payload["reason"])
+
+    def test_devin_auth_failure_blocks_and_missing_binary_is_unavailable(self) -> None:
+        self.fake_cli(
+            "devin",
+            """
+            import sys
+            print("error: not authenticated; run `devin auth login`", file=sys.stderr)
+            raise SystemExit(1)
+            """,
+        )
+        result, payload = self.run_cli("devin")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertEqual(payload["failure_kind"], "authentication")
+        self.assertFalse(payload["final_seen"])
+
+        with self.assertRaises(delegate.DelegateUnavailable):
+            delegate._run_process(
+                ["definitely-missing-devin-binary"],
+                self.repo,
+                "devin",
+                "devin-model",
+                mock.Mock(),
+                1.0,
+            )
+
+    def test_unknown_executor_is_rejected_before_launch(self) -> None:
+        result, payload = self.run_cli("bogus-executor")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(payload["status"], "invalid")
 
     def test_resume_is_explicit_and_does_not_add_ambiguous_continue(self) -> None:
         command = delegate.build_command(
@@ -778,7 +1010,7 @@ class ExecutionPresetTests(unittest.TestCase):
         ])
 
     def test_shared_assignments_are_identical_across_hosts(self):
-        for host in ("codex", "cursor", "grok"):
+        for host in ("codex", "cursor", "grok", "devin"):
             for capability in ("general_implementation", "frontend_implementation", "difficult_debugging"):
                 with self.subTest(host=host, capability=capability):
                     route = delegate.resolve_preset(self.arguments(capability, host))
@@ -794,7 +1026,7 @@ class ExecutionPresetTests(unittest.TestCase):
 
     def test_planning_reuses_matching_root_without_overriding_its_effort(self):
         for capability in ("technical_planning", "architecture_analysis"):
-            for host in ("codex", "cursor", "grok"):
+            for host in ("codex", "cursor", "grok", "devin"):
                 args = self.arguments(capability, host, "--root-model", "gpt-6-astra")
                 route = delegate.resolve_preset(args)
                 self.assertEqual(route["executor"], "root")
@@ -810,13 +1042,13 @@ class ExecutionPresetTests(unittest.TestCase):
         route = delegate.resolve_preset(self.arguments("browser_acceptance"))
         self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
                          ("native", "gpt-5.6-luna", "xhigh"))
-        for host in ("cursor", "grok"):
+        for host in ("cursor", "grok", "devin"):
             route = delegate.resolve_preset(self.arguments("browser_acceptance", host))
             self.assertEqual(route["executor"], "host")
             self.assertIsNone(route["model"])
 
     def test_bounded_recovery_keeps_role_and_selects_codex_transport_by_host(self):
-        for host in ("codex", "cursor", "grok"):
+        for host in ("codex", "cursor", "grok", "devin"):
             for capability in ("general_implementation", "frontend_implementation", "difficult_debugging"):
                 args = self.arguments(capability, host, "--attempt", "2")
                 second = delegate.resolve_preset(args)
@@ -865,6 +1097,84 @@ class ExecutionPresetTests(unittest.TestCase):
             path.unlink()
             with self.assertRaises(delegate.DelegateInputError):
                 delegate.resolve_preset(args)
+
+    def test_devin_assignments_resolve_and_validate_like_other_executors(self):
+        source = delegate.default_presets_path().read_text()
+        capability_row = (
+            '[presets.standard-delegate.capabilities.difficult_debugging]\n'
+            'executor = "cursor"\n'
+            'model = "claude-fable-5-1-thinking-low"'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "presets.toml"
+            path.write_text(source.replace(
+                capability_row,
+                '[presets.standard-delegate.capabilities.difficult_debugging]\n'
+                'executor = "devin"\n'
+                'model = "devin-model"',
+            ))
+            route = delegate.resolve_preset(
+                self.arguments("difficult_debugging", "devin", "--presets-file", str(path))
+            )
+            self.assertEqual((route["executor"], route["model"]), ("devin", "devin-model"))
+
+            path.write_text(source.replace(
+                capability_row,
+                '[presets.standard-delegate.capabilities.difficult_debugging]\n'
+                'executor = "devin"',
+            ))
+            route = delegate.resolve_preset(
+                self.arguments("difficult_debugging", "devin", "--presets-file", str(path))
+            )
+            self.assertEqual((route["executor"], route["model"]), ("devin", None))
+
+            path.write_text(source.replace(
+                capability_row,
+                '[presets.standard-delegate.capabilities.difficult_debugging]\n'
+                'executor = "devin"\n'
+                'model = "devin-model"\n'
+                'reasoning_effort = "low"',
+            ))
+            with self.assertRaises(delegate.DelegateInputError):
+                delegate.resolve_preset(
+                    self.arguments("difficult_debugging", "devin", "--presets-file", str(path))
+                )
+
+            path.write_text(
+                source
+                + '\n[presets.standard-delegate.hosts.devin.difficult_debugging]\n'
+                + 'executor = "devin"\nmodel = "devin-fast"\n'
+            )
+            route = delegate.resolve_preset(
+                self.arguments("difficult_debugging", "devin", "--presets-file", str(path))
+            )
+            self.assertEqual((route["executor"], route["model"]), ("devin", "devin-fast"))
+            route = delegate.resolve_preset(
+                self.arguments("difficult_debugging", "cursor", "--presets-file", str(path))
+            )
+            self.assertEqual(
+                (route["executor"], route["model"]),
+                ("cursor", "claude-fable-5-1-thinking-low"),
+            )
+
+            path.write_text(source.replace(
+                '[presets.standard-delegate.capabilities.technical_planning]\n'
+                'executor = "codex"\n'
+                'model = "gpt-6-astra"\n'
+                'reasoning_effort = "low"\n'
+                'prefer_native = true\n'
+                'reuse_root = true',
+                '[presets.standard-delegate.capabilities.technical_planning]\n'
+                'executor = "devin"\n'
+                'reuse_root = true',
+            ))
+            for extra in ((), ("--root-model", "observed-root-model")):
+                with self.subTest(extra=extra):
+                    route = delegate.resolve_preset(self.arguments(
+                        "technical_planning", "devin", "--presets-file", str(path), *extra,
+                    ))
+                    self.assertEqual(route["executor"], "devin")
+                    self.assertIsNone(route["model"])
 
     def test_cli_resolution_never_launches_or_grants_permissions(self):
         arguments = ["--preset", "standard-delegate", "--host", "codex",

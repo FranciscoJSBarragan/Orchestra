@@ -169,7 +169,7 @@ use the reviewer role without creating Orchestra delivery state.
 ## CLI delegation
 
 On explicit user selection, the root may execute one bounded capability with
-Codex CLI, Cursor CLI, or Grok Build CLI through `orchestra-delegate`. This executor choice
+Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI through `orchestra-delegate`. This executor choice
 is independent of the owning host and tier; it changes neither. Use the exact requested CLI model and
 supported effort after inspecting that CLI's current catalog/help. Do not
 silently fall back to another model, provider, account, or API billing path.
@@ -177,8 +177,8 @@ Native capability assignments remain the default; an explicitly selected
 execution preset supplies the overrides described below. A delegate is a worker,
 never a second root running the whole Orchestra workflow.
 
-The same helper is callable from any supported host: a Cursor or Grok root
-can choose Codex as its worker without switching its own host or matrix.
+The same helper is callable from any supported host: a Cursor, Grok, or Devin
+root can choose Codex as its worker without switching its own host or matrix.
 Browser acceptance stays in the owning host by default. Codex CLI delegation
 does not expose the Codex Desktop browser and rejects `browser_acceptance`;
 do not move browser testing to another CLI as a consequence of delegating
@@ -194,9 +194,9 @@ Keep one writer per overlapping scope and preserve unrelated dirty work.
 Permissions follow the task's explicit authority and active host restrictions.
 The helper's `default` policy leaves the CLI's own approval rules in place;
 `trusted` enables unattended implementation with Cursor `--force`, Grok
-`bypassPermissions`, or Codex `--sandbox danger-full-access` plus
-`approval_policy="never"`. Codex analysis/review instead uses `read-only`
-with no approval escalation. Apply these explicit permissions again on
+`bypassPermissions`, Codex `--sandbox danger-full-access` plus
+`approval_policy="never"`, or Devin `--permission-mode dangerous`. Codex
+analysis/review instead uses `read-only` with no approval escalation. Apply these explicit permissions again on
 resume; Codex default implementation/verification preserves its configured
 permissions. Use trusted mode only when the user has authorized those
 permissions, including a standing instruction for the task. Analysts and
@@ -270,7 +270,7 @@ CLI text result cannot substitute for it.
 ## Delegated execution presets
 
 `standard-delegate` is an optional execution preset on the `standard` tier,
-available from Codex, Cursor, and Grok. Selecting it explicitly authorizes its
+available from Codex, Cursor, Grok, and Devin. Selecting it explicitly authorizes its
 assignments and bounded recovery ladder within the task's existing scope and
 permissions; it never activates Orchestra by itself, changes the root model
 or effort, or grants delivery authority. Ordinary native assignments remain
