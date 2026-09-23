@@ -35,6 +35,10 @@ documentation, and behaviors that must remain compatible. Evidence: current
 base SHA and only relevant context/recipe paths. Dependencies: the agreed
 contract version; do not read a concurrently changing sibling checkout.
 
+Source-writing policy: resolve the selected runtime and skills roots and name
+the absolute [Source comments](../orchestra/references/architecture_guidance.md#source-comments)
+path in this child packet, including when selecting a custom workflow.
+
 Authority: implementation and reviewed phase commits already granted. Any
 publication authority is listed separately with its repository, branch and
 operation; absence means hold. Reuse this approval for reversible decisions

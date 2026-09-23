@@ -11,9 +11,65 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(SOURCE_ROOT / "codex/scripts"))
+import validate_suite as validator
+
+
+class CommentBaseTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.git("init", "-b", "main")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("config", "core.hooksPath", "/dev/null")
+        self.git("config", "commit.gpgsign", "false")
+        (self.root / "code.py").write_text("value = 1\n")
+        self.git("add", ".")
+        self.git("commit", "-m", "Initial")
+        self.base = self.git("rev-parse", "HEAD")
+
+    def git(self, *args):
+        return subprocess.run(["git", *args], cwd=self.root, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def resolve(self, kind, event):
+        path = self.root / "event.json"
+        path.write_text(json.dumps(event))
+        with mock.patch.dict(os.environ, {"GITHUB_EVENT_NAME": kind, "GITHUB_EVENT_PATH": str(path)}):
+            return validator.comment_base(self.root, "ci")
+
+    def test_pull_request_and_push_use_event_revision(self):
+        self.assertEqual(self.resolve("pull_request", {"pull_request": {"base": {"sha": self.base}}}), self.base)
+        self.assertEqual(self.resolve("push", {"before": self.base}), self.base)
+
+    def test_new_branch_uses_default_branch_merge_base(self):
+        self.git("update-ref", "refs/remotes/origin/main", self.base)
+        self.git("checkout", "-b", "feature")
+        (self.root / "code.py").write_text("value = 2\n")
+        self.git("commit", "-am", "Change")
+        self.assertEqual(self.resolve("push", {"before": "0" * 40, "repository": {"default_branch": "main"}}), self.base)
+        self.assertEqual(self.resolve("workflow_dispatch", {}), self.base)
+
+    def test_first_default_branch_push_without_a_base_fails_actionably(self):
+        (self.root / "code.py").write_text("value = 2\n")
+        self.git("commit", "-am", "Second")
+        self.git("update-ref", "refs/remotes/origin/main", self.git("rev-parse", "HEAD"))
+        with self.assertRaisesRegex(ValueError, "no pre-push base"):
+            self.resolve("push", {"before": "0" * 40, "ref": "refs/heads/main", "repository": {"default_branch": "main"}})
+
+    def test_initial_dispatch_uses_explicit_empty_base(self):
+        self.assertEqual(self.resolve("workflow_dispatch", {}), "EMPTY")
+
+    def test_missing_ci_base_cannot_silently_skip(self):
+        for kind, event in [("pull_request", {}), ("push", {}), ("pull_request", {"pull_request": {"base": {"sha": "0" * 40}}})]:
+            with self.subTest(kind=kind, event=event), self.assertRaises(ValueError):
+                self.resolve(kind, event)
 
 
 class ValidateSuiteTests(unittest.TestCase):
@@ -38,6 +94,7 @@ class ValidateSuiteTests(unittest.TestCase):
                 sys.executable,
                 str(self.root / "codex/scripts/validate_suite.py"),
                 mode,
+                *([] if (self.root / ".git").exists() else ["--comment-full-scan"]),
             ],
             cwd=self.root,
             check=False,
@@ -59,6 +116,20 @@ class ValidateSuiteTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("modular-routing: orchestra-engineering must link ../orchestra-project-verification/SKILL.md", result.stdout)
+
+    def test_writer_requires_mandatory_comment_policy_route(self) -> None:
+        skill = self.root / "codex/skills/orchestra-lite/SKILL.md"
+        skill.write_text(skill.read_text().replace("architecture_guidance.md#source-comments", "architecture_guidance.md"))
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("orchestra-lite/SKILL.md must directly link architecture_guidance.md#source-comments", result.stdout)
+
+    def test_maintenance_requires_existing_execution_route(self) -> None:
+        skill = self.root / "codex/skills/orchestra-repo-maintenance/SKILL.md"
+        skill.write_text(skill.read_text().replace("../orchestra-engineering/SKILL.md", "../orchestra/SKILL.md"))
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("orchestra-repo-maintenance must link ../orchestra-engineering/SKILL.md", result.stdout)
 
     def test_parent_requires_root_transport_resource(self) -> None:
         skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
@@ -167,6 +238,10 @@ class FullModeFixtureTest(unittest.TestCase):
         )
 
     def test_versioned_hook_executes_quick_validation(self) -> None:
+        for argv in (["git", "init"], ["git", "add", "-A"],
+                     ["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                      "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", "commit", "-m", "Fixture baseline"]):
+            subprocess.run(argv, cwd=self.root, check=True, capture_output=True)
         hook = self.root / ".githooks/pre-commit"
         result = subprocess.run(
             [str(hook)],
@@ -178,6 +253,17 @@ class FullModeFixtureTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("quick conformance passed", result.stdout)
+        probe = self.root / "codex/scripts/comment_canary.py"
+        probe.write_text("value = 1  # introduced narrative\n")
+        unstaged = subprocess.run([str(hook)], cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(unstaged.returncode, 0, unstaged.stdout + unstaged.stderr)
+        local = self.run_validator()
+        self.assertNotEqual(local.returncode, 0)
+        self.assertIn("new explanatory comment", local.stdout)
+        subprocess.run(["git", "add", str(probe)], cwd=self.root, check=True, capture_output=True)
+        staged = subprocess.run([str(hook)], cwd=self.root, capture_output=True, text=True)
+        self.assertNotEqual(staged.returncode, 0)
+        self.assertIn("new explanatory comment", staged.stdout)
 
     def test_missing_required_file_is_actionable(self) -> None:
         (self.root / "VISION.md").unlink()
@@ -431,7 +517,7 @@ class FullModeFixtureTest(unittest.TestCase):
                 original = page.read_text(encoding="utf-8")
                 # Leave the path as plain text: a mention is not a routed reference.
                 unrouted = re.sub(
-                    r"\[[^]]+\]\(([^)]*architecture_guidance\.md)\)",
+                    r"\[[^]]+\]\(([^)]*architecture_guidance\.md(?:#[^)]*)?)\)",
                     r"\1",
                     original,
                 )
@@ -451,7 +537,7 @@ class FullModeFixtureTest(unittest.TestCase):
         page = self.root / "codex/skills/orchestra-role-implementer/SKILL.md"
         original = page.read_text(encoding="utf-8")
         rewritten = re.sub(
-            r"\[[^]]+\]\(([^)]*architecture_guidance\.md)\)",
+            r"\[[^]]+\]\(([^)]*architecture_guidance\.md(?:#[^)]*)?)\)",
             r"[Relevant criteria](\1)",
             original,
         )
@@ -472,14 +558,14 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("runtime-contract: managed markers", result.stdout)
 
-    def test_full_mode_rejects_invalid_python_syntax(self) -> None:
+    def test_comment_gate_rejects_unparseable_python_in_both_modes(self) -> None:
         invalid = self.root / "codex/tests/invalid_fixture.py"
         invalid.write_text("def broken(:\n", encoding="utf-8")
         quick = self.run_validator("--quick")
         full = self.run_validator("--full")
-        self.assertEqual(quick.returncode, 0, quick.stdout + quick.stderr)
-        self.assertNotEqual(full.returncode, 0)
-        self.assertIn("python-syntax: codex/tests/invalid_fixture.py", full.stdout)
+        for result in (quick, full):
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("codex/tests/invalid_fixture.py: cannot establish Python comment policy", result.stdout)
 
     def test_lite_result_object_key_order_is_not_part_of_the_contract(self) -> None:
         example = self.root / "codex/skills/orchestra-lite/result-example.json"

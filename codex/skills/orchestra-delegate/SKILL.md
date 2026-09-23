@@ -54,7 +54,9 @@ of who implemented the change.
    another writer. Create the prompt and unique event-log and result paths in a private
    directory outside the repository. The prompt names the role skill,
    objective, allowed paths, evidence, acceptance, constraints, and expected
-   output. Approved phases also supply their exact artifact IDs and required
+   output. Implementation packets directly link [Source comments](../orchestra/references/architecture_guidance.md#source-comments)
+   from the selected runtime; the receiving CLI may not load the root's global
+   instructions. Approved phases also supply their exact artifact IDs and required
    reports; direct assignments use inline results.
 3. Start a fresh independent reviewer session. Resume an existing session only
    for the same logical assignment, with the current revision and a focused

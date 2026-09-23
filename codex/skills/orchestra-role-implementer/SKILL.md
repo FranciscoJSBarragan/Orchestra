@@ -5,6 +5,9 @@ description: Use for one bounded implementation and test change, either under an
 
 # Orchestra Implementer Role
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 Read [shared conduct](../orchestra/references/shared_conduct.md) first. It

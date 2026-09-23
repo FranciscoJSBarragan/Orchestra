@@ -1,5 +1,9 @@
 # Shared agent conduct
 
+Before any authorized source write, apply [Source comments](architecture_guidance.md#source-comments).
+This applies even when no other engineering section is relevant; it never grants
+write authority to a read-only role.
+
 Every Orchestra role reads this contract before its role skill. It supplies
 the common assignment, authority, evidence, cleanup, report, and stop rules;
 role skills add only capability-specific behavior.

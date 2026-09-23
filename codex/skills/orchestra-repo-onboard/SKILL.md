@@ -5,6 +5,9 @@ description: Use only for an explicit `$orchestra-repo-onboard` invocation or an
 
 # Onboard an existing repository
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 Turn one existing repository into a place where Orchestra workers stop
@@ -56,7 +59,9 @@ unresolved prerequisites or execution as such. Analysis remains read-only.
 Offer [project verification](../orchestra-project-verification/SKILL.md) when a
 feature map, interaction helper or proven journey would close the gap. Include
 its exact writes, safe data, execution and cleanup in the confirmation below;
-only after that boundary may onboarding execute the authorized recipe.
+only after that boundary may onboarding execute the authorized recipe. Include
+a fresh-agent reproduction when proving the handoff is part of that scope;
+a verified command alone does not demonstrate a complete user journey.
 
 ## Ask only what evidence cannot settle
 

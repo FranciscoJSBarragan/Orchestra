@@ -5,6 +5,9 @@ description: Use only for an explicit `$orchestra-lite` invocation or a kickoff 
 
 # Orchestra Lite worker
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 You are the single worker for one externally coordinated task that is already

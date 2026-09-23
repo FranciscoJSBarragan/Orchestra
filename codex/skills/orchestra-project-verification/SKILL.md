@@ -5,6 +5,9 @@ description: Prepare, run, refresh, or audit a project's reusable verification r
 
 # Project verification
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md). WORKFLOW "Project verification"
 and "Repository conventions" own the lifecycle, write authority, and distinction
 between policy, operational instructions, and run evidence. Use
@@ -23,6 +26,12 @@ level of detail; adapt its shape to the project. Keep scripts beside the
 existing test tools when those own them. Retain a new helper only when it has
 a continuing consumer and a documented invocation. Reuse rather than wrap a
 command that already gives the agent the necessary control and evidence.
+
+When reusable acceptance is being established, have a fresh agent follow the
+selected recipe using only its prerequisites and references. Report that run
+separately from source inspection or fixture checks. Freeze the project revision
+and name the installed or session-local skill version; do not claim adoption
+from a successful session-local run.
 
 For a run, read the index and selected entries, check the actual instance,
 exercise the assigned entry points, inspect the expected effects, and capture

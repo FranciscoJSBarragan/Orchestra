@@ -9,6 +9,84 @@ within the role's existing authority; it never authorizes edits, extra agent
 dispatches, or new gates. WORKFLOW "Engineering guidance and evidence" owns
 operational routing and evidence placement.
 
+## Source comments
+
+This policy applies whenever an Orchestra entry authors source text, including
+ordinary engineering, Lite, project-start, maintenance and delegated work. Do
+not add explanatory comments, narrative docstrings, TODO/FIXME commentary,
+decorative section markers or commented-out code. Express behavior and
+invariants through names, structure, types and executable tests. Why a change
+was made belongs in its commit or PR; retain durable constraints in existing
+maintained documentation, without copying removed commentary indiscriminately.
+
+Preserve required legal notices and syntax with an actual machine consumer:
+shebangs, encoding declarations, compiler/linter directives, generator markers
+and configured public documentation contracts. A functional docstring needs a
+named consumer such as CLI help, runtime schema generation or a configured
+public API documentation build. Generic `pydoc`, `help()` or IDE display is not
+such a consumer. A directive's required reason syntax may remain; a separate
+trailing explanation is narrative. Do not add suppressions to evade this rule.
+
+The policy covers application code, tests, scripts and executable configuration.
+It takes priority over generic advice to copy nearby patterns, while respecting
+instruction hierarchy and binding repository contracts. Report a conflicting
+normative convention once and resolve it through the applicable authority;
+never silently strip required interface documentation or change a hard gate.
+An explicitly authorized policy revision needs no duplicate approval.
+
+Legacy removal is bounded maintenance, not an unrelated sweep during feature
+work. Check whether code or comment is wrong, investigate the actual workaround
+and preserve verified constraints in behavior, tests or maintained docs before
+removing their only explanation. Unresolved intent remains a finding. Keep
+vendor/generated material under its real owner's lifecycle. Do not change APIs
+or move narrative into docstrings merely to avoid comment syntax. The forward
+rule does not certify that untouched legacy files contain no comments.
+
+## Prevent recurring failures
+
+For a verified recurring failure, distinguish missing guidance, incorrect
+routing, missing context, ambiguous instructions and failure to follow a rule.
+First consider excluding the bad state or path through data, API or ownership
+design; then mechanical detection through types, compiler/lint/CI, a regression
+test or reliable tool; then concise guidance where judgment is necessary.
+Choose the strongest proportionate correction within scope, not an expensive
+rewrite or another prohibition by default. Existing review evidence can inform
+the choice; do not create a transcript-mining or reflection service.
+
+When old debt cannot be removed safely at once, use an existing linter baseline
+or Git comparison to prevent new instances while reducing the old set. A retained
+exception needs an actual consumer and removal condition. Prove a new check
+rejects the bad case and accepts a valid one. A new gate is normative policy;
+use existing authorization rather than allowing the failed task to invent its
+own permissions. This criterion works outside the full workflow checkpoint.
+
+## Maintain patterns and knowledge
+
+Ask what a later agent would do after copying or following the candidate.
+Prioritize exposed examples, supported-path callers and instructions with a
+concrete harmful outcome, including false-confidence tests and outdated tools.
+A reproducible risk is enough; observed propagation strengthens the evidence.
+Age, model provenance and stylistic taste alone do not establish a defect.
+
+A no-reference search or low coverage never proves non-use. Trace relevant
+imports, manifests, dynamic registration, persisted identifiers, generated
+consumers and public or cross-repository interfaces before removal. Unknown
+consumers remain a limitation; do not silently delete or deprecate the contract.
+Preserve intentional distinctions when consolidating apparently similar code.
+
+For docs and examples, verify commands and the supported behavior, retain unique
+caveats at their canonical home and account for important external links. Broken
+references may be descriptive corrections when intent is clear. Conflicting
+normative instructions require authority reconciliation; noncompliant code does
+not prove a rule obsolete. Keep unresolved historical constraints until evidence
+settles them. A TODO without an owner is not automatically worthless.
+
+Repair one coherent problem across its implementation, tests, examples and
+instructions. If a mock hides the claimed behavior, demonstrate that gap with a
+small controlled bad case and replace or strengthen the coverage. Record baseline
+failures separately; never weaken expected behavior to make a cleanup green.
+Report examined, sampled and unexamined scope. A healthy area needs no change.
+
 ## Review frame
 
 - Start from canonical product and architecture sources, then map the proposed change to existing ownership, data flow, public contracts, lifecycle, and failure boundaries.

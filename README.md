@@ -109,6 +109,12 @@ Both reuse the same engineering guidance without creating phases or task state.
 Hosts that discover skills automatically can select these entries; explicit
 invocation remains available when they do not.
 
+Use `$orchestra-repo-maintenance` for an explicit repository audit or bounded
+repair of harmful code, documentation, rules and tests. It preserves actual
+consumers and useful knowledge; folder reorganization is excluded. Source-writing
+entries apply the shared zero explanatory comments policy, with legal and
+functional exceptions. Personal global adoption is separate from plugin loading.
+
 Use `$orchestra-coordinate` when the outcome requires independent projects or
 task roots. The parent sets shared contracts and checks the combined result;
 each child can use full Orchestra, Lite or the chosen custom flow. Available

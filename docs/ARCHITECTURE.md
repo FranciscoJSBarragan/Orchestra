@@ -224,9 +224,12 @@ playbooks, including standalone use; operational routing and evidence placement
 live in WORKFLOW "Engineering guidance and evidence". The
 `architecture_analysis` assignment has no separate playbook. Playbooks are
 internal references, not public skills or additional personas. Public skill
-identifiers remain stable except for the additive implicit
-`orchestra-project-start` greenfield entry point and the additive explicit
-`orchestra-repo-onboard` lane that writes a repository's `.agent/` store.
+identifiers include the reusable engineering and project-verification entries,
+explicit initiative coordination and Lite companion, greenfield project-start,
+repository onboarding and explicit `orchestra-repo-maintenance`. Maintenance
+reuses the four roles and existing execution routes; WORKFLOW "Repository
+maintenance" owns its authority and lifecycle. Shared engineering guidance owns
+the comment policy and prevention criteria; writing entries link them directly.
 
 Frontend implementation and browser acceptance are independent capabilities on
 different profiles. Root-owned plan authority, commits, PR observation,

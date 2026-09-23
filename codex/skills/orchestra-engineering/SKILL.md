@@ -5,6 +5,9 @@ description: Apply proportional engineering practices when investigating softwar
 
 # Engineering in the current workflow
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md) once. Use the relevant parts
 of [shared engineering guidance](../orchestra/references/architecture_guidance.md).
 WORKFLOW "Modular engineering" owns activation, composition, and authority.
@@ -22,6 +25,7 @@ Select only the material question:
 | Understand behavior or rationale | Shared guidance, "Understand the system": trace the relevant path and distinguish recorded intent from inference. |
 | Choose an interface or uncertain approach | Shared guidance, "Design from the consumer" and "Resolve uncertainty experimentally": a caller example or bounded experiment that informs the decision. |
 | Fix a defect | Shared guidance, "Evidence for consequential changes"; use [difficult debugging](../orchestra/references/difficult_debugging.md) for competing hypotheses or repeated failed corrections. |
+| Maintain a harmful pattern or instruction | Shared guidance, "Prevent recurring failures" and "Maintain patterns and knowledge"; use [repository maintenance](../orchestra-repo-maintenance/SKILL.md) for an explicitly requested audit or repair batch. |
 | Improve performance | Shared guidance, "Performance evidence": comparable measurement and, where useful, a runtime profile or trace. |
 | Exercise the product | Reuse the repository's verification entry; use [project verification](../orchestra-project-verification/SKILL.md) when creating, running, refreshing, or auditing that knowledge is the requested work. |
 | Assess a change independently | [Reviewer role](../orchestra-role-reviewer/SKILL.md), only for a genuinely independent assignment. Self-checking is not independent review. |

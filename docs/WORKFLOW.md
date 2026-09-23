@@ -189,7 +189,8 @@ technique does not make an implementer an independent reviewer or grant an
 analyst write authority. Existing custom workflows may consume these resources
 without producing Orchestra artifacts.
 
-The substantive criteria live in `architecture_guidance.md`; capability
+The substantive criteria, including the mandatory source-comment policy for
+authored source, live in `architecture_guidance.md`; capability
 playbooks add domain technique, and role skills define bounded assignments.
 Conventions can be improved when evidence supports a better mechanism. Within
 authorized scope, propose and review that change at its canonical source;
@@ -197,6 +198,37 @@ an existing convention is evidence and a current constraint, not an immutable
 product decision. Until an authorized change is accepted, do not silently
 ignore normative instructions. New rules must address the demonstrated cause
 rather than accumulate prohibitions after every failure.
+
+## Repository maintenance
+
+`orchestra-repo-maintenance` is an explicitly selected maintenance entry for a
+repository or named area. It composes with ordinary engineering, Lite and full
+Orchestra without activating a tier, creating task state or adding a mandatory
+audit stage. Shared engineering guidance owns "Source comments", "Prevent
+recurring failures" and "Maintain patterns and knowledge"; every source-writing
+entry consumes the comment policy directly, even for a small edit.
+
+A diagnosis is source-read-only and reports prioritized evidence, coverage and
+uncertainty. Running checks still needs the brief's execution/data authority.
+A repair grant names the area or problem classes and exclusions; it covers
+necessary in-scope investigation and reversible fixes without a second approval
+for each candidate. Material unapproved product, public-contract, data, security
+or normative policy changes remain proposals. Repository conventions own policy
+writes; an already approved policy change is not a new gate. Never relax a
+rule to authorize the operation currently blocked by it.
+
+Bound repair batches by coherent problems and verifiability. Optional analysts
+may investigate independent modules or hypotheses. One implementation owner
+carries each problem across code, docs and tests; parallel writers need disjoint
+paths. The root resolves overlap and policy edits, synthesizes compact results
+and preserves independent implementation review through the selected route.
+Use the existing completion-aware waiting policy; no diff polling, fixed panel,
+health score, backlog service or new report schema is introduced.
+
+Folder reorganization, aesthetic renames, formatting sweeps, major dependency
+upgrades and unrelated behavior changes are outside this maintenance entry.
+Return remaining candidates through existing task output. Diagnosis can conclude
+that no change is warranted; sampled inspection never certifies the whole repo.
 
 ## Project verification
 
@@ -373,7 +405,9 @@ implementation. A browser handoff requires a separately supported transport.
 
 The root supplies a focused packet with objective, acceptance, owned paths,
 checkout, expected HEAD, capability, constraints, permissions, and useful
-evidence. In an Orchestra phase, include the exact approved artifacts and
+evidence. Implementation packets directly link the loaded shared engineering
+guidance section "Source comments"; do not assume another CLI reads the owning
+host's personal global instructions. In an Orchestra phase, include the exact approved artifacts and
 required handoff fields. Outside it, use the standalone contract. Pass only
 the context needed for the assignment; never forward the full conversation.
 Keep one writer per overlapping scope and preserve unrelated dirty work.
@@ -2191,12 +2225,10 @@ blocking boundary. Sources are phase reports, discoveries already dispositioned
 `discard` as out-of-scope, and the root's own observations; the root does not
 dispatch an agent to search for candidates.
 
-For a recurring failure already evidenced by the task, first distinguish
-missing guidance, incorrect skill routing, missing context, ambiguous
-instructions, and failure to follow an existing rule. Choose the smallest
-supported correction: a regression test or tool fix for an executable defect,
-or a concise clarification for a demonstrated knowledge gap. Do not accumulate
-new rules when an existing one already addresses the cause. This judgment adds
+For a recurring failure already evidenced by the task, apply shared engineering
+guidance "Prevent recurring failures" to choose a proportionate prevention
+mechanism from the verified cause. The same criterion is available to ordinary,
+Lite and maintenance work without this final-phase checkpoint. This judgment adds
 no reflection stage or transcript-mining job. The checkpoint's writes remain
 limited to the repository knowledge below; code, routing, or Orchestra-policy
 changes use normal implementation scope and review when already authorized,

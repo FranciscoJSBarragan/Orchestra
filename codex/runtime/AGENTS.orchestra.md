@@ -5,7 +5,8 @@ Orchestra is an explicit planned-work route, not the default implementation rout
 
 Ordinary technical work may use `$orchestra-engineering` and maintained project
 verification recipes without activating the planned route. WORKFLOW "Modular
-engineering" owns their composition.
+engineering" owns their composition. Explicit repository audit or deslop requests
+may use `$orchestra-repo-maintenance` under WORKFLOW "Repository maintenance".
 
 Workflow policy has one canonical home: `${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md`, routed by `$orchestra`. This managed block is the Codex host overlay and adds only host runtime facts:
 

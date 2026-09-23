@@ -5,6 +5,9 @@ description: Turn a greenfield software idea into a proportional, runnable proje
 
 # Start a greenfield project
 
+For every authored source change, apply [Source comments](../orchestra/references/architecture_guidance.md#source-comments),
+including authorized helper scripts. This does not grant new write authority.
+
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 Help a non-expert user move from an idea to a small runnable vertical foundation
@@ -63,7 +66,9 @@ When canonical commands alone do not establish the confirmed journey, use
 observed result. Use [project verification](../orchestra-project-verification/SKILL.md)
 to retain a small operational entry in the approved foundation when future
 agents need it. Reuse that entry in the handoff rather than duplicate it. A
-recipe is descriptive evidence, not a new normative gate.
+recipe is descriptive evidence, not a new normative gate. When the approved
+foundation includes reusable acceptance, arrange a fresh-agent run of that entry
+and report actual reproduction separately from the first implementation run.
 
 Run the smallest sufficient fresh checks and read their results. Classify
 deterministic failures directly. Orchestra synchronizes Guardian

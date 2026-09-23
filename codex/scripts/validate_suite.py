@@ -26,6 +26,8 @@ REQUIRED_PATHS = (
     ".agent/backend-testing.md",
     ".githooks/pre-commit",
     "codex/scripts/validate_suite.py",
+    "codex/scripts/comment_policy.py",
+    "codex/tests/test_comment_policy.py",
     "codex/scripts/sync.py",
     "codex/scripts/package_plugin.py",
     "codex/tests/test_package_plugin.py",
@@ -70,6 +72,8 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-engineering/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/SKILL.md",
     "codex/skills/orchestra-project-verification/agents/openai.yaml",
+    "codex/skills/orchestra-repo-maintenance/SKILL.md",
+    "codex/skills/orchestra-repo-maintenance/agents/openai.yaml",
     "codex/skills/orchestra-coordinate/SKILL.md",
     "codex/skills/orchestra-coordinate/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/feature-example.md",
@@ -199,7 +203,7 @@ ROADMAP_REQUIREMENTS = (
 HOOK_CONTENT = """#!/bin/sh
 set -eu
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
+exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick --comment-target staged
 """
 
 ROLE_SKILL_BY_PROFILE = {
@@ -252,6 +256,7 @@ SKILL_NAMES = (
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestra-coordinate",
+    "orchestra-repo-maintenance",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -748,7 +753,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
     exempt = {"orchestra-project-start", "orchestra-engineering",
-              "orchestra-project-verification", "orchestra-coordinate",
+              "orchestra-project-verification", "orchestra-coordinate", "orchestra-repo-maintenance",
               *ROLE_SKILL_BY_PROFILE.values()}
     for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
@@ -762,6 +767,7 @@ def check_modular_routing(root: Path) -> list[str]:
     """Keep public modular entries connected to their canonical resources."""
     failures: list[str] = []
     routes = {
+        "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
         "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "../orchestra-lite/SKILL.md", "../orchestra/SKILL.md")),
@@ -779,9 +785,29 @@ def check_modular_routing(root: Path) -> list[str]:
         for target in ("../orchestra/runtime.md", *resources):
             if target not in links:
                 failures.append(f"modular-routing: {name} must link {target}")
-    metadata = root / "codex/skills/orchestra-coordinate/agents/openai.yaml"
-    if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
-        failures.append("modular-routing: orchestra-coordinate must remain explicit-only")
+    for name in ("orchestra-coordinate", "orchestra-repo-maintenance"):
+        metadata = root / f"codex/skills/{name}/agents/openai.yaml"
+        if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
+            failures.append(f"modular-routing: {name} must remain explicit-only")
+    guidance = root / "codex/skills/orchestra/references/architecture_guidance.md"
+    consumers = [
+        root / f"codex/skills/{name}/SKILL.md"
+        for name in ("orchestra-role-implementer", "orchestra-role-reviewer",
+                     "orchestra-engineering", "orchestra-lite", "orchestra-project-start",
+                     "orchestra-project-verification", "orchestra-repo-onboard",
+                     "orchestra-repo-maintenance", "orchestra-delegate")
+    ]
+    consumers.append(root / "codex/skills/orchestra/references/shared_conduct.md")
+    consumers.append(root / "codex/skills/orchestra-coordinate/packet-example.md")
+    for consumer in consumers:
+        if not consumer.is_file():
+            continue
+        targets = {
+            ((consumer.parent / link.split("#", 1)[0]).resolve(), link.partition("#")[2])
+            for link in _local_markdown_links(consumer.read_text(encoding="utf-8"))
+        }
+        if (guidance.resolve(), "source-comments") not in targets:
+            failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#source-comments")
     return failures
 
 
@@ -1348,11 +1374,73 @@ FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
 )
 
 
-def validate(root: Path, mode: str) -> list[str]:
-    """Run the checks registered for mode and return actionable failures."""
+def comment_base(root: Path, selected: str | None) -> str:
+    def git(*args: str) -> str:
+        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError(f"comment-policy: cannot resolve Git base ({result.stderr.strip()}); fetch the base or pass --comment-base SHA")
+        return result.stdout.strip()
+
+    if selected != "ci":
+        if selected is not None:
+            return selected
+        head = subprocess.run(["git", "-C", str(root), "rev-parse", "--verify", "HEAD"], capture_output=True)
+        return "HEAD" if head.returncode == 0 else "EMPTY"
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not event_path:
+        raise ValueError("comment-policy: --comment-base ci requires GITHUB_EVENT_PATH")
+    event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+    if not isinstance(event, dict):
+        raise ValueError("comment-policy: CI event must be a JSON object")
+    kind = os.environ.get("GITHUB_EVENT_NAME")
+    if kind == "pull_request":
+        base = event.get("pull_request", {}).get("base", {}).get("sha")
+        if not isinstance(base, str) or not re.fullmatch(r"[0-9a-fA-F]{40,64}", base) or set(base) == {"0"}:
+            raise ValueError("comment-policy: pull request event has no valid base SHA")
+        return base
+    if kind == "push":
+        base = event.get("before")
+        if isinstance(base, str) and re.fullmatch(r"[0-9a-fA-F]{40,64}", base) and set(base) != {"0"}:
+            return base
+        if not isinstance(base, str) or not re.fullmatch(r"0{40}|0{64}", base):
+            raise ValueError("comment-policy: push event has no valid before SHA")
+        branch = event.get("repository", {}).get("default_branch")
+        if not isinstance(branch, str) or not branch or branch.startswith("-"):
+            raise ValueError("comment-policy: new branch event has no default branch")
+        parents = git("rev-list", "--parents", "-n", "1", "HEAD").split()
+        if len(parents) == 1:
+            return "EMPTY"
+        if event.get("ref") == f"refs/heads/{branch}":
+            raise ValueError("comment-policy: first multi-commit default-branch push has no pre-push base; supply an explicitly reviewed --comment-base SHA")
+        return git("merge-base", "HEAD", f"refs/remotes/origin/{branch}")
+    if kind == "workflow_dispatch":
+        parents = git("rev-list", "--parents", "-n", "1", "HEAD").split()
+        return parents[1] if len(parents) > 1 else "EMPTY"
+    raise ValueError(f"comment-policy: unsupported CI event {kind!r}; pass an explicit base SHA")
+
+
+def validate(root: Path, mode: str, *, base: str | None = None,
+             target: str = "worktree", full_scan: bool = False,
+             enforce_full_scan: bool = False) -> list[str]:
     checks = QUICK_CHECKS if mode == "quick" else FULL_CHECKS
     failures: list[str] = []
-    for check in checks:
+    for check in QUICK_CHECKS:
+        failures.extend(check(root))
+        if failures:
+            return failures
+    from comment_policy import CommentPolicyError, check_repository
+    try:
+        findings = check_repository(root, base=comment_base(root, base) if not full_scan else "HEAD",
+                                    target=target, full_scan=full_scan)
+    except (CommentPolicyError, ValueError, OSError) as error:
+        return [str(error)]
+    if full_scan and not enforce_full_scan:
+        print(f"DIAGNOSTIC: Python source comments full scan: {len(findings)} finding(s); no Git-delta enforcement.")
+        for finding in findings:
+            print(f"DIAGNOSTIC: {finding}")
+    elif findings:
+        return findings
+    for check in checks[len(QUICK_CHECKS):]:
         failures.extend(check(root))
         if failures:
             break
@@ -1364,20 +1452,30 @@ def parse_args() -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--quick", action="store_true", help="run hook-safe checks")
     mode.add_argument("--full", action="store_true", help="run all local checks")
-    return parser.parse_args()
+    parser.add_argument("--comment-base", help="Git revision for introduced Python comments; ci resolves the GitHub event base")
+    parser.add_argument("--comment-target", choices=("worktree", "staged"), default="worktree")
+    parser.add_argument("--comment-full-scan", action="store_true", help="diagnose all Python comments, including source exports without Git")
+    parser.add_argument("--comment-enforce-full-scan", action="store_true", help="gate a full scan only after explicitly declaring the entire source scope repaired")
+    args = parser.parse_args()
+    if args.comment_enforce_full_scan and not args.comment_full_scan:
+        parser.error("--comment-enforce-full-scan requires --comment-full-scan")
+    if args.comment_full_scan and (args.comment_base or args.comment_target != "worktree"):
+        parser.error("full scan cannot be combined with a Git base or staged target")
+    return args
 
 
 def main() -> int:
     args = parse_args()
     mode = "quick" if args.quick else "full"
     root = Path(__file__).resolve().parents[2]
-    failures = validate(root, mode)
+    failures = validate(root, mode, base=args.comment_base, target=args.comment_target,
+                        full_scan=args.comment_full_scan, enforce_full_scan=args.comment_enforce_full_scan)
     if failures:
         for failure in failures:
             print(f"FAIL: {failure}")
         print(f"Conformance failed with {len(failures)} actionable issue(s).")
         return 1
-    check_count = len(QUICK_CHECKS if mode == "quick" else FULL_CHECKS)
+    check_count = len(QUICK_CHECKS if mode == "quick" else FULL_CHECKS) + 1
     print(f"OK: {mode} conformance passed ({check_count} checks).")
     return 0
 

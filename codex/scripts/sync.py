@@ -28,6 +28,7 @@ SKILLS = (
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestra-coordinate",
+    "orchestra-repo-maintenance",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",

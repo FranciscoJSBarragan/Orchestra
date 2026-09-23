@@ -29,7 +29,9 @@ do not silently fall back to another installed version.
 
 Every delegated role packet includes the absolute `role_skill` path and the selected
 runtime and skills roots. Resolve sibling skills and references from that same
-root. A task-root packet instead names its selected entry skill and those same roots
+root. Implementation packets and mutable task-root handoffs also name the
+absolute shared engineering guidance path and its `#source-comments` section.
+A root's global instruction file is not evidence that another host received it. A task-root packet instead names its selected entry skill and those same roots
 under WORKFLOW "Initiative coordination". Host behavior, including the plugin's Codex profile composition, is
 specified in WORKFLOW "Host adapters" and the selected spawn reference.
 

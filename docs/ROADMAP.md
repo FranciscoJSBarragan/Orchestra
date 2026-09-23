@@ -82,3 +82,20 @@ distribution remain explicit subsequent work. Current source tests do not prove
 that every host discovers a skill, that cloud resume works in all environments,
 or that generated code improves. Keep comparative evaluation after bounded
 plugin acceptance and preserve the pending distribution and Bridge work above.
+
+## Preventive engineering and maintenance
+
+The maintenance entry extends modular engineering with evidence-backed diagnosis
+and authorized repair of harmful code, documentation, rules and examples. Folder
+reorganization is excluded. Shared guidance owns the source-comment policy and
+prevention ladder; enforcement, personal adoption and real-project outcomes are
+separate acceptance classes in the modular evaluation recipe.
+
+After source/package validation, verify personal global-rule adoption and fresh
+root/worker behavior on the supported hosts. Then select the real pilot repository
+and area, preserve its baseline, prove a reusable journey and review a bounded
+repair. Matched quality evaluation retains the plugin acceptance prerequisite.
+No source test demonstrates universal instruction inheritance or improved code.
+Event intake, scheduled gardener jobs, automatic feature-map maintenance, formal
+verification and dashboards remain deferred. Existing distribution, coordinator
+host acceptance and Bridge work above retain their separate boundaries.

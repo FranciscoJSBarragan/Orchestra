@@ -11,6 +11,8 @@ Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
 defines the common packet, authority, cleanup, evidence, report, and stop
 contract for every role.
 
+Review authored source against [Source comments](../orchestra/references/architecture_guidance.md#source-comments).
+
 ## Responsibility
 
 Perform exactly the assigned `independent_review` capability. Independently

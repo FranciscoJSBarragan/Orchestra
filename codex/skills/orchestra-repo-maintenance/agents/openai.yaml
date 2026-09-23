@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Repository Maintenance"
+  short_description: "Diagnose and repair harmful repository patterns"
+  default_prompt: "Use $orchestra-repo-maintenance to diagnose harmful patterns in the requested repository area and report evidence-backed corrections."
+policy:
+  allow_implicit_invocation: false

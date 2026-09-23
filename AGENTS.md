@@ -18,6 +18,8 @@ exactly one home; other documents reference it instead of restating it.
 - Code, comments, commits, plans, prompts, profiles, schemas, and internal docs
   are English.
 
+Source-writing work follows [Source comments](codex/skills/orchestra/references/architecture_guidance.md#source-comments).
+
 ## Activation
 
 Orchestra is an explicit planned-work route, not the default implementation

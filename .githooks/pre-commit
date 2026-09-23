@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick
+exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick --comment-target staged

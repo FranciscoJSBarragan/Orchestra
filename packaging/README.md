@@ -1,6 +1,6 @@
 # Orchestra plugin bundles
 
-The plugin contains the native Orchestra workflow, sixteen skills, four behavior
+The plugin contains the native Orchestra workflow, reusable skills, four behavior
 profiles, local Python helpers, execution presets, and the Codex, Cursor, and
 Grok Build adapters. Python 3.11+ and Git are required; GitHub CLI is required
 only for PR delivery. A host must provide the adapter's native agent tools and
@@ -161,7 +161,7 @@ extra database directory inside the checkout's guarded `.orchestra/` layout.
 Keep authentication out of reports. Record the host version,
 bundle source revision, effective model assignments, installation route,
 and actual resolved runtime paths. Python and Git must be ready before the
-workflow starts. Discovering all sixteen plugin skills without duplicates
+workflow starts. Discovering all packaged skills without duplicates
 is the readiness check, not the acceptance result.
 
 A small standard-library Python parser and CLI provide a representative
@@ -253,10 +253,10 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 ## Modular entries
 
 All targets and direct sync include `orchestra-engineering`,
-`orchestra-project-verification` and `orchestra-coordinate` from canonical
-sources, alongside `orchestra-lite`. References relocate with the bundle.
+`orchestra-project-verification`, `orchestra-coordinate` and
+`orchestra-repo-maintenance` from canonical sources, alongside `orchestra-lite`. References relocate with the bundle.
 Engineering and verification entries allow host discovery; the initiative
-coordinator requires an explicit request. Distribution makes resources
+coordinator and repository maintenance require an explicit request. Distribution makes resources
 available, not guaranteed selection or native root-task APIs. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
 local integration canaries and the separate live-host evaluation boundary.
