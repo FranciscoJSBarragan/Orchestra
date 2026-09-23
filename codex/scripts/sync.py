@@ -75,11 +75,15 @@ RETIRED_HELPERS = ("create_worktree.py", "session_model.py")
 MODELCONFIGS = ("native",)
 # Accepted only as ownership metadata for migration and uninstall.
 LEGACY_MODELCONFIGS = ("external", "dual")
-HOSTS = ("codex", "cursor", "grok", "all")
-HOST_SCOPES = ("codex", "cursor", "grok")
+HOSTS = ("codex", "cursor", "grok", "devin", "all")
+HOST_SCOPES = ("codex", "cursor", "grok", "devin")
 ENTRY_SCOPES = ("shared", *HOST_SCOPES)
 CHECKOUT_MODES = ("managed", "hybrid")
 CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
+DEVIN_CONFIG_PATH = ".config/devin/config.json"
+DEVIN_AGENTS_DIR = ".config/devin/agents"
+DEVIN_SKILLS_DIR = ".config/devin/skills"
+DEVIN_IDENTITY_SCRIPT = "hosts/devin/session_identity.py"
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
@@ -186,6 +190,10 @@ def _includes_grok(host: str) -> bool:
     return host in {"grok", "all"}
 
 
+def _includes_devin(host: str) -> bool:
+    return host in {"devin", "all"}
+
+
 def _cursor_mcp_json(orchestra_home: Path) -> bytes:
     helper = orchestra_home / "scripts" / "task_mcp.py"
     payload = {
@@ -197,6 +205,96 @@ def _cursor_mcp_json(orchestra_home: Path) -> bytes:
         }
     }
     return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
+
+
+def _devin_hook_matcher(orchestra_home: Path) -> dict[str, Any]:
+    script = orchestra_home / "hosts" / "devin" / "session_identity.py"
+    return {
+        "matcher": "",
+        "hooks": [
+            {
+                "type": "command",
+                "command": f'python3 "{script}"',
+                "timeout": 10,
+            }
+        ],
+    }
+
+
+def _devin_canonical_matcher_bytes(matcher: dict[str, Any]) -> bytes:
+    return (json.dumps(matcher, indent=2, sort_keys=True) + "\n").encode()
+
+
+def _devin_managed_content(orchestra_home: Path) -> bytes:
+    return _devin_canonical_matcher_bytes(_devin_hook_matcher(orchestra_home))
+
+
+def _devin_parse_config(data: bytes) -> dict[str, Any]:
+    if not data:
+        return {}
+    try:
+        parsed = json.loads(data.decode())
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SyncError(f"invalid Devin config.json: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise SyncError("invalid Devin config.json structure")
+    return parsed
+
+
+def _devin_render(parsed: dict[str, Any]) -> bytes:
+    return (json.dumps(parsed, indent=2, ensure_ascii=False) + "\n").encode()
+
+
+def _devin_matcher_command(matcher: dict[str, Any]) -> str | None:
+    hook_list = matcher.get("hooks")
+    if not isinstance(hook_list, list):
+        return None
+    for hook in hook_list:
+        if (
+            isinstance(hook, dict)
+            and isinstance(hook.get("command"), str)
+            and DEVIN_IDENTITY_SCRIPT in hook["command"]
+        ):
+            return hook["command"]
+    return None
+
+
+def _devin_find_matchers(parsed: dict[str, Any]) -> list[int]:
+    hooks = parsed.get("hooks")
+    if not isinstance(hooks, dict):
+        return []
+    session_start = hooks.get("SessionStart")
+    if not isinstance(session_start, list):
+        return []
+    return [
+        index
+        for index, matcher in enumerate(session_start)
+        if isinstance(matcher, dict) and _devin_matcher_command(matcher) is not None
+    ]
+
+
+def _devin_strip_matcher(parsed: dict[str, Any]) -> dict[str, Any]:
+    indices = _devin_find_matchers(parsed)
+    if not indices:
+        return parsed
+    session_start = parsed["hooks"]["SessionStart"]
+    for index in reversed(indices):
+        del session_start[index]
+    if not session_start:
+        del parsed["hooks"]["SessionStart"]
+    if not parsed["hooks"]:
+        del parsed["hooks"]
+    return parsed
+
+
+def _devin_validate_hooks_shape(parsed: dict[str, Any], label: str) -> None:
+    hooks = parsed.get("hooks")
+    if hooks is not None and not isinstance(hooks, dict):
+        raise SyncError(f"hooks must be an object in {label}")
+    if isinstance(hooks, dict):
+        session_start = hooks.get("SessionStart")
+        if session_start is not None and not isinstance(session_start, list):
+            raise SyncError(f"hooks.SessionStart must be an array in {label}")
 
 
 def _detect_codex_version() -> tuple[str, tuple[int, int, int]]:
@@ -489,10 +587,14 @@ def _entry_scope(root: str, path: str) -> str:
         return "codex"
     if root == "home" and parts[:2] == (".cursor", "plugins"):
         return "cursor"
+    if root == "home" and parts[:2] == (".config", "devin"):
+        return "devin"
     if root == "orchestra_home" and parts[:2] == ("hosts", "cursor"):
         return "cursor"
     if root == "orchestra_home" and parts[:2] == ("hosts", "grok"):
         return "grok"
+    if root == "orchestra_home" and parts[:2] == ("hosts", "devin"):
+        return "devin"
     return "shared"
 
 
@@ -687,6 +789,53 @@ def _inventory(
                 "file",
                 _read_file(source, str(source)),
             )
+    if _includes_devin(host):
+        devin_roles = source_root / "hosts/devin/config/roles.devin.toml"
+        devin_spawn = source_root / "hosts/devin/references/spawn.md"
+        devin_identity = source_root / "hosts/devin/plugin/scripts/session_identity.py"
+        for source, destination in (
+            (devin_roles, "hosts/devin/roles.toml"),
+            (devin_spawn, "hosts/devin/spawn.md"),
+            (devin_identity, "hosts/devin/session_identity.py"),
+        ):
+            entries[("orchestra_home", destination)] = _entry(
+                "orchestra_home",
+                destination,
+                "file",
+                _read_file(source, str(source)),
+            )
+        devin_agents_dir = source_root / "hosts/devin/agents"
+        if devin_agents_dir.is_symlink() or not devin_agents_dir.is_dir():
+            raise SyncError(f"expected a source directory: {devin_agents_dir}")
+        actual_devin_agents = []
+        for child in sorted(devin_agents_dir.iterdir(), key=lambda item: item.name):
+            if child.is_symlink() or not child.is_file() or child.suffix != ".md":
+                raise SyncError(f"unexpected agent source entry: {child}")
+            actual_devin_agents.append(child.stem)
+        if tuple(actual_devin_agents) != AGENTS:
+            raise SyncError(
+                "Devin agent source inventory does not match the four supported profiles"
+            )
+        for name in AGENTS:
+            source = devin_agents_dir / f"{name}.md"
+            destination = f"{DEVIN_AGENTS_DIR}/{name}.md"
+            entries[("home", destination)] = _entry(
+                "home", destination, "file", _read_file(source, str(source))
+            )
+        for skill in SKILLS:
+            directory = skill_root / skill
+            for source in _walk_files(directory):
+                relative = source.relative_to(directory).as_posix()
+                destination = f"{DEVIN_SKILLS_DIR}/{skill}/{relative}"
+                entries[("home", destination)] = _entry(
+                    "home", destination, "file", _read_file(source, str(source))
+                )
+        entries[("home", DEVIN_CONFIG_PATH)] = _entry(
+            "home",
+            DEVIN_CONFIG_PATH,
+            "managed_json",
+            _devin_managed_content(orchestra_home),
+        )
     return entries
 
 
@@ -695,11 +844,26 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
     if root == "home" and kind == "file":
         if len(parts) >= 4 and parts[:2] == (".agents", "skills") and parts[2] in SKILLS:
             return True
+        if (
+            len(parts) >= 4
+            and parts[:3] == (".config", "devin", "skills")
+            and parts[3] in SKILLS
+        ):
+            return True
+        if (
+            len(parts) == 4
+            and parts[:3] == (".config", "devin", "agents")
+            and parts[3].startswith("orchestra_")
+            and parts[3].endswith(".md")
+        ):
+            return True
         plugin_parts = Path(CURSOR_PLUGIN_ROOT).parts
         return (
             len(parts) >= len(plugin_parts) + 1
             and parts[: len(plugin_parts)] == plugin_parts
         )
+    if root == "home" and kind == "managed_json":
+        return path == DEVIN_CONFIG_PATH
     if root == "orchestra_home" and kind == "file":
         return path in {
             ORCHESTRA_WORKTREE_ROOT_PATH,
@@ -710,6 +874,9 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             "hosts/cursor/spawn.md",
             "hosts/grok/roles.toml",
             "hosts/grok/spawn.md",
+            "hosts/devin/roles.toml",
+            "hosts/devin/spawn.md",
+            "hosts/devin/session_identity.py",
         } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)} or (
             len(parts) >= 2 and parts[0] == "control"
         )
@@ -1567,6 +1734,55 @@ def _analyze(
                 operations.append(_operation("update", entry, current))
         else:
             current = _read_file(path, entry["path"]) if path.exists() else b""
+            if entry["type"] == "managed_json":
+                parsed_config = _devin_parse_config(current)
+                matcher_indices = _devin_find_matchers(parsed_config)
+                if owner is None:
+                    if matcher_indices:
+                        conflicting = _devin_matcher_command(
+                            parsed_config["hooks"]["SessionStart"][
+                                matcher_indices[0]
+                            ]
+                        )
+                        raise SyncError(
+                            f"unmanaged Orchestra hook in {entry['path']}: "
+                            f"{conflicting}"
+                        )
+                    _devin_validate_hooks_shape(parsed_config, entry["path"])
+                    operations.append(
+                        _operation(
+                            "insert_json_hook",
+                            entry,
+                            current if path.exists() else None,
+                        )
+                    )
+                    continue
+                if not matcher_indices:
+                    raise SyncError(
+                        f"owned Orchestra hook is missing from {entry['path']}"
+                    )
+                if len(matcher_indices) != 1:
+                    raise SyncError(
+                        f"owned Orchestra hook drift in {entry['path']}"
+                    )
+                found = parsed_config["hooks"]["SessionStart"][matcher_indices[0]]
+                if (
+                    _digest(_devin_canonical_matcher_bytes(found))
+                    != owner["digest"]
+                ):
+                    raise SyncError(
+                        f"owned Orchestra hook drift in {entry['path']}"
+                    )
+                if _devin_canonical_matcher_bytes(found) != entry["content"]:
+                    operations.append(
+                        _operation(
+                            "update_json_hook",
+                            entry,
+                            current,
+                            preserve_backup=True,
+                        )
+                    )
+                continue
             span = _entry_span(entry, current)
             config_recovery = (
                 _owned_config_parts(current, owner["digest"])
@@ -1610,7 +1826,20 @@ def _analyze(
             continue
         path = _safe_path(roots[owner["root"]], owner["path"])
         current = _read_file(path, owner["path"])
-        if owner["type"] in {"managed_block", "managed_config"}:
+        if owner["type"] == "managed_json":
+            parsed_config = _devin_parse_config(current)
+            matcher_indices = _devin_find_matchers(parsed_config)
+            if not matcher_indices or any(
+                _digest(
+                    _devin_canonical_matcher_bytes(
+                        parsed_config["hooks"]["SessionStart"][index]
+                    )
+                )
+                != owner["digest"]
+                for index in matcher_indices
+            ):
+                raise SyncError(f"owned destination drift: {owner['path']}")
+        elif owner["type"] in {"managed_block", "managed_config"}:
             span = _entry_span(owner, current)
             if span is None or _digest(current[span[0] : span[1]]) != owner["digest"]:
                 raise SyncError(f"owned destination drift: {owner['path']}")
@@ -1741,6 +1970,10 @@ def _restart_required(changes: list[dict[str, str]]) -> bool:
             change["root"] == "home"
             and change["path"].startswith(f"{CURSOR_PLUGIN_ROOT}/")
         )
+        or (
+            change["root"] == "home"
+            and change["path"].startswith(".config/devin/")
+        )
         for change in changes
     )
 
@@ -1806,8 +2039,39 @@ def _apply_operation(
             assert span is not None
             content = _render_managed_config(normalized, entry["content"])
             _atomic_write(path, content, roots[entry["root"]])
+        elif kind == "insert_json_hook":
+            parsed_config = _devin_parse_config(before or b"")
+            _devin_validate_hooks_shape(parsed_config, entry["path"])
+            hooks = parsed_config.setdefault("hooks", {})
+            session_start = hooks.setdefault("SessionStart", [])
+            session_start.append(json.loads(entry["content"].decode()))
+            _atomic_write(
+                path,
+                _devin_render(parsed_config),
+                roots[entry["root"]],
+                new_mode=0o600,
+            )
+        elif kind == "update_json_hook":
+            parsed_config = _devin_parse_config(before or b"")
+            matcher_indices = _devin_find_matchers(parsed_config)
+            if len(matcher_indices) != 1:
+                raise SyncError(
+                    f"owned Orchestra hook is missing from {entry['path']}"
+                )
+            parsed_config["hooks"]["SessionStart"][matcher_indices[0]] = json.loads(
+                entry["content"].decode()
+            )
+            _atomic_write(path, _devin_render(parsed_config), roots[entry["root"]])
         elif kind == "delete":
-            if entry["type"] in {"managed_block", "managed_config"}:
+            if entry["type"] == "managed_json":
+                parsed_config = _devin_parse_config(before or b"")
+                _devin_strip_matcher(parsed_config)
+                remaining = _devin_render(parsed_config) if parsed_config else b""
+                if remaining.strip():
+                    _atomic_write(path, remaining, roots[entry["root"]])
+                else:
+                    path.unlink()
+            elif entry["type"] in {"managed_block", "managed_config"}:
                 if entry["type"] == "managed_config":
                     normalized = _normalize_owned_config(
                         before, operation.get("config_recovery")
@@ -2412,7 +2676,19 @@ def uninstall(home: Path, codex_home: Path, *, host: str = "codex") -> dict[str,
             path = _safe_path(roots[owner["root"]], owner["path"])
             data = _read_file(path, owner["path"])
             recovery = None
-            if owner["type"] in {"managed_block", "managed_config"}:
+            if owner["type"] == "managed_json":
+                parsed_config = _devin_parse_config(data)
+                matcher_indices = _devin_find_matchers(parsed_config)
+                matches = bool(matcher_indices) and all(
+                    _digest(
+                        _devin_canonical_matcher_bytes(
+                            parsed_config["hooks"]["SessionStart"][index]
+                        )
+                    )
+                    == owner["digest"]
+                    for index in matcher_indices
+                )
+            elif owner["type"] in {"managed_block", "managed_config"}:
                 span = _entry_span(owner, data)
                 recovery = (
                     _owned_config_parts(data, owner["digest"])
@@ -2446,7 +2722,7 @@ def uninstall(home: Path, codex_home: Path, *, host: str = "codex") -> dict[str,
                 "delete",
                 stale,
                 data,
-                preserve_backup=owner["type"] == "managed_config",
+                preserve_backup=owner["type"] in {"managed_config", "managed_json"},
             )
             if owner["type"] == "managed_config" and recovery is not None and recovery[1]:
                 operation["config_recovery"] = recovery
@@ -2509,7 +2785,8 @@ def uninstall(home: Path, codex_home: Path, *, host: str = "codex") -> dict[str,
             permission_backend = next_permission_backend
             owned_backup = (
                 _safe_path(backup_root, owner["backup"])
-                if owner["type"] == "managed_config" and "backup" in owner
+                if owner["type"] in {"managed_config", "managed_json"}
+                and "backup" in owner
                 else None
             )
             if owned_backup is not None and owned_backup.exists():

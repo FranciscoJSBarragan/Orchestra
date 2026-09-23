@@ -29,7 +29,7 @@ jobs:
           package_version=$(python3 -c 'import json; print(json.load(open("packaging/orchestra/.codex-plugin/plugin.json"))["version"])')
           revision=$(git rev-parse --short=12 HEAD)
           mkdir -p dist/downloads
-          for target in portable cursor grok; do
+          for target in portable cursor grok devin; do
             python3 codex/scripts/package_plugin.py --target "$target" --output "dist/$target/orchestra"
             tar -czf "dist/downloads/orchestra-$package_version-$revision-$target.tar.gz" -C "dist/$target" orchestra
           done

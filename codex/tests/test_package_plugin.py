@@ -50,14 +50,14 @@ class PluginPackagingTests(unittest.TestCase):
                 self.assertEqual((plugin / "WORKFLOW.md").read_bytes(), (ROOT / "docs/WORKFLOW.md").read_bytes())
                 for source in (ROOT / "codex/skills").rglob("*.md"):
                     self.assertEqual((plugin / "skills" / source.relative_to(ROOT / "codex/skills")).read_bytes(), source.read_bytes())
-                for host in ("codex", "cursor", "grok"):
+                for host in ("codex", "cursor", "grok", "devin"):
                     with (plugin / "hosts" / host / "roles.toml").open("rb") as handle:
                         self.assertIn("tiers", tomllib.load(handle))
                 self.assertFalse((plugin / "scripts/sync.py").exists())
                 self.assertFalse((plugin / ".mcp.json").exists())
                 self.assertFalse((plugin / "mcp.json").exists())
                 self.assertFalse((plugin / "config.toml").exists())
-                self.assertFalse((plugin / "agents").exists())
+                self.assertEqual((plugin / "agents").exists(), target == "devin")
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
@@ -72,7 +72,7 @@ class PluginPackagingTests(unittest.TestCase):
 
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
-        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json"}
+        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "devin": ".devin-plugin/plugin.json"}
         for target in TARGETS:
             plugin = self.build(target)
             manifest = json.loads((plugin / manifests[target]).read_text())
@@ -82,6 +82,7 @@ class PluginPackagingTests(unittest.TestCase):
             for other, name in manifests.items():
                 self.assertEqual((plugin / name).exists(), target == other)
             self.assertEqual((plugin / "hooks/hooks.json").exists(), target == "cursor")
+            self.assertEqual((plugin / "hooks.json").exists(), target == "devin")
 
     def test_relative_skill_links_stay_inside_the_bundle_and_resolve(self) -> None:
         plugin = self.build()
@@ -117,6 +118,48 @@ class PluginPackagingTests(unittest.TestCase):
         result = subprocess.run(command, shell=True, cwd=self.root, env={**os.environ, "CURSOR_PLUGIN_ROOT": str(plugin)}, input=json.dumps({"conversation_id": "cursor.test-1", "session_id": "cursor.test-1"}), text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["env"]["ORCHESTRA_HOST_THREAD_ID"], "cursor.test-1")
+
+    def test_devin_target_bundles_native_layout(self) -> None:
+        plugin = self.build("devin")
+        manifest = json.loads((plugin / ".devin-plugin/plugin.json").read_text())
+        metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
+        for key in ("name", "version", "description", "author", "license", "keywords"):
+            self.assertEqual(manifest[key], metadata[key])
+        self.assertEqual(manifest["skills"], "./skills/")
+        for profile in AGENTS:
+            self.assertEqual(
+                (plugin / "agents" / f"{profile}.md").read_bytes(),
+                (ROOT / "hosts/devin/agents" / f"{profile}.md").read_bytes(),
+            )
+        self.assertEqual(
+            (plugin / "hooks.json").read_bytes(),
+            (ROOT / "hosts/devin/plugin/hooks.json").read_bytes(),
+        )
+        self.assertEqual(
+            (plugin / "scripts/session_identity.py").read_bytes(),
+            (ROOT / "hosts/devin/plugin/scripts/session_identity.py").read_bytes(),
+        )
+        self.assertEqual(
+            (plugin / "hosts/devin/roles.toml").read_bytes(),
+            (ROOT / "hosts/devin/config/roles.devin.toml").read_bytes(),
+        )
+        self.assertEqual(
+            (plugin / "hosts/devin/spawn.md").read_bytes(),
+            (ROOT / "hosts/devin/references/spawn.md").read_bytes(),
+        )
+        self.assertFalse((plugin / "hooks").exists())
+
+    def test_devin_hook_runs_from_unrelated_working_directory(self) -> None:
+        plugin = self.build("devin")
+        hooks = json.loads((plugin / "hooks.json").read_text())
+        command = hooks["SessionStart"][0]["hooks"][0]["command"]
+        result = subprocess.run(command, shell=True, cwd=self.root, env={**os.environ, "DEVIN_PLUGIN_ROOT": str(plugin)}, input=json.dumps({"session_id": "devin.test-1"}), text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = json.loads(result.stdout)
+        self.assertIn(
+            "ORCHESTRA_DEVIN_THREAD_ID=devin.test-1",
+            output["hookSpecificOutput"]["additionalContext"],
+        )
 
     def test_existing_destination_is_never_overwritten(self) -> None:
         plugin = self.build()

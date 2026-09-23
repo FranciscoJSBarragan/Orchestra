@@ -10,7 +10,7 @@ import sys
 
 from sync import AGENTS, HELPERS, SKILLS
 
-TARGETS = ("portable", "cursor", "grok")
+TARGETS = ("portable", "cursor", "grok", "devin")
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
@@ -49,6 +49,7 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         ("codex", "codex/config/roles.native.toml"),
         ("cursor", "hosts/cursor/config/roles.cursor.toml"),
         ("grok", "hosts/grok/config/roles.grok.toml"),
+        ("devin", "hosts/devin/config/roles.devin.toml"),
     ):
         files.append((source / matrix, Path("hosts") / host / "roles.toml"))
         if host != "codex":
@@ -63,6 +64,13 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         files.append((source / original, Path(destination)))
     if target == "cursor":
         files.append((source / "hosts/cursor/plugin/scripts/session_identity.py",
+                      Path("scripts/session_identity.py")))
+    if target == "devin":
+        for profile in AGENTS:
+            files.append((source / "hosts/devin/agents" / f"{profile}.md",
+                          Path("agents") / f"{profile}.md"))
+        files.append((source / "hosts/devin/plugin/hooks.json", Path("hooks.json")))
+        files.append((source / "hosts/devin/plugin/scripts/session_identity.py",
                       Path("scripts/session_identity.py")))
     # Preflight every source before creating anything at the destination.
     for original, _ in files:
@@ -89,6 +97,8 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
                     "command": 'python3 "${CURSOR_PLUGIN_ROOT}/scripts/session_identity.py"',
                 }]},
             })
+        elif target == "devin":
+            write_json(output / ".devin-plugin/plugin.json", {**common, "skills": "./skills/"})
         else:
             write_json(output / ".claude-plugin/plugin.json", common)
     except Exception:

@@ -77,7 +77,7 @@ For each capability:
    `orchestra_reviewer` → `orchestra-role-reviewer`;
    `orchestra_verifier` → `orchestra-role-verifier`. When the packet supplies
    no explicit `role_skill` path, use
-   `${HOME}/.agents/skills/orchestra-role-<role>/SKILL.md`.
+   `~/.config/devin/skills/orchestra-role-<role>/SKILL.md`.
 6. Resume only the same phase-cohort subagent after it has completed or
    failed; a resume always runs in foreground and reuses the same `profile`
    form (bare or `orchestra:`-namespaced) used for the original spawn. A
