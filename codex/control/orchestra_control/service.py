@@ -26,7 +26,8 @@ CODEX_THREAD_PATTERN = re.compile(
 CURSOR_THREAD_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,200}$")
 CURSOR_THREAD_ENV = "ORCHESTRA_HOST_THREAD_ID"
 GROK_THREAD_ENV = "GROK_SESSION_ID"
-OWNER_HARNESSES = frozenset({"codex", "cursor", "grok"})
+DEVIN_THREAD_ENV = "ORCHESTRA_DEVIN_THREAD_ID"
+OWNER_HARNESSES = frozenset({"codex", "cursor", "grok", "devin"})
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40,64}$", re.IGNORECASE)
 CARD_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 DEPENDENCY_CONDITIONS = {"completed", "delivered"}
@@ -89,6 +90,9 @@ def host_thread_from_env(environ: dict[str, str] | None = None) -> tuple[str | N
     cursor = env.get(CURSOR_THREAD_ENV)
     if cursor:
         return "cursor", cursor
+    devin = env.get(DEVIN_THREAD_ENV)
+    if devin:
+        return "devin", devin
     return None, None
 
 
@@ -107,6 +111,13 @@ def validate_thread_id(value: str | None, harness: str | None = "codex") -> str:
                 "Grok host session identity is missing or invalid",
             )
         return value.strip().lower()
+    if harness == "devin":
+        if not value or not CURSOR_THREAD_PATTERN.fullmatch(value.strip()):
+            raise ControlError(
+                "blocked",
+                "Devin host session identity is missing or invalid",
+            )
+        return value.strip()
     if harness != "codex":
         raise ControlError("blocked", "host conversation identity is missing")
     if not value or not CODEX_THREAD_PATTERN.fullmatch(value.strip()):

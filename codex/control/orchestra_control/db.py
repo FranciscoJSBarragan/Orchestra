@@ -8,7 +8,7 @@ import sqlite3
 import stat
 
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 PREPARATION_STATES = (
     "legacy",
     "draft",
@@ -17,7 +17,7 @@ PREPARATION_STATES = (
     "cancelled",
     "completed",
 )
-OWNER_HARNESSES = ("codex", "cursor", "grok")
+OWNER_HARNESSES = ("codex", "cursor", "grok", "devin")
 TASKS_TABLE_SQL = """
     CREATE TABLE tasks (
         id TEXT PRIMARY KEY,
@@ -40,13 +40,13 @@ TASKS_TABLE_SQL = """
         specification_confirmed_at TEXT,
         adopted_thread_id TEXT,
         adopted_harness TEXT CHECK (
-            adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor', 'grok')
+            adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor', 'grok', 'devin')
         ),
         adopted_revision TEXT,
         adopted_at TEXT,
         previous_thread_id TEXT,
         previous_harness TEXT CHECK (
-            previous_harness IS NULL OR previous_harness IN ('codex', 'cursor', 'grok')
+            previous_harness IS NULL OR previous_harness IN ('codex', 'cursor', 'grok', 'devin')
         ),
         transfer_generation INTEGER NOT NULL DEFAULT 0,
         transfer_requested_at TEXT,
@@ -201,6 +201,7 @@ LIFECYCLE_COLUMNS = {
 V5_MAIN_TASK_COLUMNS = V4_TASK_COLUMNS | OWNER_COLUMNS
 V5_O1_TASK_COLUMNS = V4_TASK_COLUMNS | LIFECYCLE_COLUMNS
 V7_TASK_COLUMNS = V4_TASK_COLUMNS | OWNER_COLUMNS | LIFECYCLE_COLUMNS
+V8_TASK_COLUMNS = V7_TASK_COLUMNS
 
 
 class StorageError(Exception):
@@ -305,6 +306,7 @@ def _validate_schema_shape(connection: sqlite3.Connection, version: int) -> None
         4: V4_TASK_COLUMNS,
         6: V5_MAIN_TASK_COLUMNS,
         7: V7_TASK_COLUMNS,
+        8: V8_TASK_COLUMNS,
     }
     if version == 5:
         if columns == V5_MAIN_TASK_COLUMNS:
@@ -318,15 +320,15 @@ def _validate_schema_shape(connection: sqlite3.Connection, version: int) -> None
         raise StorageError(f"unsupported control schema v{version} shape")
 
 
-def _rebuild_tasks_v7(connection: sqlite3.Connection) -> None:
-    """Rebuild tasks with the v7 constraints, copying only recognized fields."""
+def _rebuild_tasks_v8(connection: sqlite3.Connection) -> None:
+    """Rebuild tasks with the v8 constraints, copying only recognized fields."""
     source_columns = _task_columns(connection)
     connection.execute(
-        TASKS_TABLE_SQL.replace("CREATE TABLE tasks", "CREATE TABLE tasks_v7", 1)
+        TASKS_TABLE_SQL.replace("CREATE TABLE tasks", "CREATE TABLE tasks_v8", 1)
     )
     target_columns = [
         str(info[1])
-        for info in connection.execute("PRAGMA table_info(tasks_v7)").fetchall()
+        for info in connection.execute("PRAGMA table_info(tasks_v8)").fetchall()
     ]
     insert_columns: list[str] = []
     select_values: list[str] = []
@@ -345,11 +347,11 @@ def _rebuild_tasks_v7(connection: sqlite3.Connection) -> None:
                 "CASE WHEN previous_thread_id IS NOT NULL THEN 'codex' ELSE NULL END"
             )
     connection.execute(
-        f"INSERT INTO tasks_v7 ({', '.join(insert_columns)}) "
+        f"INSERT INTO tasks_v8 ({', '.join(insert_columns)}) "
         f"SELECT {', '.join(select_values)} FROM tasks"
     )
     connection.execute("DROP TABLE tasks")
-    connection.execute("ALTER TABLE tasks_v7 RENAME TO tasks")
+    connection.execute("ALTER TABLE tasks_v8 RENAME TO tasks")
     connection.execute(
         "CREATE INDEX tasks_disposition_rank ON tasks(disposition, rank, created_at)"
     )
@@ -402,7 +404,7 @@ def connect(explicit_root: Path | None = None) -> sqlite3.Connection:
             if version in {2, 3}:
                 _migrate_v3(connection)
             if version != SCHEMA_VERSION:
-                _rebuild_tasks_v7(connection)
+                _rebuild_tasks_v8(connection)
                 connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         violations = connection.execute("PRAGMA foreign_key_check").fetchall()
         if violations:

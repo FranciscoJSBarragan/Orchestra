@@ -90,6 +90,7 @@ class TaskControlTests(unittest.TestCase):
         thread: str | None = None,
         cursor_thread: str | None = None,
         grok_thread: str | None = None,
+        devin_thread: str | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], dict]:
         environment = os.environ.copy()
         for key in (
@@ -98,6 +99,7 @@ class TaskControlTests(unittest.TestCase):
             "CURSOR_THREAD_ID",
             "ORCHESTRA_HOST_THREAD_ID",
             "GROK_SESSION_ID",
+            "ORCHESTRA_DEVIN_THREAD_ID",
         ):
             environment.pop(key, None)
         if thread is not None:
@@ -106,6 +108,8 @@ class TaskControlTests(unittest.TestCase):
             environment["ORCHESTRA_HOST_THREAD_ID"] = cursor_thread
         if grok_thread is not None:
             environment["GROK_SESSION_ID"] = grok_thread
+        if devin_thread is not None:
+            environment["ORCHESTRA_DEVIN_THREAD_ID"] = devin_thread
         result = subprocess.run(
             [sys.executable, str(HELPER), "--state-root", str(self.state_root), *args],
             cwd=ROOT,
@@ -1432,6 +1436,57 @@ class TaskControlTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(cli_adopted["status"], "busy")
 
+    def test_devin_session_identity_is_a_distinct_owner_namespace(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        adopted = self.service.adopt_task(
+            task_ref="A1",
+            thread_id=THREAD_ONE,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="devin",
+        )
+        self.assertEqual(adopted["adopted_harness"], "devin")
+        self.assertEqual(adopted["adopted_thread_id"], THREAD_ONE)
+        with self.assertRaises(ControlError) as busy:
+            self.service.adopt_task(
+                task_ref="A1",
+                thread_id=THREAD_ONE,
+                repository=str(self.repository),
+                current_revision=self.revision,
+                source_harness="codex",
+            )
+        self.assertEqual(busy.exception.status, "busy")
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id=THREAD_TWO,
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="cursor",
+        )
+        self.assertEqual(reclaimed["adopted_harness"], "cursor")
+        self.assertEqual(reclaimed["previous_harness"], "devin")
+        result, cli_adopted = self.cli(
+            "task",
+            "adopt",
+            "--task",
+            "A1",
+            "--repository",
+            str(self.repository),
+            devin_thread=THREAD_TWO,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(cli_adopted["status"], "busy")
+        self.assertEqual(
+            host_thread_from_env({"ORCHESTRA_DEVIN_THREAD_ID": "devin-thread-1"}),
+            ("devin", "devin-thread-1"),
+        )
+        with self.assertRaises(ControlError) as devin_missing:
+            validate_thread_id("not-a-valid-id?", "devin")
+        self.assertEqual(devin_missing.exception.status, "blocked")
+        self.assertIn("Devin host session identity", devin_missing.exception.reason)
+
     def test_schema_v5_migration_widens_owner_harness_to_grok(self) -> None:
         self.create_task()
         self.prepare("A1")
@@ -1584,6 +1639,166 @@ class TaskControlTests(unittest.TestCase):
         migrated = self.service.get_task("A1")
         self.assertEqual(migrated["adopted_harness"], "grok")
         self.assertIsNone(migrated["stop_requested_at"])
+
+    def test_schema_v7_migration_widens_owner_harness_to_devin(self) -> None:
+        self.create_task()
+        self.prepare("A1")
+        self.service.adopt_task(
+            task_ref="A1",
+            thread_id="cursor-conversation-abc",
+            repository=str(self.repository),
+            current_revision=self.revision,
+            source_harness="cursor",
+        )
+        self.create_task("capture-2")
+        database = self.state_root / "control.sqlite3"
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute("PRAGMA foreign_keys = OFF")
+            connection.execute("ALTER TABLE tasks RENAME TO tasks_old")
+            connection.execute(
+                """
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    short_id TEXT COLLATE NOCASE UNIQUE,
+                    title TEXT NOT NULL,
+                    brief TEXT NOT NULL,
+                    brief_revision INTEGER NOT NULL DEFAULT 1,
+                    source_harness TEXT NOT NULL,
+                    source_conversation TEXT NOT NULL,
+                    source_message TEXT NOT NULL,
+                    repository TEXT,
+                    rank INTEGER NOT NULL,
+                    disposition TEXT NOT NULL CHECK (disposition IN ('open', 'archived', 'trashed')),
+                    idempotency_key TEXT NOT NULL UNIQUE,
+                    preparation_status TEXT NOT NULL DEFAULT 'draft'
+                        CHECK (preparation_status IN ('legacy', 'draft', 'ready', 'adopted', 'cancelled', 'completed')),
+                    prepared_revision TEXT,
+                    repository_context_digest TEXT,
+                    specification_digest TEXT,
+                    specification_confirmed_at TEXT,
+                    adopted_thread_id TEXT,
+                    adopted_harness TEXT CHECK (
+                        adopted_harness IS NULL OR adopted_harness IN ('codex', 'cursor', 'grok')
+                    ),
+                    adopted_revision TEXT,
+                    adopted_at TEXT,
+                    previous_thread_id TEXT,
+                    previous_harness TEXT CHECK (
+                        previous_harness IS NULL OR previous_harness IN ('codex', 'cursor', 'grok')
+                    ),
+                    transfer_generation INTEGER NOT NULL DEFAULT 0,
+                    transfer_requested_at TEXT,
+                    completed_at TEXT,
+                    initiative_id TEXT REFERENCES task_initiatives(id),
+                    decomposition_reason TEXT,
+                    repository_common_dir TEXT,
+                    completed_revision TEXT,
+                    delivered_task_revision TEXT,
+                    delivery_revision TEXT,
+                    delivery_kind TEXT CHECK (
+                        delivery_kind IS NULL OR delivery_kind IN ('local-integration', 'pr-merge')
+                    ),
+                    delivered_at TEXT,
+                    stop_requested_at TEXT,
+                    cancelled_at TEXT,
+                    trashed_at TEXT,
+                    disposition_before_trash TEXT CHECK (
+                        disposition_before_trash IS NULL OR disposition_before_trash IN ('open', 'archived')
+                    ),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            columns = [
+                row[1] for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
+            ]
+            quoted = ", ".join(f'"{column}"' for column in columns)
+            connection.execute(
+                f"INSERT INTO tasks ({quoted}) SELECT {quoted} FROM tasks_old"
+            )
+            connection.execute("DROP TABLE tasks_old")
+            connection.execute("PRAGMA user_version = 7")
+            connection.commit()
+        finally:
+            connection.close()
+        migrated = self.service.get_task("A1")
+        self.assertEqual(migrated["adopted_harness"], "cursor")
+        self.assertEqual(migrated["adopted_thread_id"], "cursor-conversation-abc")
+        self.assertIsNone(self.service.get_task("A2")["adopted_harness"])
+        connection = sqlite3.connect(database)
+        try:
+            self.assertEqual(
+                connection.execute("PRAGMA user_version").fetchone()[0],
+                SCHEMA_VERSION,
+            )
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
+            )
+            self.assertEqual(
+                connection.execute("PRAGMA foreign_key_check").fetchall(), []
+            )
+            sql = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+        self.assertIn("'devin'", sql)
+        reclaimed = self.service.reclaim_task(
+            task_ref="A1",
+            thread_id="devin-session-abc",
+            repository=str(self.repository),
+            current_revision=self.revision,
+            authorized=True,
+            source_harness="devin",
+        )
+        self.assertEqual(reclaimed["adopted_harness"], "devin")
+        self.assertEqual(reclaimed["previous_harness"], "cursor")
+        connection = sqlite3.connect(database)
+        try:
+            connection.execute(
+                "INSERT INTO tasks (id, short_id, title, brief, brief_revision, "
+                "source_harness, source_conversation, source_message, repository, "
+                "rank, disposition, idempotency_key, preparation_status, "
+                "transfer_generation, created_at, updated_at, adopted_thread_id, "
+                "adopted_harness) VALUES (?, ?, ?, ?, 1, ?, '', '', NULL, 1, 'open', "
+                "?, 'draft', 0, ?, ?, ?, 'devin')",
+                (
+                    "devin-uuid",
+                    "A3",
+                    "Devin task",
+                    "brief",
+                    "test",
+                    "devin-key",
+                    "2026-01-01T00:00:00Z",
+                    "2026-01-01T00:00:00Z",
+                    "devin-thread",
+                ),
+            )
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    "INSERT INTO tasks (id, short_id, title, brief, brief_revision, "
+                    "source_harness, source_conversation, source_message, repository, "
+                    "rank, disposition, idempotency_key, preparation_status, "
+                    "transfer_generation, created_at, updated_at, adopted_thread_id, "
+                    "adopted_harness) VALUES (?, ?, ?, ?, 1, ?, '', '', NULL, 1, 'open', "
+                    "?, 'draft', 0, ?, ?, ?, 'bogus')",
+                    (
+                        "bogus-uuid",
+                        "A4",
+                        "Bogus task",
+                        "brief",
+                        "test",
+                        "bogus-key",
+                        "2026-01-01T00:00:00Z",
+                        "2026-01-01T00:00:00Z",
+                        "bogus-thread",
+                    ),
+                )
+            connection.commit()
+        finally:
+            connection.close()
 
     def test_unknown_v5_shape_rolls_back_without_changes(self) -> None:
         self.create_task()

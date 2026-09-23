@@ -70,7 +70,7 @@ panel / menu bar / Hermes / laptop ──GET over loopback or Tailscale─┘
 
   ```python
   SUPPORTED_SCHEMA_VERSIONS = frozenset({1})
-  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5, 6, 7})
+  SUPPORTED_CONTROL_SCHEMA_VERSIONS = frozenset({3, 4, 5, 6, 7, 8})
   ```
 
 - At runtime the Hub compares `PRAGMA user_version` against that set. It must
