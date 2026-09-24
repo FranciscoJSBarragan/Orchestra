@@ -13,6 +13,14 @@ contract for every role.
 
 Review authored source against [Source comments](../orchestra/references/architecture_guidance.md#source-comments).
 
+Use [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
+reconcile the original scope with actual journeys, including omitted or unchanged
+paths. Do not restrict review to the supplied map. For an explicitly assigned
+remote Lite review, read the [review packet](../orchestra-lite/review-packet.md)
+and WORKFLOW "Lite coordinator acceptance" for exact-tree test execution; this
+does not alter full-phase check ownership.
+
 ## Responsibility
 
 Perform exactly the assigned `independent_review` capability. Independently

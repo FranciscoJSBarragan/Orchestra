@@ -10,7 +10,7 @@ Never change model assignments automatically from a comparison.
 
 Run `python3 codex/scripts/validate_suite.py --full` from the Orchestra root.
 Existing packaging tests compare canonical bytes and relocated references for
-portable, Cursor and Grok bundles; direct-sync tests cover the same inventory.
+portable, Cursor, Grok and Devin bundles; direct-sync tests cover the same inventory.
 Routing mutations should produce actionable missing-resource failures rather
 than freeze prose. Delivery fixtures verify that preserving a host-owned
 checkout leaves exact-SHA and authorization/check gates intact.
@@ -106,6 +106,41 @@ executable correctness, regressions and unmet acceptance; then review usefulness
 maintainability, tokens, latency and recovery cost. Report samples, variation and
 unavailable metrics. A single successful canary is feasibility evidence, not a
 quality improvement estimate. Do not count prettier reports as better code.
+
+## Decision evidence pilot
+
+First inspect representative cases without claiming a behavioral run: a trivial
+edit, regression versus preservation tests, a contract with an indirect caller,
+an interrupted stateful operation, performance evidence, a browser journey and
+a recurring failure. Check whether the relevant evidence reaches its consumer,
+omissions remain discoverable and authority remains proportional. Add remote
+Lite cases for v1/v2 mismatch, an inaccessible map/report, stale review SHA and
+required pre-commit patch review.
+
+After bounded plugin acceptance, begin with map plus review together on three
+cases under fixed worker/reviewer models, effort, budgets, environment and task
+inputs. Pin baseline and revised Orchestra plus exact repository bases. Use the
+same independently verified acceptance oracle for paired baseline/revised runs;
+keep it out of worker/analyst/reviewer prompts. Retain the complete approved scope
+in every prompt so mapping cannot redefine success. Record repetitions and
+variance, not just the best run.
+
+Candidate cases are the reported NeniTPV update-download authorization defect,
+a distinct `articulos` authorization boundary, and legacy reservations behavior
+in NeniCloud. The coordinator must supply the latter cases' exact bases and
+verified expected outcomes before runs. Confirm they exercise different failure
+modes; replace a redundant case. A reported A/B duration or uninspected result
+is not independent evidence. Do not run or modify those repositories as part of
+Orchestra source conformance.
+
+Evaluate omitted decisions, unauthorized access, legitimate callers, preservation
+of pre-login flows, regression sensitivity, exact-tree independent checks and
+remaining findings before tokens or wall time. Account for analyst, worker,
+reviewer, coordinator and recovery cost together. The 25–30 minute target remains
+a hypothesis. If the combined pilot passes, broaden real-project evidence;
+separate map-only and review-only runs only when attribution is needed to settle
+a concrete tuning decision. Preserve failures and explain unavailable metrics;
+three cases cannot establish general superiority.
 
 ## Design references
 

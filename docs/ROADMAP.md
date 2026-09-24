@@ -99,3 +99,19 @@ No source test demonstrates universal instruction inheritance or improved code.
 Event intake, scheduled gardener jobs, automatic feature-map maintenance, formal
 verification and dashboards remain deferred. Existing distribution, coordinator
 host acceptance and Bridge work above retain their separate boundaries.
+
+## Decision evidence and remote Lite acceptance
+
+The v2 source contract keeps coordinator instructions with the worker and ships
+explicit legacy interpretation. Cloud coordinators must select the same pinned
+revision and refresh their kickoffs; source changes do not migrate active workers.
+Decision evidence applies proportionally across ordinary roles, full Orchestra
+and Lite. Package conformance proves routing and shapes, not agent compliance.
+
+After the existing plugin acceptance boundary, start the bounded
+[three-case pilot](evaluation/MODULAR_ACCEPTANCE.md#decision-evidence-pilot)
+with decision mapping and independent review together, holding resources fixed.
+The external coordinator supplies verified case bases and hidden expected
+outcomes. Only isolate the two effects if the combined pilot reveals a question
+that warrants the extra runs. Keep correctness and regressions ahead of cost or
+speed, and preserve all earlier distribution, adoption and Bridge follow-ups.

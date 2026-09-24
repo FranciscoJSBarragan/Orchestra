@@ -11,6 +11,12 @@ under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
 artifacts and independent-gate rules apply when that assignment is selected;
 reading this reference does not itself dispatch a role or grant authority.
 
+For consequential questions, return [decision
+evidence](architecture_guidance.md#decision-evidence) connecting journeys and
+decisions to the original bounded scope. This can be a standalone analyst
+assignment with caller-selected resources; it creates no mapper role or mandatory
+extra pass.
+
 ## Contract
 
 - Answer only the focused repository questions in the packet; do not plan or implement the change.

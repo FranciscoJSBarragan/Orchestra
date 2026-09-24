@@ -8,6 +8,7 @@ want the worker to analyze. The policy for every field is in WORKFLOW
 
 ```text
 ORCHESTRA_LITE_SPEC
+Versión: 2
 Repo:
 Base:
 Slug:
@@ -26,11 +27,13 @@ Decisiones:
 Checks: auto
 Revisión: coordinador
 Actualizar STATUS: no
+Mapa:
 Reporte:
 ```
 
 | Field | Required | Value |
 | --- | --- | --- |
+| `Versión` | no | `2` (default for this worker); another requested version blocks before mutation |
 | `Repo` | yes | GitHub `owner/name`; must match the checkout's origin |
 | `Base` | yes | base branch |
 | `Slug` | yes | kebab-case task slug |
@@ -42,8 +45,9 @@ Reporte:
 | `Objetivo` | yes | one to three sentences |
 | `Aceptación` | yes | verifiable criteria, one per line |
 | `Exclusiones` | no | what not to touch; empty by default |
-| `Decisiones` | no | decisions already taken; for a fresh-worker continuation include the existing branch ownership and expected full SHA under WORKFLOW; empty by default |
+| `Decisiones` | no | decisions already taken; name the absolute resolution root when `Mapa` or `Reporte` is relative; for a fresh-worker continuation include ownership, expected full branch SHA and the original `Base.Referencia` / `Base.SHA` from the prior result under WORKFLOW; empty by default |
 | `Checks` | no | `auto` (default) or explicit commands, one per line; repository-mandatory checks always run |
 | `Revisión` | no | `coordinador` (default) or `bugbot`; `ninguna` is rejected |
 | `Actualizar STATUS` | no | `no` (default) or `sí` followed by the status file path to include in the delivered commit range before final checks and review |
-| `Reporte` | no | absolute path where the final JSON is also written; omitted means chat only |
+| `Mapa` | no | readable decision-evidence input path, absolute or relative to the absolute context root named in `Decisiones`; omitted means establish applicable evidence in the result |
+| `Reporte` | no | task-owned output path for the same final JSON, absolute or relative to the absolute context root named in `Decisiones`; omitted means chat only |

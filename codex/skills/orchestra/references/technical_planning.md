@@ -14,6 +14,11 @@ under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
 artifacts and independent-gate rules apply when that assignment is selected;
 reading this reference does not itself dispatch a role or grant authority.
 
+Use [decision evidence](architecture_guidance.md#decision-evidence) to connect
+consequential decisions and exceptions to the original scope. Reuse the context
+result in `Review context` and assign missing evidence in `Verification`; do not
+create a duplicate map artifact.
+
 ## Contract
 
 - Read the named repository-context artifacts directly and convert that exact

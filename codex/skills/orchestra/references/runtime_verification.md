@@ -15,6 +15,10 @@ under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
 artifacts and independent-gate rules apply when that assignment is selected;
 reading this reference does not itself dispatch a role or grant authority.
 
+Use [decision evidence](architecture_guidance.md#decision-evidence) for the
+assigned paths and distinguish a regression reproduction from a preservation test.
+Compare exact revisions and expected behavior, not just exit codes.
+
 ## Contract
 
 - Use the [shared verification-recipe guidance](architecture_guidance.md) for

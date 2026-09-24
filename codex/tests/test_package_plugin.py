@@ -63,12 +63,13 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
-    def test_every_target_bundles_the_lite_kickoff_template_and_result_example(self) -> None:
+    def test_every_target_bundles_the_lite_producer_and_coordinator_contracts(self) -> None:
         source = ROOT / "codex/skills/orchestra-lite"
         for target in TARGETS:
             with self.subTest(target=target):
                 lite = self.build(target) / "skills/orchestra-lite"
-                for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json"):
+                for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json",
+                                 "result-v1-example.json", "coordinator.md", "review-packet.md"):
                     self.assertEqual((lite / relative).read_bytes(), (source / relative).read_bytes(), relative)
                 self.assertIsInstance(json.loads((lite / "result-example.json").read_text()), dict)
 

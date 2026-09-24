@@ -18,6 +18,11 @@ and check its result without converting each activity into a separate role.
 A typo normally needs only its diff and affected links inspected. Do not load
 the full workflow, create task state, choose a tier, or require a report format.
 
+For consequential changes, use [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence) in
+the current brief or result; reconcile it with the original scope without
+requiring a separate file or agent.
+
 Select only the material question:
 
 | Need | Resource and result |

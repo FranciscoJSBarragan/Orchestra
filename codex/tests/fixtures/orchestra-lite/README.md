@@ -66,7 +66,13 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1])); b=json.load(open(sy
 ```
 
 This example compares only top-level key sets, not types or the evidence
-supporting the reported state. JSON object order is irrelevant.
+supporting the reported state. JSON object order is irrelevant. The current
+worker defaults to v2 even when this fixture omits `Versión`; confirm integer
+`Versión: 2`, the original `fixture.json` `base_sha` in `Base.SHA`, and the
+applicable decision and regression/preservation evidence. Read the
+[coordinator instructions](../../../skills/orchestra-lite/coordinator.md) from
+the same Orchestra revision. To exercise legacy consumption, use the v1 example
+explicitly; never relabel a partial v2 object as v1.
 
 For `delivery`, inspect `git -C repo show <Rama.SHA>:STATUS.md`,
 `git -C repo diff main..<Rama.SHA> -- STATUS.md`, and
@@ -74,7 +80,9 @@ For `delivery`, inspect `git -C repo show <Rama.SHA>:STATUS.md`,
 update reached the published revision rather than remaining a local edit.
 
 For `review-before-commit`, first inspect the blocked result, then have an
-independent reviewer review the preserved complete diff. Supply that review's
+independent reviewer review and test the preserved complete diff. For a separate
+review environment, the coordinator prepares the exact patched checkout and
+checks its HEAD and complete patch digest; the reviewer remains source-read-only. Supply that review's
 target revision, diff evidence, and resolved findings to the same worker and
 resume the same assignment. The worker must continue on the preserved branch
 through authorized commit and publication without another automatic review

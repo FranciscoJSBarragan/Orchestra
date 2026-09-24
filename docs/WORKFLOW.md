@@ -638,10 +638,24 @@ The kickoff block uses fixed Spanish field names; the skill ships a copyable
 template. Mandatory fields are `Repo`, `Base`, `Slug`, `Rama`, `PR`,
 `Autorización`, `Objetivo`, and `Aceptación`. Defaults are `Checks: auto`,
 `Revisión: coordinador`, `Actualizar STATUS: no`, empty `Exclusiones` and
-`Decisiones`, and chat-only output when `Reporte` is omitted. `Tier` and
+`Decisiones`, and chat-only output when `Reporte` is omitted. `Versión` defaults to integer
+`2` for the current worker; an explicitly requested different version returns
+`BLOCKED` in v2 format before mutation. `Tier` and
 `Recursos` are informational; when absent the worker does not invent them.
 `Repo` identifies the GitHub repository as `owner/name` and must match the
 checkout's origin.
+
+Optional `Mapa` names read-only input evidence for material decisions. `Mapa`
+and `Reporte` may be absolute paths in shared Project Context or relative paths
+with an absolute resolution root explicitly named in `Decisiones` for both
+paths. Resolve these paths and check recipient readability and output ownership
+during preflight; a relative path without that root returns `BLOCKED`, never
+an assumed checkout-relative path; a local path alone does not prove cross-VM access. Preserve
+supplied maps and unrelated existing files. A requested but unreadable map or
+unwritable report returns a precise `BLOCKED` result in chat; do not silently
+omit the requested handoff. An omitted map is not a blocker: establish applicable
+evidence in the existing brief/result. Task evidence follows the coordinator's
+existing context lifecycle, not a new Orchestra registry.
 
 A missing or invalid mandatory field, an `Autorización` that does not
 explicitly name the implementation and delivery actions the worker will
@@ -654,7 +668,12 @@ does not move that ownership.
 ### Preflight and branch
 
 Preflight is read-only: confirm the repository, `Base`, and its current
-revision; read `orchestra.toml`, `.agent/`, and `AGENTS.md` or
+revision; preserve this full inspected SHA in the result even if the base ref
+later moves. On continuation, reuse the original baseline from the prior result
+supplied by the coordinator. For a fresh-worker continuation, `Decisiones`
+names that original `Base.Referencia` and `Base.SHA` alongside the existing
+branch ownership and expected branch SHA. A missing baseline needs
+reconciliation, not a fresh resolution of a moving base ref. Read `orchestra.toml`, `.agent/`, and `AGENTS.md` or
 `PROJECT_CONTEXT.md` when present; derive check commands from repository
 configuration for `Checks: auto`; record the available tools (`git`, `gh`,
 Python, Node, Browser Use); and confirm task ownership and preexisting dirty
@@ -681,7 +700,11 @@ branch without that continuation confirmation must point at the current
 
 ### Implementation, checks, and self-review
 
-Give a brief plan in the chat. Keep any resume note in the conversation.
+Give a brief plan in the chat. Apply shared "Decision evidence" for material
+risks, consuming a supplied map or establishing the missing evidence. Reconcile
+it with the original kickoff, including unchanged paths and exclusions. Carry
+observed results and uncertainties in the existing result fields. Keep any
+resume note in the conversation.
 `Reporte` contains only the result JSON, including a partial `BLOCKED` result;
 no separate task-state file exists. Implement within `Objetivo` and `Aceptación`,
 respecting `Exclusiones` and `Decisiones`. A reversible technical choice takes
@@ -754,25 +777,102 @@ processes and browser resources, preserving useful code and evidence.
 The worker always ends, including on `BLOCKED`, with the literal line
 `ORCHESTRA_LITE_RESULT`, exactly one fenced `json` object, and a brief human
 summary in Spanish; no duplicate structured text report. When `Reporte` is
-supplied, the same JSON object is written there. The top-level keys are fixed:
-`Estado` (`DONE`, `DONE_PR_PENDING`, or `BLOCKED`); `PR` (URL string or
-`null`); `Rama` (`{"Nombre": string|null, "SHA": string|null}`); `Publicada`
-(boolean, verified against the remote); `Commits` (array); `Checks` (array of
-`{"Comando", "Resultado", "Código de salida"}` items, exit code `null` when
-unavailable); `CI` (string, default `"no consultado"`); `Decisiones tomadas`,
-`Riesgos / no hecho`, and `Pendiente para merge` (arrays); and `Bloqueo`
-(string when `BLOCKED`, otherwise `null`). Unknown early branch or SHA values
-are `null`. The skill's `result-example.json` is the canonical shape; JSON
-object key order is not part of the contract.
+supplied and writable, write the same object there. Version 2 has exactly these
+top-level keys (object key order is irrelevant):
 
-`DONE` requires met acceptance and green mandatory local checks, the exact
-published SHA, and a PR verified as a draft. `DONE_PR_PENDING` requires the
-same implementation, check, and publication evidence with no PR yet.
-`BLOCKED` names the missing authority, information, or evidence, the partial
-work done, and the next action. A mandatory acceptance criterion that cannot
-be verified with the available tools is `BLOCKED`, never `DONE`. Independent
-review and CI may remain pending in both success states, and `Pendiente para
-merge` lists them; success never means merge-ready.
+- `Versión`: integer `2`.
+- `Base`: `{"Referencia": string|null, "SHA": string|null}`; the kickoff base
+  and full inspected baseline SHA, never a later ref resolution.
+- `Estado`: `DONE`, `DONE_PR_PENDING`, or `BLOCKED`.
+- `PR`: URL string or `null`.
+- `Rama`: `{"Nombre": string|null, "SHA": string|null}`; the task branch and
+  full delivered/current HEAD, not the reviewer's acceptance.
+- `Publicada`: boolean, true only after exact remote-SHA verification.
+- `Commits`: array of commit identifiers, optionally with summaries.
+- `Checks`: array of `{"Comando", "Resultado", "Código de salida"}` items;
+  exit code integer or `null` when unavailable. Success-state checks cover the
+  exact delivered tree in `Rama.SHA`. Baseline experiments belong in `Evidencia`;
+  on `BLOCKED`, identify any dirty-tree or earlier-revision check in `Resultado`.
+- `Evidencia`: `{"Mapa": string|null, "Resumen": string|null,
+  "Rojo-verde": string|null}`. Map is an optional accessible reference;
+  summary carries applicable decision evidence or a concise explanation of
+  why no map is needed. Record supplied-map revisions and subsequent changes;
+  a baseline map alone does not describe the delivered tree. `Rojo-verde`
+  distinguishes an observed regression reproduction from preservation tests
+  and states unavailable or inapplicable reproduction with its reason. Neither
+  entry requires new tests for trivial changes; both are nonempty on success.
+- `CI`: string, default `"no consultado"`.
+- `Decisiones tomadas`, `Riesgos / no hecho`, `Pendiente para merge`: arrays of
+  strings, including unresolved evidence and remaining independent acceptance.
+- `Bloqueo`: nonempty string on `BLOCKED`, otherwise `null`.
+
+Unknown early base, branch, SHA and evidence values are `null`. The skill's
+`result-example.json` is the v2 shape. `DONE` requires met acceptance and green
+mandatory local checks, the exact published SHA, and a PR verified as a draft.
+`DONE_PR_PENDING` requires the same evidence with no PR yet. `BLOCKED` identifies
+the missing authority, information or evidence, partial work and next action.
+A mandatory acceptance criterion that cannot be verified is `BLOCKED`, never
+`DONE`. Independent review and CI may remain pending in both success states,
+and `Pendiente para merge` lists them; success never means merge-ready.
+
+An unversioned object with exactly the legacy keys is v1, preserved in
+`result-v1-example.json`. Interpret its delivery fields under that contract:
+it contains no baseline or decision-evidence guarantee. Do not invent missing
+v2 evidence, silently upgrade it or accept it as the result of a requested v2
+assignment. A coordinator resuming a pinned v1 assignment may consume it under
+the old delivery contract and its review requirements; adopting v2 requires an
+explicit refreshed kickoff and the missing evidence. An explicit `Versión: 1`,
+an unknown version, malformed keys/types or mixed versions requires producer
+reconciliation. New assignments pin coordinator and worker to the same v2
+Orchestra revision. No ongoing legacy task or active installation is migrated
+implicitly. Canonical conformance validates the shipped examples and routing;
+it does not validate live reports, actual access, test execution or acceptance.
+
+### Lite coordinator acceptance
+
+The external coordinator reads the shipped `orchestra-lite/coordinator.md`
+from the worker's pinned Orchestra revision. It owns the original specification,
+resource selection, version interpretation, independent acceptance and correction
+loop; the worker never performs that role. A useful preliminary map may be a
+bounded standalone `repository_context` assignment to the existing analyst with
+caller-selected resources, including an explicitly selected cheaper model. The
+worker checks evidence freshness and relevant gaps without repeating all research.
+
+For v2 remote acceptance, give a fresh independent reviewer the original kickoff,
+result, decision evidence, exact baseline and delivered SHA, repository policy
+and execution readiness. The first review covers the complete bounded scope and
+looks for missing decisions, not merely the supplied rows. Use an independent
+checkout at that SHA; establish the same source tree before tests. For required
+pre-commit review, the coordinator prepares an independent disposable checkout
+of the supplied HEAD with the complete patch applied, under the patch/digest
+contract above; the reviewer verifies that identity and tests that tree without
+authoring source changes. The coordinator owns preparation and cleanup of that
+checkout. A self-review never supplies independent acceptance.
+
+Because the reviewer cannot inspect the worker VM, assign it execution of the
+new or changed tests and tests of affected behavior, including indirect consumers,
+on that exact tree. Security or authorization changes also require the full suite
+of each affected project plus the relevant security journeys. Derive the suite
+from repository configuration; record a missing suite and equivalent executable
+acceptance if none exists. A missing environment or inaccessible evidence is a
+precise blocker, not a passing review. Execution remains source-read-only with
+scoped safe data and generated outputs. Use a supported execution surface; a CLI
+review mode that denies checks cannot be bypassed. The same reviewer may perform
+these assigned checks; a separate verifier is not mandatory. Full Orchestra's
+existing independent-gate and check-ownership rules remain unchanged.
+
+The review result uses the existing reviewer output: `accepted`, `findings` or
+`blocked`, exact SHA (or HEAD plus patch digest), findings, actually executed
+checks and evidence limits. The coordinator reads it and reconciles it with the
+original acceptance before marking that revision accepted. `DONE*` establishes
+worker delivery, not independent acceptance. A finding or changed tree invalidates
+only affected evidence; return corrections to the same worker and reuse the same
+reviewer for meaningful delta review and required reruns. A new SHA needs an
+explicit current-revision verdict carrying forward still-valid evidence. Repeated
+failure prompts reassessment of the shared premise or escalation, never automatic
+acceptance after a retry count. Preserve branch ownership and remote-SHA checks
+on continuation. Unresolved findings, unavailable required checks or stale review
+keep acceptance blocked; merge and deployment still require separate authority.
 
 ## Autonomy within an approved objective
 
@@ -819,18 +919,23 @@ and verification-recipe guidance. Apply only sections relevant to the task's
 acceptance or material risks. A trivial edit does not acquire design exercises,
 new tests, benchmarks, or a dedicated verifier from this guidance.
 
-Planning identifies applicable risks and the evidence needed to settle them;
-implementation applies the techniques within its scope; independent review
-assesses consequences against current sources and evidence; verification
-executes only its assigned checks. This guidance also applies to standalone
+Planning identifies applicable risks and the evidence needed to settle them,
+using shared "Decision evidence" for consequential paths and exceptions;
+implementation consumes that evidence and fills affected gaps; independent
+review reconciles the original scope with actual journeys and challenges
+omissions as well as supplied conclusions; verification executes its assigned
+checks, distinguishing regression reproduction from preservation coverage. This guidance also applies to standalone
 roles without activating Orchestra. Existing capability boundaries, terminal
 check ownership, authority rules, and dedicated-gate reasons remain decisive.
 
 Keep task-specific recipes and material assumptions in the existing plan
 acceptance, risks, and `Verification` sections, or the standalone brief.
 Implementation and verification reports carry observed evidence and limits in
-their existing fields. Do not create mandatory report fields, a new artifact
-kind, or a separate recipe registry. Reusable repository knowledge follows
+their existing fields. A useful decision map can live in that report or an
+explicitly supplied portable document; consumers verify revision and access,
+not just the presence of a path. Do not create a new artifact kind or a separate
+recipe registry. The versioned Lite handoff defines its portable evidence fields
+under "Result contract"; it does not alter phase report schemas. Reusable repository knowledge follows
 "Repository conventions" and "Durable knowledge checkpoint"; a suggested
 recipe does not become a hard gate merely by appearing in a report.
 

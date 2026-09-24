@@ -11,6 +11,12 @@ Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
 defines the common packet, authority, cleanup, evidence, report, and stop
 contract for every role.
 
+Apply [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
+the assigned journeys, including preservation cases and claimed before/after
+behavior. Report any uncovered material path to the owner without silently
+expanding verification authority.
+
 ## Responsibility
 
 Perform exactly one capability: `runtime_verification` or

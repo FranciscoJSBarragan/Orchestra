@@ -85,6 +85,9 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-lite/agents/openai.yaml",
     "codex/skills/orchestra-lite/kickoff-template.md",
     "codex/skills/orchestra-lite/result-example.json",
+    "codex/skills/orchestra-lite/result-v1-example.json",
+    "codex/skills/orchestra-lite/coordinator.md",
+    "codex/skills/orchestra-lite/review-packet.md",
     "codex/tests/test_orchestra_lite.py",
     "codex/tests/fixtures/orchestra-lite/README.md",
     "codex/tests/fixtures/orchestra-lite/make_fixture.py",
@@ -288,7 +291,7 @@ LITE_MANDATORY_FIELDS = (
     "Objetivo",
     "Aceptación",
 )
-LITE_RESULT_KEYS = (
+LITE_V1_RESULT_KEYS = (
     "Estado",
     "PR",
     "Rama",
@@ -301,6 +304,7 @@ LITE_RESULT_KEYS = (
     "Pendiente para merge",
     "Bloqueo",
 )
+LITE_RESULT_KEYS = (*LITE_V1_RESULT_KEYS, "Versión", "Base", "Evidencia")
 LITE_CHECK_KEYS = ("Comando", "Resultado", "Código de salida")
 VALID_MODELS = {
     "gpt-6-astra",
@@ -778,7 +782,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
-        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "../orchestra-lite/SKILL.md", "../orchestra/SKILL.md")),
+        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "../orchestra-lite/SKILL.md", "../orchestra-lite/coordinator.md", "../orchestra/SKILL.md")),
     }
     workflow = root / "docs/WORKFLOW.md"
     policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
@@ -816,7 +820,105 @@ def check_modular_routing(root: Path) -> list[str]:
         }
         if (guidance.resolve(), "source-comments") not in targets:
             failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#source-comments")
+    evidence_consumers = [
+        root / f"codex/skills/{name}/SKILL.md"
+        for name in ("orchestra-role-analyst", "orchestra-role-implementer",
+                     "orchestra-role-reviewer", "orchestra-role-verifier",
+                     "orchestra-engineering", "orchestra-lite")
+    ]
+    evidence_consumers.extend(
+        root / f"codex/skills/orchestra/references/{name}.md"
+        for name in ("repository_context", "technical_planning", "runtime_verification")
+    )
+    evidence_consumers.append(root / "codex/skills/orchestra-lite/review-packet.md")
+    for consumer in evidence_consumers:
+        if not consumer.is_file():
+            continue
+        targets = {
+            ((consumer.parent / link.split("#", 1)[0]).resolve(), link.partition("#")[2])
+            for link in _local_markdown_links(consumer.read_text(encoding="utf-8"))
+        }
+        if (guidance.resolve(), "decision-evidence") not in targets:
+            failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#decision-evidence")
     return failures
+
+
+def lite_result_errors(payload: object, version: int) -> list[str]:
+    keys = LITE_RESULT_KEYS if version == 2 else LITE_V1_RESULT_KEYS
+    if not isinstance(payload, dict) or set(payload) != set(keys):
+        return [f"must contain exactly the fixed v{version} result keys"]
+    errors: list[str] = []
+
+    def text(value: object) -> bool:
+        return isinstance(value, str) and bool(value.strip())
+
+    def sha(value: object) -> bool:
+        return isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value) is not None
+
+    def revision(value: object, name: str, label: str) -> bool:
+        valid = isinstance(value, dict) and set(value) == {label, "SHA"}
+        if valid:
+            valid = (value[label] is None or text(value[label])) and (value["SHA"] is None or sha(value["SHA"]))
+        if not valid:
+            errors.append(f"{name} must record {label} and a full SHA (or null when unknown)")
+        return valid
+
+    state = payload["Estado"]
+    success = state in ("DONE", "DONE_PR_PENDING")
+    if state not in ("DONE", "DONE_PR_PENDING", "BLOCKED"):
+        errors.append("Estado must be DONE, DONE_PR_PENDING, or BLOCKED")
+    if type(payload["Publicada"]) is not bool:
+        errors.append("Publicada must be boolean")
+    if payload["PR"] is not None and (not text(payload["PR"]) or not payload["PR"].startswith("https://")):
+        errors.append("PR must be an HTTPS URL or null")
+    if state == "DONE" and payload["PR"] is None:
+        errors.append("DONE requires a draft PR URL")
+    if state == "DONE_PR_PENDING" and payload["PR"] is not None:
+        errors.append("DONE_PR_PENDING requires PR null")
+    if not text(payload["CI"]):
+        errors.append("CI must be a nonempty string")
+    for name in ("Commits", "Decisiones tomadas", "Riesgos / no hecho", "Pendiente para merge"):
+        if not isinstance(payload[name], list) or not all(text(item) for item in payload[name]):
+            errors.append(f"{name} must be an array of nonempty strings")
+    if state == "BLOCKED":
+        if not text(payload["Bloqueo"]):
+            errors.append("BLOCKED requires a concrete Bloqueo")
+    elif payload["Bloqueo"] is not None:
+        errors.append("a success result requires Bloqueo null")
+    if revision(payload["Rama"], "Rama", "Nombre"):
+        if (success or payload["Publicada"] is True) and not all(payload["Rama"].values()):
+            errors.append("delivered or published results require Rama Nombre and SHA")
+    if success and payload["Publicada"] is not True:
+        errors.append("success requires Publicada true for the delivered SHA")
+    checks = payload["Checks"]
+    if not isinstance(checks, list):
+        errors.append("Checks must be an array")
+    else:
+        if success and not checks:
+            errors.append("success requires executed Checks")
+        for check in checks:
+            if not isinstance(check, dict) or set(check) != set(LITE_CHECK_KEYS):
+                errors.append("every Checks item must record Comando, Resultado, and Código de salida")
+                continue
+            code = check["Código de salida"]
+            if not text(check["Comando"]) or not text(check["Resultado"]) or (code is not None and type(code) is not int):
+                errors.append("Checks requires nonempty command/result and integer or null exit code")
+            if success and (type(code) is not int or code != 0):
+                errors.append("success requires green executed Checks")
+    if version == 2:
+        if type(payload["Versión"]) is not int or payload["Versión"] != 2:
+            errors.append("Versión must be integer 2")
+        if revision(payload["Base"], "Base", "Referencia") and success and not all(payload["Base"].values()):
+            errors.append("success requires the inspected Base Referencia and SHA")
+        evidence = payload["Evidencia"]
+        if not isinstance(evidence, dict) or set(evidence) != {"Mapa", "Resumen", "Rojo-verde"}:
+            errors.append("Evidencia must record Mapa, Resumen, and Rojo-verde")
+        else:
+            if any(value is not None and not text(value) for value in evidence.values()):
+                errors.append("Evidencia values must be nonempty strings or null")
+            if success and not all(text(evidence[name]) for name in ("Resumen", "Rojo-verde")):
+                errors.append("success requires evidence summary and observed or justified inapplicable Rojo-verde")
+    return errors
 
 
 def check_orchestra_lite(root: Path) -> list[str]:
@@ -831,7 +933,7 @@ def check_orchestra_lite(root: Path) -> list[str]:
 
     skill_text = skill.read_text(encoding="utf-8")
     links = {target.split("#", 1)[0] for target in _local_markdown_links(skill_text)}
-    for resource in (template.name, example.name):
+    for resource in (template.name, example.name, "coordinator.md"):
         if resource not in links:
             failures.append(f"lite-contract: orchestra-lite must link {resource}")
     section = "Orchestra Lite companion"
@@ -848,25 +950,31 @@ def check_orchestra_lite(root: Path) -> list[str]:
         if field not in template_lines:
             failures.append(f"lite-contract: kickoff template is missing mandatory field {field}")
 
-    try:
-        payload = json.loads(example.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeError) as error:
-        return [*failures, f"lite-contract: result-example.json is invalid JSON: {error}"]
-    if not isinstance(payload, dict) or set(payload) != set(LITE_RESULT_KEYS):
-        failures.append(
-            "lite-contract: result-example.json must contain exactly the fixed result keys"
-        )
-        return failures
-    branch = payload["Rama"]
-    if not isinstance(branch, dict) or set(branch) != {"Nombre", "SHA"}:
-        failures.append("lite-contract: result Rama must be an object with Nombre and SHA")
-    checks = payload["Checks"]
-    if not isinstance(checks, list) or any(
-        not isinstance(item, dict) or set(item) != set(LITE_CHECK_KEYS) for item in checks
-    ):
-        failures.append(
-            "lite-contract: every result Checks item must record Comando, Resultado, and Código de salida"
-        )
+    routes = {
+        "coordinator.md": ("../orchestra/runtime.md", "kickoff-template.md", "result-example.json", "result-v1-example.json", "review-packet.md", "../orchestra-role-analyst/SKILL.md"),
+        "review-packet.md": ("../orchestra-role-reviewer/SKILL.md",),
+        "../orchestra-role-reviewer/SKILL.md": ("../orchestra-lite/review-packet.md",),
+    }
+    for resource, required in routes.items():
+        path = skill_dir / resource
+        if not path.is_file():
+            failures.append(f"lite-contract: missing resource {resource}")
+            continue
+        links = {target.split("#", 1)[0] for target in _local_markdown_links(path.read_text(encoding="utf-8"))}
+        for target in required:
+            if target not in links:
+                failures.append(f"lite-contract: {resource} must link {target}")
+    for filename, version in (("result-example.json", 2), ("result-v1-example.json", 1)):
+        path = skill_dir / filename
+        if not path.is_file():
+            failures.append(f"lite-contract: missing resource {filename}")
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeError) as error:
+            failures.append(f"lite-contract: {filename} is invalid JSON: {error}")
+            continue
+        failures.extend(f"lite-contract: {filename} {error}" for error in lite_result_errors(payload, version))
     return failures
 
 

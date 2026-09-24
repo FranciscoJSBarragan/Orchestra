@@ -153,6 +153,37 @@ code private, clean up owned resources, and retain a helper only if it has a
 continuing repository consumer. Choose the smallest supported mechanism from
 the observations; do not create an experiment phase for routine certainty.
 
+## Decision evidence
+
+For a change whose correctness depends on callers, permissions, persistence or
+compatibility, connect the approved scope to the relevant journey and decision:
+caller → boundary → business decision/effect → expected behavior → verification.
+Include consequential exceptions, unchanged paths and exclusions, not just edited
+symbols. A short inline account often suffices; use a map only when it helps
+another owner consume the evidence. Trivial edits do not require one.
+
+For each material decision, identify the inspected repository and revision,
+source locations or observed scenario, what that evidence establishes, and its
+limits. Distinguish facts, supported inference and unresolved uncertainty. A
+file/line citation or a search hit alone is not proof of the claimed behavior.
+Follow relevant wrappers, imports, dynamic registrations and indirect or external
+consumers; report search scope when consumers cannot be established. "No callers
+found" is uncertainty, never permission to remove, expose or change a contract.
+
+Check descriptive claims in comments and documentation against current evidence.
+Keep intended behavior from the approved specification and normative sources
+separate: an exposed endpoint can prove the code violates the requirement, not
+that authentication is unnecessary. An intentional public caller establishes a
+compatibility need, not by itself that its endpoint is safe. For authorization
+changes, cover denied unauthenticated and insufficient-permission requests,
+authorized success, credential propagation and any retained pre-login journeys.
+
+Consume supplied evidence at its named revision. Inspect the affected delta and
+missing paths instead of repeating valid research. Reconcile the map with the
+original scope before changing code and before accepting it: omitted decisions
+must not disappear merely because no row mentions them. An independent reviewer
+actively looks for omissions and challenges the supplied conclusions.
+
 ## Evidence for consequential changes
 
 - Identify assumptions that determine correctness, including indirect callers,
@@ -168,7 +199,10 @@ the observations; do not create an experiment phase for routine certainty.
 - For a defect fix, when practical, capture a failing regression test or
   minimal reproducer before editing implementation. Confirm it fails for the
   reported behavior, then run the same scenario against the correction. Reuse
-  existing infrastructure and keep useful regression coverage. When the prior
+  existing infrastructure and keep useful regression coverage. Identify the exact
+  base, test inputs and observed failure; an import, setup or environment error
+  is not evidence of the product defect. Distinguish regression tests from
+  preservation tests, which may legitimately pass both before and after. When the prior
   failure cannot be reproduced safely or proportionately, state that limit and
   the alternative evidence; never manufacture a failure or claim an unobserved
   before/after result.

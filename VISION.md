@@ -289,7 +289,10 @@ WORKFLOW "Delegated execution presets"; neither route waives those checks. It ru
 autocorrects every required local deterministic check, including the canonical
 full suite when one exists. The independent reviewer judges intent, source,
 diff, tests, and evidence without routinely repeating those gates; it may run
-only a minimal diagnostic check for a concrete defect hypothesis. A separate
+only a minimal diagnostic check for a concrete defect hypothesis. The remote
+Lite companion assigns independent checks at the reviewed tree under WORKFLOW
+"Lite coordinator acceptance", since its coordinator cannot observe the worker
+VM; that exception does not change full-phase check ownership. A separate
 verifier is reserved for browser interaction, owned services or processes,
 mutable data, credentials, network or external environments, explicit
 repository policy, and all critical phases. Critical work keeps double

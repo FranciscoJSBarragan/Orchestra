@@ -1,4 +1,9 @@
 {
+  "Versión": 2,
+  "Base": {
+    "Referencia": "main",
+    "SHA": "4a8b1c2d3e4f567890abcdef1234567890abcdef"
+  },
   "Estado": "DONE",
   "PR": "https://github.com/acme/shop/pull/128",
   "Rama": {
@@ -7,8 +12,7 @@
   },
   "Publicada": true,
   "Commits": [
-    "1a2b3c4 feat(orders): add CSV export helper",
-    "5d6e7f8 test(orders): cover CSV column order"
+    "9f2c1d4e8b7a6c5d4e3f2a1b0c9d8e7f6a5b4c3d feat(orders): export CSV with contract coverage"
   ],
   "Checks": [
     {
@@ -27,11 +31,16 @@
     "Se reutiliza el serializador CSV existente en lugar de añadir una dependencia."
   ],
   "Riesgos / no hecho": [
-    "No se verificó la descarga en Safari: la VM no tiene navegador."
+    "No se verificó Safari; no forma parte de la aceptación aprobada."
   ],
   "Pendiente para merge": [
     "revisión independiente",
     "CI"
   ],
-  "Bloqueo": null
+  "Bloqueo": null,
+  "Evidencia": {
+    "Mapa": null,
+    "Resumen": "En acme/shop, Base.SHA: la acción de exportación en src/orders.py:42 llama al serializador en src/csv_export.py:18; tests/test_orders.py:31 cubre encabezados y permisos. Se conserva la consulta JSON existente, cubierta por tests/test_orders.py:12. Alcance reconciliado con exportación CSV sin alterar la consulta JSON.",
+    "Rojo-verde": "Funcionalidad nueva: no se afirma reproducción de un defecto. La prueba de preservación de la consulta JSON pasa en Base.SHA y Rama.SHA; la exportación CSV pasa en Rama.SHA."
+  }
 }

@@ -14,6 +14,12 @@ Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
 defines the common packet, authority, cleanup, evidence, report, and stop
 contract for every role.
 
+Before consequential edits, consume or establish [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence).
+Check supplied evidence against the target revision and original scope; carry
+changed decisions, regression evidence and preservation coverage in the existing
+report.
+
 ## Responsibility
 
 Own only the explicitly authorized paths and one capability:

@@ -554,10 +554,12 @@ model selection, independent review, and merge stay outside the worker, so
 the route adds no parser, executor, validator CLI, workflow state,
 coordinator service, model-selection helper, or persisted evaluation engine,
 and it does not consume `task_state.py`, `pr.py`, or `orchestra-pr-open`. Its
-only artifacts are the skill, a copyable kickoff template, and one canonical
-result example, distributed through the existing sync inventory and plugin
-bundles; the canonical validator pins the kickoff fields and result keys as
-machine-consumed shapes. Policy lives in `docs/WORKFLOW.md` ("Orchestra Lite
+resources include the worker skill, kickoff, versioned result examples and
+coordinator/review instructions, distributed through the existing sync inventory
+and plugin bundles. The external coordinator reads those instructions at the
+worker's pinned revision; the canonical validator checks their routes and
+example shapes, not live acceptance. Shared decision evidence lives in existing
+reports or a caller-supplied document, with no mapper profile or registry. Policy lives in `docs/WORKFLOW.md` ("Orchestra Lite
 companion").
 
 ## Model and reasoning configuration

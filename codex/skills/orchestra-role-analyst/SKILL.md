@@ -11,6 +11,11 @@ Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
 defines the common packet, authority, cleanup, evidence, report, and stop
 contract for every role.
 
+For a consequential repository question, use [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence). A
+standalone `repository_context` assignment can supply the map for another owner;
+report coverage and unknowns without planning or implementing the change.
+
 ## Responsibility
 
 Perform exactly one capability supplied by the caller:

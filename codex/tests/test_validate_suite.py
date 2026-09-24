@@ -567,6 +567,39 @@ class FullModeFixtureTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("codex/tests/invalid_fixture.py: cannot establish Python comment policy", result.stdout)
 
+    def test_decision_evidence_routes_are_required_for_roles_and_lite(self) -> None:
+        relatives = [
+            f"codex/skills/{name}/SKILL.md"
+            for name in ("orchestra-role-analyst", "orchestra-role-implementer",
+                         "orchestra-role-reviewer", "orchestra-role-verifier",
+                         "orchestra-engineering", "orchestra-lite")
+        ]
+        relatives += [
+            f"codex/skills/orchestra/references/{name}.md"
+            for name in ("repository_context", "technical_planning", "runtime_verification")
+        ]
+        relatives.append("codex/skills/orchestra-lite/review-packet.md")
+        for relative in relatives:
+            with self.subTest(consumer=relative):
+                path = self.root / relative
+                original = path.read_text()
+                path.write_text(original.replace("architecture_guidance.md#decision-evidence", "architecture_guidance.md"))
+                result = self.run_validator()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"{relative} must directly link architecture_guidance.md#decision-evidence", result.stdout)
+                path.write_text(original)
+
+    def test_lite_coordinator_requires_legacy_and_remote_review_routes(self) -> None:
+        path = self.root / "codex/skills/orchestra-lite/coordinator.md"
+        original = path.read_text()
+        for target in ("result-v1-example.json", "review-packet.md"):
+            with self.subTest(target=target):
+                path.write_text(original.replace(f"({target})", "(result-example.json)"))
+                result = self.run_validator()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"coordinator.md must link {target}", result.stdout)
+        path.write_text(original)
+
     def test_lite_result_object_key_order_is_not_part_of_the_contract(self) -> None:
         example = self.root / "codex/skills/orchestra-lite/result-example.json"
         payload = json.loads(example.read_text(encoding="utf-8"))

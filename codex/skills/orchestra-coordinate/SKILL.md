@@ -31,7 +31,9 @@ Select a child route per responsibility:
   tier and delivery bounds into its own root; do not make it a leaf implementer.
 - [Orchestra Lite](../orchestra-lite/SKILL.md) for a fresh bounded cloud worker
   with its kickoff and external review contract. Respect its supported tiers
-  and exact publication authority. Lite cannot become a delegating child root.
+  and exact publication authority. Read its
+  [coordinator instructions](../orchestra-lite/coordinator.md) from the same pinned
+  revision as the worker. Lite cannot become a delegating child root.
 - [Engineering](../orchestra-engineering/SKILL.md) or the user's custom flow for
   a bounded task that does not need Orchestra. State its review and completion
   expectations instead of silently certifying it as an Orchestra phase.

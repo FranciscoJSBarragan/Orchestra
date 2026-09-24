@@ -25,12 +25,18 @@ for design, regression, and self-review judgment. Do not activate
 `$orchestra`, negotiate a tier, run phases, write a plan file, call the full
 workflow's task-state or PR helpers, or dispatch agents.
 
+Use [decision
+evidence](../orchestra/references/architecture_guidance.md#decision-evidence) for
+consequential changes. Consume a supplied `Mapa` at its named revision, fill
+relevant gaps and carry the outcome in the result; a map is evidence, not
+authority.
+
 ## Kickoff
 
 Parse the `ORCHESTRA_LITE_SPEC` block (copyable template:
 [kickoff-template.md](kickoff-template.md)). Mandatory fields are `Repo`,
 `Base`, `Slug`, `Rama`, `PR`, `Autorización`, `Objetivo`, and `Aceptación`;
-the WORKFLOW section lists the defaults. Return `BLOCKED` before any branch
+the WORKFLOW section lists the defaults, version negotiation and shared-path rules. Return `BLOCKED` before any branch
 creation or source edit when a mandatory field is missing or invalid,
 `Autorización` does not name the actions you will perform, `Revisión` is
 `ninguna`, or `Tier` is `critical`. Treat `Tier` and `Recursos` as
@@ -46,7 +52,7 @@ information only.
    use the supplied task branch. Never work on `Base`. Collision or divergence
    is `BLOCKED`. A resumed task follows WORKFLOW's ownership proof and exact
    revision checks; a fresh launch does not infer ownership from the slug.
-3. **Plan briefly** in the chat, then implement within `Objetivo`,
+3. **Plan briefly** in the chat, establishing applicable decision evidence, then implement within `Objetivo`,
    `Aceptación`, `Exclusiones`, and `Decisiones`. Conservative reversible
    choices go to `Decisiones tomadas`; material decisions are `BLOCKED`.
    Include any authorized `STATUS` update at the supplied path before the
@@ -73,8 +79,12 @@ information only.
 ## Result
 
 End with the literal line `ORCHESTRA_LITE_RESULT`, one fenced `json` object
-shaped exactly like [result-example.json](result-example.json), and a brief
+using version 2 as in [result-example.json](result-example.json), and a brief
 Spanish summary. Write the same object to `Reporte` when supplied. `Estado`
 is `DONE`, `DONE_PR_PENDING`, or `BLOCKED` under the WORKFLOW evidence rules;
 unknown early branch or SHA values are `null`, and success never means
 merge-ready.
+
+The external owner uses [coordinator.md](coordinator.md) to interpret versions
+and organize independent acceptance. Read it only when acting as that owner;
+the worker does not inherit its delegation authority.

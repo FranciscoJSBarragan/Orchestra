@@ -28,7 +28,7 @@ class LiteSkillContractTests(unittest.TestCase):
     def test_skill_is_registered_once_in_every_inventory(self) -> None:
         self.assertEqual(sync.SKILLS.count("orchestra-lite"), 1)
         self.assertEqual(validate_suite.SKILL_NAMES.count("orchestra-lite"), 1)
-        for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json"):
+        for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json", "result-v1-example.json", "coordinator.md", "review-packet.md"):
             self.assertIn(f"codex/skills/orchestra-lite/{relative}", validate_suite.REQUIRED_PATHS)
 
     def test_kickoff_activation_metadata_allows_discovery_without_a_slash(self) -> None:
@@ -54,13 +54,59 @@ class LiteSkillContractTests(unittest.TestCase):
         self.assertIsInstance(self.example["CI"], str)
         self.assertIsInstance(self.example["Bloqueo"], (str, type(None)))
 
+    def test_versioned_and_legacy_examples_are_not_interchangeable(self) -> None:
+        legacy = json.loads((SKILL_DIR / "result-v1-example.json").read_text())
+        self.assertEqual(validate_suite.lite_result_errors(legacy, 1), [])
+        self.assertEqual(validate_suite.lite_result_errors(self.example, 2), [])
+        self.assertTrue(validate_suite.lite_result_errors(legacy, 2))
+        self.assertTrue(validate_suite.lite_result_errors(self.example, 1))
+        for version in (1, 3, "2", True, None):
+            with self.subTest(version=version):
+                payload = {**self.example, "Versión": version}
+                self.assertIn("Versión must be integer 2", validate_suite.lite_result_errors(payload, 2))
+
+    def test_success_requires_revision_bound_delivery_checks_and_evidence(self) -> None:
+        mutations = (
+            ("Base", {"Referencia": "main", "SHA": None}),
+            ("Rama", {"Nombre": "orchestra/test", "SHA": "main"}),
+            ("Publicada", False), ("PR", None), ("Checks", []),
+            ("Checks", [{"Comando": "pytest", "Resultado": "skipped", "Código de salida": None}]),
+            ("Checks", [{"Comando": "pytest", "Resultado": "failed", "Código de salida": 1}]),
+            ("Checks", [{"Comando": "pytest", "Resultado": "ok", "Código de salida": False}]),
+            ("Evidencia", {"Mapa": "/shared/map.md", "Resumen": None, "Rojo-verde": None}),
+            ("Evidencia", {"Mapa": None, "Resumen": "   ", "Rojo-verde": "not needed"}),
+            ("Bloqueo", "missing checks"), ("Estado", "accepted"),
+        )
+        for key, value in mutations:
+            with self.subTest(key=key, value=value):
+                self.assertTrue(validate_suite.lite_result_errors({**self.example, key: value}, 2))
+
+    def test_early_blocker_and_inline_trivial_evidence_need_no_map_file(self) -> None:
+        payload = {
+            **self.example, "Estado": "BLOCKED", "PR": None, "Publicada": False,
+            "Base": {"Referencia": None, "SHA": None},
+            "Rama": {"Nombre": None, "SHA": None}, "Commits": [], "Checks": [],
+            "Evidencia": {"Mapa": None, "Resumen": None, "Rojo-verde": None},
+            "Bloqueo": "Requested map is not readable in this environment",
+        }
+        self.assertEqual(validate_suite.lite_result_errors(payload, 2), [])
+        self.assertTrue(validate_suite.lite_result_errors({**payload, "Bloqueo": ""}, 2))
+        payload = {
+            **self.example, "Estado": "DONE_PR_PENDING", "PR": None,
+            "Evidencia": {"Mapa": None, "Resumen": "Typo only; inspected the diff and affected link.",
+                          "Rojo-verde": "Not applicable: no behavior change or defect claim."},
+        }
+        self.assertEqual(validate_suite.lite_result_errors(payload, 2), [])
+        payload["Evidencia"]["Mapa"] = "/shared/context/decision-map.md"
+        self.assertEqual(validate_suite.lite_result_errors(payload, 2), [])
+
     def test_kickoff_template_lists_every_fixed_field_once(self) -> None:
         template = (SKILL_DIR / "kickoff-template.md").read_text(encoding="utf-8")
         block = template.split("```text\n", 1)[1].split("```", 1)[0]
         names = [line.split(":", 1)[0] for line in block.splitlines() if line and not line.startswith("-")]
         self.assertEqual(names[0], validate_suite.LITE_KICKOFF_MARKER)
         expected = [
-            "Repo", "Base", "Slug", "Rama", "PR", "Tier", "Recursos", "Autorización", "Objetivo",
+            "Versión", "Mapa", "Repo", "Base", "Slug", "Rama", "PR", "Tier", "Recursos", "Autorización", "Objetivo",
             "Aceptación", "Exclusiones", "Decisiones", "Checks", "Revisión", "Actualizar STATUS", "Reporte",
         ]
         self.assertCountEqual(names[1:], expected)
