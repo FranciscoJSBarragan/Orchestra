@@ -1,10 +1,3 @@
-"""Structural contracts for the orchestra-lite companion and its local trial fixtures.
-
-These tests pin machine-consumed shapes (kickoff fields, result keys and types,
-inventory registration, non-routing from the full workflow) and prove that the
-trial fixtures build and their gh shim behaves. They do not prove agent
-behavior; the fixture README describes the coordinator-run agent trials.
-"""
 from __future__ import annotations
 
 import json
@@ -85,6 +78,7 @@ class LiteSkillContractTests(unittest.TestCase):
             "codex/config/roles.native.toml",
             "hosts/cursor/config/roles.cursor.toml",
             "hosts/grok/config/roles.grok.toml",
+            "hosts/devin/config/roles.devin.toml",
         ):
             tiers = tomllib.loads((ROOT / matrix).read_text(encoding="utf-8"))["tiers"]
             for tier, assignments in tiers.items():

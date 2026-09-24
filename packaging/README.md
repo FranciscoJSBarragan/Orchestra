@@ -1,8 +1,8 @@
 # Orchestra plugin bundles
 
 The plugin contains the native Orchestra workflow, reusable skills, four behavior
-profiles, local Python helpers, execution presets, and the Codex, Cursor, and
-Grok Build adapters. Python 3.11+ and Git are required; GitHub CLI is required
+profiles, local Python helpers, execution presets, and the Codex, Cursor,
+Grok Build, and Devin adapters. Python 3.11+ and Git are required; GitHub CLI is required
 only for PR delivery. A host must provide the adapter's native agent tools and
 models to run the full workflow. Package discovery is not proof of those
 capabilities. Standalone skills retain their own bounded authority.
@@ -17,11 +17,14 @@ rebuilding. The builder never overwrites an installation.
 python3 codex/scripts/package_plugin.py --target portable --output dist/portable/orchestra
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
+python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orchestra
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
 manifest. `cursor` uses Cursor's native manifest and session identity hook.
-`grok` uses the Claude-compatible plugin layout recognized by Grok Build. Native
+`grok` uses the Claude-compatible plugin layout recognized by Grok Build.
+`devin` uses Devin's native `.devin-plugin` manifest, root `hooks.json`, and
+`agents/` profiles. Native
 variants avoid competing root manifests so each loader selects its own format.
 All content is copied from canonical source; there is no generated workflow fork.
 The metadata version is a package version, not a public release declaration.
@@ -29,7 +32,7 @@ The metadata version is a package version, not a public release declaration.
 ## Downloadable candidates
 
 The repository's `Plugin bundles` GitHub Actions workflow runs the canonical
-full validator, builds all three targets, and uploads one artifact named
+full validator, builds all four targets, and uploads one artifact named
 `orchestra-plugins-<commit>`. It runs for pull requests, pushes to `main`, and
 manual dispatch. Artifacts expire after 14 days; they are development
 candidates, not marketplace publications or releases.
@@ -260,3 +263,10 @@ coordinator and repository maintenance require an explicit request. Distribution
 available, not guaranteed selection or native root-task APIs. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
 local integration canaries and the separate live-host evaluation boundary.
+
+## Shared Task Control upgrade
+
+Before enabling schema 8, follow WORKFLOW "Durable task intake" for the
+coordinated update and explicit `storage migrate` command. All installations
+sharing the same state root, including the Hub's bundled helper, must support
+the target schema. Installing a Devin bundle alone does not establish that.

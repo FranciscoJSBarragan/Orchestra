@@ -1,7 +1,7 @@
 # Orchestra
 
 Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,
-Cursor, and Grok Build. It is built for one developer who wants planned work to
+Cursor, Grok Build, and Devin. It is built for one developer who wants planned work to
 arrive reviewed, verified, and committed.
 
 Orchestra turns a well-defined change into an approved plan, then drives it through implementation, independent review, runtime verification, and phase commits on an isolated `orchestra/*` branch. You stay the product owner and final authority; the orchestrator acts as your technical lead.
@@ -58,8 +58,9 @@ Tier controls intensity (models, review depth, double evidence), never authority
 | **Codex** | `standard`, `critical` | Native model matrix; active host permissions (Guardian default with direct sync) |
 | **Cursor** | `minimal`, `standard`, `critical` | Reads its own role matrix; browser work routed through Browser Use |
 | **Grok Build** | `standard`, `critical` | `grok-4.6`; no cheaper tier |
+| **Devin** | `standard`, `critical` | `swe-2-max` pinned in each agent profile; no cheaper tier; native browser routes `blocked`; browser acceptance requires an explicit Codex CLI Chrome handoff |
 
-All three share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.
+All four share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.
 
 ## Use the pieces on their own
 
@@ -87,7 +88,7 @@ change.” The owning conversation keeps its model and effort. Assignments and
 the bounded recovery ladder live in
 [`execution-presets.toml`](codex/config/execution-presets.toml); policy lives in
 [Delegated execution presets](docs/WORKFLOW.md#delegated-execution-presets).
-The preset is available from all three hosts and preserves native browser work.
+The preset is available from all four hosts and preserves native browser work.
 It can also route standalone assignments without activating the full workflow.
 Inspect an assignment without running a model:
 
@@ -129,7 +130,7 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
 | `orchestra-task` | Capture and prepare a task card (`A1`, `A2`, …) from any chat without starting anything; adopt it later from a native host chat |
-| `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, or Grok Build CLI with scoped permissions |
+| `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI with scoped permissions |
 | `orchestra-lite` | Another agent coordinates: it hands one approved task to a fresh worker with an `ORCHESTRA_LITE_SPEC` kickoff; the worker implements, runs the repository checks, publishes `orchestra/<slug>`, and returns a draft PR or handoff plus a JSON `ORCHESTRA_LITE_RESULT`. No tier negotiation, phases, or review dispatch inside the worker |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
@@ -166,10 +167,12 @@ Build a self-contained bundle for your host; no global sync or Bridge is needed:
 python3 codex/scripts/package_plugin.py --target portable --output dist/portable/orchestra
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
+python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orchestra
 ```
 
 The portable format supports Agent Plugins 1.0 and Codex. Native variants keep
-Cursor's optional task identity hook and Grok's compatible loader. All variants
+Cursor's optional task identity hook, Grok's compatible loader, and Devin's
+`.devin-plugin` manifest with its session identity hook. All variants
 include the same workflow, skills, helpers, native adapters, and CLI delegation.
 Task Control and Hub remain optional. The package inherits host permissions.
 
@@ -180,7 +183,7 @@ adapter, beyond accepting the plugin format.
 
 ## Install with direct sync
 
-**Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, or Grok Build). GitHub CLI only if you want PR delivery.
+**Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, Grok Build, or Devin). GitHub CLI only if you want PR delivery.
 
 Clone this repository and run the sync from the checkout. It installs skills, profiles, role matrices, and helpers into the host's own directories, records everything it owns in a manifest, and never touches unrelated configuration.
 
@@ -192,7 +195,7 @@ cd Orchestra
 python3 codex/scripts/sync.py status --host all
 python3 codex/scripts/sync.py apply --host all --dry-run
 
-# Install for every host (or pick: --host codex | cursor | grok)
+# Install for every host (or pick: --host codex | cursor | grok | devin)
 python3 codex/scripts/sync.py apply --host all
 
 # Later
@@ -251,7 +254,7 @@ codex/agents/          the four namespaced agent profiles
 codex/config/          Codex role matrix and permission defaults
 codex/scripts/         sync.py, validate_suite.py, coordination and task-control helpers
 codex/tests/           conformance suite
-hosts/cursor, hosts/grok  host role matrices
+hosts/cursor, hosts/grok, hosts/devin  host adapters and role matrices
 hub/                   optional local read-only hub, TUI, and macOS menu-bar client
 ```
 

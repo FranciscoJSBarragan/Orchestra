@@ -1,6 +1,6 @@
 ---
 name: orchestra-task
-description: Use only for an explicit `$orchestra-task` invocation or an unequivocal request to prepare, minimally decompose, adopt, continue, transfer, reclaim, inspect, archive, or restore one Orchestra Kanban task. Do not use for ordinary mentions of tasks or Orchestra. Preparation never creates a host chat, branch, worktree, or implementation run; adoption happens only from the user's current native Codex, Cursor, or Grok Build chat and then activates the normal `$orchestra` workflow.
+description: Use only for an explicit `$orchestra-task` invocation or an unequivocal request to prepare, minimally decompose, adopt, continue, transfer, reclaim, inspect, archive, or restore one Orchestra Kanban task. Do not use for ordinary mentions of tasks or Orchestra. Preparation never creates a host chat, branch, worktree, or implementation run; adoption happens only from the user's current native Codex, Cursor, Grok Build, or Devin chat and then activates the normal `$orchestra` workflow.
 ---
 
 # Orchestra Task
@@ -86,7 +86,7 @@ a new initiative instead of rewriting ready or adopted cards.
 ## Adopt or continue from a native host chat
 
 When the user says `Start A1 with Orchestra`, `Arranca A1 con Orchestra`, or
-an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build chat:
+an equivalent unequivocal instruction in a native Codex, Cursor, Grok Build, or Devin chat:
 
 1. Run `task adopt --task <short-id> --repository <current-checkout-root>` from that
    chat. The helper requires the adapter-provided conversation identity; never
@@ -94,6 +94,8 @@ an equivalent unequivocal instruction in a native Codex, Cursor, or Grok Build c
    `CODEX_THREAD_ID`. On Cursor the plugin's `sessionStart` hook verifies
    `session_id == conversation_id` and exposes that exact value as
    `ORCHESTRA_HOST_THREAD_ID`. On Grok Build that identity is `GROK_SESSION_ID`.
+   On Devin the `SessionStart` hook supplies `session_id` as
+   `ORCHESTRA_DEVIN_THREAD_ID`.
    If the identity is missing, adopt is `blocked`.
    The helper resolves the clone's primary worktree as `repository`, keeps the
    current checkout as `worktree` where applicable, and compares Git common-dir;

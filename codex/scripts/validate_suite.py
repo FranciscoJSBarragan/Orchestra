@@ -133,6 +133,7 @@ REQUIRED_PATHS = (
     "codex/tests/test_sync.py",
     "codex/tests/test_cursor_host.py",
     "codex/tests/test_grok_host.py",
+    "codex/tests/test_devin_host.py",
     "hosts/cursor/config/roles.cursor.toml",
     "hosts/cursor/references/spawn.md",
     "hosts/cursor/plugin/.cursor-plugin/plugin.json",
@@ -141,6 +142,14 @@ REQUIRED_PATHS = (
     "hosts/cursor/plugin/scripts/session_identity.py",
     "hosts/grok/config/roles.grok.toml",
     "hosts/grok/references/spawn.md",
+    "hosts/devin/config/roles.devin.toml",
+    "hosts/devin/references/spawn.md",
+    "hosts/devin/agents/orchestra_analyst.md",
+    "hosts/devin/agents/orchestra_implementation_worker.md",
+    "hosts/devin/agents/orchestra_reviewer.md",
+    "hosts/devin/agents/orchestra_verifier.md",
+    "hosts/devin/plugin/hooks.json",
+    "hosts/devin/plugin/scripts/session_identity.py",
 )
 
 PERMANENT_DOCS = (
@@ -154,7 +163,7 @@ PERMANENT_DOCS = (
 
 IDENTITY = (
     "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,\n"
-    "Cursor, and Grok Build."
+    "Cursor, Grok Build, and Devin."
 )
 
 HISTORICAL_NARRATIVES = (
@@ -764,7 +773,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
 
 
 def check_modular_routing(root: Path) -> list[str]:
-    """Keep public modular entries connected to their canonical resources."""
     failures: list[str] = []
     routes = {
         "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
@@ -777,7 +785,7 @@ def check_modular_routing(root: Path) -> list[str]:
     for name, (section, resources) in routes.items():
         skill = root / f"codex/skills/{name}/SKILL.md"
         if not skill.is_file():
-            continue  # Required-path validation owns missing files.
+            continue
         content = skill.read_text(encoding="utf-8")
         if f"## {section}" not in policy or section not in " ".join(content.split()):
             failures.append(f"modular-routing: {name} must route to WORKFLOW {section}")
@@ -812,7 +820,6 @@ def check_modular_routing(root: Path) -> list[str]:
 
 
 def check_orchestra_lite(root: Path) -> list[str]:
-    """Pin the machine-consumed Lite kickoff and result shapes without freezing prose."""
     failures: list[str] = []
     skill_dir = root / "codex/skills/orchestra-lite"
     skill = skill_dir / "SKILL.md"
@@ -820,7 +827,7 @@ def check_orchestra_lite(root: Path) -> list[str]:
     example = skill_dir / "result-example.json"
     workflow = root / "docs/WORKFLOW.md"
     if not all(path.is_file() for path in (skill, template, example, workflow)):
-        return failures  # Required-path validation owns missing files.
+        return failures
 
     skill_text = skill.read_text(encoding="utf-8")
     links = {target.split("#", 1)[0] for target in _local_markdown_links(skill_text)}
@@ -932,9 +939,9 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append(
             "sync-contract: modelconfig choices must be native only"
         )
-    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "all"):
+    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "devin", "all"):
         failures.append(
-            "sync-contract: host choices must be exactly codex, cursor, grok, and all"
+            "sync-contract: host choices must be exactly codex, cursor, grok, devin, and all"
         )
     if constants.get("PERMISSION_PROFILE") != ":workspace":
         failures.append(
@@ -971,7 +978,9 @@ def check_direct_sync(root: Path) -> list[str]:
         "scripts/",
         "hosts/cursor/roles.toml",
         "hosts/grok/roles.toml",
+        "hosts/devin/roles.toml",
         ".cursor/plugins/local/orchestra",
+        ".config/devin/",
         "AGENTS.md",
         "config.toml",
     ):
@@ -1333,6 +1342,117 @@ def check_grok_host(root: Path) -> list[str]:
     return failures
 
 
+DEVIN_CAPABILITIES = CURSOR_CAPABILITIES
+
+
+def check_devin_host(root: Path) -> list[str]:
+    failures: list[str] = []
+    roles_path = root / "hosts/devin/config/roles.devin.toml"
+    spawn_path = root / "hosts/devin/references/spawn.md"
+    agents_dir = root / "hosts/devin/agents"
+    hooks_path = root / "hosts/devin/plugin/hooks.json"
+    identity_path = root / "hosts/devin/plugin/scripts/session_identity.py"
+    required_paths = (roles_path, spawn_path, hooks_path, identity_path)
+    if not all(path.is_file() for path in required_paths) or not agents_dir.is_dir():
+        return failures
+    try:
+        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"devin-contract: roles.devin.toml is invalid: {error}"]
+    tiers = roles.get("tiers")
+    if not isinstance(tiers, dict) or set(tiers) != {"standard", "critical"}:
+        failures.append(
+            "devin-contract: roles.devin.toml must assign standard and critical only"
+        )
+        return failures
+    for tier_name in ("standard", "critical"):
+        assignments = tiers.get(tier_name)
+        if not isinstance(assignments, dict) or set(assignments) != set(DEVIN_CAPABILITIES):
+            failures.append(
+                f"devin-contract: {tier_name} must define all ten capabilities and no extras"
+            )
+            continue
+        for capability, assignment in assignments.items():
+            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
+                failures.append(
+                    f"devin-contract: {tier_name}.{capability} needs profile, "
+                    "subagent_type, model, and effort"
+                )
+                continue
+            expected_profile = CAPABILITY_PROFILES[capability]
+            if assignment["model"] != "swe-2-max" or assignment["effort"] != "inherit":
+                failures.append(
+                    f"devin-contract: {tier_name}.{capability} must be swe-2-max inherit"
+                )
+            if (
+                assignment["profile"] != expected_profile
+                or assignment["subagent_type"] != expected_profile
+            ):
+                failures.append(
+                    f"devin-contract: {tier_name}.{capability} must dispatch "
+                    f"{expected_profile}"
+                )
+    agent_files = sorted(path.name for path in agents_dir.iterdir())
+    if agent_files != sorted(f"{name}.md" for name in PROFILE_NAMES):
+        failures.append(
+            "devin-contract: agents/ must contain exactly the four orchestra profiles"
+        )
+    else:
+        for profile_path in sorted(agents_dir.glob("*.md")):
+            text = profile_path.read_text(encoding="utf-8")
+            if f"name: {profile_path.stem}" not in text or "model: swe-2-max" not in text:
+                failures.append(
+                    f"devin-contract: {profile_path.name} must pin its name and swe-2-max"
+                )
+    try:
+        hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as error:
+        failures.append(f"devin-contract: hooks.json is invalid: {error}")
+    else:
+        expected_hooks = {
+            "SessionStart": [
+                {
+                    "matcher": "",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": 'python3 "$DEVIN_PLUGIN_ROOT/scripts/session_identity.py"',
+                            "timeout": 10,
+                        }
+                    ],
+                }
+            ]
+        }
+        if hooks != expected_hooks:
+            failures.append(
+                "devin-contract: SessionStart must invoke the identity bridge exactly once"
+            )
+    identity = identity_path.read_text(encoding="utf-8")
+    for required in (
+        "session_id",
+        "ORCHESTRA_DEVIN_THREAD_ID",
+        "hookSpecificOutput",
+        "return 2",
+    ):
+        if required not in identity:
+            failures.append(
+                f"devin-contract: session identity bridge must name {required}"
+            )
+    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
+    for required in (
+        "run_subagent",
+        "read_subagent",
+        "ORCHESTRA_DEVIN_THREAD_ID",
+        "swe-2-max",
+        "orchestra:<subagent_type>",
+        ".devin-plugin/plugin.json",
+        "~/.config/devin/skills/orchestra-role-<role>/SKILL.md",
+    ):
+        if required not in spawn:
+            failures.append(f"devin-contract: spawn.md must name {required}")
+    return failures
+
+
 def check_repository_conventions(root: Path) -> list[str]:
     """Keep this repository's `.agent/` hard-gate command declaration exact."""
     failures: list[str] = []
@@ -1367,6 +1487,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_direct_sync,
     check_cursor_host,
     check_grok_host,
+    check_devin_host,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

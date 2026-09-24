@@ -1,6 +1,6 @@
 ---
 name: orchestra-delegate
-description: Delegate a bounded assignment through Codex, Cursor, or Grok Build CLI, or resolve an explicitly selected execution preset. Supports standalone work without activating Orchestra.
+description: Delegate a bounded assignment through Codex, Cursor, Grok Build, or Devin CLI, or resolve an explicitly selected execution preset. Supports standalone work without activating Orchestra.
 ---
 
 # Delegate one capability
@@ -44,12 +44,27 @@ of who implemented the change.
 1. Resolve the requested executor, exact model, supported effort, checkout,
    capability, scope, acceptance, and permission authority. Infer already
    established facts; do not re-ask for granted permissions. Inspect
-   `cursor-agent models` / `grok models` and the selected CLI's `--help` when
+   `cursor-agent models` / `grok models` / `devin models list`
+   (`--format json` for scripts) and the selected CLI's `--help` when
    availability or flags are not current. Never substitute a model silently.
    For Codex, use `codex exec --help` and the configured model catalog;
    `--effort` maps to `model_reasoning_effort`. Codex is a valid worker for a
-   Cursor or Grok root. Keep browser acceptance in the owning host; Codex CLI
-   cannot provide the Desktop browser and does not accept that capability.
+   Cursor, Grok, or Devin root. An explicitly selected Chrome browser handoff
+   uses `--capability browser_acceptance --browser-route chrome`; first verify
+   the selected CLI can access the dedicated Chrome connector. Read WORKFLOW
+   "CLI delegation" for evidence, cleanup, and unavailable-route behavior.
+   For Devin, the helper runs `devin -p --model <model> --prompt-file <file>`
+   in the checkout; omit `--model` only for Devin's configured default.
+   Default implementation/verification preserves the CLI's configured mode;
+   analysis/review always uses `--permission-mode auto`. Trusted implementation
+   and verification use `--permission-mode dangerous`. Every mode retains
+   workspace-trust checks. Each Devin
+   delegation starts a fresh session
+   and `--resume` is rejected. Devin has no reasoning-effort flag, so
+   `--effort` is rejected rather than translated. Its result is the complete
+   plain-text stdout; a missing `devin` binary or an authentication failure
+   stays a blocked result with the CLI's stderr, never a silent executor
+   fallback.
 2. Inspect current HEAD and dirty paths. Bound ownership before launching
    another writer. Create the prompt and unique event-log and result paths in a private
    directory outside the repository. The prompt names the role skill,
@@ -68,15 +83,16 @@ Run the shared helper (source fallback: `codex/scripts/delegate.py`):
 
 ```sh
 python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/delegate.py" \
-  --repo <checkout> --executor <codex|cursor|grok> --capability <capability> \
+  --repo <checkout> --executor <codex|cursor|grok|devin> --capability <capability> \
   --model <exact-cli-model> --expected-head <current-sha> \
   --prompt-file <private-prompt> --log-file <new-private-log> \
   --result-file <new-private-result.json> \
   --permissions <default|trusted> --timeout <seconds>
 ```
 
-For Codex or Grok, add `--effort <supported-effort>` when selected. For a continuation,
-add `--resume <exact-session-id>` and choose a new log path. Trusted execution
+For Codex or Grok, add `--effort <supported-effort>` when selected. For a
+continuation on Codex, Cursor, or Grok, add `--resume <exact-session-id>` and
+choose a new log path. Trusted execution
 requires the user's permission authority. Analysts/reviewers retain native
 read-only mode; verifiers use execution mode for authorized checks and remain
 source-read-only under the role and content checks. CLI permissions do not

@@ -14,7 +14,7 @@ GET-only API by exact task UUID.
 - Clearing the repository field while editing a draft explicitly removes its
   repository association; leaving the preloaded value unchanged preserves it.
 - `Copy start instruction` puts `Start <ID> with Orchestra` on the clipboard
-  for use in Codex, Cursor, or Grok; it never launches a host or starts work.
+  for use in Codex, Cursor, Grok, or Devin; it never launches a host or starts work.
 - System light/dark appearance and English/Spanish localization.
 
 The app prefers `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/task_control.py`

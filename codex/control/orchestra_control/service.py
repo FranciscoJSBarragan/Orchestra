@@ -26,7 +26,8 @@ CODEX_THREAD_PATTERN = re.compile(
 CURSOR_THREAD_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,200}$")
 CURSOR_THREAD_ENV = "ORCHESTRA_HOST_THREAD_ID"
 GROK_THREAD_ENV = "GROK_SESSION_ID"
-OWNER_HARNESSES = frozenset({"codex", "cursor", "grok"})
+DEVIN_THREAD_ENV = "ORCHESTRA_DEVIN_THREAD_ID"
+OWNER_HARNESSES = frozenset({"codex", "cursor", "grok", "devin"})
 REVISION_PATTERN = re.compile(r"^[0-9a-f]{40,64}$", re.IGNORECASE)
 CARD_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 DEPENDENCY_CONDITIONS = {"completed", "delivered"}
@@ -80,16 +81,21 @@ def normalize_short_id(value: str) -> str:
 
 def host_thread_from_env(environ: dict[str, str] | None = None) -> tuple[str | None, str | None]:
     env = os.environ if environ is None else environ
-    codex = env.get("CODEX_THREAD_ID")
-    if codex:
-        return "codex", codex
-    grok = env.get(GROK_THREAD_ENV)
-    if grok:
-        return "grok", grok
-    cursor = env.get(CURSOR_THREAD_ENV)
-    if cursor:
-        return "cursor", cursor
-    return None, None
+    identities = [
+        (harness, env[key])
+        for harness, key in (
+            ("codex", "CODEX_THREAD_ID"), ("grok", GROK_THREAD_ENV),
+            ("cursor", CURSOR_THREAD_ENV), ("devin", DEVIN_THREAD_ENV),
+        )
+        if env.get(key)
+    ]
+    if len(identities) > 1:
+        raise ControlError(
+            "blocked",
+            "multiple host conversation identities are present; use the owning native "
+            "chat's environment without inherited identities from another host",
+        )
+    return identities[0] if identities else (None, None)
 
 
 def validate_thread_id(value: str | None, harness: str | None = "codex") -> str:
@@ -107,6 +113,13 @@ def validate_thread_id(value: str | None, harness: str | None = "codex") -> str:
                 "Grok host session identity is missing or invalid",
             )
         return value.strip().lower()
+    if harness == "devin":
+        if not value or not CURSOR_THREAD_PATTERN.fullmatch(value.strip()):
+            raise ControlError(
+                "blocked",
+                "Devin host session identity is missing or invalid",
+            )
+        return value.strip()
     if harness != "codex":
         raise ControlError("blocked", "host conversation identity is missing")
     if not value or not CODEX_THREAD_PATTERN.fullmatch(value.strip()):

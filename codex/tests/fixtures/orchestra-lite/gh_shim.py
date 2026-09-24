@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""Simulated GitHub CLI for local orchestra-lite trials.
-
-Installed as ``<fixture>/bin/gh`` by ``make_fixture.py``. It keeps PR records in
-``<fixture>/gh-state/prs.json``, appends every invocation to
-``<fixture>/gh-state/calls.log``, performs no network access, and rejects any
-command it does not simulate so a worker reports the gap instead of guessing.
-"""
 from __future__ import annotations
 
 import json

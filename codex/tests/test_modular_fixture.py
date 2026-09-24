@@ -1,4 +1,3 @@
-"""Prove that the initiative canary discriminates local and joint acceptance."""
 
 import importlib.util
 from pathlib import Path

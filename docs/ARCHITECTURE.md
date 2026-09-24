@@ -3,9 +3,9 @@
 ## Architectural objective
 
 Build a multi-host orchestration product whose complexity is dominated by
-software delivery work, not by its own control plane. Codex, Cursor, and Grok
-Build are equal execution hosts; shared skills, helpers, and Git remain one
-copy.
+software delivery work, not by its own control plane. Codex, Cursor, Grok
+Build, and Devin are equal execution hosts; shared skills, helpers, and Git
+remain one copy.
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,8 @@ Orchestra/
 ├── .githooks/                 # versioned thin wrappers only
 ├── hosts/
 │   ├── cursor/                # Cursor spawn, roles, local plugin
-│   └── grok/                  # Grok Build spawn and roles
+│   ├── grok/                  # Grok Build spawn and roles
+│   └── devin/                 # Devin spawn, roles, agent profiles, plugin hook
 └── codex/
     ├── agents/                # four Codex TOML base profiles
     ├── control/               # local prepared-task Kanban and native-chat ownership
@@ -60,7 +61,7 @@ one private prepared-task Kanban. Their direct consumers are
 the JSON CLI. Capture and preparation are inert. They never launch an execution
 host, create a checkout, select permissions, or own an implementation process.
 
-`control.sqlite3` schema v7 owns UUID and immutable human ID, briefs, origin
+`control.sqlite3` schema v8 owns UUID and immutable human ID, briefs, origin
 references, notes, preparation state, revision and document digests,
 host-namespaced native-chat ownership, transfer generation, recoverable trash,
 and safe-stop/cancellation timestamps. Complete private context, specification, and marker
@@ -70,7 +71,8 @@ interaction tables as read-only legacy history. New public code exposes no App
 Server operation. Native-chat adoption requires the adapter-provided conversation
 identity (`CODEX_THREAD_ID` on Codex; on Cursor, the plugin `sessionStart` hook
 verifies `session_id == conversation_id` and exports that value as
-`ORCHESTRA_HOST_THREAD_ID`; on Grok Build, `GROK_SESSION_ID`). The
+`ORCHESTRA_HOST_THREAD_ID`; on Grok Build, `GROK_SESSION_ID`; on Devin, the
+`SessionStart` hook supplies `session_id` as `ORCHESTRA_DEVIN_THREAD_ID`). The
 chat then invokes normal Orchestra. Coordinator receives the same UUID only
 after checkout creation. Hub joins both stores by UUID and remains GET-only.
 The macOS app obtains bounded mutation authority only through the same local
@@ -81,11 +83,14 @@ Cooperative transfer remains owning-chat plus stable checkpoint. When that
 chat cannot release the card, explicit reclaim from another native host chat
 swaps ownership without passing through `ready`.
 
-Schema v7 atomically reconstructs the task table after recognizing the exact
-column shape of v2 through v6, including the incompatible ownership and
-safe-stop/trash variants that both used `user_version = 5`. Historical
-un-namespaced owners become `codex`; unknown shapes roll back without changes,
-and every migration must pass `foreign_key_check` before commit.
+The explicit storage migration described in WORKFLOW "Durable task intake"
+upgrades to schema v8. Ordinary commands never migrate an older database.
+The migration atomically reconstructs the task table after recognizing the exact
+column shape of v2 through v7, including the incompatible ownership and
+safe-stop/trash variants that both used `user_version = 5`; its owner-harness
+allowlist adds `devin`. Historical un-namespaced owners become `codex`;
+unknown shapes roll back without changes, and every migration must pass
+`foreign_key_check` before commit.
 
 Task Control alone computes card action capabilities. The Hub reads compatible
 control schemas and projects observational state only; the macOS app obtains
@@ -95,8 +100,9 @@ write transaction so lifecycle decisions cannot race adoption or completion.
 A safe-stop request never interrupts an active owner. Transfer and finish
 are blocked while it is pending; reclaim preserves it. At a stable boundary the
 owner cleans resources, marks the existing plan blocked, and acknowledges with
-its Codex, Cursor, or Grok identity. Cancellation preserves the checkout and
-plan so reopening may return ownership to the same prior conversation.
+its Codex, Cursor, Grok, or Devin identity. Cancellation preserves the
+checkout and plan so reopening may return ownership to the same prior
+conversation.
 
 The short-ID namespace has one allocator: the transaction in Task Control.
 Coordinator stores no short ID, direct tasks have none, and clients may expose
@@ -459,7 +465,7 @@ revisions. Initiative membership groups cards but has no state or executable
 human ID. Parallelism is a read-time graph derivation. The Control service owns
 transactional decomposition, DAG validation, dependency satisfaction, and
 native-chat delivery registration; the CLI supplies current Git identity and
-ancestry evidence. The Hub accepts control schemas v3 through v6 during migration,
+ancestry evidence. The Hub accepts control schemas v3 through v8 during migration,
 projects initiative/dependency fields through an allowlist, and stays GET-only.
 
 ## Modular composition
@@ -495,7 +501,12 @@ phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 dispatch API. Grok uses a fresh native subagent per dispatch, `isolation:
 none`, `cwd` equal to the task checkout, may `resume_from` the same
 phase-cohort agent after completion, including the same reviewer for delta
-reviews; first reviews stay fresh spawns.
+reviews; first reviews stay fresh spawns. Devin uses a fresh `run_subagent`
+per dispatch in foreground by default; its `subagent_type` is the installed
+custom Devin profile name, namespaced `orchestra:<name>` under a plugin
+bundle. It resumes only the same phase-cohort subagent for delta reviews, and
+the `read_subagent` or foreground result is the completed-state evidence
+because Devin has no `close_agent`.
 
 Every host resolves one native matrix through the selected installation, as
 specified in WORKFLOW "Host adapters". Settings and mutable state remain under
@@ -510,7 +521,7 @@ and gates. `WORKFLOW.md` ("Standalone tools") owns that boundary. No alias
 skill, new agent profile, or parallel implementation of the role is needed.
 
 `orchestra-delegate` routes a selected capability to `scripts/delegate.py`.
-The helper adapts Codex, Cursor, and Grok headless arguments and event output, checks
+The helper adapts Codex, Cursor, Grok, and Devin headless arguments and event output, checks
 Git identity and worktree content around one process, and returns a compact
 result plus a private diagnostic log. An optional private result file preserves
 the same final JSON before stdout delivery; it is atomically published once,
@@ -526,7 +537,7 @@ An optional shared execution preset resolves those overrides from
 its read-only resolution for native/root dispatch, and CLI execution consumes
 the same result directly. The source is synchronized with the existing managed
 file lifecycle; no selection or retry database is added. This small lookup
-prevents three host adapters from maintaining divergent copies of the user's
+prevents four host adapters from maintaining divergent copies of the user's
 assignment and recovery ladder. Selection, check ownership, root planning reuse,
 and recovery are defined only in WORKFLOW "Delegated execution presets".
 `WORKFLOW.md` ("CLI delegation") owns permissions, independence, recovery,
@@ -569,6 +580,15 @@ Grok Build reads one host matrix at
 assigned tier. `critical` uses the same spawn rows and raises root scrutiny.
 Selecting `minimal` on Grok blocks.
 
+Devin reads one host matrix at
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/devin/roles.toml`. It offers
+`minimal`, `standard`, and `critical`. This cut assigns `standard` and
+`critical`: every capability pins `swe-2-max`, the model fixed in each
+installed Devin agent profile, with `inherit` effort because `run_subagent`
+accepts no per-dispatch model or reasoning field. `subagent_type` is that
+custom Devin profile name. There is no cheaper assigned tier; selecting
+`minimal` on Devin blocks.
+
 The installed rows supply exact models and reasoning efforts. Role profiles
 stay behavior-only; capability playbooks remain independent of providers.
 Workflow owns tier selection, transitions, unsupported assignments, and legacy
@@ -589,13 +609,14 @@ their responsibilities.
 Permission and browser-routing behavior is specified once in
 `docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally:
 each host supplies its own permission surface (Codex synchronizes Guardian as
-the default; Cursor and Grok observe the host choice and never write
+the default; Cursor, Grok, and Devin observe the host choice and never write
 permission configuration), and `browser_route` is a transient packet value
 whose host mapping is fixed — Codex `auto` prefers the Chrome connector with a
 capability-based in-app fallback, Cursor maps `auto` and `chrome` to Browser
-Use and blocks `in_app`, and Grok maps `auto` to Playwright and blocks
-`in_app` and `chrome`. Browser evidence is PNG screenshot files cited from the
-existing report kinds, not a new artifact kind.
+Use and blocks `in_app`, Grok maps `auto` to Playwright and blocks
+`in_app` and `chrome`, and Devin blocks all three routes. Browser evidence is
+PNG screenshot files cited from the existing report kinds, not a new artifact
+kind.
 
 ## Phase resource lifecycle
 
@@ -736,10 +757,12 @@ Generated bundles are disposable distribution artifacts, excluded from Git.
 They contain no installers, active configuration, credentials, or private data.
 
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
-compatibility manifest. Cursor and Grok targets use native manifests for their
-host loaders. Cursor additionally includes the existing session identity hook
-for optional task adoption. The four Codex behavior profiles are packet content,
-not plugin-registered agent types. All targets retain the same shared workflow;
+compatibility manifest. Cursor, Grok, and Devin targets use native manifests
+for their host loaders. Cursor and Devin additionally include the existing
+session identity hook for optional task adoption. The four Codex behavior
+profiles are packet content, not plugin-registered agent types; the Devin
+target ships the four Devin agent profiles under `agents/` as the registered
+`subagent_type` dispatch surface. All targets retain the same shared workflow;
 only distribution metadata and necessary host hooks vary. No MCP or Hub process
 is started by the core plugin. Runtime resolution and dispatch policy belong to
 WORKFLOW "Host adapters" and the loaded skill's runtime reference.
@@ -751,7 +774,7 @@ explicit native capability adapter; recognizing a manifest is insufficient.
 
 Repository-driven direct sync remains an alternative installation route. A
 single sync tool owns explicitly managed
-resources per requested host (`codex`, `cursor`, `grok`, or `all`; default `codex`). It
+resources per requested host (`codex`, `cursor`, `grok`, `devin`, or `all`; default `codex`). It
 supports dry-run and backup, preserves unrelated user configuration, reports
 what it installed, and requires a restart when a Codex permission backend
 changes. Orchestra runtime installation is never part of ordinary task
@@ -759,17 +782,22 @@ execution, and bootstrap of Orchestra itself must not invoke Orchestra.
 
 Shared destinations are `$HOME/.agents/skills/<skill>` including their internal
 playbook references, and `${ORCHESTRA_HOME:-$HOME/.orchestra}/` for helpers,
-checkout-mode, worktree-root, and the Cursor and Grok host matrices. Codex-only
-destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
+checkout-mode, worktree-root, and the Cursor, Grok, and Devin host matrices.
+Codex-only destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
 `$CODEX_HOME/orchestra/` for the Codex matrix, helper mirrors, manifest, and
 deterministic current backups, plus the marked blocks in `$CODEX_HOME/AGENTS.md`
 and `$CODEX_HOME/config.toml`. Cursor-only destinations are the local plugin
 under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference.
 Grok-only destinations are the Grok roles and spawn reference under
-`${ORCHESTRA_HOME}/hosts/grok/`. The
+`${ORCHESTRA_HOME}/hosts/grok/`. Devin-only destinations are the agent
+profiles under `~/.config/devin/agents/`, skills under
+`~/.config/devin/skills/`, the Devin roles, spawn reference, and
+session-identity script under `${ORCHESTRA_HOME}/hosts/devin/`, and the
+managed `SessionStart` hook merged into `~/.config/devin/config.json` by
+command identity while preserving unrelated hooks. The
 default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
-`$HOME/.orchestra`. Cursor and Grok sync never write Codex, Cursor, or Grok
-permission configuration.
+`$HOME/.orchestra`. Cursor, Grok, and Devin sync never write Codex, Cursor,
+Grok, or Devin permission configuration.
 
 The only managed content in `$CODEX_HOME/AGENTS.md` is the single block
 delimited by `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.

@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""Run one bounded delegation through the Codex, Cursor, or Grok CLI.
-
-This helper intentionally owns only the process boundary.  It does not create
-worktrees, keep task state, or decide whether an implementation is acceptable.
-Git remains the authority for the checkout binding and the caller remains the
-authority for delivery.
-"""
 
 from __future__ import annotations
 
@@ -41,7 +34,7 @@ CAPABILITIES = (
     "browser_acceptance",
     "runtime_verification",
 )
-EXECUTORS = ("cursor", "grok", "codex")
+EXECUTORS = ("cursor", "grok", "codex", "devin")
 PERMISSIONS = ("default", "trusted")
 IMPLEMENTATION_CAPABILITIES = frozenset(
     {"general_implementation", "frontend_implementation"}
@@ -107,7 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = JsonArgumentParser(
         prog=Path(sys.argv[0]).name,
         allow_abbrev=False,
-        description="Run one bounded Cursor, Grok, or Codex delegation.",
+        description="Run one bounded Cursor, Grok, Codex, or Devin delegation.",
     )
     parser.add_argument("--repo", help="Git worktree root (required for execution)")
     parser.add_argument("--executor", choices=EXECUTORS)
@@ -115,11 +108,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model")
     parser.add_argument(
         "--effort",
-        help="Codex or Grok reasoning effort (Cursor uses its model alias)",
+        help="Codex or Grok reasoning effort (rejected for Cursor and Devin)",
     )
     parser.add_argument("--preset", help="Explicitly selected execution preset")
     parser.add_argument("--presets-file", type=Path, help="Explicit alternative to the managed preset file")
-    parser.add_argument("--host", choices=("codex", "cursor", "grok"))
+    parser.add_argument("--host", choices=("codex", "cursor", "grok", "devin"))
     parser.add_argument("--tier", default="standard")
     parser.add_argument("--root-model", help="Observed root model; permits planning reuse without changing its effort")
     parser.add_argument("--independent-planning", action="store_true")
@@ -131,6 +124,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-head")
     parser.add_argument("--resume")
     parser.add_argument("--permissions", choices=PERMISSIONS, default="default")
+    parser.add_argument("--browser-route", choices=("chrome",))
     parser.add_argument(
         "--output-path",
         action="append",
@@ -169,7 +163,7 @@ def load_presets(path: Path) -> dict[str, Any]:
             if row["executor"] == "native":
                 raise DelegateInputError("native assignments require an explicit Codex host override")
         hosts = preset["hosts"]
-        if not isinstance(hosts, dict) or set(hosts) - {"codex", "cursor", "grok"}:
+        if not isinstance(hosts, dict) or set(hosts) - {"codex", "cursor", "grok", "devin"}:
             raise DelegateInputError(f"invalid preset hosts: {name}")
         for host, overrides in hosts.items():
             if not isinstance(overrides, dict) or set(overrides) - set(CAPABILITIES):
@@ -209,9 +203,11 @@ def _validate_preset_row(row: Any, capability: str) -> None:
         if set(row) != {"executor"}:
             raise DelegateInputError("host assignments use the host matrix without model overrides")
     else:
-        if not isinstance(row.get("model"), str):
+        model = row.get("model")
+        if isinstance(model, str):
+            _validate_model(model)
+        elif model is not None or executor != "devin":
             raise DelegateInputError(f"preset model is missing for {capability}")
-        _validate_model(row["model"])
         effort = row.get("reasoning_effort")
         if effort is not None and (not isinstance(effort, str) or effort not in {
             "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"
@@ -219,6 +215,8 @@ def _validate_preset_row(row: Any, capability: str) -> None:
             raise DelegateInputError(f"invalid preset effort for {capability}")
         if executor == "cursor" and effort is not None:
             raise DelegateInputError("Cursor preset effort must be encoded in its exact model alias")
+        if executor == "devin" and effort is not None:
+            raise DelegateInputError("Devin CLI provides no reasoning effort flag")
     for key in ("prefer_native", "reuse_root"):
         if key in row and type(row[key]) is not bool:
             raise DelegateInputError(f"{key} must be boolean")
@@ -236,6 +234,8 @@ def resolve_preset(args: argparse.Namespace) -> dict[str, Any]:
         raise DelegateInputError("--host is required with --preset")
     if any(value is not None for value in (args.executor, args.model, args.effort)):
         raise DelegateInputError("use either --preset or explicit executor/model/effort")
+    if getattr(args, "browser_route", None) is not None:
+        raise DelegateInputError("an explicit CLI browser route cannot override a preset assignment")
     presets = load_presets(args.presets_file or default_presets_path())
     if args.preset not in presets:
         raise DelegateInputError(f"unknown execution preset: {args.preset}")
@@ -253,7 +253,8 @@ def resolve_preset(args: argparse.Namespace) -> dict[str, Any]:
         row = ladder["attempts"][args.attempt - 2]
     executor = row["executor"]
     effort = row.get("reasoning_effort")
-    if row.get("reuse_root") and args.root_model == row.get("model") and not args.independent_planning:
+    if (row.get("reuse_root") and args.root_model is not None
+            and args.root_model == row.get("model") and not args.independent_planning):
         executor, effort = "root", None  # The launcher, not Orchestra, owns root effort.
     elif row.get("prefer_native") and args.host == "codex":
         executor = "native"
@@ -621,14 +622,15 @@ def build_command(
     *,
     executor: str,
     repo: Path,
-    model: str,
+    model: str | None,
     capability: str,
     permissions: str,
     prompt: str,
     resume: str | None = None,
     effort: str | None = None,
-    grok_prompt_file: Path | None = None,
+    prompt_file: Path | None = None,
     session_id: str | None = None,
+    browser_route: str | None = None,
 ) -> list[str]:
     """Build argv without invoking a shell or implicit continuation."""
     if executor not in EXECUTORS:
@@ -637,16 +639,37 @@ def build_command(
         raise DelegateInputError(f"unsupported capability: {capability}")
     if permissions not in PERMISSIONS:
         raise DelegateInputError(f"unsupported permissions: {permissions}")
-    model = _validate_model(model)
+    if browser_route is not None and (
+        browser_route != "chrome" or executor != "codex"
+        or capability != "browser_acceptance"
+    ):
+        raise DelegateInputError("--browser-route chrome requires Codex browser_acceptance")
+    if model is not None or executor != "devin":
+        model = _validate_model(model)
     resume = _validate_resume(resume)
     if effort is not None:
         effort = _safe_argument(effort, "effort")
-    if executor == "cursor" and effort is not None:
-        raise DelegateInputError("effort is only supported for codex or grok")
+    if executor in ("cursor", "devin") and effort is not None:
+        raise DelegateInputError(f"effort is not supported for {executor}")
 
     if executor == "codex":
         if capability == "browser_acceptance":
-            raise DelegateInputError("Codex CLI delegation does not provide the owning host's browser")
+            if browser_route != "chrome":
+                raise DelegateInputError(
+                    "Codex CLI browser acceptance requires explicit --browser-route chrome "
+                    "and a working Chrome connector in that CLI session"
+                )
+            if effort is None:
+                raise DelegateInputError("Codex CLI browser acceptance requires an explicit --effort")
+            prompt = (
+                "browser_route: chrome. Use only the dedicated Chrome connector "
+                "available in this CLI session, such as cua_repl's Chrome surface. "
+                "If unavailable or denied, report blocked. Do not substitute an "
+                "in-app browser, Playwright, Computer Use, or manual user preview. "
+                "Create a fresh task-owned Chrome tab, execute the assigned journey, "
+                "capture PNG evidence, and close only that tab before handoff. "
+                "Remain source-read-only.\n\n" + prompt
+            )
         if resume is not None:
             try:
                 uuid.UUID(resume)
@@ -695,6 +718,25 @@ def build_command(
         command.append(prompt)
         return command
 
+    if executor == "devin":
+        if resume is not None:
+            raise DelegateInputError("Devin delegation always starts a fresh session")
+        if prompt_file is None:
+            raise DelegateInputError("Devin requires a prepared prompt file")
+        command = ["devin", "-p"]
+        if model is not None:
+            command.extend(("--model", model))
+        readonly = (
+            capability in READONLY_CAPABILITIES
+            and capability not in VERIFICATION_CAPABILITIES
+        )
+        if readonly:
+            command.extend(("--permission-mode", "auto"))
+        elif permissions == "trusted":
+            command.extend(("--permission-mode", "dangerous"))
+        command.extend(("--prompt-file", os.fspath(prompt_file)))
+        return command
+
     command = [
         "grok",
         "--output-format",
@@ -724,16 +766,16 @@ def build_command(
         if resume is not None:
             raise DelegateInputError("new Grok session cannot combine resume and session-id")
         command.extend(("--session-id", _safe_argument(session_id, "session ID")))
-    if grok_prompt_file is None:
+    if prompt_file is None:
         raise DelegateInputError("Grok requires a prepared prompt file")
-    command.extend(("--prompt-file", os.fspath(grok_prompt_file)))
+    command.extend(("--prompt-file", os.fspath(prompt_file)))
     return command
 
 
 @dataclass
 class ProtocolCapture:
     executor: str
-    requested_model: str
+    requested_model: str | None
     session_id: str | None = None
     observed_model: str | None = None
     final_result: str | None = None
@@ -867,16 +909,29 @@ class ProtocolCapture:
             self._cursor_event(event)
         elif self.executor == "codex":
             self._codex_event(event)
-        else:
+        elif self.executor == "grok":
             self._grok_event(event)
 
     def feed(self, data: bytes) -> None:
         self._pending += data
+        if self.executor == "devin":
+            limit = MAX_RESULT_CHARS + 4096
+            if len(self._pending) > limit:
+                self._pending = self._pending[:limit]
+            return
         while b"\n" in self._pending:
             line, self._pending = self._pending.split(b"\n", 1)
             self._line(line)
 
-    def finish(self) -> None:
+    def finish(self, *, process_terminated: bool) -> None:
+        if self.executor == "devin":
+            result = self._pending.decode("utf-8", errors="replace")
+            self._pending = b""
+            self.terminal_seen = process_terminated
+            self.final_seen = bool(result.strip())
+            if self.final_seen:
+                self.final_result = result
+            return
         if self._pending:
             self._line(self._pending)
             self._pending = b""
@@ -975,7 +1030,7 @@ def _run_process(
     command: list[str],
     repo: Path,
     executor: str,
-    model: str,
+    model: str | None,
     log_stream: Any,
     timeout: float,
 ) -> ProcessCapture:
@@ -1102,7 +1157,14 @@ def _run_process(
             if transport_error is None:
                 transport_error = f"{type(error).__name__}: {_compact(str(error), limit=500)}"
         try:
-            protocol.finish()
+            protocol.finish(
+                process_terminated=(
+                    process.returncode is not None
+                    and not timed_out
+                    and not cancelled
+                    and transport_error is None
+                )
+            )
         except BaseException as error:
             if transport_error is None:
                 transport_error = f"{type(error).__name__}: {_compact(str(error), limit=500)}"
@@ -1148,6 +1210,8 @@ QUOTA_FAILURE_MARKERS = (
 
 def _failure_kind(text: str) -> str | None:
     lowered = re.sub(r"[-_]", " ", text.casefold())
+    if "model is not supported" in lowered:
+        return "unsupported_model"
     if (re.search(r"(?:status|http status)\W{0,8}403\b", lowered)
             and ("permission denied" in lowered or "can't help with that request" in lowered)):
         return "provider_denied"
@@ -1199,7 +1263,9 @@ def _result_payload(
         "executor": args.executor,
         "capability": args.capability,
         "permissions": args.permissions,
+        "browser_route": getattr(args, "browser_route", None),
         "requested_model": args.model,
+        "requested_effort": args.effort,
         "observed_model": observed_model,
         "session_id": protocol.session_id if protocol is not None else None,
         "resume_session_id": args.resume,
@@ -1241,12 +1307,13 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     prompt_path = _absolute_path(args.prompt_file, "prompt-file")
     log_path = _absolute_path(args.log_file, "log-file")
     args.log_file = os.fspath(log_path)
-    args.model = _validate_model(args.model)
+    if args.model is not None:
+        args.model = _validate_model(args.model)
     if args.effort is not None:
         args.effort = _safe_argument(args.effort, "effort")
     args.resume = _validate_resume(args.resume)
-    if args.executor == "cursor" and args.effort is not None:
-        raise DelegateInputError("effort is only supported for codex or grok")
+    if args.executor in ("cursor", "devin") and args.effort is not None:
+        raise DelegateInputError(f"effort is not supported for {args.executor}")
     if SHA_RE.fullmatch(args.expected_head) is None:
         raise DelegateInputError("expected-head must be a full commit SHA")
 
@@ -1297,7 +1364,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         if args.executor == "grok" and args.resume is None:
             allocated_session_id = str(uuid.uuid4())
             temporary_prompt = _write_prompt_file(prompt)
-        elif args.executor == "grok":
+        elif args.executor in ("grok", "devin"):
             temporary_prompt = _write_prompt_file(prompt)
         command = build_command(
             executor=args.executor,
@@ -1308,8 +1375,9 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             prompt=prompt,
             resume=args.resume,
             effort=args.effort,
-            grok_prompt_file=temporary_prompt,
+            prompt_file=temporary_prompt,
             session_id=allocated_session_id,
+            browser_route=getattr(args, "browser_route", None),
         )
         if allocated_session_id is not None:
             print(
@@ -1466,6 +1534,8 @@ def main(argv: list[str] | None = None) -> int:
               or args.independent_planning or args.attempt != 1 or args.tier != "standard"):
             raise DelegateInputError("preset routing options require --preset")
         for field in ("repo", "executor", "model", "prompt_file", "log_file", "expected_head"):
+            if field == "model" and args.executor == "devin":
+                continue
             if not getattr(args, field):
                 raise DelegateInputError(f"--{field.replace('_', '-')} is required for execution")
         if args.result_file:

@@ -75,7 +75,10 @@ reviewer is closed, record it unavailable and replace it with the same logical
 assignment and exact approved artifact IDs; a replacement reviewer is always
 a fresh independent reviewer. Cursor: `Task` exists; use a fresh isolated Task per
 dispatch, resume only the same phase-cohort agent id while available, and never
-`resume: self` for a reviewer. On every host, the first review is fresh and
+`resume: self` for a reviewer. Devin: `run_subagent` and `read_subagent`
+exist; use a fresh subagent per dispatch in foreground by default and resume
+only the same phase-cohort subagent while it remains available. On every
+host, the first review is fresh and
 later delta reviews reuse that reviewer only while it remains available; a
 closed reviewer is replaced by a fresh independent reviewer with the same
 review target and evidence. Native agent dispatch always uses the owning
@@ -104,6 +107,23 @@ conversation identity, permissions, and `browser_route`.
   `timeout_ms: 600000`. Cleanup requires completed agents with no retained
   write-capable resources. Grok sync never writes `~/.grok/config.toml` or
   Codex `config.toml`.
+- Devin reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml`. Dispatch
+  uses `run_subagent` with the custom Devin profile named by the matrix plus
+  the existing `orchestra-role-*` skill; a plugin installation namespaces that
+  profile as `orchestra:<name>`. Foreground is the default and returns the
+  result inline; use background only when the owner must stay available and
+  every needed tool is pre-approved, then wait on the completion notification
+  plus `read_subagent` without busy-polling. Resume
+  only the same phase-cohort subagent for delta reviews. Devin has no
+  `close_agent`: the `read_subagent` result or foreground return is the
+  required completed-state evidence before commit. Task Control identity is
+  `ORCHESTRA_DEVIN_THREAD_ID` from the `SessionStart` hook's `session_id`;
+  adopt is `blocked` without it. Permissions are observed, never written.
+  Native browser routes are unavailable. An explicitly selected Codex CLI
+  Chrome handoff follows "CLI delegation"; otherwise acceptance is `blocked`.
+  User preview never replaces browser acceptance. Devin sync installs profiles and skills under
+  `~/.config/devin/` and merges only the managed `SessionStart` hook into
+  `config.json`, preserving unrelated hooks and permission settings.
 
 Resolve executable resources using `orchestra/runtime.md` alongside the loaded
 skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
@@ -114,7 +134,7 @@ selected installation's mapping. Settings remain outside the plugin under
 `$HOME/.orchestra` or their explicit `--state-root`.
 
 Plugins do not register Codex agent types or edit global configuration. For a
-plugin dispatch, read the selected behavior profile, spawn a native `default`
+Codex plugin dispatch, read the selected behavior profile, spawn a native `default`
 agent with the matrix's explicit model and effort, and include that profile's
 instructions and the exact role skill path in the bounded packet. Direct sync
 uses its registered profile type. Both routes preserve the same responsibility,
@@ -388,7 +408,7 @@ separately scoped actions under the existing delivery policy.
 ## CLI delegation
 
 On explicit user selection, the root may execute one bounded capability with
-Codex CLI, Cursor CLI, or Grok Build CLI through `orchestra-delegate`. This executor choice
+Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI through `orchestra-delegate`. This executor choice
 is independent of the owning host and tier; it changes neither. Use the exact requested CLI model and
 supported effort after inspecting that CLI's current catalog/help. Do not
 silently fall back to another model, provider, account, or API billing path.
@@ -396,12 +416,26 @@ Native capability assignments remain the default; an explicitly selected
 execution preset supplies the overrides described below. A delegate is a worker,
 never a second root running the whole Orchestra workflow.
 
-The same helper is callable from any supported host: a Cursor or Grok root
-can choose Codex as its worker without switching its own host or matrix.
-Browser acceptance stays in the owning host by default. Codex CLI delegation
-does not expose the Codex Desktop browser and rejects `browser_acceptance`;
-do not move browser testing to another CLI as a consequence of delegating
-implementation. A browser handoff requires a separately supported transport.
+The same helper is callable from any supported host: a Cursor, Grok, or Devin
+root can choose Codex as its worker without switching its own host or matrix.
+Browser acceptance stays in the owning host by default. An explicitly chosen
+Codex CLI Chrome handoff uses `--capability browser_acceptance --browser-route
+chrome` with an explicit model and `--effort`. The result records
+`requested_model` and `requested_effort`; requested values alone do not prove
+provider-observed execution. It requires a working dedicated
+Chrome connector in that CLI session, such as the `cua_repl` Chrome surface;
+Desktop tool availability alone is not evidence. The packet names the exact
+URL, readiness, journey, expected results, PNG evidence location, and cleanup.
+The verifier creates and closes its own tab and remains source-read-only.
+If the connector returns an inline image without a file-save API, the root may
+persist the original image from the corresponding completed tool event in the
+delegate's private JSON log and convert its decoded pixels to PNG if needed.
+Check the actual format rather than trusting the MIME label; preserve the original.
+Record the event identity and image paths in the handoff; inspect the saved PNG.
+A textual description of an unsaved image is not screenshot evidence.
+An unavailable model, connector, browser, or permission returns `blocked`;
+there is no in-app, standalone automation, or manual-preview fallback.
+Delegating implementation never implicitly selects this browser handoff.
 
 The root supplies a focused packet with objective, acceptance, owned paths,
 checkout, expected HEAD, capability, constraints, permissions, and useful
@@ -415,11 +449,14 @@ Keep one writer per overlapping scope and preserve unrelated dirty work.
 Permissions follow the task's explicit authority and active host restrictions.
 The helper's `default` policy leaves the CLI's own approval rules in place;
 `trusted` enables unattended implementation with Cursor `--force`, Grok
-`bypassPermissions`, or Codex `--sandbox danger-full-access` plus
-`approval_policy="never"`. Codex analysis/review instead uses `read-only`
-with no approval escalation. Apply these explicit permissions again on
+`bypassPermissions`, Codex `--sandbox danger-full-access` plus
+`approval_policy="never"`, or Devin `--permission-mode dangerous`. Codex
+analysis/review instead uses `read-only` with no approval escalation. Apply these explicit permissions again on
 resume; Codex default implementation/verification preserves its configured
-permissions. Use trusted mode only when the user has authorized those
+permissions. Devin default implementation/verification preserves its configured
+permission mode; analysis/review always pins its least-permissive `auto` mode.
+All Devin assignments preserve workspace-trust checks, including trusted mode. Use trusted
+mode only when the user has authorized those
 permissions, including a standing instruction for the task. Analysts and
 reviewers retain the CLI's read-only mode even when trusted is selected.
 Verifiers use the CLI's execution mode to run authorized checks: trusted
@@ -491,7 +528,7 @@ CLI text result cannot substitute for it.
 ## Delegated execution presets
 
 `standard-delegate` is an optional execution preset on the `standard` tier,
-available from Codex, Cursor, and Grok. Selecting it explicitly authorizes its
+available from Codex, Cursor, Grok, and Devin. Selecting it explicitly authorizes its
 assignments and bounded recovery ladder within the task's existing scope and
 permissions; it never activates Orchestra by itself, changes the root model
 or effort, or grants delivery authority. Ordinary native assignments remain
@@ -507,7 +544,9 @@ root reuse, or the owning host's browser matrix. Check actual model/tool
 availability before use; unavailable assignments block rather than invoking a
 different account, model, host, or billing path. Native Codex assignments must
 be supported by the active host runtime. Other hosts use Codex CLI for Codex assignments and keep their own
-browser route. Codex browser acceptance stays native, never in Codex CLI.
+browser route. The preset's Codex browser assignment stays native. An explicit
+CLI Chrome handoff is a separate bounded assignment under "CLI delegation";
+it does not silently override the preset or another host's matrix.
 An explicitly supplied `--presets-file` may hold user-customized assignments;
 never edit managed installed files to customize one task.
 
@@ -797,6 +836,24 @@ recipe does not become a hard gate merely by appearing in a report.
 
 ## Durable task intake
 
+Owner commands require exactly one adapter-provided host identity. Multiple
+host identity variables block adoption or owner mutation rather than selecting
+one by precedence; resolve the inherited environment in the owning native chat.
+Never fabricate or overwrite an identity to get past that check.
+
+Task Control schema upgrades are explicit installation work. A normal command
+against an older schema returns `unavailable` with the migration command and
+does not rebuild the database. Before `task_control.py --state-root <state-root>
+storage migrate`, stop all Task Control/Hub consumers, make a consistent SQLite
+backup (including committed WAL contents), and update every plugin, direct-sync
+helper, MCP consumer, and bundled Hub copy sharing that state root. Rehearse on
+a copy, then migrate the selected root and check integrity and the consumers.
+Schema 8 supports Devin ownership; schema-7-only consumers must not be restarted
+against it. Do not lower `user_version` to roll back. Restore the verified backup
+and matching installations only while consumers are stopped and after preserving
+any newer work. This command is not a phase tool or permission to migrate active
+installations during ordinary task adoption.
+
 The installed `task_control.py` helper is a harness-neutral JSON boundary for a
 small local prepared-task Kanban. `task create` assigns an immutable human ID
 and UUID; `task note` accepts caller-stable idempotency keys and bounded source
@@ -829,14 +886,16 @@ digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
 legacy `runs`, `turns`, and `interactions` remain readable after migration but
 new code never writes or exposes App Server operations.
 
-Adoption occurs only inside the user's current native Codex, Cursor, or Grok
-Build chat.
+Adoption occurs only inside the user's current native Codex, Cursor, Grok
+Build, or Devin chat.
 `task adopt` requires the adapter-provided conversation identity; no caller may
 invent or override that identity. On Codex that identity is `CODEX_THREAD_ID`
 (UUID). On Cursor the plugin's `sessionStart` hook verifies that `session_id`
 matches `conversation_id` and exposes that exact value through
 `ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. On Grok
 Build that identity is `GROK_SESSION_ID`; if it is unavailable, adopt is
+`blocked`. On Devin that identity is `ORCHESTRA_DEVIN_THREAD_ID`, supplied by
+the `SessionStart` hook's `session_id`; if it is unavailable, adopt is
 `blocked`. The chat then explicitly activates Orchestra,
 inherits its current permissions, and applies the installed checkout policy. Matching Git
 reuses prepared context; changed Git requires a focused `repository_context`
@@ -904,8 +963,9 @@ After the current owner reaches a stable handoff, it closes its exact owned
 resources using the normal cleanup contract, writes the existing approved plan
 as `blocked` with the safe stop as blocker and resume as next action, then runs
 `task acknowledge-stop` with the adapter-provided owner identity. Codex uses
-`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, and Grok uses
-`GROK_SESSION_ID`. Acknowledgement changes the card to `cancelled`, releases
+`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, Grok uses
+`GROK_SESSION_ID`, and Devin uses `ORCHESTRA_DEVIN_THREAD_ID`. Acknowledgement
+changes the card to `cancelled`, releases
 current ownership to the matching previous owner fields, and preserves the
 checkout and plan. `task reopen` returns it to `ready`; the same previous owner
 may adopt it and must resume the exact checkout and blocked plan instead of
@@ -946,6 +1006,14 @@ Selecting `minimal` blocks: there is no cheaper Grok row. `critical` uses the
 same spawn rows and raises root scrutiny; it does not change model or
 reasoning.
 
+On Devin, the root reads
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml`. Devin offers
+`minimal`, `standard`, and `critical`. This cut assigns `standard` and
+`critical`: every capability pins `swe-2-max`, whose slug already encodes
+maximum reasoning, so there is no cheaper Devin row. The root recommends
+`standard`. Selecting `minimal` blocks. `critical` uses the same spawn rows
+and raises root scrutiny; it does not change model or reasoning.
+
 For every spawned dispatch, select a capability, profile, and explicit model
 and effort from the owning host's matrix, unless an explicit CLI assignment or
 execution preset overrides it. An unavailable assignment blocks that dispatch
@@ -977,7 +1045,8 @@ evidence".
 
 Codex offers `standard` and `critical`, with `standard` as the default
 recommendation. Cursor additionally assigns `minimal` for ordinary work when
-cost or speed is the priority. Grok has no cheap assigned tier. A tier choice
+cost or speed is the priority. Grok and Devin have no cheaper assigned tier.
+A tier choice
 never waives production, migration, data, security, payment, destructive-action,
 or delivery authority gates. Tier transitions remain user-directed.
 
@@ -988,8 +1057,8 @@ execution presets"; the invariants below describe the native matrices.
 
 The installed TOML matrices, not this document, define native model and
 reasoning assignment. The sources are `codex/config/roles.native.toml`
-(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`, and
-`hosts/grok/config/roles.grok.toml` (installed under
+(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`,
+`hosts/grok/config/roles.grok.toml`, and `hosts/devin/config/roles.devin.toml` (installed under
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/<host>/roles.toml`). Reassigning a
 model or reasoning effort edits only the matching TOML file; this document is
 not updated for such a change. Structural invariants the matrices must keep:
@@ -1012,6 +1081,12 @@ not updated for such a change. Structural invariants the matrices must keep:
   blocks unassigned `minimal`. The Grok spawn reference maps rows onto
   `general-purpose` through the available native transport, without inventing
   a per-dispatch reasoning field.
+- Devin assigns `standard` and `critical` with every capability on `swe-2-max`
+  at `inherit` effort (`critical` raises root scrutiny, not the model) and
+  blocks unassigned `minimal`. The model is pinned in each installed Devin
+  agent profile; `run_subagent` accepts no per-dispatch model or reasoning
+  field. The Devin spawn reference maps `subagent_type` onto that custom
+  profile name, namespaced `orchestra:<name>` under a plugin installation.
 - Frontend implementation composes `orchestra_implementation_worker`; browser
   acceptance composes `orchestra_verifier`. They never run as one combined
   role.
@@ -1852,8 +1927,8 @@ consumed and can never affect the commit result.
 ### Test permissions and browser routing
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor and Grok observe the host permission
-choice and never write permission configuration. The active permission choice for the
+Auto-review) as the default. Cursor, Grok, and Devin observe the host
+permission choice and never write permission configuration. The active permission choice for the
 task, host, or launcher remains authoritative: Orchestra never changes it or
 blocks execution solely because it differs. When Codex Guardian is active,
 commands inside the workspace run
@@ -1873,11 +1948,15 @@ carry `browser_route: auto | in_app | chrome`:
   supported connection recovery, it may fall back to Codex's in-app Browser
   only when Chrome is unavailable or has a technical capability gap that the
   in-app Browser can satisfy. On Cursor, `auto` and `chrome` map to Browser Use.
-  On Grok Build, `auto` maps to Playwright.
-- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor
-  and Grok.
+  On Grok Build, `auto` maps to Playwright. On Devin, native `auto` is `blocked`.
+- `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor,
+  Grok, and Devin.
 - `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
-  Use on Cursor, and is `blocked` on Grok.
+  Use on Cursor, and is `blocked` on Grok and native Devin.
+
+Devin has no native browser surface. A user-selected Codex CLI Chrome handoff
+may perform its browser acceptance under "CLI delegation". Otherwise the
+required gate remains `blocked`; User preview never replaces it.
 
 An explicit route from the user, relayed by the root or given directly in the
 agent conversation, must be attempted even when the scenario is a canary for a
@@ -2044,8 +2123,8 @@ profile, workspace-root list, execpolicy rule, or Git helper is installed.
 Older or unreadable clients block before any destination changes. Historical
 manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
 remains version-independent and restores the exact prior configuration.
-Cursor and Grok synchronization never write those Codex permission keys or
-Grok permission configuration.
+Cursor, Grok, and Devin synchronization never write those Codex permission
+keys or Grok or Devin permission configuration.
 
 Native host chats inherit their configured permission choice; Task Control
 never launches an execution host or supplies a permission override. Explicit
@@ -2355,7 +2434,7 @@ It does not authorize release, deployment, or production mutation.
 ## Maturity
 
 Automated checks and representative canaries provide evidence. Codex, Cursor,
-and Grok Build are approved execution hosts. Hermes, Devin, and any further
+Grok Build, and Devin are approved execution hosts. Hermes and any further
 harness remain deferred.
 
 ## User-facing progress and handoff

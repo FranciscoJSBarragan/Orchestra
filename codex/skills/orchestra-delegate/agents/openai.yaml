@@ -1,6 +1,6 @@
 interface:
   display_name: "Orchestra Delegate"
-  short_description: "Delegate a scoped task to Codex, Cursor, or Grok CLI"
-  default_prompt: "Use $orchestra-delegate to execute a bounded assignment with my selected Codex, Cursor, or Grok CLI model and report its changes and evidence."
+  short_description: "Delegate a scoped task to Codex, Cursor, Grok, or Devin CLI"
+  default_prompt: "Use $orchestra-delegate to execute a bounded assignment with my selected Codex, Cursor, Grok, or Devin CLI model and report its changes and evidence."
 policy:
   allow_implicit_invocation: true

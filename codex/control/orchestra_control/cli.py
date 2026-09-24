@@ -17,6 +17,7 @@ if str(SCRIPTS_ROOT) not in sys.path:
 
 from _common import git_repository_identity
 
+from .db import SCHEMA_VERSION, StorageError, connect
 from .service import ControlError, ControlService, host_thread_from_env
 
 
@@ -106,6 +107,9 @@ def build_parser() -> JsonParser:
     parser = JsonParser(prog="orchestra-task-control")
     parser.add_argument("--state-root", type=Path)
     groups = parser.add_subparsers(dest="group", required=True)
+    storage = groups.add_parser("storage")
+    storage_commands = storage.add_subparsers(dest="command", required=True)
+    storage_commands.add_parser("migrate")
     task = groups.add_parser("task")
     commands = task.add_subparsers(dest="command", required=True)
 
@@ -206,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     service = ControlService(args.state_root)
     try:
+        if args.group == "storage" and args.command == "migrate":
+            connection = connect(args.state_root, allow_schema_upgrade=True)
+            connection.close()
+            return emit("ok", schema_version=SCHEMA_VERSION)
         if args.group != "task":
             raise ControlError("invalid", "unsupported command group")
         if args.command == "create":
@@ -416,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         raise ControlError("invalid", "unsupported command")
     except ControlError as error:
         return emit(error.status, reason=error.reason)
-    except (OSError, subprocess.SubprocessError) as error:
+    except (OSError, subprocess.SubprocessError, StorageError) as error:
         return emit("unavailable", reason=str(error))
 
 
