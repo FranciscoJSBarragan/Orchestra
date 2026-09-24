@@ -831,15 +831,35 @@ def check_modular_routing(root: Path) -> list[str]:
         for name in ("repository_context", "technical_planning", "runtime_verification")
     )
     evidence_consumers.append(root / "codex/skills/orchestra-lite/review-packet.md")
-    for consumer in evidence_consumers:
-        if not consumer.is_file():
-            continue
-        targets = {
-            ((consumer.parent / link.split("#", 1)[0]).resolve(), link.partition("#")[2])
-            for link in _local_markdown_links(consumer.read_text(encoding="utf-8"))
-        }
-        if (guidance.resolve(), "decision-evidence") not in targets:
-            failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#decision-evidence")
+    testing_consumers = [
+        root / f"codex/skills/{name}/SKILL.md"
+        for name in ("orchestra-role-analyst", "orchestra-role-implementer",
+                     "orchestra-role-reviewer", "orchestra-role-verifier",
+                     "orchestra-engineering", "orchestra-lite",
+                     "orchestra-project-verification", "orchestra-repo-maintenance")
+    ]
+    testing_consumers.extend(
+        root / f"codex/skills/orchestra/references/{name}.md"
+        for name in ("technical_planning", "runtime_verification", "browser_acceptance")
+    )
+    guidance_routes = {
+        "decision-evidence": evidence_consumers,
+        "behavioral-verification": testing_consumers,
+        "change-quality": [root / f"codex/skills/{name}/SKILL.md" for name in
+                           ("orchestra-role-implementer", "orchestra-role-reviewer",
+                            "orchestra-engineering", "orchestra-lite")],
+        "test-maintenance": [root / "codex/skills/orchestra-repo-maintenance/SKILL.md"],
+    }
+    for anchor, consumers in guidance_routes.items():
+        for consumer in consumers:
+            if not consumer.is_file():
+                continue
+            targets = {
+                ((consumer.parent / link.split("#", 1)[0]).resolve(), link.partition("#")[2])
+                for link in _local_markdown_links(consumer.read_text(encoding="utf-8"))
+            }
+            if (guidance.resolve(), anchor) not in targets:
+                failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#{anchor}")
     return failures
 
 

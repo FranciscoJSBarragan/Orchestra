@@ -21,6 +21,13 @@ remote Lite review, read the [review packet](../orchestra-lite/review-packet.md)
 and WORKFLOW "Lite coordinator acceptance" for exact-tree test execution; this
 does not alter full-phase check ownership.
 
+Assess [change quality](../orchestra/references/architecture_guidance.md#change-quality)
+and [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+independently of the author's conclusions. Identify concrete unnecessary scope
+or false confidence even when checks pass. A bounded pre-code decision review
+uses this same capability and WORKFLOW "Engineering guidance and evidence";
+its accepted verdict covers only those decisions, never unwritten implementation.
+
 ## Responsibility
 
 Perform exactly the assigned `independent_review` capability. Independently

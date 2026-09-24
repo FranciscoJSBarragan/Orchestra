@@ -15,6 +15,10 @@ For a consequential repository question, use [decision
 evidence](../orchestra/references/architecture_guidance.md#decision-evidence). A
 standalone `repository_context` assignment can supply the map for another owner;
 report coverage and unknowns without planning or implementing the change.
+Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+to identify the expected outcomes and discriminating checks relevant to the
+assigned question; proposed checks are not observed execution. For planning,
+route unresolved material decisions through WORKFLOW "Engineering guidance and evidence".
 
 ## Responsibility
 

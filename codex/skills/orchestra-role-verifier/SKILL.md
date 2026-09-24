@@ -16,6 +16,9 @@ evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
 the assigned journeys, including preservation cases and claimed before/after
 behavior. Report any uncovered material path to the owner without silently
 expanding verification authority.
+Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+to judge whether the assigned checks establish the claimed behavior; identify
+an insufficient scenario without inventing a pass or silently enlarging scope.
 
 ## Responsibility
 

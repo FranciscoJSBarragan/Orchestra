@@ -31,6 +31,11 @@ consequential changes. Consume a supplied `Mapa` at its named revision, fill
 relevant gaps and carry the outcome in the result; a map is evidence, not
 authority.
 
+Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+for useful coverage and [change quality](../orchestra/references/architecture_guidance.md#change-quality)
+for scope, reuse and affected documentation. Carry material decisions, plausible
+failure hypotheses and their evidence in existing result fields, not extra keys.
+
 ## Kickoff
 
 Parse the `ORCHESTRA_LITE_SPEC` block (copyable template:
@@ -57,8 +62,10 @@ information only.
    choices go to `Decisiones tomadas`; material decisions are `BLOCKED`.
    Include any authorized `STATUS` update at the supplied path before the
    final checks, self-review, and commit, so it ships in the same delivery.
-4. **Checks.** Run the repository's mandatory local checks plus any kickoff
-   commands until green. Report CI separately.
+4. **Checks.** Resolve the required set and any explicitly authorized exceptions
+   under WORKFLOW "Implementation, checks, and self-review". Run that required
+   set until green, report exceptions in the specified existing result fields,
+   preserve unresolved mandatory blockers and report CI separately.
 5. **Self-review** against the shared guidance and note what the independent
    reviewer should inspect. If repository policy requires review before
    commit and applicable independent review evidence is missing, stale, or

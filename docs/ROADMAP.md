@@ -115,3 +115,20 @@ The external coordinator supplies verified case bases and hidden expected
 outcomes. Only isolate the two effects if the combined pilot reveals a question
 that warrants the extra runs. Keep correctness and regressions ahead of cost or
 speed, and preserve all earlier distribution, adoption and Bridge follow-ups.
+
+## Decision quality and useful verification
+
+The shared criteria now cover risk-specific decisions, bounded pre-code review,
+necessary scope, affected documentation and behavioral test quality across full,
+Lite and standalone work. Test-suite diagnosis and repair extend repository
+maintenance; no new role, result schema or E2E-only policy is introduced. Lite
+coordinators reconcile required checks and reject inconsistent success reports;
+source conformance still does not establish live report acceptance.
+
+Use the [pilot follow-up](evaluation/MODULAR_ACCEPTANCE.md#decision-quality-and-useful-test-follow-up)
+to evaluate correctness and maintainability separately from diff size, test
+counts or speed. Preserve known-answer regressions and include a held-out case
+under matched resources. A real test-cleanup pilot needs an explicitly selected
+repository/area; source changes do not authorize deletion in consumer projects.
+Broader adoption, active-installation updates, public distribution and Bridge
+retain their existing sequencing and authority boundaries.

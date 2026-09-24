@@ -79,6 +79,12 @@ the others. Record exact installed or session-local bundle versions.
 | Contradictory or unsupported rule | Authority or historical uncertainty is surfaced; the run does not rewrite its permissions. |
 | Multi-area repair | One owner spans a coherent problem's code/docs/tests; overlapping writers are prevented. |
 | Healthy area or small cleanup | No invented findings, broad audit, mandatory delegation or folder rearrangement. |
+| Useful unit test added after a fix | Its expectation comes from the contract or incident; it detects the defect and remains eligible regardless of chronology. |
+| Hidden UI, exposed API | Browser visibility alone does not establish authorization; server-boundary proof covers relevant denied and allowed requests. |
+| Green tests defending excess scope | Review rejects unnecessary behavior and its supporting tests while retaining required regression coverage. |
+| Overlapping unit and E2E coverage | Keep a focused test when faster feedback or diagnosis earns its cost; remove only demonstrably low-value duplication. |
+| E2E without a persisted effect | An attractive screenshot or HTTP success does not substitute for the required effect; missing evidence is explicit. |
+| Mixed green and unavailable checks | Mandatory unexecuted checks block; optional diagnostics are disclosed separately and never counted as green. |
 
 Choose a real pilot repository and area explicitly. Freeze its full starting SHA
 and baseline check results before repair; retain that revision for comparison.
@@ -141,6 +147,33 @@ a hypothesis. If the combined pilot passes, broaden real-project evidence;
 separate map-only and review-only runs only when attribution is needed to settle
 a concrete tuning decision. Preserve failures and explain unavailable metrics;
 three cases cannot establish general superiority.
+
+## Decision quality and useful-test follow-up
+
+Extend the same pilot after its existing prerequisite; this is not another
+benchmark engine or a per-change mandatory trial. Reuse known-answer cases to
+detect regressions, then include a held-out case with independently verified
+acceptance. An ambiguous specification is a separate condition: success can be
+an explicit unresolved policy decision before dependent implementation, not a
+lucky guess of the evaluator's hidden permission. Give paired runs the same
+clarifications and account for interventions.
+
+Inspect production, documentation and test deltas separately. Assess necessary
+scope, suitable reuse, coupling, preserved behavior, affected documentation and
+the protection each meaningful test contributes. Do not require a diff size
+matching pstack or reward deleted tests. Record first-delivery correctness,
+material review findings and repair loops, missed known defects, test sensitivity
+on selected controlled faults, flaky failures, feedback time and maintenance
+work. Measure wall time and total agent/tool cost under matched resources; the
+reported 25–30 minute and proposed 40-minute targets are hypotheses, not gates.
+
+For a test-cleanup pilot, compare the same relevant faults and legitimate
+behaviors before and after, preserving the original suite and base. Check which
+tests actually run in CI and retain useful faster diagnostics even when E2E
+coverage overlaps. Distinguish audited, sampled and unexamined scope; a smaller
+suite alone does not establish improvement. Keep case answers and private
+application evidence outside public distribution, using the existing caller-owned
+evaluation directory rather than a persisted workflow registry.
 
 ## Design references
 

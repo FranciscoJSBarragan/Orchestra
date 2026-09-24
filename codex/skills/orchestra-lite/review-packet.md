@@ -5,6 +5,9 @@ mode, with independent context. WORKFLOW "Lite coordinator acceptance" owns
 check scope, version handling, recovery and acceptance. Use
 [decision evidence](../orchestra/references/architecture_guidance.md#decision-evidence)
 to assess the original scope, not merely the supplied map.
+Use [change quality](../orchestra/references/architecture_guidance.md#change-quality)
+and [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+to assess necessary scope and the protection supplied by tests.
 
 Supply only the relevant inputs below; paths must be readable from the review
 environment. This is a prompt shape, not a new schema or artifact kind.
@@ -17,6 +20,7 @@ Original approved kickoff: <complete spec or accessible path>
 Review range: <full base SHA>..<full delivered SHA>
 Result: <ORCHESTRA_LITE_RESULT or accessible Reporte>
 Decision evidence: <inline result evidence and optional Mapa, with source revisions>
+Acceptance basis: <settled consequential choices and any explicitly authorized check exceptions>
 Checks: <new/changed tests and affected journeys, including indirect consumers>
 Security scope: <when applicable, full affected-project suite and security journeys>
 Readiness: <existing setup recipe, safe data, permissions, generated paths and cleanup>
@@ -32,3 +36,9 @@ authoring source changes or creating a worker commit. Report commands, exit stat
 and actionable findings with locations. A prose assertion that checks passed is
 not independent execution. Keep conclusions and any authorized report output
 separate from source changes; clean up owned test resources.
+
+For a pre-code decision review, supply the original brief, base revision and
+current decision evidence instead of a delivered result or implementation diff.
+Name the material choices to assess and use the same standalone reviewer under
+WORKFLOW "Engineering guidance and evidence". Return a verdict on those choices
+and unresolved dependencies; do not claim implementation or execution acceptance.

@@ -131,6 +131,39 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("orchestra-repo-maintenance must link ../orchestra-engineering/SKILL.md", result.stdout)
 
+    def test_testing_consumers_require_behavioral_verification_route(self) -> None:
+        for name in ("orchestra-role-analyst", "orchestra-role-implementer",
+                     "orchestra-role-reviewer", "orchestra-role-verifier",
+                     "orchestra-engineering", "orchestra-lite",
+                     "orchestra-project-verification"):
+            with self.subTest(name=name):
+                skill = self.root / f"codex/skills/{name}/SKILL.md"
+                original = skill.read_text()
+                try:
+                    skill.write_text(original.replace("architecture_guidance.md#behavioral-verification",
+                                                      "architecture_guidance.md"))
+                    failures = validator.check_modular_routing(self.root)
+                    self.assertTrue(any(f"{name}/SKILL.md" in item and "#behavioral-verification" in item
+                                        for item in failures), failures)
+                finally:
+                    skill.write_text(original)
+
+    def test_maintenance_requires_test_audit_guidance(self) -> None:
+        skill = self.root / "codex/skills/orchestra-repo-maintenance/SKILL.md"
+        skill.write_text(skill.read_text().replace("architecture_guidance.md#test-maintenance",
+                                                  "architecture_guidance.md"))
+        failures = validator.check_modular_routing(self.root)
+        self.assertTrue(any("orchestra-repo-maintenance/SKILL.md" in item and "#test-maintenance" in item
+                            for item in failures), failures)
+
+    def test_reviewer_requires_change_quality_guidance(self) -> None:
+        skill = self.root / "codex/skills/orchestra-role-reviewer/SKILL.md"
+        skill.write_text(skill.read_text().replace("architecture_guidance.md#change-quality",
+                                                  "architecture_guidance.md"))
+        failures = validator.check_modular_routing(self.root)
+        self.assertTrue(any("orchestra-role-reviewer/SKILL.md" in item and "#change-quality" in item
+                            for item in failures), failures)
+
     def test_parent_requires_root_transport_resource(self) -> None:
         skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
         skill.write_text(skill.read_text().replace("(host-transports.md)", "(packet-example.md)"))

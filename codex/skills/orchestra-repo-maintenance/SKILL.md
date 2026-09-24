@@ -1,6 +1,6 @@
 ---
 name: orchestra-repo-maintenance
-description: Diagnose or repair harmful code patterns, misleading documentation, obsolete instructions and false-confidence tests when the user explicitly requests repository maintenance, an audit or deslop. Excludes folder reorganization and ordinary unrelated cleanup.
+description: Diagnose or repair harmful code patterns, misleading documentation, obsolete instructions and low-signal tests when the user explicitly requests repository maintenance, test-suite cleanup, an audit or deslop. Excludes folder reorganization and ordinary unrelated cleanup.
 ---
 
 # Maintain a repository
@@ -11,6 +11,12 @@ policy changes. Use shared guidance for [source comments](../orchestra/reference
 [prevention](../orchestra/references/architecture_guidance.md#prevent-recurring-failures)
 and [maintenance evidence](../orchestra/references/architecture_guidance.md#maintain-patterns-and-knowledge).
 The source-comment policy applies to every authored source change.
+
+For suite audits or cleanup, use [test maintenance](../orchestra/references/architecture_guidance.md#test-maintenance)
+and [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification).
+Return the evidence for keeping, repairing, consolidating, replacing or removing
+candidates in the existing output. Test cleanup does not grant authority to
+change repository gates or update global agent instructions.
 
 Resolve diagnosis or authorized repair from the request. Do not turn a request
 for findings into edits or activate the full Orchestra workflow. Establish the

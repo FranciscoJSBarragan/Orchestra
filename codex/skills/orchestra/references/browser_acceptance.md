@@ -1,5 +1,10 @@
 # Browser acceptance playbook
 
+Use [behavioral verification](architecture_guidance.md#behavioral-verification)
+for the assigned journey. A hidden control does not establish server-side
+authorization; report missing boundary evidence to the owner. Screenshots support
+the visible observations and do not replace checks of the requested effects.
+
 For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
 guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.

@@ -18,6 +18,10 @@ reading this reference does not itself dispatch a role or grant authority.
 Use [decision evidence](architecture_guidance.md#decision-evidence) for the
 assigned paths and distinguish a regression reproduction from a preservation test.
 Compare exact revisions and expected behavior, not just exit codes.
+Apply [behavioral verification](architecture_guidance.md#behavioral-verification)
+to the claimed boundary and inspect the required effect, including persistence
+or recovery when assigned. Keep enough recipe and run evidence to repeat and
+assess the check; report required checks that could not run as blockers.
 
 ## Contract
 

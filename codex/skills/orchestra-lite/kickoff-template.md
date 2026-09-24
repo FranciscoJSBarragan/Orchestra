@@ -6,6 +6,11 @@ fields you do not need, and never quote this block inside documentation you
 want the worker to analyze. The policy for every field is in WORKFLOW
 "Orchestra Lite companion".
 
+Resolve material acceptance choices and required-check readiness before dispatch,
+using WORKFLOW "Engineering guidance and evidence". Put settled decisions and
+any explicitly authorized exceptions in the existing `Decisiones` field; the
+template adds no decision-review mode or result version.
+
 ```text
 ORCHESTRA_LITE_SPEC
 Versión: 2
@@ -46,7 +51,7 @@ Reporte:
 | `Aceptación` | yes | verifiable criteria, one per line |
 | `Exclusiones` | no | what not to touch; empty by default |
 | `Decisiones` | no | decisions already taken; name the absolute resolution root when `Mapa` or `Reporte` is relative; for a fresh-worker continuation include ownership, expected full branch SHA and the original `Base.Referencia` / `Base.SHA` from the prior result under WORKFLOW; empty by default |
-| `Checks` | no | `auto` (default) or explicit commands, one per line; repository-mandatory checks always run |
+| `Checks` | no | `auto` (default) or explicit commands, one per line; repository-mandatory checks remain required unless explicitly excepted in `Decisiones` under WORKFLOW's authority and reporting rules |
 | `Revisión` | no | `coordinador` (default) or `bugbot`; `ninguna` is rejected |
 | `Actualizar STATUS` | no | `no` (default) or `sí` followed by the status file path to include in the delivered commit range before final checks and review |
 | `Mapa` | no | readable decision-evidence input path, absolute or relative to the absolute context root named in `Decisiones`; omitted means establish applicable evidence in the result |

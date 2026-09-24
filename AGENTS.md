@@ -19,6 +19,9 @@ exactly one home; other documents reference it instead of restating it.
   are English.
 
 Source-writing work follows [Source comments](codex/skills/orchestra/references/architecture_guidance.md#source-comments).
+Test design and review follow [Behavioral verification](codex/skills/orchestra/references/architecture_guidance.md#behavioral-verification):
+establish expected behavior and material failure risks, then choose useful proof.
+Change scope and maintainability follow [Change quality](codex/skills/orchestra/references/architecture_guidance.md#change-quality).
 
 ## Activation
 

@@ -20,6 +20,11 @@ Check supplied evidence against the target revision and original scope; carry
 changed decisions, regression evidence and preservation coverage in the existing
 report.
 
+Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+to choose expectations and useful coverage before meaningful behavior changes.
+Apply [change quality](../orchestra/references/architecture_guidance.md#change-quality)
+to the complete task delta before handoff, including affected documentation.
+
 ## Responsibility
 
 Own only the explicitly authorized paths and one capability:

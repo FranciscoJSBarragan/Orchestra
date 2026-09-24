@@ -22,6 +22,13 @@ resources. Supply its revision-identified evidence to the worker. Otherwise the
 worker establishes the applicable evidence itself. Neither choice adds a role,
 requires a new artifact format or changes the user's model assignments.
 
+Use [decision evidence](../orchestra/references/architecture_guidance.md#decision-evidence)
+to make the consequential acceptance criterion explicit. Apply WORKFLOW
+"Engineering guidance and evidence" before writer launch: reconcile mandatory
+checks and environment readiness, and obtain a bounded decision review when
+required. Record settled decisions and their evidence in the existing kickoff;
+do not ask an implementer or reviewer to guess missing product policy.
+
 Read the completed result once from the final message or `Reporte`, then apply
 the version and status rules in WORKFLOW:
 
@@ -30,6 +37,20 @@ the version and status rules in WORKFLOW:
 | No `Versión`, exactly the valid v1 keys/types | [v1 example](result-v1-example.json) | Legacy delivery report; no v2 evidence or baseline guarantee; not acceptable for a v2 assignment. |
 | Integer `Versión: 2` | [v2 example](result-example.json) | Versioned baseline, evidence and delivery report; independent acceptance still pending. |
 | Anything else | WORKFLOW "Result contract" | Unsupported or malformed; reconcile the producer before consuming it. |
+
+Check the actual object's keys, types and status implications, not just its
+`Estado`. Under the v2 contract a success with a null or nonzero check exit code
+is inconsistent and needs producer reconciliation; it is not accepted because
+other tests passed. Compare the executed checks with the required set and the
+claimed tree, inspecting referenced evidence. Optional unexecuted diagnostics
+are reported in `Riesgos / no hecho`; moving an unavailable required gate there
+does not discharge it. Canonical source conformance checks shipped examples,
+not this live report. For an explicitly authorized exception, require the
+requirement, authority, reason and limits in `Decisiones tomadas` and the
+unverified behavior in `Riesgos / no hecho`, per WORKFLOW. Compare against the
+remaining required set; the exception is not a passing check or a waiver of
+independent acceptance. Resolve other omissions rather than accepting a green
+subset or retroactively weakening acceptance.
 
 Use the [review packet](review-packet.md) for an independent review and assigned
 remote checks. Read the actual findings and execution evidence before judging

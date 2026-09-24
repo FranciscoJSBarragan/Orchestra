@@ -225,7 +225,9 @@ rather than accumulate prohibitions after every failure.
 repository or named area. It composes with ordinary engineering, Lite and full
 Orchestra without activating a tier, creating task state or adding a mandatory
 audit stage. Shared engineering guidance owns "Source comments", "Prevent
-recurring failures" and "Maintain patterns and knowledge"; every source-writing
+recurring failures", "Maintain patterns and knowledge" and "Test maintenance";
+test-suite audits and repairs use that existing entry rather than a new cleanup
+role or automatic deletion pass. Every source-writing
 entry consumes the comment policy directly, even for a small edit.
 
 A diagnosis is source-read-only and reports prioritized evidence, coverage and
@@ -717,13 +719,22 @@ before the final checks and self-review, and include it in the delivered
 commit range and the same PR; do not leave a post-publication status edit
 uncommitted.
 
-`Checks` always include the repository's mandatory local checks (the `.agent/`
-hard gate and configured checks) even when the kickoff supplies explicit
-commands; CI is reported separately. When `auto` finds no maintained check,
+Resolve the required `Checks` from repository policy (the `.agent/` hard gate
+and configured checks) plus the kickoff, under "Engineering guidance and
+evidence". Explicit kickoff commands alone never replace repository obligations.
+An explicitly authorized exception recorded in `Decisiones` removes only its
+named obligation within the stated limits; that check need not run and its
+absence does not block worker delivery. Record the requirement, authority,
+reason and limits in `Decisiones tomadas`, and the unverified behavior in
+`Riesgos / no hecho`, never as a green `Checks` entry. All remaining mandatory
+checks and acceptance criteria still apply; an unavailable check without such
+authority remains `BLOCKED`. CI is reported separately. When `auto` finds no maintained check,
 use an acceptance-specific executable scenario within the granted authority
 and report that no configured suite exists; if acceptance cannot be proven,
 return `BLOCKED`. Every required check runs to green before
-handoff; a weakened, skipped, or stale pass is a failure. Self-review applies
+handoff; a weakened, skipped, or stale pass is a failure. Resolve check obligations
+under "Engineering guidance and evidence"; an optional diagnostic omission is
+not a failed mandatory gate. Self-review applies
 the shared engineering guidance (correctness, regressions, tests, security,
 Spanish user-facing text where applicable) and records what the independent
 reviewer should inspect; it never substitutes for that review, and the worker
@@ -790,7 +801,13 @@ top-level keys (object key order is irrelevant):
 - `Publicada`: boolean, true only after exact remote-SHA verification.
 - `Commits`: array of commit identifiers, optionally with summaries.
 - `Checks`: array of `{"Comando", "Resultado", "Código de salida"}` items;
-  exit code integer or `null` when unavailable. Success-state checks cover the
+  exit code integer or `null` when unavailable on `BLOCKED`. Success states
+  contain only green final executed checks, each with integer exit code `0`;
+  optional unexecuted diagnostics belong in `Riesgos / no hecho`, never as
+  passing checks. A check still required after authorized reconciliation blocks
+  when skipped. Exceptions use the evidence fields specified in "Implementation,
+  checks, and self-review". Record prior failed
+  attempts and their resolution in `Evidencia` when relevant. These checks cover the
   exact delivered tree in `Rama.SHA`. Baseline experiments belong in `Evidencia`;
   on `BLOCKED`, identify any dirty-tree or earlier-revision check in `Resultado`.
 - `Evidencia`: `{"Mapa": string|null, "Resumen": string|null,
@@ -837,6 +854,15 @@ loop; the worker never performs that role. A useful preliminary map may be a
 bounded standalone `repository_context` assignment to the existing analyst with
 caller-selected resources, including an explicitly selected cheaper model. The
 worker checks evidence freshness and relevant gaps without repeating all research.
+
+Before launching the writer, resolve consequential policy choices and check
+obligations using "Engineering guidance and evidence". When early decision review
+is required, the coordinator supplies the brief and relevant evidence to the
+existing reviewer in standalone mode, then records settled choices in `Decisiones`
+or the optional `Mapa`. A full plan, new kickoff field, worker review mode or
+intermediate result state is unnecessary. The worker returns `BLOCKED` if a
+remaining material decision prevents implementation; the coordinator resumes
+the same assignment once resolved. A decision review never replaces code review.
 
 For v2 remote acceptance, give a fresh independent reviewer the original kickoff,
 result, decision evidence, exact baseline and delivered SHA, repository policy
@@ -919,14 +945,43 @@ and verification-recipe guidance. Apply only sections relevant to the task's
 acceptance or material risks. A trivial edit does not acquire design exercises,
 new tests, benchmarks, or a dedicated verifier from this guidance.
 
-Planning identifies applicable risks and the evidence needed to settle them,
-using shared "Decision evidence" for consequential paths and exceptions;
-implementation consumes that evidence and fills affected gaps; independent
-review reconciles the original scope with actual journeys and challenges
-omissions as well as supplied conclusions; verification executes its assigned
-checks, distinguishing regression reproduction from preservation coverage. This guidance also applies to standalone
-roles without activating Orchestra. Existing capability boundaries, terminal
-check ownership, authority rules, and dedicated-gate reasons remain decisive.
+Planning uses shared "Decision evidence" and "Behavioral verification" to
+identify consequential choices, expected outcomes, relevant failure hypotheses
+and the evidence needed to settle them. Implementation consumes that evidence,
+fills affected gaps and applies "Change quality" before handoff. Independent
+review assesses necessity, maintainability and test sensitivity, reconciling
+original scope with actual journeys and omitted paths. Verification executes
+assigned checks against their expectations and records observed effects and
+limits. These criteria apply to standalone roles and Lite as well as the full
+workflow. Existing capability boundaries, terminal-check ownership, authority
+rules and dedicated-gate reasons remain decisive.
+
+Resolve a material acceptance or policy ambiguity before dependent code. Use
+existing independent plan review for an unresolved consequential authorization,
+contract, data-integrity or recovery decision; a lower tier or cheaper model does
+not exempt that risk. Review only the bounded decisions and relevant evidence,
+including missing alternatives, intended authority and required preservation.
+Reuse the plan review rather than adding a second gate when it already covers
+them. Factual questions may first be settled by the analyst or an authorized
+experiment; settled routine changes need no extra review. A reviewer cannot
+choose missing product policy on the user's behalf. In standalone/custom work,
+use the caller's authorized review route and surface a missing decision or
+review as a concrete dependency; do not silently dispatch agents or activate
+Orchestra. Decision review does not replace implementation review.
+
+At intake, reconcile task acceptance, repository hard gates and optional
+diagnostics, naming their execution owner and environment. A phrase such as
+"if available" does not waive a repository or workflow requirement. A genuine
+exception must explicitly identify the requirement and come from authority
+allowed to change it; inherited task approval alone does not supply it. Record
+an already authorized exception and its limits in existing decisions rather than
+asking again. Until reconciliation, keep the required gate and report its blocker.
+An exception applies only to its named task obligation; it does not waive
+separate review or configured delivery checks. Changing those requires their
+own explicit authority and supported policy/configuration change.
+Never relabel a missing mandatory check as optional or passing at delivery.
+Before accepting a report, compare actual commands/results and source identity
+with the required set; well-formed output and a green subset are insufficient.
 
 Keep task-specific recipes and material assumptions in the existing plan
 acceptance, risks, and `Verification` sections, or the standalone brief.
@@ -1380,7 +1435,8 @@ After explicit activation in an execution-capable mode:
 11. After the complete bundle exists, the root reads the overview, phase
    index, named risks, and only the detail needed for judgment. It may skip
    independent plan review when current evidence settles the material design
-   choices. Dispatch it for a concrete unresolved architectural alternative,
+   choices. Apply "Engineering guidance and evidence" for consequential decision
+   review within this pass. Dispatch it for a concrete unresolved architectural alternative,
    consequential contract, migration or recovery assumption, unfamiliar
    dependency, or costly-to-reverse decision. Phase/file counts alone do not
    create the gate. Resolve empirical uncertainty with a bounded authorized
@@ -1718,14 +1774,11 @@ accepted fix, the owner and any applicable verifier rerun only affected checks
 unless the repository explicitly requires another full gate. Configured
 delivery checks remain a separate final delivery boundary.
 
-Every planned or added test maps to an observable acceptance journey or a named
-regression risk. Prefer proving a change with existing tests; add a new test
-only when existing coverage cannot demonstrate the changed behavior, and treat
-a test materially more complex than the change it proves as a sign of
-over-engineering. Do not add duplicated coverage, count-driven tests, or tests
-coupled to implementation details unless those details are an approved
-contract. Each implementation handoff states the behavior or regression risk
-demonstrated by every changed test.
+Use shared "Behavioral verification" to select and assess planned or added tests.
+Each implementation handoff states the behavior or regression risk demonstrated
+by its changed tests and any concrete benefit of overlapping coverage. The
+selected check owner runs the required set under the rules above; a change in
+test selection does not waive a repository gate.
 
 ### User preview
 
@@ -2128,7 +2181,9 @@ Automatically fix findings that demonstrate:
 - likely regression;
 - unsafe error handling or concurrency;
 - a maintainability defect likely to cause future incorrect behavior;
-- missing verification for important behavior.
+- missing verification for important behavior;
+- unnecessary changed scope, duplication or fragile tests with a demonstrated
+  maintenance cost, using shared "Change quality" and "Behavioral verification".
 
 Do not cycle on:
 

@@ -13,6 +13,9 @@ and "Repository conventions" own the lifecycle, write authority, and distinction
 between policy, operational instructions, and run evidence. Use
 [shared engineering guidance](../orchestra/references/architecture_guidance.md)
 ("Verification recipes") for the substantive proof standard.
+Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+to choose the relevant boundaries and expected effects; a repeatable recipe
+must retain enough evidence to assess the claim after resource cleanup.
 
 Resolve the requested operation from the brief: prepare, run, refresh affected
 entries, or audit the named map. Existing maintained project instructions win

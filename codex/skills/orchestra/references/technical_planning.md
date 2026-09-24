@@ -18,6 +18,10 @@ Use [decision evidence](architecture_guidance.md#decision-evidence) to connect
 consequential decisions and exceptions to the original scope. Reuse the context
 result in `Review context` and assign missing evidence in `Verification`; do not
 create a duplicate map artifact.
+Use [behavioral verification](architecture_guidance.md#behavioral-verification)
+to select proof from expected outcomes and material failure hypotheses. Reconcile
+mandatory checks and optional diagnostics, and route material decision review
+through WORKFLOW "Engineering guidance and evidence" before dependent implementation.
 
 ## Contract
 
@@ -40,7 +44,8 @@ create a duplicate map artifact.
   phase dependency it informs. Omit anything without a current-task use and do
   not copy cited evidence bodies. Treat the section as a bounded index.
 - Map every planned test or check to an observable acceptance journey or a
-  named regression risk. Do not add duplicated coverage, count-driven tests,
+  named regression risk. Do not add redundant coverage without a concrete
+  fidelity, feedback or diagnostic benefit, count-driven tests,
   or tests coupled to implementation details unless those details are an
   approved contract.
 - Where existing commands do not establish acceptance, put the missing parts
