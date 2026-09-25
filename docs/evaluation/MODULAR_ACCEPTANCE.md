@@ -198,6 +198,11 @@ for every prose change:
 | Explicit policy using the same baseline | Implementer follows the owner-selected outcome without asking again, identifies superseded recommendations and retains alternative public paths as residual facts. |
 | Misleading short summary | Coordinator inspects the named report before attributing missing investigation; corrects unsupported conclusions without broadening the work or replaying all logs. |
 | Authorization fixtures | Checks reject both a weaker and an overly restrictive plausible permission choice; expected statuses are established for each relevant operation rather than copied across a prefix. |
+| Exact-permission and legitimate-role fixtures | A user holding only the required permission succeeds; a legitimate caller without an unrelated permission still succeeds. An authenticated caller without the required permission is rejected before the protected effect. |
+| Negative case rejected for another reason | Review an expiry test whose actor does not exist. With otherwise valid actor and request preconditions, a valid control passes and disabling expiry validation makes the expiry test fail. Keep this acceptance oracle out of the evaluating agent's brief. |
+| Changed test with unused instrumentation | Review detects logging capture or scheduling waits that have no observed effect; a real asynchronous effect retains the instrumentation needed to verify it. |
+| Settled single-phase caller/server change | Root authors the plan when existing primitives and agreed behavior settle the boundary. Crossing frontend/backend alone does not add a planner or remove independent review and required checks. |
+| Unresolved compatibility or recovery boundary | A short diff with a migration, versioned consumer or recovery decision receives dedicated planning; brevity does not bypass the unresolved dependency or authority question. |
 | User question or acknowledgement during active work | Answer does not terminate or replace the assignment, clear its context or create another worker. A reply to a pending question resolves only that question. |
 | Delivery restriction or explicit stop | "Do not push yet" preserves authorized local work and blocks push; an explicit task stop pauses execution while preserving unique changes. |
 | Worker progress followed by interruption | Progress is not consumed as a final handoff. Recovery reconciles the same native handle and any interrupted mutation before resuming; no duplicate writer or repeated side effect. |
@@ -209,6 +214,81 @@ compliance. Record original and revised instructions, task revision, exact
 messages, observed native handles, outputs, retained work and any interventions.
 Add a held-out case with questions and a resume after the known-answer cases.
 Compare total cost only under matched resources and report all verification gaps.
+
+## Recorded authorization pilot, 2026-09-25
+
+This is a historical feasibility observation, not a matched quality estimate.
+The application base for all four deliveries was NeniTPV
+`5a06e1e234cc6c916aaa6e261073ca06d16477f7`. The caller retains original prompts,
+reports, native model records and diagnostic commands privately. This summary
+does not distribute transcripts, credentials or the application-policy oracle.
+
+| Delivery | Application result | Production + / - | Tests + / - | Docs + / - |
+| --- | --- | --- | --- | --- |
+| pstack | `651f5bfbc67f39772920910d04b6ed434776010c` | 11 / 5 | 39 / 24 | 2 / 2 |
+| Orchestra Lite v2 final | `1f824c9a421fb459c00124b4d8334292ad652966` | 28 / 10 | 289 / 25 | 9 / 9 |
+| Orchestra Lite v3 | `58412ec523f832c26c41ad7b3520fb4794797419` | 12 / 4 | 190 / 20 | 3 / 3 |
+| Orchestra Standard, Sol/Luna | Uncommitted 11-file delivery at the common base | 16 / 3 | 164 / 21 | 23 / 9 |
+
+Counts describe the complete delivered delta from the common base; documentation
+under backend directories is documentation. The Sol/Luna snapshot's SHA-256 of
+`git diff --no-ext-diff` was
+`3c7e9964ad17fe3a26933b278d6acc284ea218ec18834e9f5c280eb75000e98d`.
+It used Orchestra `8a01b17d80f9cb7a976c6f5d7b72b56aaa153ee7`, root
+`gpt-6-sol/xhigh`, and eight delegates all verified as `gpt-6-luna/max`.
+Subsequent evaluator-directed corrections are a separate intervention, not part
+of these original counts or first-delivery results.
+
+The independent comparison found similarly small production mechanisms in
+pstack and v3, useful exact-permission coverage in v2, and useful legitimate-role
+coverage in v3. The earlier claim of "six times more code" mixed added production,
+tests and documentation: v2 changed 38 production lines versus 16 for pstack/v3.
+A similar private helper is not automatically a reusable public API, and an
+export with no located caller is not proven dead code. The unnecessary v2 scope
+was chiefly adding credentials to public requests without a demonstrated need.
+
+The Sol/Luna delivery retained the narrow client change, covered both permission
+directions and additionally guarded an equivalent query alias. That extra route
+and its documentation mean the delivered scope was not identical. The root
+raised a pre-login policy question; the decisive permission was supplied as an
+explicit human decision. This is not evidence of independently deriving the
+desired product policy from an ambiguous specification.
+
+Selected in-memory faults produced these observations, without source mutation:
+
+| Fault | Observed sensitivity |
+| --- | --- |
+| Replace the required permission with session-only access | Selected pstack checks stayed green; v2, v3 and Sol/Luna checks rejected the wrong behavior. |
+| Add an unrelated inventory permission to the query | Selected pstack/v2 checks stayed green; v3 and Sol/Luna rejected the over-restriction. |
+| Require a stronger configuration permission | The Sol/Luna exact-permission success case rejected it. |
+| Disable expiry checking | Both new Sol/Luna expiry cases stayed green because the actor was nonexistent. With an existing active actor substituted only in the disposable test, both passed with expiry enabled and failed with it disabled. |
+
+The final Sol/Luna review missed the expiry-test false confidence and unused
+logging/wait setup in a changed download test. It did find and obtain a correction
+to a contradictory manual credential prerequisite. Native execution records
+confirmed `make test` passed for both implementer and independent verifier:
+2,541 offline and 10 isolated-Supabase tests. Frontend lint, 245 unit tests and
+build passed. The evaluator reran 65 focused backend and six client tests; these
+all passed before the selected fault checks. There was no browser or Windows
+package acceptance. Public preparation/application effects remained an explicit
+accepted limitation, not a repaired operation-wide security boundary.
+
+The original attempt was discarded after it retrieved previous conversation
+context; the replacement prohibited that retrieval. The replacement resumed
+after a quota interruption and honored a later no-commit instruction. Its roughly
+105-minute elapsed duration includes human decisions and interruption; eight
+delegates and changed conditions preclude a savings or general winner claim.
+Keep the held-out and matched evaluations pending. Use the observed test failure
+and planning overhead to evaluate bounded corrections, without assigning an
+automatic model change or mandating another benchmark on every task.
+
+The post-pilot test correction uses the existing active actor with a matching
+credential version and a successful control request. Both expiry cases now
+fail when expiry checking alone is disabled in a disposable process; normal
+execution passes. The correction also removes unobserved logging/wait setup
+and corrects misleading download-test names. Its focused checks passed 60
+tests; `make test` passed 2,543 offline and 10 isolated-Supabase tests. These
+are correction results, not an improvement to the original trial's score.
 
 ## Design references
 

@@ -293,6 +293,14 @@ stays an inference. Choose actors and fixtures that distinguish plausible wrong
 policies: an admin success alone cannot distinguish a specific permission from
 admin-only access, and a denial cannot establish that legitimate users still work.
 
+For a negative case, keep unrelated preconditions valid so the observed failure
+identifies the intended boundary. For example, an expiry test needs an existing
+active actor and an otherwise valid credential; an unknown actor can produce
+the same rejection even if expiry validation is broken. Use a valid control or
+the smallest discriminating observation where another rejection could mask the
+defect. A status code alone may not establish the claimed cause or absence of
+side effects.
+
 Judge a test by the meaningful incorrect behavior it would reject. Avoid
 assertions that mirror control flow, recompute expected output with the same
 algorithm, pin private structure or only assert a mock's configured response.
@@ -300,6 +308,9 @@ Mocks may bound nondeterministic or external effects, but must not replace the
 decision or integration being claimed. The same scrutiny applies to E2E tests
 and snapshots. For stateful behavior, observe the relevant persisted result or
 side effect; an HTTP success or attractive screenshot alone may be insufficient.
+In tests already changed by the task, remove setup, logging capture or waits
+that no longer support an observation. Preserve scheduling or instrumentation
+that is necessary to exercise and check a real asynchronous effect.
 
 Balance defect detection, fidelity, execution frequency, diagnostic value,
 reliability and maintenance cost. A fast focused test can remain valuable even

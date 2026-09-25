@@ -150,3 +150,10 @@ with an ambiguous case, its authorized-policy variant and a held-out continuatio
 case. Host behavior and broader quality improvement remain unproven by structural
 checks alone. Integration to `main`, release labels, active-installation migration
 and public distribution retain their existing explicit delivery boundaries.
+
+The [recorded authorization pilot](evaluation/MODULAR_ACCEPTANCE.md#recorded-authorization-pilot-2026-09-25)
+separates production, test and documentation deltas and preserves selected fault
+checks, human interventions and verification limits. Follow-up focuses on
+negative-test preconditions, changed-test review and proportional planning for
+settled caller/server changes. These corrections do not establish model savings;
+held-out and matched quality evaluation retain their existing prerequisites.

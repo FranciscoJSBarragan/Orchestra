@@ -1433,16 +1433,23 @@ After explicit activation in an execution-capable mode:
    planner-dispatch criteria below. The task-level
    User preview Decision must already be recorded from tier selection; do not
    introduce it at plan approval. The root authors the plan directly whenever
-   the work fits one phase, using the same two-document shape; it dispatches
-   `technical_planning` only when the work does not fit one phase or carries
-   cross-component or critical risk. Work fits one phase when one owner of one
+   the work fits one phase and its material design decisions are resolved,
+   using the same two-document shape. It dispatches `technical_planning` when
+   the work does not fit one phase, carries critical risk, or has unresolved
+   material boundary decisions, such as version
+   compatibility, migration order, recovery semantics, or ownership handoffs.
+   Work fits one phase when one owner of one
    implementation capability can cover it, its risk order is uniform, and no
    result must be reviewed and committed before another begins; the number of
-   items, areas, screens, or files in the brief is not a criterion. Work is
-   cross-component only when it crosses an ownership, capability, or runtime
-   boundary (frontend and backend, one service and another, a contract or
-   migration and its consumer); two areas served by the same capability are
-   one component for this purpose. Either author reads the exact context
+   items, areas, screens, or files in the brief is not a criterion. Crossing a
+   runtime or ownership boundary does not by itself require a second
+   implementation capability. A non-visual client credential change and its
+   server route can be one `general_implementation` phase with a root-authored
+   plan when their material decisions are settled. The root records
+   any material unresolved boundary in the existing risks or open questions;
+   a short diff does not settle it. This routing does not waive material
+   decision review, independent implementation review, or verification gates.
+   Either author reads the exact context
    evidence and produces one complete `plan-overview` plus one complete
    `plan-phase` per phase, returned as an explicit candidate bundle; no
    consumer reconstructs the bundle from a summary or chooses members by
