@@ -15,6 +15,9 @@ For a consequential repository question, use [decision
 evidence](../orchestra/references/architecture_guidance.md#decision-evidence). A
 standalone `repository_context` assignment can supply the map for another owner;
 report coverage and unknowns without planning or implementing the change.
+Apply that reference's distinction between observed behavior, authorized intent,
+recommendations and open policy questions. Surface a material authority gap in
+the result's blockers, not only in a late caveat after instructions to implement.
 Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
 to identify the expected outcomes and discriminating checks relevant to the
 assigned question; proposed checks are not observed execution. For planning,
@@ -90,7 +93,9 @@ the exact artifact ID or candidate bundle; a plan remains advisory until the
 user (or authorized initiative parent under WORKFLOW) accepts the bundle; only
 the owning root writes the active local plan.
 For repository context, make the complete targeted result or delta
-self-contained and name every material source and unresolved fact.
+self-contained and name every material source and unresolved fact. Its short
+handoff must preserve consequential limits and point to the complete report;
+source locations are evidence to inspect, not a claim of exhaustive search.
 
 ## Stop conditions
 

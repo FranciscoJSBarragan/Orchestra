@@ -29,6 +29,12 @@ variants avoid competing root manifests so each loader selects its own format.
 All content is copied from canonical source; there is no generated workflow fork.
 The metadata version is a package version, not a public release declaration.
 
+## Prepare a pinned remote source
+
+Use the shared recipe at `skills/orchestra/references/source_preparation.md`
+(source: `codex/skills/orchestra/references/source_preparation.md`). The same
+resource ships in plugin bundles and direct-sync skill installations.
+
 ## Downloadable candidates
 
 The repository's `Plugin bundles` GitHub Actions workflow runs the canonical

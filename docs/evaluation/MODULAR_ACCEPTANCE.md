@@ -131,7 +131,7 @@ keep it out of worker/analyst/reviewer prompts. Retain the complete approved sco
 in every prompt so mapping cannot redefine success. Record repetitions and
 variance, not just the best run.
 
-Candidate cases are the reported NeniTPV update-download authorization defect,
+Candidate cases are the reported NeniTPV update-download authorization task,
 a distinct `articulos` authorization boundary, and legacy reservations behavior
 in NeniCloud. The coordinator must supply the latter cases' exact bases and
 verified expected outcomes before runs. Confirm they exercise different failure
@@ -174,6 +174,41 @@ coverage overlaps. Distinguish audited, sampled and unexamined scope; a smaller
 suite alone does not establish improvement. Keep case answers and private
 application evidence outside public distribution, using the existing caller-owned
 evaluation directory rather than a persisted workflow registry.
+
+## Authority, synthesis and continuity follow-up
+
+The Neni v3 reports at Orchestra `fe5f073` and application revision `58412ec5`
+support a bounded observation: after an owner policy clarification and explicit
+scope constraints, implementation was accepted on its first review. The initial
+retrospective incorrectly attributed omitted callers and stale documentation to
+the analyst; its original report contained both. The analyst and decision reviewer
+instead treated a policy interpretation as settled. Review added two useful
+test distinctions, but the coordinator identified the authority gap. Do not
+attribute the outcome or timing change to a single mechanism. The reported
+2,540 backend checks were offline; full Supabase and browser acceptance were not
+performed. Keep the private reports with the consumer's evaluation evidence,
+not in the distributed plugin.
+
+Extend the same bounded pilot with these cases; do not run a universal benchmark
+for every prose change:
+
+| Case | Acceptance evidence |
+| --- | --- |
+| Ambiguous authorization with complete caller evidence | Analyst or reviewer exposes the policy question, alternatives and recommendation without authorizing dependent implementation. A consensus recommendation does not count as authority. |
+| Explicit policy using the same baseline | Implementer follows the owner-selected outcome without asking again, identifies superseded recommendations and retains alternative public paths as residual facts. |
+| Misleading short summary | Coordinator inspects the named report before attributing missing investigation; corrects unsupported conclusions without broadening the work or replaying all logs. |
+| Authorization fixtures | Checks reject both a weaker and an overly restrictive plausible permission choice; expected statuses are established for each relevant operation rather than copied across a prefix. |
+| User question or acknowledgement during active work | Answer does not terminate or replace the assignment, clear its context or create another worker. A reply to a pending question resolves only that question. |
+| Delivery restriction or explicit stop | "Do not push yet" preserves authorized local work and blocks push; an explicit task stop pauses execution while preserving unique changes. |
+| Worker progress followed by interruption | Progress is not consumed as a final handoff. Recovery reconciles the same native handle and any interrupted mutation before resuming; no duplicate writer or repeated side effect. |
+| Prepared source in a cold environment | Full SHA and returned roots match; repeat setup reuses the clean checkout, while dirty/wrong-revision destinations remain intact. |
+
+Exercise conversation cases through actual host turns when validating behavioral
+adoption. Paper review and routing tests cannot prove interrupt delivery or model
+compliance. Record original and revised instructions, task revision, exact
+messages, observed native handles, outputs, retained work and any interventions.
+Add a held-out case with questions and a resume after the known-answer cases.
+Compare total cost only under matched resources and report all verification gaps.
 
 ## Design references
 

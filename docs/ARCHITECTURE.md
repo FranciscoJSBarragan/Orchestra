@@ -750,7 +750,15 @@ unused mechanisms.
 
 ## Installation boundary
 
-The source repository is authoritative. `codex/scripts/package_plugin.py`
+The source repository is authoritative. `codex/scripts/prepare_source.py` uses
+Git to prepare or verify one clean source checkout at a requested full SHA for
+an external coordinator or prepared environment. It returns runtime paths,
+preserves existing destinations and adds no installer service or task state.
+The setup owner handles retention; workers consume the selected runtime.
+`codex/skills/orchestra/references/source_preparation.md` owns this preparation
+recipe and ships with both plugin and direct-sync skills.
+
+`codex/scripts/package_plugin.py`
 builds a relocatable plugin from the same skills, profiles, helpers, native
 matrices, and canonical workflow used by direct sync. The builder consumes
 `packaging/orchestra/.codex-plugin/plugin.json` as its only metadata source and

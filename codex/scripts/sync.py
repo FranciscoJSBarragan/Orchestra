@@ -69,6 +69,7 @@ HELPERS = (
     "task_mcp.py",
     "commit_phase.py",
     "delegate.py",
+    "prepare_source.py",
     "adopt_worktree.py",
     "policy.py",
     "pr.py",

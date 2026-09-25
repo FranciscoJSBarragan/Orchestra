@@ -48,3 +48,22 @@ configured root. Never point ORCHESTRA_HOME at a plugin
 cache, write settings there, or persist a plugin cache path in a task plan.
 Resolve paths again after a host restart or plugin update. Plugin loading does
 not change global permissions or activate the workflow.
+
+## Conversation continuity
+
+At the start of substantive work, read "Conversation continuity" in the selected
+WORKFLOW for follow-ups, worker progress and interruption recovery. It applies
+to ordinary skill use as well as the full workflow, without activating it or
+creating task state. Reuse that loaded guidance when a casual message arrives;
+the message alone does not require resolving or rereading the runtime.
+
+## Prepared remote source
+
+An external coordinator or environment setup may use the shipped
+`scripts/prepare_source.py` (source: `codex/scripts/prepare_source.py`) to prepare
+or verify a source checkout at an approved full commit SHA. Use the shared
+[source preparation recipe](references/source_preparation.md), included with
+the skills in every installation mode. Its returned roots select source mode
+above; the `workflow` path is explicit because it lives
+outside `codex/`. Task workers consume those roots without installing another
+runtime. A cache mismatch requires reconciliation, not fallback to a moving ref.

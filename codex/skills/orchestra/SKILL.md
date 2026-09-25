@@ -21,6 +21,7 @@ the current checkpoint:
 | Need | Read these WORKFLOW sections |
 | --- | --- |
 | Activation and user authority | `Orchestrator behavior`, `Host adapters`, `Autonomy within an approved objective` |
+| Follow-ups, worker progress and interrupted work | `Conversation continuity`, `Agent waiting` |
 | Host, tier, and assignment | `Tier flows and models`, `Installed matrices are the assignment truth`, and the selected host adapter |
 | Direct tools, CLI executor, or execution preset | `Standalone tools`, `CLI delegation`, `Delegated execution presets`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
 | Context, specification, and plan | `Context and planning`, `Local task plan`, and the named analysis playbook |

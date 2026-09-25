@@ -185,9 +185,26 @@ must not disappear merely because no row mentions them. An independent reviewer
 actively looks for omissions and challenges the supplied conclusions.
 
 Use the relevant decision prompts below, not a mandatory matrix for every task.
-Put the answer and its evidence in the existing brief, map or plan. A material
-policy ambiguity remains open until the authorized owner resolves it; adjacent
-code, a UI restriction or a model's confidence cannot supply missing intent.
+Put the answer and its evidence in the existing brief, map or plan. Distinguish
+observed behavior from authorized intended behavior, a proposed recommendation
+and missing evidence. Classify the claim, not its whole source document: code
+and tests can establish current behavior without authorizing its preservation.
+An analyst's conclusion or agreement between reviewers does not grant authority.
+
+A material policy question remains open when the authorized outcome cannot be
+established, even if all relevant code is understood. State the question, viable
+options, consequences, recommendation and the authority needed to resolve it.
+Do not declare dependent implementation ready or its decisions accepted while
+that question is open. Missing factual evidence instead calls for a bounded
+investigation. Ordinary reversible technical alternatives within the approved
+outcome do not become product questions merely because several designs work.
+
+An authorized decision can supersede a prior recommendation, not an observed
+fact or an independent obligation. Identify the replaced recommendation and the
+remaining facts, risks and verification gaps. Keep that distinction in the
+handoff instead of asking the next agent to choose between conflicting reports.
+Adjacent code, a UI restriction or a model's confidence cannot supply missing
+intent; already authorized intent does not need repeated user approval.
 
 | Risk | Decision and discriminating evidence |
 | --- | --- |
@@ -196,6 +213,12 @@ code, a UI restriction or a model's confidence cannot supply missing intent.
 | Data | Writer, reader, invariant and persistence boundary. Identify interruption, repetition and rollback/reconciliation behavior; check relevant round trips and failure states. |
 | Behavior | Entry point, visible outcome, relevant negative/boundary case and behavior that must remain unchanged. Distinguish a defect reproducer from preservation coverage. |
 | Configuration | Source, precedence, default, activation and consuming runtime. Verify effective behavior, including invalid or absent values where material; parsing alone may not establish use. |
+
+For example, an admin-only caller, an existing public-prefix test and a separate
+public path to the same effect do not by themselves decide the desired policy
+of an endpoint. Explain the alternatives and their limited protection without
+choosing a new security policy. Conversely, when the owner has explicitly chosen
+that endpoint's permission, implement and verify it without reopening the choice.
 
 The relevant effect defines the investigation boundary even when another path
 does not need an edit. Report an out-of-scope bypass and its acceptance impact;
@@ -261,6 +284,14 @@ defects, legacy behavior or review findings; chronology neither proves nor
 disproves quality. For reproductions and selective sensitivity checks, use
 "Evidence for consequential changes" below. Preservation tests may correctly
 pass on both revisions. Never manufacture a failure to satisfy a red-green claim.
+
+For an authorized policy change, compare the prior behavior with the new required
+behavior and identify what must be preserved. A test of the new requirement may
+legitimately fail on the baseline without proving the old policy was a defect.
+Label baseline results as observed only when executed; a source-based prediction
+stays an inference. Choose actors and fixtures that distinguish plausible wrong
+policies: an admin success alone cannot distinguish a specific permission from
+admin-only access, and a denial cannot establish that legitimate users still work.
 
 Judge a test by the meaningful incorrect behavior it would reject. Avoid
 assertions that mirror control flow, recompute expected output with the same

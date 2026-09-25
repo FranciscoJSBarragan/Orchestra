@@ -124,6 +124,7 @@ class PlannedFlowInvariantTests(unittest.TestCase):
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
             "architecture_guidance.md",
             "shared_conduct.md",
+            "source_preparation.md",
             "host_codex.md",
         }
         self.assertEqual({path.name for path in self.references.iterdir()}, expected)

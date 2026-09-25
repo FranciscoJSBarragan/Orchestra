@@ -579,6 +579,21 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_missing_runtime_route_is_actionable_across_entry_points(self) -> None:
+        for name in ("orchestra", "orchestra-engineering", "orchestra-lite", "orchestra-role-analyst"):
+            with self.subTest(skill=name):
+                path = self.root / "codex/skills" / name / "SKILL.md"
+                original = path.read_text()
+                unrouted = re.sub(r"\[[^]]+\]\(([^)]*runtime\.md(?:#[^)]*)?)\)", r"\1", original)
+                self.assertNotEqual(unrouted, original)
+                try:
+                    path.write_text(unrouted)
+                    result = self.run_validator()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(f"{name} must link runtime.md", result.stdout)
+                finally:
+                    path.write_text(original)
+
     def test_runtime_requires_exact_managed_markers(self) -> None:
         runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
         runtime.write_text(

@@ -6,6 +6,14 @@ companion", especially "Lite coordinator acceptance" and "Result contract".
 Those sections own the policy. Pin these instructions and the worker to the
 same Orchestra revision. Updating a local bundle does not update a cloud
 worker that still clones an earlier revision.
+For disposable remote environments, use runtime resources' "Prepared remote
+source" before worker launch when a source checkout is selected. Verify the
+returned revision and supply its absolute roots to each consumer.
+
+Apply WORKFLOW "Conversation continuity" throughout the assignment, including
+worker commentary and user questions while waiting. Consume a completed handoff
+under "Engineering guidance and evidence"; a short summary is not the complete
+analysis and an intermediate update is not a failed or finished worker.
 
 Prepare the [kickoff](kickoff-template.md) from the approved objective,
 acceptance, exclusions and actual authority. For v2, explicitly send
@@ -28,6 +36,10 @@ to make the consequential acceptance criterion explicit. Apply WORKFLOW
 checks and environment readiness, and obtain a bounded decision review when
 required. Record settled decisions and their evidence in the existing kickoff;
 do not ask an implementer or reviewer to guess missing product policy.
+The kickoff's [decision examples](kickoff-template.md#decision-handoff) identify
+authority and superseded recommendations without replacing facts or residual
+risks. Reuse applicable decision-review evidence and name its reviewed revision;
+an unresolved material policy question prevents dependent writer launch.
 
 Read the completed result once from the final message or `Reporte`, then apply
 the version and status rules in WORKFLOW:
@@ -59,3 +71,8 @@ to the same reviewer. Recover existing handles on interruption; do not launch a
 second writer to obtain a progress update. Report exact accepted revision,
 remaining blockers and delivery state to the user. Completion does not confer
 merge authority.
+
+Apply WORKFLOW "Review policy" to suggested findings before delivery: classify
+their impact and return accepted in-scope fixes to the same worker, with the
+affected verification and delta review. Cheap edits are not automatically
+required, and documentation or test edits are not automatically review-exempt.

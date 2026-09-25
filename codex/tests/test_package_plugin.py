@@ -122,6 +122,39 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)["env"]["ORCHESTRA_HOST_THREAD_ID"], "cursor.test-1")
 
+    def test_packaged_preparation_uses_exact_source_without_global_installation(self) -> None:
+        plugin = self.build()
+        repository = self.root / "source fixture"
+        for relative in (
+            "docs/WORKFLOW.md", "codex/skills/orchestra/SKILL.md",
+            "codex/skills/orchestra/runtime.md", "codex/scripts/delegate.py",
+        ):
+            target = repository / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / relative, target)
+        for arguments in (
+            ("init", "--quiet"), ("add", "."),
+            ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+             "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "source fixture"),
+        ):
+            subprocess.run(["git", "-C", str(repository), *arguments], capture_output=True, check=True)
+        revision = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        destination = self.root / "prepared source"
+        result = self.run_helper(
+            plugin, "prepare_source.py", "--revision", revision,
+            "--repository", str(repository), "--destination", str(destination),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["revision"], revision)
+        self.assertEqual(Path(payload["workflow"]), destination / "docs/WORKFLOW.md")
+        self.assertTrue((Path(payload["skills_root"]) / "orchestra/SKILL.md").is_file())
+        self.assertFalse((self.root / "home").exists())
+        self.assertFalse((self.root / "state").exists())
+
     def test_devin_target_bundles_native_layout(self) -> None:
         plugin = self.build("devin")
         manifest = json.loads((plugin / ".devin-plugin/plugin.json").read_text())

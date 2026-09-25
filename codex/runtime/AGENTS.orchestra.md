@@ -11,6 +11,10 @@ For meaningful behavior or test changes, use `$orchestra-engineering`'s shared
 "Behavioral verification" and "Change quality" criteria. Suite cleanup uses
 "Test maintenance" through the maintenance entry, within the current authority.
 
+User follow-ups and worker updates preserve the active objective under WORKFLOW
+"Conversation continuity". Apply its response and recovery rules without
+activating the planned route for ordinary work.
+
 Workflow policy has one canonical home: `${ORCHESTRA_HOME:-$HOME/.orchestra}/WORKFLOW.md`, routed by `$orchestra`. This managed block is the Codex host overlay and adds only host runtime facts:
 
 - Use `${ORCHESTRA_HOME:-$HOME/.orchestra}` as the shared runtime home; helpers live at `${ORCHESTRA_HOME:-$HOME/.orchestra}/scripts/` with fallback `${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/`.

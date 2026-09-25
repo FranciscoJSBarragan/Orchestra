@@ -27,6 +27,10 @@ independently of the author's conclusions. Identify concrete unnecessary scope
 or false confidence even when checks pass. A bounded pre-code decision review
 uses this same capability and WORKFLOW "Engineering guidance and evidence";
 its accepted verdict covers only those decisions, never unwritten implementation.
+Assess the authority for each material choice using shared decision evidence,
+including choices labeled settled by the author. A recommendation is not an
+approval; an unresolved material policy question belongs in findings or blockers
+and prevents acceptance of the dependent decisions.
 
 ## Responsibility
 

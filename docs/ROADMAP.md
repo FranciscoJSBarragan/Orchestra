@@ -132,3 +132,21 @@ under matched resources. A real test-cleanup pilot needs an explicitly selected
 repository/area; source changes do not authorize deletion in consumer projects.
 Broader adoption, active-installation updates, public distribution and Bridge
 retain their existing sequencing and authority boundaries.
+
+## Authority and conversation continuity
+
+Shared decision evidence now separates observed facts, authorized behavior,
+recommendations and unresolved policy. Bounded decision review covers material
+choices even when an analyst labels them settled. Coordinator synthesis consumes
+the relevant producer report before attributing a failure or accepting work.
+Conversation continuity preserves the active objective and native handles across
+user questions, worker commentary and interruption, without new workflow state.
+
+The shipped source-preparation helper verifies one full revision and refuses to
+replace existing work. Consumer environments may prebuild that checkout or load
+a verified package; Cursor Cloud environment configuration remains consumer-owned.
+Run the [authority and continuity pilot](evaluation/MODULAR_ACCEPTANCE.md#authority-synthesis-and-continuity-follow-up)
+with an ambiguous case, its authorized-policy variant and a held-out continuation
+case. Host behavior and broader quality improvement remain unproven by structural
+checks alone. Integration to `main`, release labels, active-installation migration
+and public distribution retain their existing explicit delivery boundaries.

@@ -30,6 +30,8 @@ REQUIRED_PATHS = (
     "codex/tests/test_comment_policy.py",
     "codex/scripts/sync.py",
     "codex/scripts/package_plugin.py",
+    "codex/scripts/prepare_source.py",
+    "codex/tests/test_prepare_source.py",
     "codex/tests/test_package_plugin.py",
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
@@ -626,6 +628,14 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             if not resolved.is_file():
                 failures.append(f"skill-contract: {name} has broken link {target}")
 
+        runtime = (root / "codex/skills/orchestra/runtime.md").resolve()
+        targets = {
+            (skill.parent / target.split("#", 1)[0]).resolve()
+            for target in _local_markdown_links(text)
+        }
+        if runtime not in targets:
+            failures.append(f"skill-contract: {name} must link runtime.md for runtime and continuity routing")
+
         metadata_file = skill.parent / "agents/openai.yaml"
         if metadata_file.is_file():
             ui = metadata_file.read_text(encoding="utf-8")
@@ -648,6 +658,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         *(f"{name}.md" for name in PLAYBOOK_NAMES),
         f"{ARCHITECTURE_REFERENCE}.md",
         "shared_conduct.md",
+        "source_preparation.md",
         "host_codex.md",
     }
     if not references.is_dir():
@@ -660,7 +671,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
-                "and the Codex spawn adapter"
+                "one source preparation recipe, and the Codex spawn adapter"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():
@@ -1056,6 +1067,7 @@ def check_direct_sync(root: Path) -> list[str]:
         "task_mcp.py",
         "commit_phase.py",
         "delegate.py",
+        "prepare_source.py",
         "adopt_worktree.py",
         "policy.py",
         "pr.py",

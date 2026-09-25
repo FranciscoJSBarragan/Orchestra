@@ -45,6 +45,10 @@ change this mode decision.
 
 ## Assignment and authority
 
+Apply WORKFLOW "Conversation continuity" to follow-ups and interruptions within
+this assignment; keep the existing owner and scope. A progress update does not
+hand off the capability or authorize a replacement worker.
+
 The packet or direct brief is the sole assignment. Perform exactly one named
 capability with the authority, target, intent, bounded scope, revision,
 evidence basis, and stop conditions it carries. In `orchestra_phase` mode,
@@ -108,6 +112,13 @@ In either mode, do not repeat incidental or unchanged context, edit an earlier
 report, or infer authority.
 
 ## Reports and publication
+
+Keep material unresolved decisions, blockers, verification limits and the exact
+report location visible in the final handoff. Recommendations remain proposals
+under [decision evidence](architecture_guidance.md#decision-evidence), even when
+another agent agrees. WORKFLOW "Engineering guidance and evidence" owns how the
+consumer verifies and synthesizes a report; do not require it to infer authority
+from omitted details or read every exploratory log.
 
 Return the outcome or status first, then capability or target, the revision,
 blockers, material risks, and decisions requested. In `standalone` mode the

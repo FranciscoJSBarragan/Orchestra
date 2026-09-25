@@ -49,7 +49,9 @@ routing, compact synthesis, blocker resolution, the local plan, phase commits,
 and final technical judgment. It follows the autonomy policy in
 `docs/WORKFLOW.md` ("Autonomy within an approved objective"): within an
 approved objective it makes reversible in-scope decisions without re-asking
-and stops only at the hard gates named there. The user chooses the active tier
+and stops only at the hard gates named there. User follow-ups and worker updates
+follow "Conversation continuity" and "Agent waiting" without replacing the
+active objective. The user chooses the active tier
 and remains the final authority. Tier semantics, host matrices, checkout and
 branch rules, agent flow, phase execution, review policy, delivery, and
 browser/permission routing are all specified in `docs/WORKFLOW.md`; do not

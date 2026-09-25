@@ -937,6 +937,45 @@ another device, an account or approval only the user holds — batch every
 needed check into one consolidated request with expected results, instead of
 sequential single questions.
 
+## Conversation continuity
+
+Interpret incoming messages in the active conversation. A question,
+acknowledgement or progress update does not replace the approved objective,
+cancel pending work, change authority or complete the task. A reply such as
+"yes" can resolve a pending question; infer its scope from that question, not
+from the word alone. A request to continue resumes the existing assignment.
+Apply a correction or additional constraint to the affected work while keeping
+the rest of the objective. A delivery-only restriction does not pause unrelated
+authorized implementation. Honor an explicit stop, pause or cancellation and
+preserve unique work; clarify genuinely conflicting intent before dependent work.
+
+During active work, answer incidental questions through the host's nonterminal
+response channel when available, then continue the authorized task. Do not end
+the turn merely to answer a status question while actionable work remains.
+With no active work, answer a casual message from context without starting tools
+or a workflow solely because it arrived. Neither case creates task state,
+memory initialization, a new wait, cleanup or a checkpoint just for the message;
+tools and waits needed by the existing assignment remain valid. Report only
+meaningful changes to the existing plan or handoff, not a message ledger.
+
+Worker commentary, a wait timeout and a completed native turn are different
+signals. A progress message is not a result, blocker or failed launch. Use the
+existing host handle and completion evidence under "Agent waiting" and "CLI
+delegation"; even process success needs the assigned deliverable and acceptance
+evidence. Do not relaunch, retire or inspect an evolving implementation because
+its worker said it was still working. A user correction goes to the same owner
+when supported, without replaying its original mutating assignment.
+
+After interruption or compaction, retain the objective, constraints, decisions,
+authority, completed acceptance, outstanding work and existing handles. Recover
+only missing context from the established plan, reports or native session. Check
+whether the previous owner is still running, completed, blocked or unavailable
+before resuming or replacing it; a missing tool response alone cannot decide
+that. Reconcile any interrupted mutation before repeating it, and preserve the
+implementation observation boundary. Only affected evidence becomes stale.
+Continue independent authorized work while a genuine dependency waits. Do not
+create a recovery database or promise continuation the host cannot provide.
+
 ## Engineering guidance and evidence
 
 The shared `architecture_guidance.md` reference, reached through the loaded
@@ -956,15 +995,21 @@ limits. These criteria apply to standalone roles and Lite as well as the full
 workflow. Existing capability boundaries, terminal-check ownership, authority
 rules and dedicated-gate reasons remain decisive.
 
-Resolve a material acceptance or policy ambiguity before dependent code. Use
-existing independent plan review for an unresolved consequential authorization,
-contract, data-integrity or recovery decision; a lower tier or cheaper model does
-not exempt that risk. Review only the bounded decisions and relevant evidence,
-including missing alternatives, intended authority and required preservation.
-Reuse the plan review rather than adding a second gate when it already covers
-them. Factual questions may first be settled by the analyst or an authorized
-experiment; settled routine changes need no extra review. A reviewer cannot
-choose missing product policy on the user's behalf. In standalone/custom work,
+Resolve a material acceptance or policy ambiguity before dependent code. Before
+implementation, independently review consequential choices that select or change
+authorization, cross-system compatibility, data integrity or recovery behavior,
+including choices an analyst claims are settled. A lower tier or cheaper model
+does not exempt that risk. Use the existing plan review or a bounded decision
+review; do not add a second gate when that review already covers the choices.
+Merely touching related files or preserving an explicit, already reviewed policy
+does not require another decision review. Assess alternatives, authority,
+preservation and discriminating checks using shared "Decision evidence".
+Factual questions may first be settled by the analyst or an authorized experiment.
+A reviewer may recommend a policy but cannot authorize it on the user's behalf
+or mark dependent work ready while its material authority remains unresolved.
+Do not re-ask decisions already authorized; if the owner selects an alternative
+whose consequences were reviewed, inspect only any newly affected assumptions.
+In standalone/custom work,
 use the caller's authorized review route and surface a missing decision or
 review as a concrete dependency; do not silently dispatch agents or activate
 Orchestra. Decision review does not replace implementation review.
@@ -982,6 +1027,16 @@ own explicit authority and supported policy/configuration change.
 Never relabel a missing mandatory check as optional or passing at delivery.
 Before accepting a report, compare actual commands/results and source identity
 with the required set; well-formed output and a green subset are insufficient.
+
+Before accepting work, diagnosing a failure or changing the workflow from a
+retrospective, read the producer's relevant report and inspect evidence that
+could change that judgment. A missing detail in its short final message does
+not prove missing investigation. Preserve the distinction between observed
+facts, authorized decisions, recommendations and uncertainty when synthesizing.
+If a summary contradicts its source, correct the summary and its dependent
+claims; do not prescribe a fix for the unsupported diagnosis. Preserve prior
+reports and identify a superseded recommendation in the current handoff. This
+requires bounded source consumption, not replaying all logs or repeating research.
 
 Keep task-specific recipes and material assumptions in the existing plan
 acceptance, risks, and `Verification` sections, or the standalone brief.
@@ -2193,6 +2248,15 @@ Do not cycle on:
 - scope expansion disguised as review;
 - repeated restatements of an already rejected suggestion.
 
+Assess a suggestion by its concrete acceptance, correctness or maintenance
+impact, not its label or low editing cost. Group accepted in-scope corrections
+for the same owner; explicitly defer or reject the rest when their disposition
+matters to delivery. A false authorization claim in documentation is not merely
+cosmetic because it is outside production code. Changed tests or instructions
+also need the affected checks and meaningful delta review; a production-only
+review rule would leave their evidence stale. Do not reopen unaffected evidence
+or run a full correction loop for pure preference.
+
 When the review packet names a frozen user-preview revision, do not treat
 taste or cosmetic preference as a required finding. Bugs, accessibility,
 regressions, and defect-prone complexity remain in scope. A defect that
@@ -2344,6 +2408,9 @@ a missing approved plan blocks automatic resume under the normal reconciliation
 rules.
 
 ## Agent waiting
+
+Apply "Conversation continuity" to user messages and worker updates received
+while waiting. An intermediate message does not terminate the assignment.
 
 Prefer the host's completion notification or a non-interruptive wait on the
 exact live agent/process handle. Native adapters use ten-minute windows

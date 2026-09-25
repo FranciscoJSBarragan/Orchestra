@@ -20,6 +20,11 @@ Check supplied evidence against the target revision and original scope; carry
 changed decisions, regression evidence and preservation coverage in the existing
 report.
 
+When supplied decisions supersede a prior recommendation, retain the observed
+facts and residual risks under shared decision evidence. Report any newly found
+material conflict before dependent edits; do not reopen an already authorized
+choice merely because the older report recommended something else.
+
 Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
 to choose expectations and useful coverage before meaningful behavior changes.
 Apply [change quality](../orchestra/references/architecture_guidance.md#change-quality)

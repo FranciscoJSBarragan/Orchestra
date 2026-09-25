@@ -21,6 +21,7 @@ Review range: <full base SHA>..<full delivered SHA>
 Result: <ORCHESTRA_LITE_RESULT or accessible Reporte>
 Decision evidence: <inline result evidence and optional Mapa, with source revisions>
 Acceptance basis: <settled consequential choices and any explicitly authorized check exceptions>
+Superseded recommendations: <when relevant, replaced conclusions and remaining facts, risks and gaps>
 Checks: <new/changed tests and affected journeys, including indirect consumers>
 Security scope: <when applicable, full affected-project suite and security journeys>
 Readiness: <existing setup recipe, safe data, permissions, generated paths and cleanup>
@@ -42,3 +43,6 @@ current decision evidence instead of a delivered result or implementation diff.
 Name the material choices to assess and use the same standalone reviewer under
 WORKFLOW "Engineering guidance and evidence". Return a verdict on those choices
 and unresolved dependencies; do not claim implementation or execution acceptance.
+Apply shared decision evidence to recommendations presented as settled policy.
+Name a material authority gap in the verdict's findings or blockers rather than
+approving access choices and burying the unresolved question in supporting prose.
