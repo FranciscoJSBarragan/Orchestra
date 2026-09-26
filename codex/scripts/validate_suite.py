@@ -36,10 +36,7 @@ REQUIRED_PATHS = (
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
     "codex/skills/orchestra/runtime.md",
-    "codex/scripts/coordination.py",
     "codex/scripts/task_state.py",
-    "codex/scripts/task_control.py",
-    "codex/scripts/task_mcp.py",
     "codex/scripts/commit_phase.py",
     "codex/scripts/delegate.py",
     "codex/scripts/adopt_worktree.py",
@@ -56,13 +53,6 @@ REQUIRED_PATHS = (
     "codex/agents/orchestra_verifier.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
-    "codex/skills/orchestra-task/SKILL.md",
-    "codex/skills/orchestra-task/agents/openai.yaml",
-    "codex/control/orchestra_control/__init__.py",
-    "codex/control/orchestra_control/db.py",
-    "codex/control/orchestra_control/service.py",
-    "codex/control/orchestra_control/cli.py",
-    "codex/control/orchestra_control/mcp.py",
     "codex/skills/orchestra-project-start/SKILL.md",
     "codex/skills/orchestra-project-start/agents/openai.yaml",
     "codex/skills/orchestra-repo-onboard/SKILL.md",
@@ -126,8 +116,6 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_delegate.py",
-    "codex/tests/test_coordination.py",
-    "codex/tests/test_task_control.py",
     "codex/tests/test_adopt_worktree.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
@@ -143,8 +131,6 @@ REQUIRED_PATHS = (
     "hosts/cursor/references/spawn.md",
     "hosts/cursor/plugin/.cursor-plugin/plugin.json",
     "hosts/cursor/plugin/commands/orchestra.md",
-    "hosts/cursor/plugin/hooks/hooks.json",
-    "hosts/cursor/plugin/scripts/session_identity.py",
     "hosts/grok/config/roles.grok.toml",
     "hosts/grok/references/spawn.md",
     "hosts/devin/config/roles.devin.toml",
@@ -153,8 +139,6 @@ REQUIRED_PATHS = (
     "hosts/devin/agents/orchestra_implementation_worker.md",
     "hosts/devin/agents/orchestra_reviewer.md",
     "hosts/devin/agents/orchestra_verifier.md",
-    "hosts/devin/plugin/hooks.json",
-    "hosts/devin/plugin/scripts/session_identity.py",
 )
 
 PERMANENT_DOCS = (
@@ -164,11 +148,6 @@ PERMANENT_DOCS = (
     "docs/WORKFLOW.md",
     "docs/ARCHITECTURE.md",
     "docs/ROADMAP.md",
-)
-
-IDENTITY = (
-    "Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,\n"
-    "Cursor, Grok Build, and Devin."
 )
 
 HISTORICAL_NARRATIVES = (
@@ -262,7 +241,6 @@ LEGACY_PROFILE_NAMES = (
 
 SKILL_NAMES = (
     "orchestra",
-    "orchestra-task",
     "orchestra-project-start",
     "orchestra-repo-onboard",
     "orchestra-delegate",
@@ -383,6 +361,12 @@ def check_distribution_boundary(root: Path) -> list[str]:
             failures.append(
                 f"distribution-boundary: generated manifest belongs in a package, not {relative.as_posix()}"
             )
+    for relative in ("codex/control", "hub", "codex/skills/orchestra-task",
+                     "codex/scripts/task_control.py", "codex/scripts/task_mcp.py",
+                     "codex/scripts/coordination.py", "hosts/cursor/plugin/hooks/hooks.json",
+                     "hosts/devin/plugin/hooks.json"):
+        if (root / relative).exists():
+            failures.append(f"distribution-boundary: {relative} belongs in Orchestra Tasks")
     return failures
 
 
@@ -728,8 +712,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
     direct_consumers = {
         "orchestra": (
             "task_state.py",
-            "coordination.py",
-        ),
+            ),
         "orchestra-phase-commit": ("commit_phase.py",),
         "orchestra-pr-review": (
             "pr.py",
@@ -1061,10 +1044,7 @@ def check_direct_sync(root: Path) -> list[str]:
             f"{len(LEGACY_PROFILE_NAMES)} retired agent names"
         )
     if tuple(constants.get("HELPERS", ())) != (
-        "coordination.py",
         "task_state.py",
-        "task_control.py",
-        "task_mcp.py",
         "commit_phase.py",
         "delegate.py",
         "prepare_source.py",
@@ -1155,10 +1135,6 @@ def check_direct_sync(root: Path) -> list[str]:
 def check_documentation(root: Path) -> list[str]:
     """Validate product identity, roadmap boundary, and timeless documentation."""
     failures: list[str] = []
-    readme = root / "README.md"
-    if readme.is_file() and IDENTITY not in readme.read_text(encoding="utf-8"):
-        failures.append("documentation: README.md is missing the canonical identity")
-
     roadmap = root / "docs/ROADMAP.md"
     if roadmap.is_file():
         roadmap_text = roadmap.read_text(encoding="utf-8")
@@ -1300,9 +1276,7 @@ def check_cursor_host(root: Path) -> list[str]:
     failures: list[str] = []
     roles_path = root / "hosts/cursor/config/roles.cursor.toml"
     spawn_path = root / "hosts/cursor/references/spawn.md"
-    hooks_path = root / "hosts/cursor/plugin/hooks/hooks.json"
-    identity_path = root / "hosts/cursor/plugin/scripts/session_identity.py"
-    if not all(path.is_file() for path in (roles_path, spawn_path, hooks_path, identity_path)):
+    if not all(path.is_file() for path in (roles_path, spawn_path)):
         return failures
     try:
         roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
@@ -1381,34 +1355,6 @@ def check_cursor_host(root: Path) -> list[str]:
         failures.append(
             "cursor-contract: spawn.md must not map Cursor routes to Playwright"
         )
-    try:
-        hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeError) as error:
-        failures.append(f"cursor-contract: hooks.json is invalid: {error}")
-    else:
-        expected_hooks = {
-            "version": 1,
-            "hooks": {
-                "sessionStart": [
-                    {"command": "python3 ./scripts/session_identity.py"}
-                ]
-            },
-        }
-        if hooks != expected_hooks:
-            failures.append(
-                "cursor-contract: sessionStart must invoke the identity bridge exactly once"
-            )
-    identity = identity_path.read_text(encoding="utf-8")
-    for required in (
-        "conversation_id",
-        "session_id",
-        "ORCHESTRA_HOST_THREAD_ID",
-        "return 2",
-    ):
-        if required not in identity:
-            failures.append(
-                f"cursor-contract: session identity bridge must name {required}"
-            )
     return failures
 
 
@@ -1473,7 +1419,6 @@ def check_grok_host(root: Path) -> list[str]:
         "resume_from",
         "get_command_or_subagent_output",
         "timeout_ms: 600000",
-        "GROK_SESSION_ID",
         "Playwright",
         "general-purpose",
     ):
@@ -1490,9 +1435,7 @@ def check_devin_host(root: Path) -> list[str]:
     roles_path = root / "hosts/devin/config/roles.devin.toml"
     spawn_path = root / "hosts/devin/references/spawn.md"
     agents_dir = root / "hosts/devin/agents"
-    hooks_path = root / "hosts/devin/plugin/hooks.json"
-    identity_path = root / "hosts/devin/plugin/scripts/session_identity.py"
-    required_paths = (roles_path, spawn_path, hooks_path, identity_path)
+    required_paths = (roles_path, spawn_path)
     if not all(path.is_file() for path in required_paths) or not agents_dir.is_dir():
         return failures
     try:
@@ -1544,45 +1487,10 @@ def check_devin_host(root: Path) -> list[str]:
                 failures.append(
                     f"devin-contract: {profile_path.name} must pin its name and swe-2-max"
                 )
-    try:
-        hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeError) as error:
-        failures.append(f"devin-contract: hooks.json is invalid: {error}")
-    else:
-        expected_hooks = {
-            "SessionStart": [
-                {
-                    "matcher": "",
-                    "hooks": [
-                        {
-                            "type": "command",
-                            "command": 'python3 "$DEVIN_PLUGIN_ROOT/scripts/session_identity.py"',
-                            "timeout": 10,
-                        }
-                    ],
-                }
-            ]
-        }
-        if hooks != expected_hooks:
-            failures.append(
-                "devin-contract: SessionStart must invoke the identity bridge exactly once"
-            )
-    identity = identity_path.read_text(encoding="utf-8")
-    for required in (
-        "session_id",
-        "ORCHESTRA_DEVIN_THREAD_ID",
-        "hookSpecificOutput",
-        "return 2",
-    ):
-        if required not in identity:
-            failures.append(
-                f"devin-contract: session identity bridge must name {required}"
-            )
     spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
     for required in (
         "run_subagent",
         "read_subagent",
-        "ORCHESTRA_DEVIN_THREAD_ID",
         "swe-2-max",
         "orchestra:<subagent_type>",
         ".devin-plugin/plugin.json",

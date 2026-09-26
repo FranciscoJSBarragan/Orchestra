@@ -27,7 +27,6 @@ class GrokHostTests(unittest.TestCase):
             "spawn_subagent",
             "get_command_or_subagent_output",
             "isolation: none",
-            "GROK_SESSION_ID",
             "Playwright",
         ):
             self.assertIn(required, spawn)

@@ -47,6 +47,3 @@ technical availability or capability gap that the in-app Browser can satisfy.
 Direct sync configures Guardian (`:workspace`, `on-request`, and Auto-review)
 as the default. The active permission choice for the task, host, or launcher
 remains authoritative.
-
-Task Control owner commands, including `task acknowledge-stop`, use the exact
-adapter-provided `CODEX_THREAD_ID`. Never replace it with generated content.

@@ -105,7 +105,7 @@ class SyncTests(unittest.TestCase):
 
     def source_fixture(self) -> Path:
         fixture = Path(self.temporary.name) / "source"
-        for directory in ("skills", "agents", "control"):
+        for directory in ("skills", "agents"):
             shutil.copytree(ROOT / "codex" / directory, fixture / "codex" / directory)
         (fixture / "codex/config").mkdir(parents=True)
         shutil.copy2(
@@ -205,7 +205,7 @@ class SyncTests(unittest.TestCase):
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/scripts/pr.py").is_file())
-        self.assertTrue(
+        self.assertFalse(
             self.codex_home.joinpath("orchestra/scripts/coordination.py").is_file()
         )
         self.assertTrue(
@@ -214,7 +214,7 @@ class SyncTests(unittest.TestCase):
         self.assertFalse(
             self.codex_home.joinpath("orchestra/scripts/session_model.py").exists()
         )
-        self.assertTrue(
+        self.assertFalse(
             self.codex_home.joinpath("orchestra/scripts/task_mcp.py").is_file()
         )
         self.assertEqual(
@@ -229,9 +229,9 @@ class SyncTests(unittest.TestCase):
         self.assertIn('approval_policy = "on-request"', config)
         self.assertIn('approvals_reviewer = "auto_review"', config)
         self.assertIn('default_permissions = ":workspace"', config)
-        self.assertIn("mcp_servers.orchestra_tasks = {", config)
-        self.assertIn('default_tools_approval_mode = "writes"', config)
-        self.assertIn("orchestra/scripts/task_mcp.py", config)
+        self.assertNotIn("mcp_servers.orchestra_tasks", config)
+        self.assertNotIn("default_tools_approval_mode", config)
+        self.assertNotIn("orchestra/scripts/task_mcp.py", config)
         self.assertNotIn("orchestra-workspace", config)
         self.assertNotIn("[permissions.", config)
         self.assertNotIn("[sandbox_workspace_write]", config)
@@ -252,10 +252,10 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(
             self.codex_home.joinpath("orchestra/scripts/adopt_worktree.py").is_file()
         )
-        self.assertTrue(
+        self.assertFalse(
             self.orchestra_root.joinpath("scripts/coordination.py").is_file()
         )
-        self.assertTrue(
+        self.assertFalse(
             self.orchestra_root.joinpath("control/orchestra_control/service.py").is_file()
         )
         self.assertEqual(
@@ -718,7 +718,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_sync("apply")["status"], "ok")
 
         repaired = config.read_text()
-        self.assertIn("mcp_servers.orchestra_tasks = {", repaired)
+        self.assertNotIn("mcp_servers.orchestra_tasks", repaired)
         self.assertNotIn("[mcp_servers.orchestra_tasks]", repaired)
         self.assertLess(
             repaired.index("# orchestra-worktree-root:end"),
@@ -1167,6 +1167,79 @@ class SyncTests(unittest.TestCase):
             })
         self.manifest_path().write_text(json.dumps(manifest))
         return content
+
+    def seed_combined_task_resources(self):
+        self.assertEqual(self.run_sync("apply", host="all")["status"], "ok")
+        manifest = self.manifest()
+        resources = (
+            ("home", self.home, ".agents/skills/orchestra-task/SKILL.md", "shared"),
+            ("home", self.home, ".config/devin/skills/orchestra-task/SKILL.md", "devin"),
+            ("home", self.home, ".cursor/plugins/local/orchestra/mcp.json", "cursor"),
+            ("home", self.home, ".cursor/plugins/local/orchestra/hooks/hooks.json", "cursor"),
+            ("orchestra_home", self.orchestra_root, "scripts/task_control.py", "shared"),
+            ("orchestra_home", self.orchestra_root, "scripts/coordination.py", "shared"),
+            ("orchestra_home", self.orchestra_root, "control/orchestra_control/service.py", "shared"),
+            ("orchestra_home", self.orchestra_root, "hosts/devin/session_identity.py", "devin"),
+            ("codex_home", self.codex_home, "orchestra/scripts/task_mcp.py", "codex"),
+        )
+        for root_name, root, name, scope in resources:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"owned Task resource\n")
+            manifest["entries"].append({"root": root_name, "path": name, "scope": scope,
+                                        "type": "file", "digest": sync._digest(path.read_bytes())})
+        devin = self.home / ".config/devin/config.json"
+        new_hook = {"hooks": [{"command": "python3 /runtime/scripts/devin_task_identity.py"}]}
+        legacy_hook = {"matcher": "", "hooks": [{"type": "command", "command": f'python3 "{self.orchestra_root}/hosts/devin/session_identity.py"', "timeout": 10}]}
+        devin.write_text(json.dumps({"user": True, "hooks": {"SessionStart": [legacy_hook, new_hook]}}))
+        manifest["entries"].append({"root": "home", "path": ".config/devin/config.json", "scope": "devin",
+                                    "type": "managed_json", "digest": sync._digest(sync._devin_canonical_matcher_bytes(legacy_hook))})
+        config = self.codex_home / "config.toml"
+        previous = config.read_bytes()
+        start, end = sync._config_span(previous)
+        legacy = previous[start:end].replace(sync.CONFIG_END, b'[mcp_servers.orchestra_tasks]\ncommand = "old-task-cli"\n' + sync.CONFIG_END)
+        config.write_bytes(previous[:start] + legacy + previous[end:])
+        for entry in manifest["entries"]:
+            if entry["root"] == "codex_home" and entry["path"] == "config.toml":
+                entry["digest"] = sync._digest(legacy)
+        self.manifest_path().write_text(json.dumps(manifest))
+        return resources, new_hook
+
+    def test_combined_task_resources_retire_without_touching_companion_or_data(self):
+        resources, new_hook = self.seed_combined_task_resources()
+        database = self.orchestra_root / "control.sqlite3"
+        database.write_bytes(b"private cards")
+        result = self.run_sync("apply", host="all")
+        self.assertEqual(result["status"], "ok", result)
+        for _, root, name, _ in resources:
+            self.assertFalse((root / name).exists(), name)
+        self.assertEqual(database.read_bytes(), b"private cards")
+        devin = json.loads((self.home / ".config/devin/config.json").read_text())
+        self.assertEqual(devin, {"user": True, "hooks": {"SessionStart": [new_hook]}})
+        self.assertNotIn("orchestra_tasks", (self.codex_home / "config.toml").read_text())
+
+    def test_combined_task_drift_blocks_before_any_retirement(self):
+        resources, _ = self.seed_combined_task_resources()
+        modified = self.orchestra_root / "scripts/task_control.py"
+        modified.write_text("user modification\n")
+        config = (self.codex_home / "config.toml").read_bytes()
+        result = self.run_sync("apply", host="all")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual((self.codex_home / "config.toml").read_bytes(), config)
+        for _, root, name, _ in resources:
+            self.assertTrue((root / name).is_file(), name)
+
+    def test_permission_install_keeps_another_marked_mcp_block_intact(self):
+        self.codex_home.mkdir(parents=True)
+        config = self.codex_home / "config.toml"
+        companion = b'# orchestra-tasks:start\n[mcp_servers.orchestra_tasks]\ncommand = "tasks"\n# orchestra-tasks:end\n'
+        config.write_bytes(companion)
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        self.assertTrue(config.read_bytes().endswith(companion))
+        self.assertEqual(self.run_sync("apply")["status"], "ok")
+        self.assertTrue(config.read_bytes().endswith(companion))
+        self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
+        self.assertEqual(config.read_bytes(), companion)
 
     def test_fresh_install_defaults_to_native_without_selection(self) -> None:
         preview = self.run_sync("apply", dry_run=True)
@@ -1987,8 +2060,8 @@ class SyncTests(unittest.TestCase):
         applied = self.run_sync("apply", modelconfig=None, host="cursor")
         self.assertEqual(applied["status"], "ok", applied.get("detail"))
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
-        self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
-        self.assertTrue(
+        self.assertFalse(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertFalse(
             self.orchestra_root.joinpath("control/orchestra_control/cli.py").is_file()
         )
         self.assertTrue(
@@ -2002,13 +2075,7 @@ class SyncTests(unittest.TestCase):
                 ".cursor/plugins/local/orchestra/.cursor-plugin/plugin.json"
             ).is_file()
         )
-        mcp = json.loads(
-            self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").read_text()
-        )
-        self.assertEqual(
-            mcp["mcpServers"]["orchestra_tasks"]["args"],
-            [str(self.orchestra_root / "scripts" / "task_mcp.py")],
-        )
+        self.assertFalse(self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").exists())
         self.assertFalse(self.codex_home.joinpath("config.toml").exists())
         self.assertFalse(self.codex_home.joinpath("orchestra/roles.toml").exists())
         roles = self.orchestra_root.joinpath("hosts/cursor/roles.toml").read_text()
@@ -2056,7 +2123,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.manifest()["installed_hosts"], ["codex"])
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
-        self.assertTrue(
+        self.assertFalse(
             self.orchestra_root.joinpath("control/orchestra_control/db.py").is_file()
         )
         self.assertFalse(
@@ -2072,7 +2139,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.manifest()["installed_hosts"], ["cursor"])
         self.assertFalse(self.codex_home.joinpath("config.toml").exists())
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
-        self.assertTrue(
+        self.assertFalse(
             self.home.joinpath(".cursor/plugins/local/orchestra/mcp.json").is_file()
         )
 
@@ -2086,8 +2153,8 @@ class SyncTests(unittest.TestCase):
         applied = self.run_sync("apply", modelconfig=None, host="grok")
         self.assertEqual(applied["status"], "ok", applied.get("detail"))
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
-        self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
-        self.assertTrue(
+        self.assertFalse(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertFalse(
             self.orchestra_root.joinpath("control/orchestra_control/mcp.py").is_file()
         )
         self.assertTrue(
@@ -2133,28 +2200,17 @@ class SyncTests(unittest.TestCase):
             self.assertTrue(
                 self.home.joinpath(f".config/devin/agents/{name}.md").is_file(), name
             )
-        self.assertTrue(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
+        self.assertFalse(self.orchestra_root.joinpath("scripts/task_mcp.py").is_file())
         self.assertTrue(
             self.orchestra_root.joinpath("hosts/devin/roles.toml").is_file()
         )
         self.assertTrue(
             self.orchestra_root.joinpath("hosts/devin/spawn.md").is_file()
         )
-        self.assertTrue(
+        self.assertFalse(
             self.orchestra_root.joinpath("hosts/devin/session_identity.py").is_file()
         )
-        config = json.loads(
-            self.home.joinpath(".config/devin/config.json").read_text()
-        )
-        session_start = config["hooks"]["SessionStart"]
-        self.assertEqual(len(session_start), 1)
-        self.assertEqual(session_start[0]["matcher"], "")
-        hook = session_start[0]["hooks"][0]
-        self.assertEqual(hook["type"], "command")
-        self.assertEqual(
-            hook["command"],
-            f'python3 "{self.orchestra_root}/hosts/devin/session_identity.py"',
-        )
+        self.assertFalse(self.home.joinpath(".config/devin/config.json").exists())
         self.assertFalse(self.codex_home.joinpath("config.toml").exists())
         self.assertFalse(self.codex_home.joinpath("orchestra/roles.toml").exists())
         roles = self.orchestra_root.joinpath("hosts/devin/roles.toml").read_text()
@@ -2168,10 +2224,10 @@ class SyncTests(unittest.TestCase):
             for entry in self.manifest()["entries"]
             if entry["scope"] == "devin"
         }
-        self.assertIn(".config/devin/config.json", devin_paths)
+        self.assertNotIn(".config/devin/config.json", devin_paths)
         self.assertIn("hosts/devin/roles.toml", devin_paths)
         self.assertIn("hosts/devin/spawn.md", devin_paths)
-        self.assertIn("hosts/devin/session_identity.py", devin_paths)
+        self.assertNotIn("hosts/devin/session_identity.py", devin_paths)
         synchronized = self.run_sync("status", modelconfig=None, host="devin")
         self.assertEqual(synchronized["status"], "ok", synchronized.get("detail"))
         self.assertFalse(synchronized["restart_required"])
@@ -2188,127 +2244,18 @@ class SyncTests(unittest.TestCase):
             self.home.joinpath(".config/devin/agents/orchestra_analyst.md").exists()
         )
 
-    def test_devin_config_merge_preserves_existing_hooks_and_keys(self) -> None:
+
+
+
+    def test_devin_preserves_unowned_configuration_bytes(self) -> None:
         config_path = self.home / ".config/devin/config.json"
         config_path.parent.mkdir(parents=True)
-        existing = {
-            "model": "swe-2-max",
-            "hooks": {
-                "SessionStart": [
-                    {
-                        "matcher": "",
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": "orca session-start",
-                                "timeout": 5,
-                            }
-                        ],
-                    }
-                ],
-                "PreToolUse": [
-                    {
-                        "matcher": "exec",
-                        "hooks": [{"type": "command", "command": "orca guard"}],
-                    }
-                ],
-            },
-        }
-        config_path.write_text(json.dumps(existing, indent=2) + "\n")
-
-        applied = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(applied["status"], "ok", applied.get("detail"))
-        merged = json.loads(config_path.read_text())
-        self.assertEqual(merged["model"], "swe-2-max")
-        self.assertEqual(
-            merged["hooks"]["PreToolUse"], existing["hooks"]["PreToolUse"]
-        )
-        session_start = merged["hooks"]["SessionStart"]
-        self.assertEqual(len(session_start), 2)
-        self.assertEqual(
-            session_start[0], existing["hooks"]["SessionStart"][0]
-        )
-        commands = [
-            hook["command"]
-            for matcher in session_start
-            for hook in matcher["hooks"]
-        ]
-        self.assertIn(
-            f'python3 "{self.orchestra_root}/hosts/devin/session_identity.py"',
-            commands,
-        )
-        second = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(second["status"], "ok", second.get("detail"))
-        self.assertEqual(second["changes"], [])
-
-        removed = sync.uninstall(self.home, self.codex_home, host="devin")
-        self.assertEqual(removed["status"], "ok", removed.get("detail"))
-        remaining = json.loads(config_path.read_text())
-        self.assertEqual(remaining["model"], "swe-2-max")
-        self.assertEqual(
-            remaining["hooks"]["SessionStart"],
-            existing["hooks"]["SessionStart"],
-        )
-        self.assertEqual(
-            remaining["hooks"]["PreToolUse"], existing["hooks"]["PreToolUse"]
-        )
-
-    def test_devin_invalid_config_json_blocks_without_mutation(self) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        config_path.parent.mkdir(parents=True)
-        config_path.write_text("{ not json")
-        result = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(result["status"], "blocked")
-        self.assertIn("invalid Devin config.json", result["detail"])
-        self.assertEqual(config_path.read_text(), "{ not json")
-
-        config_path.write_text(json.dumps({"hooks": "not-an-object"}))
-        result = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(result["status"], "blocked")
-        self.assertIn("hooks must be an object", result["detail"])
-        self.assertEqual(
-            config_path.read_text(), json.dumps({"hooks": "not-an-object"})
-        )
-
-        config_path.write_text(json.dumps({"hooks": {"SessionStart": "x"}}))
-        result = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(result["status"], "blocked")
-        self.assertIn("SessionStart must be an array", result["detail"])
-
-    def test_devin_unmanaged_orchestra_hook_and_drift_block(self) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        config_path.parent.mkdir(parents=True)
-        unmanaged = {
-            "hooks": {
-                "SessionStart": [
-                    {
-                        "matcher": "",
-                        "hooks": [
-                            {
-                                "type": "command",
-                                "command": 'python3 "$HOME/.orchestra/hosts/devin/session_identity.py"',
-                            }
-                        ],
-                    }
-                ]
-            }
-        }
-        config_path.write_text(json.dumps(unmanaged))
-        result = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(result["status"], "blocked")
-        self.assertIn("unmanaged Orchestra hook", result["detail"])
-        self.assertIn("hosts/devin/session_identity.py", result["detail"])
-
-        config_path.unlink()
-        self.assertEqual(
-            self.run_sync("apply", modelconfig=None, host="devin")["status"], "ok"
-        )
-        merged = json.loads(config_path.read_text())
-        merged["hooks"]["SessionStart"][0]["hooks"][0]["timeout"] = 99
-        config_path.write_text(json.dumps(merged))
-        drifted = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(drifted["status"], "blocked")
-        self.assertIn("owned Orchestra hook drift", drifted["detail"])
+        content = b'{"model":"custom","hooks":{"SessionStart":[{"hooks":[{"command":"python3 /runtime/scripts/devin_task_identity.py"}]}]}}\n'
+        config_path.write_bytes(content)
+        self.assertEqual(self.run_sync("apply", modelconfig=None, host="devin")["status"], "ok")
+        self.assertEqual(config_path.read_bytes(), content)
+        self.assertEqual(sync.uninstall(self.home, self.codex_home, host="devin")["status"], "ok")
+        self.assertEqual(config_path.read_bytes(), content)
 
     def test_devin_unrelated_config_files_are_not_touched(self) -> None:
         unrelated = self.home / ".config/devin/team-settings.json"
@@ -2328,75 +2275,8 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(unrelated.read_text(), '{"org": "acme"}\n')
         self.assertEqual(other_agent.read_text(), "user agent\n")
 
-    def test_devin_uninstall_removes_managed_json_backup_so_reinstall_succeeds(
-        self,
-    ) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        config_path.parent.mkdir(parents=True)
-        config_path.write_text(json.dumps({"model": "swe-2-max"}))
-        backup = (
-            self.orchestra_root
-            / "orchestra/backups/home/.config/devin/config.json"
-        )
 
-        self.assertEqual(
-            self.run_sync("apply", modelconfig=None, host="devin")["status"], "ok"
-        )
-        self.assertTrue(backup.is_file())
-        removed = sync.uninstall(self.home, self.codex_home, host="devin")
-        self.assertEqual(removed["status"], "ok", removed.get("detail"))
-        self.assertFalse(backup.exists())
 
-        reapplied = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(reapplied["status"], "ok", reapplied.get("detail"))
-        merged = json.loads(config_path.read_text())
-        self.assertEqual(len(merged["hooks"]["SessionStart"]), 1)
-
-    def test_devin_duplicate_orchestra_hook_is_drift_and_uninstall_strips_all(self) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        config_path.parent.mkdir(parents=True)
-        user_matcher = {
-            "matcher": "",
-            "hooks": [{"type": "command", "command": "orca session-start"}],
-        }
-        config_path.write_text(
-            json.dumps({"hooks": {"SessionStart": [user_matcher]}})
-        )
-        self.assertEqual(
-            self.run_sync("apply", modelconfig=None, host="devin")["status"], "ok"
-        )
-        merged = json.loads(config_path.read_text())
-        self.assertEqual(len(merged["hooks"]["SessionStart"]), 2)
-        merged["hooks"]["SessionStart"].append(merged["hooks"]["SessionStart"][1])
-        config_path.write_text(json.dumps(merged))
-
-        status = self.run_sync("status", modelconfig=None, host="devin")
-        self.assertEqual(status["status"], "blocked")
-        self.assertIn("owned Orchestra hook drift", status["detail"])
-
-        removed = sync.uninstall(self.home, self.codex_home, host="devin")
-        self.assertEqual(removed["status"], "ok", removed.get("detail"))
-        remaining = json.loads(config_path.read_text())
-        self.assertEqual(remaining["hooks"]["SessionStart"], [user_matcher])
-
-    def test_devin_divergent_duplicate_hook_blocks_uninstall_without_mutation(self) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        config_path.parent.mkdir(parents=True)
-        config_path.write_text("{}")
-        self.assertEqual(
-            self.run_sync("apply", modelconfig=None, host="devin")["status"], "ok"
-        )
-        merged = json.loads(config_path.read_text())
-        divergent = json.loads(json.dumps(merged["hooks"]["SessionStart"][0]))
-        divergent["hooks"][0]["timeout"] = 30
-        merged["hooks"]["SessionStart"].append(divergent)
-        config_path.write_text(json.dumps(merged))
-
-        before = config_path.read_text()
-        removed = sync.uninstall(self.home, self.codex_home, host="devin")
-        self.assertEqual(removed["status"], "partial")
-        self.assertIn("config.json", removed["detail"])
-        self.assertEqual(config_path.read_text(), before)
 
     def test_devin_stray_source_agent_file_blocks_before_any_write(self) -> None:
         fixture = self.source_fixture()
@@ -2411,10 +2291,6 @@ class SyncTests(unittest.TestCase):
         for source, destination in (
             ("hosts/devin/config/roles.devin.toml", "hosts/devin/config/roles.devin.toml"),
             ("hosts/devin/references/spawn.md", "hosts/devin/references/spawn.md"),
-            (
-                "hosts/devin/plugin/scripts/session_identity.py",
-                "hosts/devin/plugin/scripts/session_identity.py",
-            ),
         ):
             target = fixture / destination
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -2433,35 +2309,7 @@ class SyncTests(unittest.TestCase):
         self.assertIn("unexpected agent source entry", result["detail"])
         self.assertFalse(self.home.exists())
 
-    def test_devin_hook_command_uses_relocated_orchestra_home(self) -> None:
-        relocated = Path(self.temporary.name) / "custom-orchestra"
-        with mock.patch.dict(os.environ, {"ORCHESTRA_HOME": str(relocated)}):
-            applied = self.run_sync("apply", modelconfig=None, host="devin")
-            self.assertEqual(applied["status"], "ok", applied.get("detail"))
-            config = json.loads(
-                self.home.joinpath(".config/devin/config.json").read_text()
-            )
-            command = config["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-            self.assertEqual(
-                command,
-                f'python3 "{relocated}/hosts/devin/session_identity.py"',
-            )
-            self.assertTrue(
-                relocated.joinpath("hosts/devin/session_identity.py").is_file()
-            )
-            self.assertFalse(
-                self.orchestra_root.joinpath(
-                    "hosts/devin/session_identity.py"
-                ).exists()
-            )
-            removed = sync.uninstall(self.home, self.codex_home, host="devin")
-            self.assertEqual(removed["status"], "ok", removed.get("detail"))
 
-    def test_devin_new_config_json_is_created_owner_only(self) -> None:
-        config_path = self.home / ".config/devin/config.json"
-        applied = self.run_sync("apply", modelconfig=None, host="devin")
-        self.assertEqual(applied["status"], "ok", applied.get("detail"))
-        self.assertEqual(stat.S_IMODE(config_path.stat().st_mode), 0o600)
 
     def test_devin_existing_config_json_keeps_its_mode(self) -> None:
         config_path = self.home / ".config/devin/config.json"

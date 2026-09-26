@@ -18,8 +18,8 @@ Keep the root responsible for reading the user's delivery direction and making t
    that revision before PR or local delivery; an unexplained mismatch blocks
    use of the completed plan. The durable knowledge checkpoint has already
    run; if it produced an `.agent/` commit, that commit is the terminal one.
-   For an adopted Kanban task, require `task finish` to record that same exact
-   terminal revision before choosing a delivery lane.
+   For an attached card, apply WORKFLOW "Attached Tasks companion" before
+   choosing a delivery lane.
 2. Have the root directly run `python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/policy.py" --repo <root> show` and read its structured result.
 3. If the policy is missing, ask the user once and recommend `hybrid`. Return `blocked`; do not create the file or choose for the user.
 4. If the user chooses hold, make no delivery mutation and return `ok` with the committed branch or worktree.

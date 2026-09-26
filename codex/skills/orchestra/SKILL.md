@@ -105,8 +105,8 @@ Follow the named WORKFLOW sections rather than reproducing their rules here:
    truth`; inspect the selected host adapter, recommend a tier, and obtain the
    user's explicit choice.
 3. Read `Context and planning`; perform the read-only preflight, resolve the
-   checkout, run `task_state.py init`, and register `coordination.py` when
-   applicable. Confirm the specification and candidate plan according to its
+   checkout, run `task_state.py init`, and apply `Attached Tasks companion` only
+   for a card or explicitly requested tracking. Confirm the specification and candidate plan according to its
    phase rule, then obtain plan approval.
 4. For each phase, read `Phase execution`, `Review policy`, and
    `Material context discovery and promotion`. Check ownership follows

@@ -41,8 +41,7 @@ A root's global instruction file is not evidence that another host received it. 
 under WORKFLOW "Initiative coordination". Host behavior, including the plugin's Codex profile composition, is
 specified in WORKFLOW "Host adapters" and the selected spawn reference.
 
-The package is read-only. Task Control and coordination data stay under
-`$HOME/.orchestra` or the helper's explicit `--state-root`. Checkout settings
+The package is read-only. Checkout settings
 stay under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; worktrees retain their existing
 configured root. Never point ORCHESTRA_HOME at a plugin
 cache, write settings there, or persist a plugin cache path in a task plan.

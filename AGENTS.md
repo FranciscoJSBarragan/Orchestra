@@ -42,6 +42,11 @@ points follow WORKFLOW "Modular engineering", "Project verification" and
 "Initiative coordination". They reuse current authority; a product mention
 alone does not activate the full route.
 
+Core changes preserve the optional integration described by WORKFLOW "Attached
+Tasks companion". Task cards, global observation, identity hooks, MCP and Hub
+belong to the separate Orchestra Tasks repository; local plan and Git helpers
+remain here.
+
 ## Root orchestrator
 
 The root owns specification alignment, tier recommendation, capability

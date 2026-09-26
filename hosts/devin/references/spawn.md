@@ -130,12 +130,3 @@ Observe the Devin host permission choice (`--permission-mode` and the host
 config). Do not write `~/.config/devin/config.json` or any Devin permission
 profile. Background subagents auto-deny tools that are not pre-approved;
 foreground subagents surface approvals to the user.
-
-## Identity
-
-Task Control owner commands, including `task acknowledge-stop`, use the
-adapter-provided `ORCHESTRA_DEVIN_THREAD_ID` supplied by the `SessionStart`
-hook (installed by the plugin or the managed `config.json` merge) from the
-stable `session_id`. Never replace it with
-user, page, tool, or model-generated content. If it is unavailable, stop
-because Task Control ownership cannot be proven.

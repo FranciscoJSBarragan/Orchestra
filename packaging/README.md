@@ -21,10 +21,9 @@ python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orche
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
-manifest. `cursor` uses Cursor's native manifest and session identity hook.
+manifest. `cursor` uses Cursor's native manifest.
 `grok` uses the Claude-compatible plugin layout recognized by Grok Build.
-`devin` uses Devin's native `.devin-plugin` manifest, root `hooks.json`, and
-`agents/` profiles. Native
+`devin` uses Devin's native `.devin-plugin` manifest and `agents/` profiles. Native
 variants avoid competing root manifests so each loader selects its own format.
 All content is copied from canonical source; there is no generated workflow fork.
 The metadata version is a package version, not a public release declaration.
@@ -165,8 +164,8 @@ real-project evidence and the paired quality comparison remain separate.
 
 Use a disposable home and Git repository for each host, with the host's
 normal authentication available and no direct-sync Orchestra skills or
-profiles. Use the isolated home's default coordination store; do not put an
-extra database directory inside the checkout's guarded `.orchestra/` layout.
+profiles. Core-only acceptance must create no global Task databases or identity
+hooks. Keep only the local plan and artifacts in the guarded `.orchestra/` layout.
 Keep authentication out of reports. Record the host version,
 bundle source revision, effective model assignments, installation route,
 and actual resolved runtime paths. Python and Git must be ready before the
@@ -242,12 +241,11 @@ establish that cloud support; do not claim it until that evidence exists.
 
 ## Optional companions and lifecycle
 
-Task Control remains available through `orchestra-task` and its bundled CLI.
-It uses `~/.orchestra` or an explicit `--state-root`, not the plugin cache. Cursor's hook only binds the current
-native conversation identity. The package starts no MCP server, background
-worker, or Hub. Hub can be installed separately using its existing instructions.
-CLI delegation stays in this package and uses the selected executor's own CLI.
-Bridge is not required and is outside this packaging work.
+Orchestra Tasks is distributed and installed separately. Core bundles contain no
+`orchestra-task`, Task CLI/MCP, global snapshot helper, Hub or identity hooks.
+CLI delegation and native execution adapters remain in core. Bridge is not
+required. Each package resolves the other's skills through the host only when
+explicitly needed; neither assumes sibling plugin-cache paths.
 
 Update and remove through the host's plugin manager. Removing the bundle leaves
 private tasks and worktrees intact; clear those only through their explicit
@@ -270,9 +268,17 @@ available, not guaranteed selection or native root-task APIs. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
 local integration canaries and the separate live-host evaluation boundary.
 
-## Shared Task Control upgrade
+## Retiring a combined installation
 
-Before enabling schema 8, follow WORKFLOW "Durable task intake" for the
-coordinated update and explicit `storage migrate` command. All installations
-sharing the same state root, including the Hub's bundled helper, must support
-the target schema. Installing a Devin bundle alone does not establish that.
+The core sync recognizes unchanged Task resources in its previous ownership
+manifest and retires them on update. Digest drift blocks preflight; unknown
+files and unrelated settings are preserved. New Tasks resources have separate
+runtime paths, hook names, config markers and ownership manifests. Core sync
+must never remove them. Task databases and private documents remain untouched.
+
+For the owner's known installation, replace the combined distribution only
+with explicit installation authority: stop actual consumers, back up the owned
+runtime/configuration, retire verified old resources, install the selected
+products and reload the hosts. Verify unique skill and hook registration. No
+active-card conversion or automatic schema migration is part of this split.
+The separate Tasks workflow owns any later storage migration.

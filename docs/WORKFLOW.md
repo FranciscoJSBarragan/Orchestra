@@ -7,7 +7,7 @@ flowchart TD
     U["Normal chat"] --> Q{"User intent"}
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
     Q -->|"Capture for later"| IN["Draft Kanban card; no activation"]
-    Q -->|"Prepare $orchestra-task"| DT["Create or refine durable Kanban card"]
+    Q -->|"Prepare $orchestra-task"| DT["Separate Tasks companion: prepare card"]
     DT -->|"Adopt ID from native host chat"| O
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     O --> B
@@ -116,22 +116,18 @@ conversation identity, permissions, and `browser_route`.
   plus `read_subagent` without busy-polling. Resume
   only the same phase-cohort subagent for delta reviews. Devin has no
   `close_agent`: the `read_subagent` result or foreground return is the
-  required completed-state evidence before commit. Task Control identity is
-  `ORCHESTRA_DEVIN_THREAD_ID` from the `SessionStart` hook's `session_id`;
-  adopt is `blocked` without it. Permissions are observed, never written.
+  required completed-state evidence before commit. Permissions are observed, never written.
   Native browser routes are unavailable. An explicitly selected Codex CLI
   Chrome handoff follows "CLI delegation"; otherwise acceptance is `blocked`.
   User preview never replaces browser acceptance. Devin sync installs profiles and skills under
-  `~/.config/devin/` and merges only the managed `SessionStart` hook into
-  `config.json`, preserving unrelated hooks and permission settings.
+  `~/.config/devin/`; it installs no identity hook or Task configuration.
 
 Resolve executable resources using `orchestra/runtime.md` alongside the loaded
 skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
 package. Direct sync retains its managed global destinations and compatibility
 helper mirrors. All paths below that describe installed resources use the
 selected installation's mapping. Settings remain outside the plugin under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}`; Task Control and coordination retain
-`$HOME/.orchestra` or their explicit `--state-root`.
+`${ORCHESTRA_HOME:-$HOME/.orchestra}`; the separately installed Tasks companion owns its data locations.
 
 Plugins do not register Codex agent types or edit global configuration. For a
 Codex plugin dispatch, read the selected behavior profile, spawn a native `default`
@@ -146,8 +142,8 @@ A plugin inherits the active host permissions without modifying them. Guardian
 configuration is specific to direct Codex sync. Installing or loading a plugin
 does not activate Orchestra, select a tier, install another runtime, or grant
 delivery authority. Use one installation route per host to avoid duplicate skill
-selection. Task Control and Hub remain optional; the core plugin does not start
-an MCP server or a Hub process.
+selection. The core package contains no Task Control, Hub, identity hook or MCP server.
+The separately installed Orchestra Tasks companion is optional.
 
 The orchestrator maintains the main objective while adapting safely to facts
 found during execution. It does not stop for routine technical choices and does
@@ -1049,153 +1045,38 @@ under "Result contract"; it does not alter phase report schemas. Reusable reposi
 "Repository conventions" and "Durable knowledge checkpoint"; a suggested
 recipe does not become a hard gate merely by appearing in a report.
 
-## Durable task intake
+## Attached Tasks companion
 
-Owner commands require exactly one adapter-provided host identity. Multiple
-host identity variables block adoption or owner mutation rather than selecting
-one by precedence; resolve the inherited environment in the owning native chat.
-Never fabricate or overwrite an identity to get past that check.
+Orchestra works without Orchestra Tasks. Do not discover its installation, run
+its helpers or publish global snapshots for ordinary direct tasks. An explicitly
+tracked direct run may use its observation path without becoming a card.
 
-Task Control schema upgrades are explicit installation work. A normal command
-against an older schema returns `unavailable` with the migration command and
-does not rebuild the database. Before `task_control.py --state-root <state-root>
-storage migrate`, stop all Task Control/Hub consumers, make a consistent SQLite
-backup (including committed WAL contents), and update every plugin, direct-sync
-helper, MCP consumer, and bundled Hub copy sharing that state root. Rehearse on
-a copy, then migrate the selected root and check integrity and the consumers.
-Schema 8 supports Devin ownership; schema-7-only consumers must not be restarted
-against it. Do not lower `user_version` to roll back. Restore the verified backup
-and matching installations only while consumers are stopped and after preserving
-any newer work. This command is not a phase tool or permission to migrate active
-installations during ordinary task adoption.
+A plan with `origin: prepared-card` retains the exact existing `kanban_uuid`,
+`kanban_short_id` and `kanban_title`. This is an attached card, never a direct
+task merely because its companion is unavailable. Load the host-selected
+`orchestra-task` skill and its own runtime mapping. Do not resolve it relative
+to the core bundle, use a different installed copy, or persist cache paths.
+Missing, ambiguous or incompatible required skills/helpers block the card path.
+Matching database schemas alone do not prove CLI/workflow compatibility.
 
-The installed `task_control.py` helper is a harness-neutral JSON boundary for a
-small local prepared-task Kanban. `task create` assigns an immutable human ID
-and UUID; `task note` accepts caller-stable idempotency keys and bounded source
-references. Capturing or preparing a card does not activate Orchestra, launch
-an execution host, choose permissions or tier, create a checkout, or authorize
-implementation.
+At the existing pauses before phase commit, terminal completion, delivery and
+returning to the user, apply the loaded companion's owner and safe-stop
+obligations. An unavailable authoritative query blocks further mutation and
+cleanup; mark the existing plan blocked with the concrete reason. The companion
+owns command semantics, transfer, acknowledgement, finish and registration.
+Its read-only snapshots cannot grant authority or replace the approved plan.
 
-Task Control is the sole allocator of the `A1`, `A2`, ... namespace. Neither a
-native chat nor Coordinator may derive a short ID from task order, concurrent
-activity, a branch name, or an example in these documents. A direct Orchestra
-task has no short ID. Clients join a short ID to execution state only when the
-Coordinator task UUID exactly matches the Control UUID.
+Before a delivery helper can remove local plan state, retain the exact card,
+terminal revision and delivery inputs in the native handoff. Apply the
+companion's delivery-registration and reconciliation instructions to the actual
+verified result. A successful Git delivery with failed registration remains
+registration-pending, not a reason to repeat delivery or claim Tasks is updated.
+The companion documents the current original-chat-only recovery limitation.
 
-For every newly resolved Git path, `repository` means the validated primary
-worktree of that local clone and `worktree` means the task's concrete checkout.
-The shared resolver records the current checkout, primary worktree, Git
-common-dir, and HEAD. Preparation, adoption, resume, decomposition, and
-Coordinator registration compare the common-dir when available, so another
-linked worktree from the same clone is valid and a different clone or Git
-repository is rejected. Draft paths that are not yet usable Git checkouts stay
-verbatim until preparation. Existing rows are never mass-rewritten, and legacy
-path identity remains a tolerated idempotency fallback. No remote, URL, or
-GitHub lookup participates in this identity.
-
-A card becomes `ready` only after focused repository research equivalent to
-`repository_context` and explicit specification confirmation. The helper binds
-private `repository-context.md`, `specification.md`, and a marker under
-`$HOME/.orchestra/tasks/<short-id>/` to the inspected full Git revision and
-digests. `control.sqlite3` stores the Kanban identity and preparation metadata;
-legacy `runs`, `turns`, and `interactions` remain readable after migration but
-new code never writes or exposes App Server operations.
-
-Adoption occurs only inside the user's current native Codex, Cursor, Grok
-Build, or Devin chat.
-`task adopt` requires the adapter-provided conversation identity; no caller may
-invent or override that identity. On Codex that identity is `CODEX_THREAD_ID`
-(UUID). On Cursor the plugin's `sessionStart` hook verifies that `session_id`
-matches `conversation_id` and exposes that exact value through
-`ORCHESTRA_HOST_THREAD_ID`; if it is unavailable, adopt is `blocked`. On Grok
-Build that identity is `GROK_SESSION_ID`; if it is unavailable, adopt is
-`blocked`. On Devin that identity is `ORCHESTRA_DEVIN_THREAD_ID`, supplied by
-the `SessionStart` hook's `session_id`; if it is unavailable, adopt is
-`blocked`. The chat then explicitly activates Orchestra,
-inherits its current permissions, and applies the installed checkout policy. Matching Git
-reuses prepared context; changed Git requires a focused `repository_context`
-delta and specification reconfirmation only when the result materially changes.
-After checkout and task-state initialization, Coordinator registers with the
-Kanban UUID. An explicit stable-checkpoint transfer releases ownership so
-another native chat can resume the same worktree and plan. When that owning
-chat cannot release the card, an explicit user resume or reclaim of the same
-ID in a different native host chat runs `task reclaim --authorized`, swaps
-ownership in one transaction, and resumes the existing worktree and plan.
-Ordinary `task adopt` of a card owned by another thread remains `busy`.
-Reclaim abandons the previous chat; do not use it while that chat is still
-working. The helper does not ping the previous host.
-
-One card is the default. The agent proposes a minimal two- or three-card
-initiative only for independent execution, acceptance, repository, or delivery
-boundaries and obtains explicit confirmation unless the user already directed
-the split. The confirmed decomposition is one transaction: it reuses the
-source draft as the first card, creates the remaining cards, allocates global
-human IDs, and persists only an immutable `blocked_by` DAG. More than three
-cards requires a specific reason for every card. Failed validation consumes no
-IDs and creates no partial rows. Cards without a dependency path are parallel;
-no `related` relation is stored. Each card remains self-contained and receives
-its own preparation, adoption, checkout, plan, review, verification, terminal
-commit, and delivery evidence.
-
-Blocked cards may be prepared but not adopted. `completed` requires the
-blocking card to finish implementation, independent gates, and its terminal
-commit. `delivered` additionally requires an exact verified local integration
-or PR merge registered by the predecessor's owning native chat. For cards in
-the same Git common-dir, adoption also proves the delivered base revision is an
-ancestor of the checkout HEAD and otherwise asks the user to update it; no
-helper pulls automatically. Opening a PR or choosing hold never satisfies
-delivery.
-
-The prepared specification is an already satisfied final-specification
-checkpoint. It may be replaced only before the card has any execution-owner
-history. After first adoption, transfer and safe-stop reopening preserve and
-resume the existing checkout and plan rather than rewriting the prepared
-documents. A checkout at the prepared revision proceeds to formal planning
-after the ordinary tier choice. A changed revision requests only a focused
-context delta; only a material specification change requires confirmation
-again.
-
-The public stdio MCP exposes capture, query, notes, preparation, confirmed
-decomposition, archive, and restore only. It cannot adopt, transfer, reclaim,
-finish, record delivery, start an execution host, or mutate a checkout. The Hub
-remains GET-only. The native macOS app invokes the local JSON CLI for its
-bounded card actions and never mutates through Hub HTTP. Git, the approved
-`plan.md`, the native conversation, and explicit user authority remain
-authoritative for formal work.
-
-### Cooperative safe stop and card lifecycle
-
-`task request-stop` records a cooperative request and never interrupts a tool,
-agent, process, or mutable implementation owner. For every adopted card, the
-root queries current Task Control state at real pauses: before a phase commit,
-before terminal completion, before PR or local delivery, and whenever it
-returns to the user for input. Routine capability dispatches and stable
-handoffs inside an actively running phase do not each require a query. A
-pending request prevents new work at those boundaries. `task transfer` and
-`task finish` reject it; `task reclaim --authorized` preserves it.
-
-After the current owner reaches a stable handoff, it closes its exact owned
-resources using the normal cleanup contract, writes the existing approved plan
-as `blocked` with the safe stop as blocker and resume as next action, then runs
-`task acknowledge-stop` with the adapter-provided owner identity. Codex uses
-`CODEX_THREAD_ID`, Cursor uses `ORCHESTRA_HOST_THREAD_ID`, Grok uses
-`GROK_SESSION_ID`, and Devin uses `ORCHESTRA_DEVIN_THREAD_ID`. Acknowledgement
-changes the card to `cancelled`, releases
-current ownership to the matching previous owner fields, and preserves the
-checkout and plan. `task reopen` returns it to `ready`; the same previous owner
-may adopt it and must resume the exact checkout and blocked plan instead of
-creating a second task. A withdrawn request resumes normal boundary checks.
-
-Archive remains metadata-only. Trash is recoverable and hidden from Hub
-results. Permanent purge requires the caller to type the exact short ID and is
-allowed only for a trashed, unprepared draft with no owner, notes,
-dependencies, initiative, legacy runs, completion, or delivery evidence. Task
-Control quarantines only that card's exact documents directory inside the
-database transaction, restores it on rollback, and never reuses the consumed
-short ID. If post-commit removal of that quarantine fails, the purge result
-reports the residual private documents explicitly and native clients surface
-the warning instead of claiming a clean deletion. The stdio MCP exposes none
-of purge, owner mutation, or safe-stop commands.
+Only an attached card or an explicitly tracked direct run passes an observation
+ID plus the resolved absolute snapshot-helper path in transient packets. Observation failure is fail-soft;
+card ownership or stop-state failure is not. Direct tasks without tracking have
+no missing-companion warning. Loading either plugin does not activate this route.
 
 ## Tier flows and models
 
@@ -1419,15 +1300,9 @@ After explicit activation in an execution-capable mode:
    matches the fetched base; a changed revision triggers only a focused
    context delta and reopens confirmation only for a material change. It then
    runs one idempotent `task_state.py init --worktree <task-worktree>`, keeps
-   the returned state, plan, and artifacts paths in memory, passes the exact
-   artifacts path to every producer, and attempts one idempotent
-   `coordination.py task create` (passing an adopted card's exact Control UUID
-   with `--task-id`). When the state database is outside the active workspace,
-   that first attempt uses one exact, narrow host permission escalation
-   (Guardian on Codex) instead of first running the known-protected operation
-   unprivileged. An `invalid` or `unavailable` result after that correctly
-   authorized attempt is reported as lost observability; the root omits the
-   task identifier from later packets and continues with full authority.
+   the returned state, plan and artifacts paths, and passes the exact artifacts
+   path to every producer. No global registration is required. Apply
+   "Attached Tasks companion" only for an attached card or explicit tracking.
 9. Final specification confirmation starts formal planning. Apply the selected
    execution preset's root-reuse rule when present; otherwise use the default
    planner-dispatch criteria below. The task-level
@@ -1595,7 +1470,7 @@ tier is not a Cursor assignment. Permissions stay those of the current chat.
 Git is authoritative for code, worktree state, and history; the plan is
 authoritative only for approved intent, exact bundle selection, and progress.
 A missing or unreadable plan prevents automatic continuation until reconstructed
-and realigned with the user. Worktree cleanup removes the plan; coordination
+and realigned with the user. Worktree cleanup removes the plan; optional global observation
 never substitutes for it or supplies authority.
 
 Plan artifacts are immutable. A reversible clarification within approved
@@ -1624,25 +1499,7 @@ delta that changes a future dependency produces a complete replacement for the
 affected phase. Widening a maintenance path follows the same replacement and
 authority rules.
 
-### Coordination snapshots and artifacts
-
-The installed
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/coordination.py` helper exposes
-`task` and `activity` commands with compact JSON results. It stores task and
-activity snapshots in `$HOME/.orchestra/state.sqlite3`.
-If that helper path is missing, use the Codex compatibility copy at
-`${CODEX_HOME:-$HOME/.codex}/orchestra/scripts/coordination.py`.
-The database and its SQLite sidecars use mode `0600`. Schema creation and
-version assignment are one transaction; an empty version-zero file may be
-initialized, but a partial, unknown, or corrupt database remains untouched and
-returns `unavailable`. Concurrent registration of one worktree converges on one
-active task identifier.
-
-When that state database is outside the active workspace, each write operation
-uses one exact, narrow Guardian escalation on its first attempt. Existing
-database, WAL, and SHM files already at `0600` are left unchanged; regular files
-with another mode are corrected to `0600`, while symlinks and non-regular files
-remain unsafe and return `unavailable`.
+### Task-private artifacts
 
 Artifacts live only on the filesystem. Agents write each semantic handoff
 directly as UTF-8 Markdown under the exact task-private artifacts directory
@@ -1659,32 +1516,6 @@ protected-write escalation under Guardian. A detected legacy task continues
 using its exact Git-private paths without migration or dual writes. If the
 selected artifacts directory cannot be written, the agent returns the complete
 report inline instead.
-
-The root updates task stage, tier, revision, summary, blocker, and next action
-only at material transitions. Each delegated agent may update its own activity
-at start, final outcome, or blocker; there are no heartbeats. Stages and states
-are descriptive labels with no transition graph. Timestamps indicate freshness
-but never prove that an agent or process is live.
-
-For external progress surfaces, the root writes `summary` as one concise,
-localized milestone line at material transitions only: phase started, blocked
-(with the blocker), phase committed, and the delivery outcome (implementation
-complete, hold, PR open/clean/merged, or verified local integration). Once an
-approved plan exists it may prefix the manifest's exact `Phase X/Y`. Interior
-review numbering, accepted-finding counts, and per-return transitions are not
-required milestones; only findings accepted by the root ever appear. Managed
-or hybrid checkout mode is not itself reported unless it explains a delivery
-blocker. The root never derives milestones from free-text agent output and
-creates no event ledger, locale field, or second progress state machine.
-
-Coordination keeps machine-facing `tier`, `stage`, `status`, activity
-`capability`, and activity `state` labels in English. User-visible task
-`summary`, `blocker`, `next_action`, and activity `summary` use the user-facing
-language selected by applicable instructions, falling back to the language of
-the user's conversation when none is configured. Localized prose preserves
-literal errors, commands, paths, and identifiers verbatim. This language policy
-does not change the English-only internal plan, semantic artifacts, code, or
-technical logs, and requires no locale field or coordination schema change.
 
 Every packet carries capability, explicit authority, worktree, exact target
 artifact IDs and roles, stop conditions, current revision, accepted finding
@@ -1804,13 +1635,8 @@ alone does not require another analysis pass. Rerun a verifier only when the
 documentation affects its independent gate. The reviewer keeps full authority to block acceptance and commit when a
 named material judgment still depends on missing, stale, or conflicting context.
 
-All coordination operations are fail-soft after their correctly authorized
-first attempt. `invalid` or `unavailable` status
-cannot block implementation, verification, review, a tier change, commit, or
-delivery. Failed publication returns the full result inline; failed lookup uses
-the inline packet or current source. The helper never runs mutating Git
-commands, grants authority, validates transitions, or triggers another agent.
-Completed metadata remains queryable. Successful managed delivery removes the
+Artifact publication failure returns the full result inline; it does not
+change authority. Successful managed delivery removes the
 exact worktree-local task state before removing the task worktree; successful
 hybrid delivery removes that same state after restoring the preserved checkout.
 Legacy tasks retain the prior Git-private cleanup path until they complete.
@@ -2098,9 +1924,7 @@ tier and Decisions, then create
 replacement agents only when needed with a compact continuation packet. The new
 implementation worker owns the remaining phase and receives later accepted
 findings. Evidence for the unchanged revision and conditions remains valid; a
-new risk receives only targeted context and reverification. A best-effort
-coordination update records the selected tier, but its failure never delays or
-reverses the transition. A tier transition never changes the owning host or
+new risk receives only targeted context and reverification. A tier transition never changes the owning host or
 authorizes a different provider or billing path.
 
 ### Phase teardown
@@ -2679,13 +2503,8 @@ user-visible result or evidence, and next action without routine agent/model
 plumbing. At completion, distinguish implementation-complete from delivered and
 state the result location, how to run or demonstrate it, verification performed,
 safe test data, limitations, exact delivery state, and the next authority needed.
-The same material transitions are exposed through coordination snapshots for
-external querying, without requiring the user to open each agent conversation.
-An adopted card keeps its immutable short ID and confirmed human title. A
-client may render that identity as `[<short-id>: Human title]`, substituting
-only the canonical value returned by Task Control. A task without a card falls
-back to `[Repository: Human title]`, never a fabricated short ID, UUID, or
-branch slug.
+An attached card uses its canonical identity from the Tasks companion; a direct
+task uses its repository and human title without inventing a card ID.
 
 For user explanations, the root distinguishes verified facts, supported
 inference, and uncertainty, and uses an available visualization capability only

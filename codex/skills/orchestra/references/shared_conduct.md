@@ -131,17 +131,15 @@ root, normally the next `<NN>-<kind>.md` under
 publication is unavailable, return the complete report inline; never
 retry-loop or make publication failure a workflow blocker. Do not replay
 packet contents, unchanged context, routine narration, or duplicate evidence.
-Use WORKFLOW "Coordination snapshots and artifacts" for compact evidence and
+Use WORKFLOW "Task-private artifacts" for compact evidence and
 delta reports. After successful publication, the handoff is the outcome, exact
 artifact ID and material blockers/risks, not a second copy of the report.
 
-Only in `orchestra_phase` mode, when a coordination task ID is supplied, use
-only the installed `coordination.py` helper for material start, final, or
-blocker updates. The
-helper is descriptive and fail-soft after the correctly authorized attempt; it
-never grants authority. Machine labels remain English; localized user-facing
-summaries follow the active conversation language. Semantic artifacts, code,
-and logs remain English.
+For explicit observation only, use the packet's observation ID and absolute
+snapshot-helper path at material start, final outcome or blocker. Do not search
+for a helper or load Tasks when they are absent. Snapshot failure never blocks
+the assignment. Card authority checks belong to the root under WORKFLOW
+"Attached Tasks companion"; a role's observation does not satisfy them.
 
 ## Stop rule
 

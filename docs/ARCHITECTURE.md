@@ -42,10 +42,9 @@ Orchestra/
 ├── hosts/
 │   ├── cursor/                # Cursor spawn, roles, local plugin
 │   ├── grok/                  # Grok Build spawn and roles
-│   └── devin/                 # Devin spawn, roles, agent profiles, plugin hook
+│   └── devin/                 # Devin spawn, roles, agent profiles
 └── codex/
     ├── agents/                # four Codex TOML base profiles
-    ├── control/               # local prepared-task Kanban and native-chat ownership
     ├── skills/                # public lanes and internal playbook references
     ├── scripts/               # deterministic mechanical helpers
     └── tests/
@@ -53,71 +52,14 @@ Orchestra/
 
 ## Component responsibilities
 
-### Durable task intake
+### Optional Tasks companion
 
-`codex/control/orchestra_control` and the thin `task_control.py` entry point own
-one private prepared-task Kanban. Their direct consumers are
-`$orchestra-task`, the stdio MCP adapter, the read-only Hub, and harnesses using
-the JSON CLI. Capture and preparation are inert. They never launch an execution
-host, create a checkout, select permissions, or own an implementation process.
-
-`control.sqlite3` schema v8 owns UUID and immutable human ID, briefs, origin
-references, notes, preparation state, revision and document digests,
-host-namespaced native-chat ownership, transfer generation, recoverable trash,
-and safe-stop/cancellation timestamps. Complete private context, specification, and marker
-documents live under `$HOME/.orchestra/tasks/<short-id>/`. The v3 migration
-leaves preexisting tasks without human IDs and retains the old run, turn, and
-interaction tables as read-only legacy history. New public code exposes no App
-Server operation. Native-chat adoption requires the adapter-provided conversation
-identity (`CODEX_THREAD_ID` on Codex; on Cursor, the plugin `sessionStart` hook
-verifies `session_id == conversation_id` and exports that value as
-`ORCHESTRA_HOST_THREAD_ID`; on Grok Build, `GROK_SESSION_ID`; on Devin, the
-`SessionStart` hook supplies `session_id` as `ORCHESTRA_DEVIN_THREAD_ID`). The
-chat then invokes normal Orchestra. Coordinator receives the same UUID only
-after checkout creation. Hub joins both stores by UUID and remains GET-only.
-The macOS app obtains bounded mutation authority only through the same local
-Task Control JSON CLI; it never adds a Hub write endpoint. Prepared documents
-may be replaced before first adoption, while any card with execution-owner
-history must resume its existing checkout and plan.
-Cooperative transfer remains owning-chat plus stable checkpoint. When that
-chat cannot release the card, explicit reclaim from another native host chat
-swaps ownership without passing through `ready`.
-
-The explicit storage migration described in WORKFLOW "Durable task intake"
-upgrades to schema v8. Ordinary commands never migrate an older database.
-The migration atomically reconstructs the task table after recognizing the exact
-column shape of v2 through v7, including the incompatible ownership and
-safe-stop/trash variants that both used `user_version = 5`; its owner-harness
-allowlist adds `devin`. Historical un-namespaced owners become `codex`;
-unknown shapes roll back without changes, and every migration must pass
-`foreign_key_check` before commit.
-
-Task Control alone computes card action capabilities. The Hub reads compatible
-control schemas and projects observational state only; the macOS app obtains
-cards and capabilities from Task Control and joins only Hub progress by exact
-UUID. State-check-plus-mutation operations serialize with an immediate SQLite
-write transaction so lifecycle decisions cannot race adoption or completion.
-A safe-stop request never interrupts an active owner. Transfer and finish
-are blocked while it is pending; reclaim preserves it. At a stable boundary the
-owner cleans resources, marks the existing plan blocked, and acknowledges with
-its Codex, Cursor, Grok, or Devin identity. Cancellation preserves the
-checkout and plan so reopening may return ownership to the same prior
-conversation.
-
-The short-ID namespace has one allocator: the transaction in Task Control.
-Coordinator stores no short ID, direct tasks have none, and clients may expose
-one only after an exact UUID join to Control. Consequently concurrent chats do
-not need leases or a second counter: prepared cards serialize in the existing
-SQLite transaction, while direct tasks use repository plus title.
-
-The shared Git identity resolver separates clone identity from execution
-location: `repository` is the validated primary worktree of the clone,
-`worktree` is the specific task checkout, and Git common-dir is the comparison
-key for cross-worktree preparation, adoption, resume, and registration. This
-uses only local Git metadata. It neither resolves remotes nor treats a GitHub
-URL as identity, so separate clones intentionally remain separate repository
-groups. The existing columns and API shape are sufficient; rows that contain
-older checkout paths remain readable and are not backfilled.
+Orchestra Tasks owns cards, global snapshot storage, MCP, identity hooks and
+Hub clients in a separate repository. Core packages neither contain nor install
+those resources. Skills resolve their own runtime; cross-product integration
+uses the host-loaded entry and existing bounded CLI results, never private
+Python imports or relative paths between plugin caches. WORKFLOW "Attached
+Tasks companion" owns the narrow core boundary and failure distinction.
 
 ### Orchestrator
 
@@ -146,10 +88,8 @@ preflight, grounds the specification dialogue in focused repository context
 specification. Immediately after that confirmation the root uses Git directly
 to create a collision-free task branch in either a managed Orchestra-root
 worktree or the current clean hybrid checkout, keeps that task-checkout
-identity in transient context before plan approval, registers a best-effort
-local coordination snapshot, and passes the exact checkout to every
-capability. Coordination failure is reported but never changes authority or
-prevents the existing inline-packet path.
+identity in transient context before plan approval, passes the exact checkout to every
+capability. Global observation occurs only through an explicitly attached Tasks companion.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, only verifiers required by the independent
@@ -162,17 +102,8 @@ At any earlier handoff, blocked cleanup prevents downstream dispatch and
 receives one cleanup-only return to the same owner; failure to clear it blocks
 the phase. A source-read-only task tab or window may remain partial until phase
 teardown.
-Best-effort activity snapshots expose material progress but do not prove that an
+When explicitly tracked through Tasks, best-effort activity snapshots expose progress but do not prove that an
 agent or process is live and never participate in commit safety.
-
-The root also projects material progress into the task's localized `summary`
-for read-only external clients. It uses approved phase-manifest counts,
-reviewer handoffs, root-accepted finding IDs, Git commits, and verified delivery
-results directly rather than asking a monitor to infer workflow semantics.
-This projection adds no workflow database or event log. Task Control remains
-the sole source of an adopted card's short ID and confirmed human title;
-Coordinator remains the source of current execution fields and never assigns a
-short ID. The Hub attaches those Control fields only on an exact UUID match.
 
 The active implementation owner defines a stable observation boundary. Until
 that owner returns an outcome or blocker, the root coordinates without reading
@@ -341,8 +272,7 @@ reserved worktree-local task-state directory, loading delivery policy, running
 configured argv checks, opening or observing a PR through direct `gh`, merging
 an authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
-validating the suite. `coordination.py` is a separate fail-soft task and
-activity snapshot helper; it never performs Git mutations or product decisions.
+validating the suite. Global observation helpers belong to the separate Tasks companion.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. A helper must reduce the total
@@ -356,11 +286,6 @@ helper directly to observe GitHub state.
 Orchestra may persist only contracts with direct consumers:
 
 - repository delivery policy;
-- one private prepared-task Kanban store at
-  `$HOME/.orchestra/control.sqlite3`, consumed by `task_control.py`, its stdio
-  MCP adapter, the read-only Hub, and `$orchestra-task`;
-- one non-authoritative local task snapshot store at
-  `$HOME/.orchestra/state.sqlite3`;
 - revision-identified Markdown artifacts in each task worktree's ignored
   `.orchestra/artifacts` directory;
 - one root-owned approved task plan per confirmed checkout at
@@ -404,19 +329,11 @@ The previous clean PR head exists only in root memory between consecutive
 observations. GitHub owns PR, check, and review-thread state; Orchestra creates
 no local PR state file.
 
-The coordination store contains two snapshot concepts only: tasks and material
-agent activities. Stages are labels rather than validated
-transitions. The store retains completed task metadata. It has no
-authority, event history, heartbeat requirement, delete command, or automatic
-import of preexisting tasks. A failed update is telemetry loss, not workflow
-failure. Artifacts are plain files in the task-private
-`.orchestra/artifacts` directory initialized after branch/worktree creation, named
-`<NN>-<kind>[-p<phase>].md`; the file name is the identifier, the filesystem
-is the only locator, and they follow the task worktree lifecycle. The
-self-ignored ownership marker keeps Git status clean; tracked, ambiguous, or
-unsafe collisions block before capability dispatch. Legacy tasks continue on
-their prior Git-private paths without migration or dual writes. Agents return
-inline evidence when artifact publication fails.
+Artifacts are plain files in the task-private `.orchestra/artifacts` directory.
+The filesystem is their only locator. The self-ignored ownership marker keeps
+Git status clean; unsafe collisions block before dispatch. Legacy private paths
+remain supported by local state cleanup. Artifact publication failure returns
+complete evidence inline. Global snapshots are optional Tasks-owned observation.
 
 Artifact `kind` is a file-naming convention:
 `repository-context`, `context-delta`, `plan-overview`, `plan-phase`,
@@ -451,22 +368,13 @@ material plan review it observes convergence; before a third correction, or
 immediately for marginal, contradictory, or out-of-scope findings, it
 adjudicates the exact bundle and reviews. No review counter or limit persists.
 
-The bounded prepared-task Kanban is not a workflow authority. Do not
+Optional Tasks cards are not a core workflow authority. Do not
 introduce a global workflow event ledger, authority-bundle chain, duplicate Git
 index, commit recovery journal, event-sourced board, benchmark control plane, or
 general-purpose workflow state engine unless real usage demonstrates a
-requirement these narrow stores cannot meet. The root uses the one-shot
+requirement Git and the local plan cannot meet. The root uses the one-shot
 `adopt_worktree.py` helper only because Git does not carry selected dirty paths
 into an Orchestra task worktree; that helper keeps no state.
-
-Schema v4 adds descriptive `task_initiatives`, immutable directed
-`task_dependencies`, Git common-dir identity, and exact completion and delivery
-revisions. Initiative membership groups cards but has no state or executable
-human ID. Parallelism is a read-time graph derivation. The Control service owns
-transactional decomposition, DAG validation, dependency satisfaction, and
-native-chat delivery registration; the CLI supplies current Git identity and
-ancestry evidence. The Hub accepts control schemas v3 through v8 during migration,
-projects initiative/dependency fields through an allowlist, and stays GET-only.
 
 ## Modular composition
 
@@ -602,9 +510,9 @@ unchanged under `docs/reference/orchestra-external/` in that repository. This
 reference has no runtime consumer in Orchestra and is not an installable
 integration. Future Bridge support must establish its own opt-in contract.
 Host adapters and CLI delegation stay in the Orchestra repository because they
-implement execution of the shared workflow. Task Control and Hub remain
-optional task-intake and observation components; packaging does not change
-their responsibilities.
+implement execution of the shared workflow. Task Control and Hub belong to the separately installed Orchestra Tasks
+repository. Their optional intake and observation responsibilities do not
+require them to be shipped with core.
 
 ## Verification environment and browser routing
 
@@ -674,7 +582,7 @@ Tests pin structural invariants, never prose wording: explicit activation
 routing, the closed four-profile and seven-playbook inventory, capability →
 profile mapping consistency across every installed native matrix, helper
 behavior (checkout, commit, delivery,
-sync, coordination, task control), and host adapter structure. Behavioral
+sync, local task state), and host adapter structure. Behavioral
 policy lives only in `docs/WORKFLOW.md` and is enforced by review, not by
 sentence-freezing assertions.
 
@@ -699,9 +607,8 @@ consumer requirement or reproducible risk.
 The design explicitly rejects an authoritative workflow event ledger,
 authority-bundle chain, duplicate Git index, commit recovery journal, Kanban
 board, general-purpose workflow state engine, and repeated validation of
-unchanged authority unless later evidence passes the same gate. Durable intake
-is inert until explicit activation; the separate coordination snapshot is
-observational and fail-soft.
+unchanged authority unless later evidence passes the same gate. The optional Tasks companion owns durable intake and global observation;
+core uses only the attachment boundary in WORKFLOW.
 
 Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
 `integrate_local.py`. The root invokes `pr.py` directly for open, observe, and
@@ -768,13 +675,12 @@ They contain no installers, active configuration, credentials, or private data.
 
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
 compatibility manifest. Cursor, Grok, and Devin targets use native manifests
-for their host loaders. Cursor and Devin additionally include the existing
-session identity hook for optional task adoption. The four Codex behavior
+for their host loaders. Task identity hooks are distributed only by Orchestra Tasks. The four Codex behavior
 profiles are packet content, not plugin-registered agent types; the Devin
 target ships the four Devin agent profiles under `agents/` as the registered
 `subagent_type` dispatch surface. All targets retain the same shared workflow;
-only distribution metadata and necessary host hooks vary. No MCP or Hub process
-is started by the core plugin. Runtime resolution and dispatch policy belong to
+only distribution metadata and registered host profiles vary. Core ships no
+MCP server, Hub or identity hook. Runtime resolution and dispatch policy belong to
 WORKFLOW "Host adapters" and the loaded skill's runtime reference.
 
 Plugin install, update, listing, and removal belong to the host's plugin manager.
@@ -801,11 +707,8 @@ under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference.
 Grok-only destinations are the Grok roles and spawn reference under
 `${ORCHESTRA_HOME}/hosts/grok/`. Devin-only destinations are the agent
 profiles under `~/.config/devin/agents/`, skills under
-`~/.config/devin/skills/`, the Devin roles, spawn reference, and
-session-identity script under `${ORCHESTRA_HOME}/hosts/devin/`, and the
-managed `SessionStart` hook merged into `~/.config/devin/config.json` by
-command identity while preserving unrelated hooks. The
-default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
+`~/.config/devin/skills/`, and the Devin roles and spawn reference under
+`${ORCHESTRA_HOME}/hosts/devin/`. The default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
 `$HOME/.orchestra`. Cursor, Grok, and Devin sync never write Codex, Cursor,
 Grok, or Devin permission configuration.
 

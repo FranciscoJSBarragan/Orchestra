@@ -34,6 +34,22 @@ evaluation is part of this documentation and integration closure. Matched
 quality/model evaluation also remains pending; the recorded pilot is a bounded
 observation. No release or public marketplace publication is claimed.
 
+### Tasks separation
+
+The source split keeps engineering skills, full execution, Lite, delegation,
+initiative coordination and local plan/Git helpers in Orchestra. The separate
+Orchestra Tasks repository owns cards, global snapshots, MCP, identity hooks and
+Hub clients. Direct tracking is explicit opt-in. Each has its own package and
+installer; core-only use has no Tasks dependency.
+
+The [separation acceptance record](evaluation/TASKS_SPLIT_ACCEPTANCE.md) identifies
+source, package and disposable installation coverage and its limits. Those
+checks do not update active hosts or publish the new repository. Independent Opus 5.5 medium implementation review accepted the source split.
+Authorized source delivery, one controlled personal installation replacement
+and any public distribution remain separate acceptance steps. The prior host
+trials below describe the combined baseline, not live acceptance of this split.
+The held-out model-quality evaluation remains deferred.
+
 ## Distribution
 
 Local plugin packaging is supported. Public marketplace publication remains a
@@ -41,7 +57,7 @@ separate explicit delivery decision after host acceptance and real-project
 workflow evidence. This roadmap does not prescribe an implementation design.
 
 Bridge integration is deferred. Native adapters and CLI delegation remain in
-Orchestra. Task Control and Hub stay optional.
+Orchestra. Task Control and Hub belong to the separate Orchestra Tasks companion.
 
 ## Plugin adoption evidence
 

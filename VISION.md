@@ -109,57 +109,14 @@ Devin it recommends `standard` and offers `critical` for matching high-impact
 risk; unassigned `minimal` remains blocked on both. The
 user makes the final tier choice among assigned tiers.
 
-### Prepared-task Kanban and native-chat continuity
+### Optional task management
 
-Any chat or harness may capture and prepare a concise software task in a private
-local Kanban. Each new card receives an immutable human ID (`A1` through `A99`,
-then `B1`, continuing after `Z99` with `AA1`) plus a technical UUID. Preparation
-includes focused repository context and an explicitly confirmed specification,
-but never starts an execution host, chooses a tier, creates a branch or
-worktree, or grants implementation authority.
-
-Only Task Control allocates those human IDs. A chat, Coordinator, checkout,
-branch, or client never derives, increments, reserves, or defaults one. A task
-started directly without adopting a card has no `A#` identity and is displayed
-with repository plus human title. This keeps simultaneous direct tasks distinct
-without introducing another allocator.
-
-Repository identity is local and clone-scoped. Git resolves the primary
-worktree of the clone as `repository`, while the checkout used by one task is
-kept separately as `worktree`. Linked worktrees therefore stay grouped under
-the same repository without depending on GitHub, remotes, or network access;
-two independent clones remain distinct. Historical rows are not backfilled.
-
-The user starts a ready card from a native Codex, Cursor, Grok Build, or Devin chat by asking that chat to
-adopt its human ID with Orchestra. The chat becomes the visible conversational
-owner, inherits its current permissions, and follows the normal Orchestra
-checkout and approval flow. Revision-bound prepared context is reused when
-current and receives only a focused delta when Git changed. Coordinator uses
-the same UUID after checkout creation, so the Hub can join prepared and active
-state without inventing another identity. Transfer to another native chat is
-explicit and allowed only at a stable checkpoint. When that owning chat cannot
-release the card, an explicit user resume in a different native host chat
-reclaims ownership and resumes the same worktree and plan. Archiving never
-deletes Git, documents, plans, worktrees, or chat history.
-
-Task Control also owns recoverable trash and cooperative safe stops. A stop
-request is durable intent, never an interrupt: the owning root observes it at
-stable boundaries, closes only its owned resources, blocks the existing plan,
-and acknowledges the stop with its host-namespaced conversation identity. The
-cancelled card keeps its checkout and plan; reopening lets the same prior owner
-adopt it again and resume. Permanent purge is limited to a confirmed trashed
-draft with no preparation, ownership, notes, relationships, runs, completion,
-or delivery evidence, and its human ID is never reused.
-
-One card remains the normal unit and Orchestra's phases absorb ordinary
-complexity. A confirmed minimal initiative exists only for real independent
-execution, acceptance, repository, or delivery boundaries. Its cards keep
-self-contained specifications and immutable `blocked_by` ordering; absence of
-a dependency path exposes safe parallelism. `completed` dependencies wait for
-reviewed terminal completion, while `delivered` dependencies wait for verified
-integration or merge evidence and, in the same Git repository, a checkout that
-contains the delivered base revision. The Kanban never schedules, starts,
-pulls, or assigns worktrees.
+Orchestra Tasks is a separate repository and installation for prepared cards,
+native-chat ownership, global snapshots and progress clients. Core skills and
+full execution do not install or call it by default. A user may attach a card
+or explicitly track a direct run; installing the companion grants no authority.
+The core retains local plans, evidence and Git delivery. An attached card keeps
+its companion obligations; loss of that dependency blocks the attached path.
 
 ### Quality per token
 
@@ -218,10 +175,9 @@ compilation, or CLI-usage failures remain real failures.
 
 Current source and Git remain authoritative for repository state. Project tests,
 runtime evidence, and independent review provide complementary correctness
-signals. A lightweight local coordination projection may retain task snapshots
-and task-private evidence artifacts so later agents can navigate prior work
-without root-authored replay. That projection never authorizes, validates, or
-blocks Git, tier, phase, commit, or delivery operations.
+signals. Task-private evidence artifacts let later agents navigate prior work without
+root-authored replay. Global observation belongs to the optional Tasks companion
+and never grants execution authority.
 New tasks keep their plan and semantic artifacts in one self-ignored
 `.orchestra/` directory inside the selected worktree. This state remains
 writable under normal workspace permissions, is removed only by guarded task

@@ -96,10 +96,3 @@ substituted.
 
 Observe the Grok host permission choice. Do not write `~/.grok/config.toml`,
 sandbox profiles, or Codex `config.toml`.
-
-## Identity
-
-Task Control owner commands, including `task acknowledge-stop`, use the
-adapter-provided `GROK_SESSION_ID`. Never
-replace it with user, page, tool, or model-generated content. If it is
-unavailable, stop because Task Control ownership cannot be proven.

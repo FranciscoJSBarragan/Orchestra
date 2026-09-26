@@ -43,8 +43,6 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
     for profile in AGENTS:
         filename = f"{profile}.toml"
         files.append((source / "codex/agents" / filename, Path("profiles") / filename))
-    for path in sorted((source / "codex/control").rglob("*.py")):
-        files.append((path, Path("control") / path.relative_to(source / "codex/control")))
     for host, matrix in (
         ("codex", "codex/config/roles.native.toml"),
         ("cursor", "hosts/cursor/config/roles.cursor.toml"),
@@ -62,16 +60,10 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         ("packaging/README.md", "README.md"),
     ):
         files.append((source / original, Path(destination)))
-    if target == "cursor":
-        files.append((source / "hosts/cursor/plugin/scripts/session_identity.py",
-                      Path("scripts/session_identity.py")))
     if target == "devin":
         for profile in AGENTS:
             files.append((source / "hosts/devin/agents" / f"{profile}.md",
                           Path("agents") / f"{profile}.md"))
-        files.append((source / "hosts/devin/plugin/hooks.json", Path("hooks.json")))
-        files.append((source / "hosts/devin/plugin/scripts/session_identity.py",
-                      Path("scripts/session_identity.py")))
     # Preflight every source before creating anything at the destination.
     for original, _ in files:
         if (not original.is_file() or original.is_symlink()
@@ -91,12 +83,6 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
             write_json(output / "plugin.json", {"$schema": SCHEMA, **common})
         elif target == "cursor":
             write_json(output / ".cursor-plugin/plugin.json", {**common, "skills": "./skills/"})
-            write_json(output / "hooks/hooks.json", {
-                "version": 1,
-                "hooks": {"sessionStart": [{
-                    "command": 'python3 "${CURSOR_PLUGIN_ROOT}/scripts/session_identity.py"',
-                }]},
-            })
         elif target == "devin":
             write_json(output / ".devin-plugin/plugin.json", {**common, "skills": "./skills/"})
         else:

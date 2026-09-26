@@ -1,12 +1,15 @@
 # Orchestra
 
-Orchestra is a cost-efficient, multi-agent software-delivery workflow for Codex,
-Cursor, Grok Build, and Devin. It is built for one developer who wants planned work to
-arrive reviewed, verified, and committed.
+Orchestra provides reusable engineering skills and an explicit multi-agent
+software-delivery workflow for Codex, Cursor, Grok Build, and Devin.
+Use individual skills in your current workflow, or invoke `$orchestra` for an
+approved plan, implementation, independent review, verification and phase commits.
+You remain the product owner and final authority.
 
-Orchestra turns a well-defined change into an approved plan, then drives it through implementation, independent review, runtime verification, and phase commits on an isolated `orchestra/*` branch. You stay the product owner and final authority; the orchestrator acts as your technical lead.
-
-It is not a framework, a daemon, or a second Git. It is a set of skills, four agent profiles, and a few small Python helpers that your existing coding agent already knows how to run.
+The core includes skills, four agent profiles, host adapters and focused Python
+helpers. It needs no task manager, MCP server, database or background service.
+The optional **Orchestra Tasks** companion owns task cards and progress views in
+a separate repository and installation. Both products can be installed independently.
 
 ```text
 $orchestra add CSV export to the orders page
@@ -33,7 +36,7 @@ Coding agents are already good at writing code. What they lack is a dependable p
 
 Orchestra makes different bets:
 
-- **Explicit, not ambient.** Nothing happens until you say `$orchestra`. Ordinary requests, plan mode, and quick fixes stay exactly as they were.
+- **Explicit full workflow.** `$orchestra` starts the planned route. Modular skills support ordinary work without activating it.
 - **Four roles, not forty personas.** Analyst, implementer, reviewer, verifier. The root adds a capability (frontend, debugging, browser acceptance, planning) per dispatch instead of inventing a new agent for each domain.
 - **Independence where it pays.** The implementer runs and fixes every deterministic check before handoff. A reviewer who did not write the code reads intent, diff, tests, and fresh evidence. A separate verifier appears only at real boundaries: browsers, running services, mutable data, credentials, or critical tiers.
 - **Git is the state machine.** One task, one branch, one commit per accepted phase. No event ledger, no lock files, no plan CLI you have to keep in sync.
@@ -129,7 +132,6 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | `orchestra` | Explicit full workflow: spec → plan → phases → delivery |
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
-| `orchestra-task` | Capture and prepare a task card (`A1`, `A2`, …) from any chat without starting anything; adopt it later from a native host chat |
 | `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI with scoped permissions |
 | `orchestra-lite` | Another agent coordinates: it hands one approved task to a fresh worker with an `ORCHESTRA_LITE_SPEC` kickoff; the worker implements, runs the repository checks, publishes `orchestra/<slug>`, and returns a draft PR or handoff plus a JSON `ORCHESTRA_LITE_RESULT`. No tier negotiation, phases, or review dispatch inside the worker |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
@@ -171,15 +173,28 @@ python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orche
 ```
 
 The portable format supports Agent Plugins 1.0 and Codex. Native variants keep
-Cursor's optional task identity hook, Grok's compatible loader, and Devin's
-`.devin-plugin` manifest with its session identity hook. All variants
-include the same workflow, skills, helpers, native adapters, and CLI delegation.
-Task Control and Hub remain optional. The package inherits host permissions.
+Cursor's native manifest, Grok's compatible loader and Devin's agent profiles.
+All variants include the same workflow, skills, helpers, native adapters and CLI
+delegation. The core contains no Task Control, Hub, identity hook or MCP server.
+The package inherits host permissions.
 
 See [plugin packaging](packaging/README.md) for local loading, installation
 boundaries, updates, and switching from direct sync. Building does not install
 or publish anything. Full support on another harness requires a verified native
 adapter, beyond accepting the plugin format.
+
+## Optional Orchestra Tasks
+
+Orchestra Tasks owns `$orchestra-task`, prepared cards, optional global progress
+snapshots, Task MCP and the Hub, TUI and macOS clients. Capture and preparation
+work without core; executing a prepared card requires the separately loaded
+`orchestra` skill. Installing Tasks alone never starts execution or tracks direct
+runs. Direct-run tracking requires an explicit request.
+
+Core keeps its worktree-local plan and delivery helpers. Attached cards follow
+[the companion boundary](docs/WORKFLOW.md#attached-tasks-companion); ordinary
+work requires no companion discovery. The repository extraction is local until
+separate publication; no remote installation URL is claimed here.
 
 ## Install with direct sync
 
@@ -252,10 +267,9 @@ AGENTS.md              concise executable rules for agents working on Orchestra 
 codex/skills/          the shared skills and their internal playbooks
 codex/agents/          the four namespaced agent profiles
 codex/config/          Codex role matrix and permission defaults
-codex/scripts/         sync.py, validate_suite.py, coordination and task-control helpers
+codex/scripts/        packaging, sync, validation, local plan, delegation and Git helpers
 codex/tests/           conformance suite
 hosts/cursor, hosts/grok, hosts/devin  host adapters and role matrices
-hub/                   optional local read-only hub, TUI, and macOS menu-bar client
 ```
 
 Product intent has a strict precedence: `VISION.md` → `docs/WORKFLOW.md` → `docs/ARCHITECTURE.md` → `AGENTS.md` → skills, profiles, scripts, tests. Lower layers never silently redefine higher ones.

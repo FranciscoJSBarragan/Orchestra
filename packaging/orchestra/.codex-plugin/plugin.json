@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Orchestra",
     "shortDescription": "Plan, implement, review, and verify software changes.",
-    "longDescription": "Orchestra packages a shared workflow, role skills, native host adapters, and local helpers. Task intake and CLI delegation are optional.",
+    "longDescription": "Reusable engineering skills, an optional planned workflow, native host adapters and local helpers. Orchestra Tasks is a separately installed companion.",
     "developerName": "Orchestra",
     "category": "Productivity",
     "capabilities": [],

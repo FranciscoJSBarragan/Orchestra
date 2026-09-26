@@ -10,6 +10,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import shlex
 import stat
 import subprocess
 import sys
@@ -20,7 +21,6 @@ from typing import Any
 
 SKILLS = (
     "orchestra",
-    "orchestra-task",
     "orchestra-project-start",
     "orchestra-repo-onboard",
     "orchestra-delegate",
@@ -63,10 +63,7 @@ LEGACY_AGENTS = (
     "web_researcher",
 )
 HELPERS = (
-    "coordination.py",
     "task_state.py",
-    "task_control.py",
-    "task_mcp.py",
     "commit_phase.py",
     "delegate.py",
     "prepare_source.py",
@@ -76,7 +73,8 @@ HELPERS = (
     "integrate_local.py",
     "_common.py",
 )
-RETIRED_HELPERS = ("create_worktree.py", "session_model.py")
+RETIRED_HELPERS = ("create_worktree.py", "session_model.py", "coordination.py", "task_control.py", "task_mcp.py")
+RETIRED_SKILLS = ("orchestra-task",)
 MODELCONFIGS = ("native",)
 # Accepted only as ownership metadata for migration and uninstall.
 LEGACY_MODELCONFIGS = ("external", "dual")
@@ -88,7 +86,6 @@ CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
 DEVIN_CONFIG_PATH = ".config/devin/config.json"
 DEVIN_AGENTS_DIR = ".config/devin/agents"
 DEVIN_SKILLS_DIR = ".config/devin/skills"
-DEVIN_IDENTITY_SCRIPT = "hosts/devin/session_identity.py"
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
@@ -199,39 +196,8 @@ def _includes_devin(host: str) -> bool:
     return host in {"devin", "all"}
 
 
-def _cursor_mcp_json(orchestra_home: Path) -> bytes:
-    helper = orchestra_home / "scripts" / "task_mcp.py"
-    payload = {
-        "mcpServers": {
-            "orchestra_tasks": {
-                "command": "python3",
-                "args": [str(helper)],
-            }
-        }
-    }
-    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode()
-
-
-def _devin_hook_matcher(orchestra_home: Path) -> dict[str, Any]:
-    script = orchestra_home / "hosts" / "devin" / "session_identity.py"
-    return {
-        "matcher": "",
-        "hooks": [
-            {
-                "type": "command",
-                "command": f'python3 "{script}"',
-                "timeout": 10,
-            }
-        ],
-    }
-
-
 def _devin_canonical_matcher_bytes(matcher: dict[str, Any]) -> bytes:
     return (json.dumps(matcher, indent=2, sort_keys=True) + "\n").encode()
-
-
-def _devin_managed_content(orchestra_home: Path) -> bytes:
-    return _devin_canonical_matcher_bytes(_devin_hook_matcher(orchestra_home))
 
 
 def _devin_parse_config(data: bytes) -> dict[str, Any]:
@@ -250,6 +216,14 @@ def _devin_render(parsed: dict[str, Any]) -> bytes:
     return (json.dumps(parsed, indent=2, ensure_ascii=False) + "\n").encode()
 
 
+def _legacy_devin_command(command: str) -> bool:
+    try:
+        arguments = shlex.split(command)
+    except ValueError:
+        return False
+    return len(arguments) == 2 and Path(arguments[1]).parts[-3:] == ("hosts", "devin", "session_identity.py")
+
+
 def _devin_matcher_command(matcher: dict[str, Any]) -> str | None:
     hook_list = matcher.get("hooks")
     if not isinstance(hook_list, list):
@@ -258,7 +232,7 @@ def _devin_matcher_command(matcher: dict[str, Any]) -> str | None:
         if (
             isinstance(hook, dict)
             and isinstance(hook.get("command"), str)
-            and DEVIN_IDENTITY_SCRIPT in hook["command"]
+            and _legacy_devin_command(hook["command"])
         ):
             return hook["command"]
     return None
@@ -658,17 +632,6 @@ def _inventory(
         entries[("orchestra_home", destination)] = _entry(
             "orchestra_home", destination, "file", _read_file(source, str(source))
         )
-    control_root = source_root / "codex" / "control"
-    if control_root.is_symlink() or not control_root.is_dir():
-        raise SyncError(f"expected a source directory: {control_root}")
-    for source in _walk_files(control_root):
-        relative = source.relative_to(control_root).as_posix()
-        if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
-            continue
-        destination = f"control/{relative}"
-        entries[("orchestra_home", destination)] = _entry(
-            "orchestra_home", destination, "file", _read_file(source, str(source))
-        )
     workflow_source = source_root / "docs/WORKFLOW.md"
     preset_source = source_root / "codex/config/execution-presets.toml"
     preset_content = _read_file(preset_source, str(preset_source))
@@ -730,14 +693,6 @@ def _inventory(
             entries[("codex_home", destination)] = _entry(
                 "codex_home", destination, "file", _read_file(source, str(source))
             )
-        for source in _walk_files(control_root):
-            relative = source.relative_to(control_root).as_posix()
-            if "__pycache__" in source.relative_to(control_root).parts or source.suffix == ".pyc":
-                continue
-            destination = f"orchestra/control/{relative}"
-            entries[("codex_home", destination)] = _entry(
-                "codex_home", destination, "file", _read_file(source, str(source))
-            )
         entries[("codex_home", WORKTREE_ROOT_PATH)] = _entry(
             "codex_home", WORKTREE_ROOT_PATH, "file", f"{worktree_root}\n".encode()
         )
@@ -774,13 +729,6 @@ def _inventory(
             entries[("home", destination)] = _entry(
                 "home", destination, "file", _read_file(source, str(source))
             )
-        mcp_destination = f"{CURSOR_PLUGIN_ROOT}/mcp.json"
-        entries[("home", mcp_destination)] = _entry(
-            "home",
-            mcp_destination,
-            "file",
-            _cursor_mcp_json(orchestra_home),
-        )
     if _includes_grok(host):
         grok_roles = source_root / "hosts/grok/config/roles.grok.toml"
         grok_spawn = source_root / "hosts/grok/references/spawn.md"
@@ -797,11 +745,9 @@ def _inventory(
     if _includes_devin(host):
         devin_roles = source_root / "hosts/devin/config/roles.devin.toml"
         devin_spawn = source_root / "hosts/devin/references/spawn.md"
-        devin_identity = source_root / "hosts/devin/plugin/scripts/session_identity.py"
         for source, destination in (
             (devin_roles, "hosts/devin/roles.toml"),
             (devin_spawn, "hosts/devin/spawn.md"),
-            (devin_identity, "hosts/devin/session_identity.py"),
         ):
             entries[("orchestra_home", destination)] = _entry(
                 "orchestra_home",
@@ -835,24 +781,18 @@ def _inventory(
                 entries[("home", destination)] = _entry(
                     "home", destination, "file", _read_file(source, str(source))
                 )
-        entries[("home", DEVIN_CONFIG_PATH)] = _entry(
-            "home",
-            DEVIN_CONFIG_PATH,
-            "managed_json",
-            _devin_managed_content(orchestra_home),
-        )
     return entries
 
 
 def _allowed_entry(root: str, path: str, kind: str) -> bool:
     parts = _relative(path).parts
     if root == "home" and kind == "file":
-        if len(parts) >= 4 and parts[:2] == (".agents", "skills") and parts[2] in SKILLS:
+        if len(parts) >= 4 and parts[:2] == (".agents", "skills") and parts[2] in (*SKILLS, *RETIRED_SKILLS):
             return True
         if (
             len(parts) >= 4
             and parts[:3] == (".config", "devin", "skills")
-            and parts[3] in SKILLS
+            and parts[3] in (*SKILLS, *RETIRED_SKILLS)
         ):
             return True
         if (
@@ -1227,19 +1167,11 @@ def _config_block(
     _ = writable_roots, parsed
     lines = [CONFIG_START]
     if backend == "profile":
-        command = json.dumps(sys.executable)
-        wrapper = json.dumps(str(codex_home / "orchestra/scripts/task_mcp.py"))
         lines.extend(
             (
                 b'approval_policy = "on-request"',
                 b'approvals_reviewer = "auto_review"',
                 f'default_permissions = "{PERMISSION_PROFILE}"'.encode(),
-                (
-                    "mcp_servers.orchestra_tasks = { "
-                    f"command = {command}, args = [{wrapper}], required = false, "
-                    "tool_timeout_sec = 3600, "
-                    'default_tools_approval_mode = "writes" }'
-                ).encode(),
             )
         )
     else:
@@ -1531,14 +1463,7 @@ def _validate_permission_transition(
 
 
 def _insert_permission_block(data: bytes, block: bytes) -> bytes:
-    first_table = min(
-        (start for _, start, _ in _table_spans(data)),
-        default=len(data),
-    )
-    prefix = data[:first_table]
-    suffix = data[first_table:]
-    separator = b"" if not prefix or prefix.endswith(b"\n") else b"\n"
-    result = prefix + separator + block + suffix
+    result = block + data
     _parse_config(result)
     return result
 

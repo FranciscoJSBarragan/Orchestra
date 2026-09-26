@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[2]
 class RoutingActivationContractTests(unittest.TestCase):
     def test_entrypoints_keep_names_and_invocation_metadata(self) -> None:
         for name, implicit in (
-            ("orchestra-task", "false"),
             ("orchestra-repo-onboard", "false"),
             ("orchestra-project-start", "true"),
             ("orchestra-delegate", "true"),
