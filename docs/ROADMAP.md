@@ -12,6 +12,28 @@ Conformance and package checks establish integration, not improved generated
 code quality. Plugin installation is an alternative to direct sync; it does
 not create a second runtime.
 
+### Delivery snapshot, 2026-09-26
+
+Implementation through `f47b08bf49ce98ed632de8a47195f45d639c44c9` includes
+decision evidence and Lite v2 handoffs, useful verification, decision authority,
+conversation continuity, reproducible source preparation, and the authorization
+pilot corrections. The latest correction received an accepted independent Opus
+5.5 medium review and passed full conformance (17 checks).
+
+On 2026-09-25, the owner's active Codex, Cursor, Grok and Devin plugin
+installations were updated to that implementation baseline. Installed content
+was compared with the generated bundles (94, 96, 94 and 100 files respectively),
+and user configuration was preserved. This completed personal installation
+update is distinct from broader host adoption, public distribution and proof
+of agent behavior. Git branch refs and commit history record source integration;
+an installed candidate alone does not establish delivery to `main`.
+
+The new held-out authority/continuity case, including intermediate questions
+and resumption, is deferred at the owner's request on 2026-09-26. No new live
+evaluation is part of this documentation and integration closure. Matched
+quality/model evaluation also remains pending; the recorded pilot is a bounded
+observation. No release or public marketplace publication is claimed.
+
 ## Distribution
 
 Local plugin packaging is supported. Public marketplace publication remains a
@@ -38,9 +60,9 @@ workflow validates canonical sources and produces versioned downloadable
 candidates and checksums, without creating a release or marketplace entry.
 
 The remaining adoption work is broader real-project evidence, including
-managed worktrees and remote PR delivery through installed plugins. Migrate
-the active direct-sync installation only when explicitly selected. Public
-publication remains a separate delivery decision.
+managed worktrees and remote PR delivery through installed plugins. The owner's
+completed plugin update is recorded in the delivery snapshot above; migration
+of other installations and public publication remain separate delivery decisions.
 
 Task Control and Hub remain optional. Additional harnesses and comparative model
 benchmarks follow these adoption checks. This list records follow-up work; it
@@ -77,8 +99,8 @@ checks, the two-repository integration canary, live host trials and matched
 quality evaluation. Host-provided checkouts are retained for host cleanup after
 authorized delivery. The same four roles and seven internal playbooks remain.
 
-Broader live parent/child acceptance, active-installation updates and public
-distribution remain explicit subsequent work. Current source tests do not prove
+Broader live parent/child acceptance and public distribution remain pending.
+Further installation changes require their own authority. Current source tests do not prove
 that every host discovers a skill, that cloud resume works in all environments,
 or that generated code improves. Keep comparative evaluation after bounded
 plugin acceptance and preserve the pending distribution and Bridge work above.
@@ -108,9 +130,11 @@ revision and refresh their kickoffs; source changes do not migrate active worker
 Decision evidence applies proportionally across ordinary roles, full Orchestra
 and Lite. Package conformance proves routing and shapes, not agent compliance.
 
-After the existing plugin acceptance boundary, start the bounded
+The remaining bounded
 [three-case pilot](evaluation/MODULAR_ACCEPTANCE.md#decision-evidence-pilot)
-with decision mapping and independent review together, holding resources fixed.
+uses decision mapping and independent review together, holding resources fixed,
+after the existing plugin acceptance boundary. Its new live cases are deferred
+as recorded above.
 The external coordinator supplies verified case bases and hidden expected
 outcomes. Only isolate the two effects if the combined pilot reveals a question
 that warrants the extra runs. Keep correctness and regressions ahead of cost or
@@ -130,7 +154,7 @@ to evaluate correctness and maintainability separately from diff size, test
 counts or speed. Preserve known-answer regressions and include a held-out case
 under matched resources. A real test-cleanup pilot needs an explicitly selected
 repository/area; source changes do not authorize deletion in consumer projects.
-Broader adoption, active-installation updates, public distribution and Bridge
+Broader adoption, future installation changes, public distribution and Bridge
 retain their existing sequencing and authority boundaries.
 
 ## Authority and conversation continuity
@@ -145,11 +169,12 @@ user questions, worker commentary and interruption, without new workflow state.
 The shipped source-preparation helper verifies one full revision and refuses to
 replace existing work. Consumer environments may prebuild that checkout or load
 a verified package; Cursor Cloud environment configuration remains consumer-owned.
-Run the [authority and continuity pilot](evaluation/MODULAR_ACCEPTANCE.md#authority-synthesis-and-continuity-follow-up)
-with an ambiguous case, its authorized-policy variant and a held-out continuation
-case. Host behavior and broader quality improvement remain unproven by structural
-checks alone. Integration to `main`, release labels, active-installation migration
-and public distribution retain their existing explicit delivery boundaries.
+The deferred [authority and continuity pilot](evaluation/MODULAR_ACCEPTANCE.md#authority-synthesis-and-continuity-follow-up)
+specifies an ambiguous case, its authorized-policy variant and a held-out
+continuation case. The recorded observations below do not complete that sequence.
+Host behavior and broader quality improvement remain unproven by structural
+checks alone. Future integration, release labels, installation changes and public
+distribution retain their existing explicit delivery boundaries.
 
 The [recorded authorization pilot](evaluation/MODULAR_ACCEPTANCE.md#recorded-authorization-pilot-2026-09-25)
 separates production, test and documentation deltas and preserves selected fault
