@@ -54,17 +54,55 @@ package manifests passed validation. Tasks full validation passed 88 tests inclu
 54 Hub and 31 TUI tests. Swift tests and app build passed. These counts identify
 this local extraction run, not future required test counts.
 
-## Limits and next delivery boundary
+## Authorized source delivery and personal installation
 
-These are local source, command, package and fixture checks. They do not prove
-live skill discovery through every host, especially Tasks' direct-sync skill
+On 2026-09-26, the owner explicitly authorized commit, push and installation
+updates. Core commit `98ebcd6ff36f0602663a875c49c0c1470236c30a` was integrated
+by fast-forward into [Orchestra main](https://github.com/FranciscoJSBarragan/Orchestra).
+Tasks commit `99450ba88a2504d6442ab5a0f73e984990d732c3` initialized the public
+[OrchestraTasks repository](https://github.com/FranciscoJSBarragan/OrchestraTasks).
+Both implementation commits passed their GitHub Actions checks.
+
+The owner's existing plugin route was preserved across Codex, Cursor, Grok and
+Devin. Each now has separate core and Tasks bundles. Installed files matched
+generated sources: core 84/84/84/88 and Tasks 19/21/19/21 files respectively,
+excluding bytecode caches and the Codex reinstall cachebuster. Grok's updater
+reported a live local source while its installed copy was stale; native removal
+and installation restored verified parity. Grok and Devin discovery each
+reported 19 core skills and one companion skill, without duplicate Task entries.
+Codex's plugin manager confirmed both installs; Cursor's local bundle contents
+were verified without starting a model session.
+
+Existing Codex and Cursor MCP registrations now select Tasks helpers. Their
+configured commands passed MCP initialization and eight-tool discovery.
+Unrelated configuration and the existing Codex server approval settings were
+preserved. The Hub launch agent now uses the Tasks checkout; the macOS app was
+rebuilt and installed from Tasks, with a working bundled helper. Both launch
+agents were running and the Hub health endpoint reported `ok`. The obsolete
+owned helper symlink was retired into the private installation backup.
+
+Configurations, plugin roots, the app and SQLite databases were backed up before
+replacement. Both databases passed integrity checks; logical content hashes
+were unchanged after installation and read-only smoke checks. No schema or
+card migration was performed. Existing sessions need a fresh host/plugin load
+to consume the new skill set and MCP configuration.
+
+Updating an existing checkout can leave ignored bytecode, local virtualenvs
+and generated screenshots in the retired `codex/control` and `hub` directories.
+These local artifacts were preserved in the private backup after confirming
+that no tracked source or active service depended on those directories. Core
+conformance requires the retired component directories to be absent.
+
+## Remaining acceptance limits
+
+These source, package, fixture and bounded installed-runtime checks do not prove
+model-driven workflow behavior or live discovery through every route, especially Tasks' direct-sync skill
 symlinks, including Cursor's `CURSOR_PLUGIN_ROOT` for direct-sync local plugins, or an
 actual model's adherence to the missing-companion, stop and
 registration instructions. Independent source review assesses those instructions;
-a later authorized installation trial must exercise actual host loading and a
+a later authorized workflow trial must exercise actual host loading and a
 bounded card lifecycle. No benchmark or adoption improvement is inferred.
 
-Active installations remain on the earlier combined version until a separately
-authorized replacement. Source commits, remote repository creation, push,
-publication and installation are separate from this local implementation.
-The held-out model-quality comparison remains deferred.
+The authorized personal installation replacement is complete. Broader host
+adoption, public marketplace distribution and the held-out model-quality
+comparison remain deferred; no release or new model evaluation was run.

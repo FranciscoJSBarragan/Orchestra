@@ -12,7 +12,7 @@ Conformance and package checks establish integration, not improved generated
 code quality. Plugin installation is an alternative to direct sync; it does
 not create a second runtime.
 
-### Delivery snapshot, 2026-09-26
+### Engineering baseline before the Tasks split
 
 Implementation through `f47b08bf49ce98ed632de8a47195f45d639c44c9` includes
 decision evidence and Lite v2 handoffs, useful verification, decision authority,
@@ -42,12 +42,13 @@ Orchestra Tasks repository owns cards, global snapshots, MCP, identity hooks and
 Hub clients. Direct tracking is explicit opt-in. Each has its own package and
 installer; core-only use has no Tasks dependency.
 
-The [separation acceptance record](evaluation/TASKS_SPLIT_ACCEPTANCE.md) identifies
-source, package and disposable installation coverage and its limits. Those
-checks do not update active hosts or publish the new repository. Independent Opus 5.5 medium implementation review accepted the source split.
-Authorized source delivery, one controlled personal installation replacement
-and any public distribution remain separate acceptance steps. The prior host
-trials below describe the combined baseline, not live acceptance of this split.
+The [separation acceptance record](evaluation/TASKS_SPLIT_ACCEPTANCE.md) records
+the independent Opus 5.5 Medium review, source and package checks, publication
+to both repositories' `main` branches, and the owner's authorized plugin
+replacement on 2026-09-26. Both repositories are public; public marketplace
+publication remains separate. Installed package parity and bounded runtime
+checks passed. The prior model-driven host trials below describe the combined
+baseline, not live workflow acceptance of this split.
 The held-out model-quality evaluation remains deferred.
 
 ## Distribution

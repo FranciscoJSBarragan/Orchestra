@@ -8,7 +8,7 @@ You remain the product owner and final authority.
 
 The core includes skills, four agent profiles, host adapters and focused Python
 helpers. It needs no task manager, MCP server, database or background service.
-The optional **Orchestra Tasks** companion owns task cards and progress views in
+The optional **[Orchestra Tasks](https://github.com/FranciscoJSBarragan/OrchestraTasks)** companion owns task cards and progress views in
 a separate repository and installation. Both products can be installed independently.
 
 ```text
@@ -193,8 +193,9 @@ runs. Direct-run tracking requires an explicit request.
 
 Core keeps its worktree-local plan and delivery helpers. Attached cards follow
 [the companion boundary](docs/WORKFLOW.md#attached-tasks-companion); ordinary
-work requires no companion discovery. The repository extraction is local until
-separate publication; no remote installation URL is claimed here.
+work requires no companion discovery. See the separate
+[Orchestra Tasks repository](https://github.com/FranciscoJSBarragan/OrchestraTasks)
+for installation, clients and companion validation.
 
 ## Install with direct sync
 
