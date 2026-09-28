@@ -1168,10 +1168,10 @@ not updated for such a change. Structural invariants the matrices must keep:
 - No Orchestra assignment uses Sol xhigh. A second critical review reuses
   `independent_review` only for a named measurable risk and independently
   detectable defect class.
-- Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast is
-  the assigned fast lane for repository, research, and runtime verification
-  rows. The Cursor spawn reference maps each row onto the closest live Task
-  worker without rewriting product names.
+- Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast
+  remains the fast lane for repository, research, and runtime verification
+  on `minimal` and `critical`. The Cursor spawn reference maps each row onto
+  the closest live Task worker without rewriting product names.
 - Grok assigns `standard` and `critical` on the live `grok-4.6` catalog with
   identical spawn rows (`critical` raises root scrutiny, not the model) and
   blocks unassigned `minimal`. The Grok spawn reference maps rows onto

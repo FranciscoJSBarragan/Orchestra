@@ -50,7 +50,8 @@ network/external, repository-policy, critical-tier, or selected execution-preset
 ## Product contract vs live Task slugs
 
 `roles.cursor.toml` records Composer 2.5 Fast, Luna high/xhigh, Grok 4.6
-high/xhigh, Fable 5.1 low/medium, and Sol 5 medium/high as the product contract.
+high/xhigh, Grok 4.7 high/xhigh, Fable 5.1 medium, and Sol 5 high as the
+product contract.
 Pass those names in the packet. The live Task schema may only expose nearby
 workers. Use the closest worker without rewriting the product contract or
 inventing a Codex `reasoning_effort` field:
@@ -62,9 +63,9 @@ inventing a Codex `reasoning_effort` field:
 | `gpt-5.6-luna` | `xhigh` | `luna-worker` with `model` `gpt-5.6-luna-xhigh` |
 | `cursor-grok-4.6` | `high` | `grok-worker` with `model` `cursor-grok-4.6-high` |
 | `cursor-grok-4.6` | `xhigh` | `grok-worker` with `model` `cursor-grok-4.6-xhigh` |
-| `claude-fable-5-1` | `low` | `generalPurpose` with `model` `claude-fable-5-1-thinking-low` |
+| `grok-4.7` | `high` | `grok-worker` with `model` `grok-4.7-high` |
+| `grok-4.7` | `xhigh` | `grok-worker` with `model` `grok-4.7-xhigh` |
 | `claude-fable-5-1` | `medium` | `generalPurpose` with `model` `claude-fable-5-1-thinking-medium` |
-| `gpt-5.6-sol` | `medium` | `sol-worker` with `model` `gpt-5.6-sol-medium` |
 | `gpt-5.6-sol` | `high` | `sol-worker` with `model` `gpt-5.6-sol-high` |
 
 If inherit would select an unintended variant, pass the exact effort slug instead
@@ -78,7 +79,9 @@ Some CLI sessions expose only `generalPurpose` for these workers. In that
 schema, use a fresh `generalPurpose` Task with the assigned family's explicit
 model slug and the same role packet. For example, the observed Grok high slug
 `cursor-grok-4.6-high-fast` preserves the family and effort when
-`cursor-grok-4.6-high` is absent. Record the actual worker and model fields;
+`cursor-grok-4.6-high` is absent. The same rule applies to Grok 4.7:
+`grok-4.7-high-fast` preserves the family and effort when `grok-4.7-high` is
+absent. Record the actual worker and model fields;
 the product matrix stays unchanged. If the live schema cannot select the
 assigned family, report the missing capability instead of using an inherited
 model of another family.

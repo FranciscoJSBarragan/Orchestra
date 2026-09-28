@@ -1297,17 +1297,14 @@ def check_cursor_host(root: Path) -> list[str]:
         return "cursor-grok-4.6", "high", "grok-worker"
 
     def standard_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
-            return "composer-2.5-fast", "fast", "composer-fast-worker"
-        if capability == "browser_acceptance":
-            return "gpt-5.6-luna", "xhigh", "luna-worker"
-        if capability in {"technical_planning", "architecture_analysis"}:
-            return "claude-fable-5-1", "low", "generalPurpose"
-        if capability in {"difficult_debugging", "independent_review"}:
-            return "gpt-5.6-sol", "medium", "sol-worker"
-        if capability in {"general_implementation", "frontend_implementation"}:
-            return "cursor-grok-4.6", "high", "grok-worker"
-        return "", "", ""
+        if capability in {
+            "browser_acceptance",
+            "repository_context",
+            "web_research",
+            "runtime_verification",
+        }:
+            return "grok-4.7", "high", "grok-worker"
+        return "grok-4.7", "xhigh", "grok-worker"
 
     def critical_contract(capability: str) -> tuple[str, str, str]:
         if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
@@ -1340,10 +1337,10 @@ def check_cursor_host(root: Path) -> list[str]:
         "sol-worker",
         "cursor-grok-4.6-high",
         "cursor-grok-4.6-xhigh",
+        "grok-4.7-high",
+        "grok-4.7-xhigh",
         "gpt-5.6-luna-xhigh",
-        "claude-fable-5-1-thinking-low",
         "claude-fable-5-1-thinking-medium",
-        "gpt-5.6-sol-medium",
         "gpt-5.6-sol-high",
         "generalPurpose",
         "plugin-browser-use-browser-use",

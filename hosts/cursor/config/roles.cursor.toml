@@ -68,63 +68,63 @@ effort = "high"
 
 [tiers.standard.repository_context]
 profile = "orchestra_analyst"
-subagent_type = "composer-fast-worker"
-model = "composer-2.5-fast"
-effort = "fast"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "high"
 
 [tiers.standard.web_research]
 profile = "orchestra_analyst"
-subagent_type = "composer-fast-worker"
-model = "composer-2.5-fast"
-effort = "fast"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "high"
 
 [tiers.standard.runtime_verification]
 profile = "orchestra_verifier"
-subagent_type = "composer-fast-worker"
-model = "composer-2.5-fast"
-effort = "fast"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "high"
 
 [tiers.standard.browser_acceptance]
 profile = "orchestra_verifier"
-subagent_type = "luna-worker"
-model = "gpt-5.6-luna"
-effort = "xhigh"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "high"
 
 [tiers.standard.general_implementation]
 profile = "orchestra_implementation_worker"
 subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "high"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.standard.frontend_implementation]
 profile = "orchestra_implementation_worker"
 subagent_type = "grok-worker"
-model = "cursor-grok-4.6"
-effort = "high"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.standard.technical_planning]
 profile = "orchestra_analyst"
-subagent_type = "generalPurpose"
-model = "claude-fable-5-1"
-effort = "low"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.standard.architecture_analysis]
 profile = "orchestra_analyst"
-subagent_type = "generalPurpose"
-model = "claude-fable-5-1"
-effort = "low"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.standard.difficult_debugging]
 profile = "orchestra_analyst"
-subagent_type = "sol-worker"
-model = "gpt-5.6-sol"
-effort = "medium"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.standard.independent_review]
 profile = "orchestra_reviewer"
-subagent_type = "sol-worker"
-model = "gpt-5.6-sol"
-effort = "medium"
+subagent_type = "grok-worker"
+model = "grok-4.7"
+effort = "xhigh"
 
 [tiers.critical.repository_context]
 profile = "orchestra_analyst"
