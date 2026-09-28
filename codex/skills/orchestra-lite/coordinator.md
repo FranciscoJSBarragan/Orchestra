@@ -76,3 +76,10 @@ Apply WORKFLOW "Review policy" to suggested findings before delivery: classify
 their impact and return accepted in-scope fixes to the same worker, with the
 affected verification and delta review. Cheap edits are not automatically
 required, and documentation or test edits are not automatically review-exempt.
+
+For a pending task whose base moved, use WORKFLOW "Base refresh before delivery"
+with the same worker and reviewer. Supply the exact target and current task SHA;
+preserve original v2 `Base` and use existing Decisions/Evidence for the refresh.
+That bounded merge-from-base exception does not authorize delivery into the base
+or change Lite's external review ownership. Follow the same section when an
+explicit precommit-review policy requires a staged-content handoff.

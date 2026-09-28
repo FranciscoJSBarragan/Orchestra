@@ -97,7 +97,8 @@ conversation identity, permissions, and `browser_route`.
 - Cursor reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml`. Dispatch
   uses Cursor Task workers from that matrix plus the existing `orchestra-role-*`
   skill. Custom `~/.cursor/agents` files are not the dispatch API. Wait uses a
-  background Task and completion notification without busy-polling. Cleanup
+  foreground completion or supported background notification under "Agent waiting",
+  without busy-polling. Cleanup
   requires completed agents with no retained write-capable resources. Cursor
   sync never writes Codex `config.toml` or Cursor `settings.json`.
 - Grok Build reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Dispatch
@@ -126,11 +127,13 @@ Resolve executable resources using `orchestra/runtime.md` alongside the loaded
 skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
 package. Direct sync retains its managed global destinations and compatibility
 helper mirrors. All paths below that describe installed resources use the
-selected installation's mapping. Settings remain outside the plugin under
+selected installation's mapping; explicit source mode instead uses the runtime
+reference's source layout, including host files outside `<source>/codex`.
+Settings remain outside the plugin under
 `${ORCHESTRA_HOME:-$HOME/.orchestra}`; the separately installed Tasks companion owns its data locations.
 
 Plugins do not register Codex agent types or edit global configuration. For a
-Codex plugin dispatch, read the selected behavior profile, spawn a native `default`
+Codex plugin or prepared-source dispatch, read the selected behavior profile, spawn a native `default`
 agent with the matrix's explicit model and effort, and include that profile's
 instructions and the exact role skill path in the bounded packet. Direct sync
 uses its registered profile type. Both routes preserve the same responsibility,
@@ -300,7 +303,8 @@ The normal review/check loop assesses meaningful recipe changes with the code.
 independent project, repository, acceptance or task-root boundaries. It does not
 activate from a multi-file edit and does not require Task Control, Hub or Bridge.
 Keep ordinary work in one task with proportional phases. An initiative may
-include several repositories in one project or projects on different hosts;
+include concurrent tasks in one repository, several repositories in one project,
+or projects on different hosts;
 resolve actual Git roots, applicable instructions and execution environments
 instead of treating a project name or primary folder as the whole scope.
 
@@ -327,24 +331,46 @@ them. Host permission prompts remain user/host decisions. Unsupported models,
 required tools or authorization produce a precise blocker, never a silent
 substitution. Independent unaffected work may continue while one child waits.
 
-Keep a single compact initiative index in an existing parent task document or a
-caller-owned private file outside source. Record the approved brief reference,
-repositories/checkouts, shared contract, child route and host/session handle,
-dependency condition, links to child plans/results, accepted full SHAs and joint
-verification. Write a pending dispatch intent before launch and replace it with
-the observed handle. This is a recovery/navigation aid: Git and the host own
-actual state, child plans own phase state, and the index grants no authority.
-It has a named parent/resume consumer and lives through acceptance/recovery;
-retain final links/evidence at handoff and remove private transient prompts or
-logs only when no continuation needs them. No new allocator, schema, database,
-scheduler, status service or file-change watcher is required.
+Keep one compact Markdown project register, typically `BOARD.md`, linking the
+approved brief/authority, repositories and checkout owners, shared contracts,
+child routes/tiers, task-root resources, native handles, dependencies, results,
+accepted SHAs, blockers and actual delivery. This replaces the initiative index;
+it does not duplicate child plans. Optional `PROJECT.md` holds stable context,
+not progress. Sections such as Now/Next/Done are navigation, not workflow states.
+Git and the host own actual execution state; a backlog entry grants no authority.
+
+Honor the user's chosen accessible location. Otherwise use a caller-owned
+external folder; an explicitly selected ignored `<repo>/orchestra/projects/<project>`
+in a persistent checkout or a verified native project store also works. Resolve
+Git's exclude path with `git rev-parse --git-path info/exclude`; `.git` may be a
+file. Never keep the long-lived register in `.orchestra` or a disposable task
+checkout. Verify store access and retention, including across hosts. Obsidian
+can edit these ordinary Markdown files; it is not a dependency. Ignored files
+are not Git backups: retain/export needed context using authorized storage at
+project closure or before environment teardown. Durable repository knowledge
+still follows "Repository conventions"; no new sync service is needed.
+
+The parent is the sole agent writer of the register. Children write their owned
+reports elsewhere. Reread before narrow updates to preserve human edits. Write
+pending dispatch intent before launch, then the observed handle. Missing files
+or a pending row do not establish an empty project or a failed launch: reconcile
+native state before replacement. Recover retrievable existing authority without
+re-asking; unresolved material grants remain questions. Keep final evidence and
+continuation handles while they have a consumer; remove only owned transient
+prompts/logs no longer needed. No board schema, allocator, database or watcher.
+
+Select resources separately for the parent, each task root and its role agents.
+Carry explicit root model/effort in the packet and register through the host's
+actual controls, not a new matrix capability. Role assignments retain the chosen
+host tier or preset. Actual concurrency, nesting and tool access must support
+the assignment; a model-family label is not evidence of its reasoning effort.
 
 Dispatch only through a host surface that supports the selected responsibility.
 Use native user-owned tasks when the user requested separate tasks and the app
 supports them; use native agents for internal delegated roles, not as a claim of
 persistent task-root capabilities they lack. An explicitly selected supported
 CLI may run a root session directly. Consult `orchestra-coordinate/host-transports.md` under the resolved skills
-root for concrete host primitives. Check availability before launch, preserve exact
+root for concrete host primitives and model selections. Check availability before launch, preserve exact
 session identities and use argument APIs/safe quoting. Do not use the leaf
 wrapper to run a root, strip its protections, enable hidden bypass permissions,
 or infer that installing a plugin provides unavailable host tools.
@@ -354,11 +380,27 @@ child's normal setup. A clean host-supplied isolated checkout may be adopted
 under "Task checkout and branch". Never let both create worktrees. For a project
 with several mutable repositories, assign separate checkouts/owners or explicitly
 serialize writes; load each repository's relevant instructions. Do not run two
-writers in one checkout. Read dependencies from accepted revisions or a fixed
+writers in one checkout. Same-repository parallel tasks need separate owned
+checkouts; an explicitly shared checkout requires serial writes. Also reconcile
+shared ports, databases and containers: Git isolation does not isolate them. Read dependencies from accepted revisions or a fixed
 contract, not from a sibling's evolving files. Use `completed` evidence for a
 reviewed child revision and `delivered` evidence only when integration into the
 required base/environment has actually occurred. Existing Task Control cards
 may expose those facts, but are not a dependency of this route.
+
+Resolve instructions separately from the product checkout through the selected
+runtime and source-preparation recipe. Each environment uses one verified plugin
+or pinned read-only source, with absolute entry/role, workflow, matrix and adapter
+paths in packets. When changing Orchestra itself, prepare that instruction copy
+before source edits. Verify it at launch rather than reinstalling for every role.
+
+Before mutable work in a disposable environment, settle how the parent retrieves
+the exact accepted revision and required reports/screenshots after release. The
+ordinary remote Git route carries the existing task-branch push grant and verifies
+the remote SHA; it never implies base push, PR or merge authority. An authorized
+retained artifact or held result can also suffice. If no preservation route exists,
+resolve that specific gap before dispatch. An environment-local absolute path is
+not evidence of cross-host access; send an accessible bounded packet or report.
 
 Waiting follows "Agent waiting": completion/attention events with known
 handles and cursors, compact summaries at stable handoff, no active diff/file
@@ -685,7 +727,9 @@ for an isolated checkout.
 `Rama: auto` creates `orchestra/<slug>` from `Base`; otherwise the worker uses
 the supplied task branch and creates no other. The working branch is always a
 task branch distinct from `Base`. Preexisting unrelated work is preserved and
-commits stage only task files. A branch collision or divergence blocks without
+ordinary commits stage only task files. The authorized merge-from-base exception
+in "Base refresh before delivery" records imported paths separately from authored
+changes. A branch collision or divergence blocks without
 force-push. Resuming the same assignment continues its preserved task branch
 when ownership is established; it does not create the branch again. In a fresh
 environment, continuation requires the coordinator to name the existing branch
@@ -760,12 +804,14 @@ certifying independent review.
 ### Commit, publication, and PR
 
 Commits are small English `type(scope): summary` commits containing only task
-paths. Push the task branch and verify with `git ls-remote` that the remote
+paths, except the authorized merge-from-base commit under "Base refresh before
+delivery", whose imported paths are recorded separately. Push the task branch and verify with `git ls-remote` that the remote
 SHA equals the delivered SHA; publication is successful only on that exact
 match, and a mismatch or rejected push preserves the local work and returns
-`BLOCKED`. Never force-push, merge, deploy, rebase or change `Base`, modify or
-expose secrets, or alter credentials; using already configured authentication
-is not authority to change it.
+`BLOCKED`. Never force-push, deploy, rebase or change `Base`. Merging is limited
+to the coordinator-authorized continuation in "Base refresh before delivery".
+Never modify or expose secrets or alter credentials; using already configured
+authentication is not authority to change it.
 
 `PR: worker` reconciles an existing PR for the branch before creating one,
 uses the environment's integration or `gh` with explicit repository, base and
@@ -1480,10 +1526,12 @@ behavior change requires renewed user approval.
 
 Setting the plan to `completed` freezes its approved objective, acceptance,
 and artifact selection. During an authorized PR review or an initiative's
-bounded joint-acceptance repair before child delivery, an accepted fix may
+bounded joint-acceptance repair or "Base refresh before delivery", an accepted
+correction before delivery may
 advance the affected phase's terminal commit only when it remains inside that
 approved intent and is verified, reviewed, and committed through the existing
-phase path; the root updates the manifest before pushing it. A new objective,
+phase path (or its reviewed base-refresh merge exception); the root updates the
+manifest before pushing it. A new objective,
 user-visible behavior, or material scope after `completed` or `hold` requires a
 new Orchestra task and plan rather than reopening or rewriting the old one.
 Before PR or local delivery, the root reads the terminal commit from the
@@ -2114,21 +2162,28 @@ to replace the completed plan's terminal revision with an unreviewed commit.
 ## Task checkout and branch
 
 Every formal Orchestra task normally uses a fresh `orchestra/<task-slug>[-N]`
-branch. An initiative child may instead adopt the clean isolated checkout and
-non-base task branch supplied by its host, after verifying repository identity,
-captured base/HEAD, branch ownership and no other writer. A detached checkout
-gets one collision-free task branch at that captured revision. Record the
-actual checkout creator and branch in the existing plan Decisions. This
-exception reuses the host checkout; it never creates a second worktree or
-updates the canonical base implicitly. Supplied task branches are not mistaken
-for the starting base. The child uses managed checkout semantics. If the
-supplied branch is outside
-`orchestra/*`, declare before setup that optional Coordinator registration and
-its Hub projection are skipped; use the child plan and parent index for
-visibility. Do not attempt registration only to rediscover the namespace
-failure. If adopting a prepared Task Control card or requiring that projection,
-select an owned `orchestra/*` branch in the same checkout before registration;
-never silently lose a required card's identity.
+branch. An initiative child may adopt a clean isolated host-supplied checkout
+and owned non-base task branch after verifying repository identity, exact
+approved captured base/HEAD and no other writer. Detached HEAD or the base
+branch in a clean isolated host-owned environment gets one collision-free task
+branch at that exact approved revision. Unexpected commits, even descendants,
+require reconciliation before mutation; preserve them and report the mismatch.
+The parent can direct safe selection of the approved revision or accept a new
+captured base under the existing focused context-delta rule. Do not reset unknown
+work. If host metadata and actual branch disagree, establish how resume and
+publication use the branch before changing it; do not invent a metadata API.
+
+Record the checkout creator and branch in existing plan Decisions. Exactly one
+owner creates/adopts the checkout; never create a redundant worktree. A child
+launched from a shared primary directory must establish its isolated managed
+checkout before any source, plan or task-state writes, then use it exclusively.
+An explicitly shared-checkout choice instead serializes conflicting writers.
+Supplied task branches are not the integration base; use managed semantics.
+If the supplied branch is outside `orchestra/*`, declare before setup that optional
+Coordinator registration and its Hub projection are skipped; use the child plan
+and parent register for visibility. If that projection is required, select an
+owned `orchestra/*` branch in the same checkout before registration; never
+silently lose a required card's identity.
 
 For a host-owned managed checkout, pass `--preserve-task-resources` to
 `pr.py merge` or `integrate_local.py`. It preserves the worktree and private
@@ -2164,6 +2219,20 @@ a user decision when the local base is ahead or diverged. A configured upstream
 fetch failure blocks. With no remote or upstream, the root may proceed from the
 local canonical base only after identifying it as not remotely verified.
 Orchestra never runs `git pull`, creates an implicit merge, or rebases the base.
+
+For managed initiative setup, an explicit approved full base SHA in the parent
+packet overrides the fresh-task upstream selection above. Verify that exact commit
+is available in this repository and contained in the selected local base branch
+or its fetched upstream, then create the checkout at that SHA, not the current tip
+of a different ref. Otherwise block before creation for parent reconciliation.
+This preserves authorized local base commits without moving or rewriting the base.
+
+Before setup or refresh intended to publish a task branch, also require the
+approved base SHA to be contained in its selected fetched upstream, unless the
+existing grant explicitly covers publishing the included local-only base commits.
+Otherwise the parent reconciles that publication scope before proceeding. A grant
+to push the task branch does not silently publish unrelated private base history.
+This does not restrict an authorized held result or local-only integration.
 
 An explicitly selected noncanonical base remains at its captured commit, so
 stacked work stays possible; a PR-required task must still prove that selected
@@ -2253,6 +2322,15 @@ model turns whose only purpose is deciding to sleep again. If the host supports
 only short waits, continue on the same handle without extra Git/log inspection
 or unchanged narration; do not invent a background-notification API.
 
+Choose foreground or background execution from the actual lifecycle. A task root
+whose background-role continuation is unverified runs its roles in the foreground
+(independent roles may use a supported parallel batch). A persistent root with
+verified completion-driven continuation may use background roles. A task root
+returns a stable accepted result or precise blocker, never completion while
+required descendants remain active. Ending a turn alone proves neither lost nor
+completed work. Resume only a confirmed completed/stopped owner, preserving its
+handle; progress messages do not justify relaunch or another writer.
+
 For CLI delegation, wait on the launcher process, not an empty redirected file.
 If manual status inspection is necessary, allow at least five minutes after
 dispatch and between inspections. For a review delegated through Cursor CLI,
@@ -2288,7 +2366,8 @@ ceremonial sections, byte-for-byte message equality, repeated authority checks,
 or an agent dispatch.
 
 The optional narrow helper exists only when exact-path staging is useful. It
-preserves unrelated work, rejects staged paths outside the accepted scope,
+refuses active merge, cherry-pick, revert, sequencer or rebase operations before
+staging, preserves unrelated work, rejects staged paths outside the accepted scope,
 commits the selected paths, and verifies that any created commit contains no
 other paths. A legitimate commit-message hook may add trailers. If Git created
 the intended commit, its SHA is success evidence even when an auxiliary command
@@ -2300,6 +2379,67 @@ validation.
 
 Phase-agent and temporary-resource teardown is complete before this path starts;
 it is not part of direct Git or `commit_phase.py`.
+
+## Base refresh before delivery
+
+When a pending task's base moves, the parent sends its existing root the actual
+authorized target's full SHA, expected task HEAD, affected dependencies and
+unchanged authority. Local delivery uses the authorized local base, including
+legitimate local commits ahead of origin; PR delivery uses the relevant remote
+base. Ancestry or equal trees only classify candidates: reconcile acceptance and
+actual delivery before replay or declaring success. Proven delivery with missing
+reporting needs recovery, not another integration. Repairs after delivery use a
+new bounded task. Serialize deliveries to each base; external writers still
+require a final base recheck and refreshed affected evidence when it moves.
+
+This continuation covers managed/host-supplied isolated tasks. Do not overwrite
+hybrid's captured `start_revision` guard or silently change checkout mode. Resolve
+that unsupported stale-base case explicitly. Refresh stays within existing scope
+and delivery grants, including the base-publication check in "Task checkout and
+branch"; it is not permission to push, force-push, rebase or merge the task into
+its base. Product/security/public-contract expansion remains a question.
+
+For full Orchestra, the task owner incorporates the exact target with
+`git merge --no-commit --no-ff <target-sha>` after reconciling a clean task HEAD.
+If `MERGE_HEAD` already exists, reconcile it with the requested target and preserve
+unique resolutions before resuming. Never auto-stash, reset or abort such work.
+Resolve textual conflicts and semantic interactions in the owning child, not the
+parent. Separate imported upstream paths/range from child-authored resolution or
+compatibility paths. A combined tree equal to the target can indicate lost task
+behavior as well as prior delivery; reconcile original acceptance before a no-op
+or empty merge, and never infer a squash delivery from equality alone.
+
+Use existing replacement implementation-report and delta implementation-review
+(or PR-review) artifacts. Identify the frozen result by old task HEAD, exact
+`MERGE_HEAD` and `git write-tree` index SHA, with no unmerged paths or unrecorded
+source edits. Run applicable required checks and independent delta review of the
+task against the target plus changed interactions, even after a textually clean
+merge. Reuse the same reviewer when supported and unaffected prior evidence when
+still valid. The root must not replace independent review with conflict resolution.
+
+Commit the accepted merge directly with Git and normal hooks, without a pathspec;
+`commit_phase.py` deliberately refuses this operation. Verify exact parents,
+accepted tree and relevant checkout cleanliness after hooks. Compared with the old
+task HEAD, no unexpected path may lie outside imported paths plus authorized
+resolution/compatibility paths; these sets need not be equal. A changed tree or
+hook-generated source edit invalidates acceptance: preserve the created commit and
+work, return to its owner for reconciliation, and never automatically amend/reset
+or retry the commit. Update the completed plan's terminal revision only after the
+accepted commit under its bounded correction exception. Normal delivery then uses
+that exact SHA, fresh configured checks and its existing policy; local integration
+remains fast-forward. Recheck the base before delivery and return affected work to
+the same child if it moved. Escalate actual unresolved scope or sustained contention,
+not an arbitrary retry count.
+
+For Lite, only an explicit coordinator-authorized exact merge-from-base continuation
+is an exception to its no-merge rule. Preserve the original v2 `Base`; record target
+and old/new heads in existing Decisions/Evidence. Its default remains worker
+commit/push followed by external review of the exact resulting SHA. An explicitly
+required precommit review instead hands off the exact staged tree/patch, then
+resumes the same worker for the accepted commit and final-SHA acceptance. Cross-VM
+readers need accessible exact content, not an unpublished local ref. Do not import
+full Orchestra plan artifacts or add a Lite status/schema. This exception never
+authorizes delivery into the base.
 
 ## Repository conventions
 

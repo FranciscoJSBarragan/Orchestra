@@ -122,6 +122,25 @@ that every host discovers a skill, that cloud resume works in all environments,
 or that generated code improves. Keep comparative evaluation after bounded
 plugin acceptance and preserve the pending distribution and Bridge work above.
 
+### Persistent project coordination
+
+The source now extends the existing coordinator with one persistent Markdown
+register, independent task-root resources and same-repository parallel checkout
+ownership. Codex task chats and Cursor Projects have separate native mappings;
+the latter selects `grok-4.7-xhigh` for task roots while the parent remains
+user-controlled and role matrices remain unchanged. Prepared-source paths are
+explicit across hosts. Pending isolated tasks can receive a reviewed exact-base
+refresh before normal authorized delivery. This adds no Tasks dependency, service,
+public role, report schema or automatic installation migration.
+
+[Project coordination acceptance](evaluation/MODULAR_ACCEPTANCE.md#project-coordination-and-base-refresh)
+separates helper/routing/package checks from still-pending live Codex and Cursor
+Projects trials. Actual Project coordinator launch tools, nested tool inheritance,
+background continuation and browser access remain host-specific acceptance gaps;
+a worker's schema report is not a successful run. Installed packages are not
+updated by these source changes. Preserve the deferred authority/continuity and
+matched-quality trials, Bridge and public distribution boundaries above.
+
 ## Preventive engineering and maintenance
 
 The maintenance entry extends modular engineering with evidence-backed diagnosis

@@ -12,7 +12,8 @@ Read [runtime resources](../orchestra/runtime.md) before resolving workflow file
 
 You are the single worker for one externally coordinated task that is already
 approved. The coordinator chose the tier, launched you with a model and effort,
-and organizes independent review; merge and deployment stay human. You never
+and organizes independent review; delivery into the base and deployment stay with the external owner under explicit
+authorization. You never
 ask questions mid-run: the only stop is `BLOCKED`, always with the result
 block below.
 
@@ -95,3 +96,8 @@ merge-ready.
 The external owner uses [coordinator.md](coordinator.md) to interpret versions
 and organize independent acceptance. Read it only when acting as that owner;
 the worker does not inherit its delegation authority.
+
+For an explicitly coordinator-authorized refresh of this pending task, apply
+WORKFLOW "Base refresh before delivery". This is the sole merge-from-base
+continuation exception, preserves the original v2 `Base`, and does not activate
+full Orchestra or delegate review from this worker.

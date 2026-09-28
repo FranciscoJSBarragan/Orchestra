@@ -24,7 +24,10 @@ adapter.
 
 ## Host matrix
 
-Read `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml` directly.
+Read the selected matrix from `orchestra/runtime.md`: installed layouts use
+`<runtime>/hosts/devin/roles.toml`; prepared source uses
+`<source>/hosts/devin/config/roles.devin.toml`, outside `<source>/codex`.
+Never silently fall back to another installed copy.
 Assigned tiers are those with complete capability rows. This cut assigns
 `standard` and `critical`. Every capability pins to `swe-2-max` at the same
 reasoning depth (the slug already encodes max reasoning), so there is no
@@ -44,7 +47,11 @@ For each capability:
    profile name (`orchestra_analyst`, `orchestra_implementation_worker`,
    `orchestra_reviewer`, `orchestra_verifier`); `profile` equals
    `subagent_type` in every row.
-2. Resolve the exact `profile` value to pass to `run_subagent` from the
+2. In explicit source mode, reading profile Markdown does not register a Devin
+   profile. Verify the required named profiles are available from the selected
+   environment setup at the pinned revision; otherwise report that dispatch gap.
+   Do not infer installation from the absence of a plugin manifest in a source
+   checkout. For installed layouts, resolve the exact `profile` value to pass to `run_subagent` from the
    active installation, using the same detection signal as
    `codex/skills/orchestra/runtime.md` (which names `.codex-plugin` for Codex;
    the Devin analogue is `.devin-plugin`):

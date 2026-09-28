@@ -237,6 +237,43 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
         self.assertTrue(self.task.exists())
 
+    def test_refreshed_merge_requires_accepted_sha_then_fast_forwards(self) -> None:
+        (self.base / "upstream.txt").write_text("accepted sibling\n", encoding="utf-8")
+        self.git(self.base, "add", "upstream.txt")
+        self.git(self.base, "commit", "-q", "-m", "deliver sibling")
+        target = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
+        self.git(self.task, "merge", "--no-ff", target, "-m", "refresh task")
+        accepted = self.git(self.task, "rev-parse", "HEAD").stdout.strip()
+        self.assertEqual(
+            self.git(self.task, "show", "-s", "--format=%P", accepted).stdout.strip(),
+            f"{self.task_sha} {target}",
+        )
+        process, result = self.run_helper()
+        self.assertEqual(process.returncode, 1)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["task_revision"], accepted)
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), target)
+        process, result = self.run_helper(expected_task_revision=accepted)
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(result["delivery_revision"], accepted)
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), accepted)
+        self.assertEqual((self.base / "feature.txt").read_text(), "feature\n")
+        self.assertEqual((self.base / "upstream.txt").read_text(), "accepted sibling\n")
+
+    def test_ignored_project_register_survives_integration(self) -> None:
+        board = self.base / "orchestra/projects/example/BOARD.md"
+        board.parent.mkdir(parents=True)
+        board.write_text("# Project\n\nTask pending acceptance.\n", encoding="utf-8")
+        exclude = Path(self.git(self.base, "rev-parse", "--git-path", "info/exclude").stdout.strip())
+        exclude = exclude if exclude.is_absolute() else self.base / exclude
+        with exclude.open("a", encoding="utf-8") as stream:
+            stream.write("\n/orchestra/projects/example/\n")
+        self.assertEqual(self.git(self.base, "status", "--porcelain").stdout, "")
+        process, result = self.run_helper()
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        self.assertEqual(result["delivery_revision"], self.task_sha)
+        self.assertEqual(board.read_text(), "# Project\n\nTask pending acceptance.\n")
+
     def test_manifest_revision_mismatch_blocks_before_configured_checks(self) -> None:
         self.commit_task_policy([sys.executable, "-c", "raise SystemExit(23)"])
         base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()

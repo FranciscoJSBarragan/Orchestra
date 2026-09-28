@@ -89,6 +89,63 @@ class CommitPhaseTests(unittest.TestCase):
         self.assertEqual(payload, {"status": "nothing_to_commit"})
         self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
 
+    def test_conflicted_merge_preserves_index_in_primary_and_linked_worktrees(self) -> None:
+        self.git("switch", "-c", "incoming")
+        self.write("target.txt", "incoming\n")
+        self.git("commit", "-am", "incoming change")
+        self.git("switch", "-c", "task", self.initial_sha)
+        self.write("target.txt", "task\n")
+        self.git("commit", "-am", "task change")
+        primary = self.root
+        linked = Path(self.temporary_directory.name) / "linked"
+        self.git("worktree", "add", "-b", "linked-task", str(linked), "HEAD")
+        for checkout in (primary, linked):
+            with self.subTest(checkout=checkout.name):
+                self.root = checkout
+                merge = subprocess.run(
+                    ["git", "merge", "--no-commit", "incoming"],
+                    cwd=checkout, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(merge.returncode, 1, merge.stdout + merge.stderr)
+                index = Path(self.git("rev-parse", "--git-path", "index").stdout.strip())
+                index = index if index.is_absolute() else checkout / index
+                before_index = index.read_bytes()
+                before_head = self.git("rev-parse", "HEAD").stdout
+                before_conflicts = self.git("ls-files", "--unmerged").stdout
+                self.assertTrue(before_conflicts)
+                result, payload = self.run_helper("target.txt")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(payload["status"], "blocked")
+                self.assertEqual(index.read_bytes(), before_index)
+                self.assertEqual(self.git("rev-parse", "HEAD").stdout, before_head)
+                self.assertEqual(self.git("ls-files", "--unmerged").stdout, before_conflicts)
+                self.assertIn("MERGE_HEAD", payload["reason"])
+
+    def test_active_operation_markers_block_before_staging(self) -> None:
+        self.write("target.txt", "work to preserve\n")
+        for name in ("CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "sequencer"):
+            with self.subTest(operation=name):
+                marker = Path(self.git("rev-parse", "--git-path", name).stdout.strip())
+                marker = marker if marker.is_absolute() else self.root / marker
+                directory = name in ("rebase-merge", "rebase-apply", "sequencer")
+                if directory:
+                    marker.mkdir()
+                else:
+                    marker.write_text(self.initial_sha + "\n")
+                index = self.root / ".git/index"
+                before_index = index.read_bytes()
+                result, payload = self.run_helper("target.txt")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(payload["status"], "blocked")
+                self.assertEqual(index.read_bytes(), before_index)
+                self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), self.initial_sha)
+                self.assertEqual((self.root / "target.txt").read_text(), "work to preserve\n")
+                self.assertIn(name, payload["reason"])
+                if directory:
+                    marker.rmdir()
+                else:
+                    marker.unlink()
+
     def test_blocks_unrelated_staged_path_without_staging_target(self) -> None:
         self.write("target.txt", "target work\n")
         self.write("unrelated.txt", "staged elsewhere\n")

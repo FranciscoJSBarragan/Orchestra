@@ -72,6 +72,22 @@ def commit_phase(repo: Path, paths: list[str], message_file: Path) -> dict[str, 
     if Path(top_level.stdout.strip()).resolve() != repo:
         return _blocked("--repo must be the Git worktree root")
 
+    for marker in (
+        "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD",
+        "rebase-merge", "rebase-apply", "sequencer",
+    ):
+        metadata = _git(repo, "rev-parse", "--git-path", marker)
+        if metadata.returncode or not metadata.stdout.strip():
+            return _blocked(f"cannot inspect Git operation metadata: {marker}")
+        path = Path(metadata.stdout.strip())
+        if not path.is_absolute():
+            path = repo / path
+        if path.exists():
+            return _blocked(
+                f"active Git operation ({marker}); preserve the index and resume "
+                "its owning workflow before using a scoped phase commit"
+            )
+
     paths, path_error = _validate_paths(repo, paths)
     if path_error:
         return _blocked(path_error)

@@ -26,3 +26,8 @@ requires authority, exact revisions and checks. Follow the returned partial
 cleanup handoff for the local ref after host release; PR merge still performs
 guarded remote-ref cleanup. Preserving the checkout does not silently abandon
 child-created refs.
+
+When the task is still pending and its target base moved, route its existing owner
+to WORKFLOW "Base refresh before delivery" before retrying this skill. Use the
+accepted refreshed terminal SHA and affected review/check evidence; this does not
+relax delivery authority, hybrid's start-revision guard or final freshness checks.

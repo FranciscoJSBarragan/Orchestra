@@ -14,7 +14,10 @@ the Grok spawn mechanisms below with Codex `spawn_agent` / `wait_agent` /
 
 ## Host matrix
 
-Read `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml` directly.
+Read the selected matrix from `orchestra/runtime.md`: installed layouts use
+`<runtime>/hosts/grok/roles.toml`; prepared source uses
+`<source>/hosts/grok/config/roles.grok.toml`, outside `<source>/codex`.
+Never silently fall back to another installed copy.
 Assigned tiers are those with complete capability rows. This cut assigns `standard` and
 `critical`. The live catalog is `grok-4.6` at one cost, so there is no
 cheaper assigned tier. Recommend `standard`. Recommend `critical` when the

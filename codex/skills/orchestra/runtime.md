@@ -8,9 +8,10 @@ or a delegated packet, reuse the owning skill's resolved root.
 When the parent of that skills root contains `.codex-plugin/plugin.json` or a
 host plugin manifest such as `.devin-plugin/plugin.json`, this is a plugin:
 set `ORCHESTRA_RUNTIME_ROOT` to that parent. Otherwise this is a
-direct-sync installation: use `${ORCHESTRA_HOME:-$HOME/.orchestra}`. For explicit
-source development, use `codex/scripts`, `codex/agents`, `codex/config`, and
-`docs/WORKFLOW.md` in that same source checkout instead of installed copies.
+direct-sync installation: use `${ORCHESTRA_HOME:-$HOME/.orchestra}`, unless
+explicit source mode was selected. In source mode bind `source_root` to the
+prepared checkout, runtime to `<source>/codex` and skills to `<source>/codex/skills`;
+use the source map below instead of installed copies.
 
 These are task-local path bindings, not variables guaranteed by the host.
 Substitute their absolute values in tool calls or set them in each shell call;
@@ -28,6 +29,30 @@ do not silently fall back to another installed version.
 | Devin agent profiles | `<runtime>/agents/<profile>.md` | `~/.config/devin/agents/<profile>.md` |
 | Cursor/Grok/Devin matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
 | Role skills and shared references | `<skills-root>/<skill>/` | `<skills-root>/<skill>/` |
+
+## Explicit source layout
+
+`prepare_source.py` returns the selected source/runtime/skills roots and workflow.
+Resolve remaining resources from that same source, not `<runtime>/hosts`:
+
+| Resource | Prepared/source checkout |
+| --- | --- |
+| Workflow | `<source>/docs/WORKFLOW.md` |
+| Helpers | `<source>/codex/scripts/` |
+| Execution presets | `<source>/codex/config/execution-presets.toml` |
+| Codex matrix and profiles | `<source>/codex/config/roles.native.toml`, `<source>/codex/agents/<profile>.toml` |
+| Codex spawn reference | `<source>/codex/skills/orchestra/references/host_codex.md` |
+| Cursor/Grok/Devin matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
+| Cursor/Grok/Devin spawn reference | `<source>/hosts/<host>/references/spawn.md` |
+| Devin profile sources | `<source>/hosts/devin/agents/<profile>.md` |
+| Skills | `<source>/codex/skills/<skill>/` |
+
+Pass the absolute selected matrix and adapter paths when dispatch needs them.
+Profile source availability alone does not register a native host profile; follow
+its adapter's actual loading requirements. Missing source resources block that
+route rather than falling back to an installed version. Source instructions stay
+read-only even when the task's product repository is Orchestra itself; prepare a
+separate pinned copy before editing that product checkout.
 
 Under a Devin direct-sync installation the skills root is
 `~/.config/devin/skills`; under the Devin plugin bundle it is

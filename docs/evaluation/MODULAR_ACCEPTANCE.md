@@ -37,6 +37,40 @@ separate trial after a handle is recorded and resume the same task; verify no
 duplicate child or writer. A lost/ambiguous launch must be reconciled or blocked.
 Host-specific live trials are reported separately from local fixture coverage.
 
+## Project coordination and base refresh
+
+Executable acceptance uses the existing commit and integration fixtures: a real
+merge conflict in primary and linked worktrees must leave HEAD, index bytes and
+unmerged entries unchanged when the scoped commit helper refuses it. Other active
+operation markers must also refuse before staging. A refreshed merge can integrate
+only at its accepted SHA; the old SHA blocks. An ignored board in the persistent
+base checkout survives integration. Routing and bundle parity include the new
+workspace reference. These checks do not execute an agent workflow.
+
+Independent source review covers: parallel tasks in one repository; a two-repo
+contract; textual and semantic conflicts; target movement during review; an
+interrupted merge with unique resolutions; identical or contained heads; local
+main ahead of origin; published task branches; human board edits; ambiguous launch;
+product-policy questions; intermediate status messages; and no Tasks installation.
+Inspect evidence ownership and authority, including a hook changing the accepted
+tree or leaving source edits. Record source review separately from live exercise.
+
+Live acceptance remains pending on each host. First inspect the actual coordinator
+launch surface with a minimal read-only child and foreground role. Then, under
+explicit task authority, exercise:
+
+- Codex: one requested task chat creates/adopts one isolated checkout, runs normal
+  roles and returns exact review/check evidence. Resume the same task with a delta.
+- Cursor Projects: the actual coordinator launches one task root with the selected
+  model slug, prepares pinned instructions, runs local roles and resumes its reviewer.
+  Verify tools, actual model evidence, browser route where needed and durable results.
+- On the selected trial host, two tasks in one repo demonstrate isolated work,
+  ordered delivery, reviewed base refresh and interruption recovery; record the host.
+
+Do not claim Projects parity from a Codex run, or vice versa. No live task, cloud
+build change, public distribution or active-installation update is authorized by
+this recipe. Matched model-quality evaluation remains deferred.
+
 ## Independent behavioral review
 
 Use these cases to inspect the current instructions and, where execution is

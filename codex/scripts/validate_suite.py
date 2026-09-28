@@ -71,6 +71,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-project-verification/feature-example.md",
     "codex/skills/orchestra-coordinate/packet-example.md",
     "codex/skills/orchestra-coordinate/host-transports.md",
+    "codex/skills/orchestra-coordinate/project-workspace.md",
     "docs/evaluation/MODULAR_ACCEPTANCE.md",
     "codex/tests/fixtures/modular_engineering/make_fixture.py",
     "codex/tests/test_modular_fixture.py",
@@ -776,7 +777,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
-        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "../orchestra-lite/SKILL.md", "../orchestra-lite/coordinator.md", "../orchestra/SKILL.md")),
+        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "../orchestra-lite/SKILL.md", "../orchestra-lite/coordinator.md", "../orchestra/SKILL.md")),
     }
     workflow = root / "docs/WORKFLOW.md"
     policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""

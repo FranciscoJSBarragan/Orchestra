@@ -389,10 +389,15 @@ WORKFLOW "Modular engineering", "Project verification" and "Repository conventio
 `orchestra-coordinate` owns an explicitly selected parent responsibility across
 independent task roots. Its native host tasks or supported CLI root sessions
 retain child context. The existing leaf delegate remains deliberately narrower.
-One compact private index links handles, plans, accepted revisions and joint
-evidence for the parent/resume consumer; it does not mirror child phase state
-or create a scheduler. Host-created worktrees are adopted once and retained for
-host-owned cleanup. WORKFLOW "Initiative coordination" owns the contract.
+One persistent Markdown project register links handles, plans, accepted revisions
+and joint evidence for the parent/resume consumer, including concurrent tasks in
+one repository. Optional stable context is separate from progress. This replaces
+the old private index, does not mirror child phase state and is not an authoritative
+board or scheduler. Host-created checkouts are adopted once and retained for
+host-owned cleanup; task-root resources remain separate from role matrices.
+WORKFLOW "Initiative coordination" owns the contract, and the coordinator's
+host-transports reference maps Codex and Cursor Projects independently. No shared
+rule depends on a Project service or a specific nested-agent tool.
 
 ## Host adapters
 
@@ -641,14 +646,17 @@ metadata; active worktrees in older locations are never migrated implicitly.
 Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
 import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
-when useful, never an agent.
+when useful, never an agent. The scoped helper refuses active Git operations
+before staging through per-worktree metadata; the separately reviewed merge path
+in WORKFLOW "Base refresh before delivery" uses direct Git and existing artifacts.
+No merge-state helper or second transaction protocol is introduced.
 
 The approved plan remains the source of the terminal phase commit. PR open, PR
 merge, and local integration receive that exact full SHA as an explicit helper
 argument and compare it with their effective task head before checks or
 mutation. Helpers do not parse `plan.md` and no delivery state is duplicated.
-Accepted PR fixes within approved intent update the affected terminal manifest
-commit before push; new scope creates a new task.
+Accepted corrections before delivery under WORKFLOW's bounded exceptions update
+the affected terminal manifest commit before push; new scope creates a new task.
 
 Warnings about size or complexity may inform review, but arbitrary line-count
 limits do not replace engineering judgment. The strongest guard is architectural:

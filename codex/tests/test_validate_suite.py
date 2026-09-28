@@ -178,6 +178,12 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("orchestra-coordinate must remain explicit-only", result.stdout)
 
+    def test_parent_requires_persistent_workspace_reference(self) -> None:
+        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        skill.write_text(skill.read_text().replace("(project-workspace.md)", "(packet-example.md)"))
+        failures = validator.check_modular_routing(self.root)
+        self.assertIn("modular-routing: orchestra-coordinate must link project-workspace.md", failures)
+
     def test_repository_conventions_contract_requires_agent_hard_gate(self) -> None:
         conventions = self.root / ".agent/backend-testing.md"
         conventions.write_text(

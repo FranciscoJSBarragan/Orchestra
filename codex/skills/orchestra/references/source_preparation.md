@@ -19,6 +19,11 @@ python3 /absolute/path/to/orchestra/scripts/prepare_source.py \
 The compact JSON returns `revision`, `source_root`, `skills_root`, `runtime_root`
 and `workflow`. In source mode `runtime_root` is `<source>/codex`, while
 `workflow` is `<source>/docs/WORKFLOW.md`; pass these exact paths in the assignment.
+Resolve matrix, profile and adapter paths through the runtime's "Explicit source
+layout", including host files outside `runtime_root`. An instruction revision,
+product base SHA and environment build ID are separate identities. When the
+product being edited is Orchestra, use a separate immutable instruction checkout
+or verified pinned plugin before edits; reuse it for every role.
 `--repository` can select an explicit Git mirror or local source instead of the
 default Orchestra repository. Branches and tags are not accepted as revisions;
 resolve a chosen release label to its full SHA before preparation.

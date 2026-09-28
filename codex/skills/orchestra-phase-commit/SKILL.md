@@ -43,6 +43,10 @@ For subsequent authorized release preparation, apply WORKFLOW "Mechanical
 release metadata" rather than creating a new phase or reviewer dispatch merely
 to commit release metadata.
 
+For an authorized pending-task refresh, route to WORKFLOW "Base refresh before
+delivery" before this ordinary path. Its accepted merge uses direct Git without
+a pathspec and exact parent/tree evidence; the scoped helper is not a merge tool.
+
 ## Execute the direct path
 
 1. In standalone mode, confirm the explicit commit authority and verify that
@@ -51,7 +55,9 @@ to commit release metadata.
    current review and verification identifiers. Stop if the required authority
    or evidence is missing.
 2. Inspect Git status and the relevant diff once. Stop if unrelated work is
-   already staged or the phase or standalone scope exceeds authority.
+   already staged, a merge/cherry-pick/revert/rebase/sequencer operation is active,
+   or the phase or standalone scope exceeds authority. Preserve the index and
+   return an active operation to its owning workflow before staging.
 3. Write the message to a temporary file outside the repository, stage only
    the accepted or standalone-scoped paths, run `git commit -F <file>`, and
    read the resulting SHA and status once.
@@ -86,4 +92,4 @@ or exact path scope cannot be resolved. Never invent approval, weaken a check,
 stage unrelated paths, or use a commit as proof that independent review took
 place.
 
-Do not stage unrelated paths, create an alternate index, add a crash journal or recovery state, merge, push, release, deploy, or infer authority. Do not require byte-for-byte stored-message equality or empty ceremonial sections. Git and the root's observed scope are the commit truth.
+Do not stage unrelated paths, create an alternate index, add a crash journal or recovery state, perform a merge outside the named base-refresh path, push, release, deploy, or infer authority. Do not require byte-for-byte stored-message equality or empty ceremonial sections. Git and the root's observed scope are the commit truth.

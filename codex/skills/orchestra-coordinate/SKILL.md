@@ -1,6 +1,6 @@
 ---
 name: orchestra-coordinate
-description: Coordinate an explicitly requested initiative across independent projects, repositories, or task roots. Keep shared contracts, dependencies and combined acceptance in the parent while each child uses Orchestra, Orchestra Lite or the user's selected workflow. Does not activate from an ordinary multi-file change.
+description: Coordinate an explicitly requested initiative across concurrent tasks in one repository or independent projects, repositories, or task roots. Keep shared contracts, dependencies and combined acceptance in the parent while each child uses Orchestra, Orchestra Lite or the user's selected workflow. Does not activate from an ordinary multi-file change.
 ---
 
 # Coordinate independent task roots
@@ -17,12 +17,12 @@ contracts, ordering, and observable joint acceptance. Reuse the conversation's
 approved scope and authority. Name only unresolved material choices to the user.
 Do not collect implementation details from every repository into this context.
 
-Prepare a compact initiative index at a caller-owned private path outside the
-source trees, unless an existing task document already serves that consumer.
-Use [the packet and index example](packet-example.md) as a shape, not a new
-schema. It links the actual child plans/results and session handles; it never
-duplicates their phase state or replaces Git, host state, or user authority.
-Task Control cards may be linked when already in use; the Hub is optional.
+Use one persistent Markdown project register under WORKFLOW's location and
+ownership rules. [Project workspace](project-workspace.md) illustrates a small
+board and stable context; [the child packet](packet-example.md) carries the
+assignment. These are examples, not schemas. The register replaces the initiative
+index and links child evidence instead of copying plans. Optional Tasks links do
+not make Task Control or Hub a dependency.
 
 Select a child route per responsibility:
 
@@ -41,14 +41,17 @@ Select a child route per responsibility:
 Use [host transports](host-transports.md) to dispatch supported task roots.
 The leaf-role delegate is still appropriate for an independent review or other
 bounded role; its no-commit/no-subagent contract cannot run a full child root.
-Before parallel mutation, establish one writer per checkout and concrete
-cross-repository contracts. Wait for a dependency's required revision or
+Before parallel mutation, establish isolated task checkouts and concrete shared
+contracts. Select task-root resources separately from the parent and role matrix;
+use the host mapping, including its Cursor Projects child-root selection. Wait for a dependency's required revision or
 evidence rather than relying on a child's optimistic progress description.
 
 At stable handoff, consume the child's compact result once: exact revision,
 acceptance and review evidence, unresolved issues, delivery state, and owned
 resource cleanup. Run the combined journey against the actual set of revisions.
-If integration exposes a local defect before delivery, send the same child a
+If the base moved, route the same child through WORKFLOW "Base refresh before
+delivery" and refresh affected acceptance. If integration exposes a local defect
+before delivery, send the same child a
 focused delta and recheck affected evidence. After delivery, follow WORKFLOW's
 new bounded repair-task rule from the delivered base. Do not repeat an unchanged child's code review.
 
