@@ -1208,8 +1208,8 @@ def check_grok_host(root: Path) -> list[str]:
         failures.append("grok-contract: minimal must remain unassigned")
 
     def expected_assignment(tier: str, capability: str) -> tuple[str, str, str]:
-        model = "grok-4.6"
-        return model, "inherit", "general-purpose"
+        model = "grok-4.7-build-fast"
+        return model, "xhigh", "general-purpose"
 
     for tier_name in ("standard", "critical"):
         assignments = tiers.get(tier_name)
@@ -1247,6 +1247,8 @@ def check_grok_host(root: Path) -> list[str]:
         "timeout_ms: 600000",
         "Playwright",
         "general-purpose",
+        "grok-4.7-build-fast",
+        "xhigh",
     ):
         if required not in spawn:
             failures.append(f"grok-contract: spawn.md must name {required}")

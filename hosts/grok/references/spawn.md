@@ -19,13 +19,13 @@ Read the selected matrix from `orchestra/runtime.md`: installed layouts use
 `<source>/hosts/grok/config/roles.grok.toml`, outside `<source>/codex`.
 Never silently fall back to another installed copy.
 Assigned tiers are those with complete capability rows. This cut assigns `standard` and
-`critical`. The live catalog is `grok-4.6` at one cost, so there is no
-cheaper assigned tier. Recommend `standard`. Recommend `critical` when the
-brief matches security, credentials, payments, migrations, destructive
-actions, or production mutation. If the user selects `minimal`, stop with
-`blocked`: Grok matrix row is not assigned. `critical` uses the same spawn
-rows as `standard`; it raises root scrutiny and does not change model or
-reasoning. Do not invent a per-dispatch `reasoning_effort` field.
+`critical`. The live catalog row is `grok-4.7-build-fast` (Grok 4.7 Fast) at
+effort `xhigh` and one cost, so there is no cheaper assigned tier. Recommend
+`standard`. Recommend `critical` when the brief matches security, credentials,
+payments, migrations, destructive actions, or production mutation. If the user
+selects `minimal`, stop with `blocked`: Grok matrix row is not assigned.
+`critical` uses the same spawn rows as `standard`; it raises root scrutiny and
+does not change model or reasoning.
 
 Dispatch every assigned capability through `general-purpose`. Do not treat
 unofficial Claude-compat worker types as the Grok product contract. Do not
@@ -39,17 +39,21 @@ For each capability:
 1. Resolve `profile`, `subagent_type`, product `model`, and `effort` from
    `tiers.<selected-tier>.<capability>`.
 2. Launch a **fresh** subagent with that `subagent_type`. Use
-   `spawn_subagent` when the live session schema offers it. Some Grok
-   sessions omit it (and it is not reachable through `use_tool`); there,
-   dispatch through the host `workflow` script tool with an `agent()` call
-   carrying the same fields. Either way pass `background: true`,
-   `isolation: none`, and `cwd` set to the exact Orchestra task checkout.
+   `spawn_subagent` when its live schema can carry the assigned `model` and
+   `effort`. Some Grok sessions omit `spawn_subagent` (and it is not reachable
+   through `use_tool`). The current schema often accepts neither `model` nor
+   a reasoning field. In either case, dispatch through the host `workflow`
+   tool with one `agent()` call carrying `model: "grok-4.7-build-fast"`,
+   `effort: "xhigh"`, and `agent_type` set to the matrix `subagent_type`.
+   `agent()` has no `cwd`: the root's working directory must already be the
+   Orchestra task checkout before that call. For `spawn_subagent`, pass
+   `background: true`, `isolation: none`, and `cwd` set to that same checkout.
    Never pass `isolation: worktree` (or `isolation_worktree: true`);
    Orchestra already owns the checkout.
-3. Pass `model` `grok-4.6` when the live schema accepts it; inheriting the
-   parent `grok-4.6` session also satisfies the contract. `effort: inherit`
-   means do not invent a Grok `reasoning_effort` field. Do not treat a child's
-   self-reported worker label as the assignment.
+3. Do not invent a field the chosen transport lacks. Inheriting the parent
+   session satisfies the contract only when that parent is already
+   `grok-4.7-build-fast` at `xhigh`. Do not treat a child's self-reported
+   worker label as the assignment.
 4. The prompt is the packet plus: read
    `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
    conduct it names, then execute only the assigned capability. Role mapping:
