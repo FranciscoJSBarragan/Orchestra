@@ -199,6 +199,15 @@ that question is open. Missing factual evidence instead calls for a bounded
 investigation. Ordinary reversible technical alternatives within the approved
 outcome do not become product questions merely because several designs work.
 
+A concrete contradiction of the approved outcome or a material integrity
+requirement remains a finding even if a prior review accepted its premise.
+Do not dismiss it as a residual risk or accepted limitation. Correct it within
+scope; seek an authorized decision only if the correction crosses an authority
+boundary or intended behavior remains unresolved. Claiming an exception to that
+obligation requires the actual authorizing decision and its accepted consequences,
+not agreement between agents. Ordinary disclosed limitations and in-scope fixes
+do not acquire an approval gate.
+
 An authorized decision can supersede a prior recommendation, not an observed
 fact or an independent obligation. Identify the replaced recommendation and the
 remaining facts, risks and verification gaps. Keep that distinction in the
