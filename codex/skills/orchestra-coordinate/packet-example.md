@@ -2,6 +2,7 @@
 
 Illustrative fields, not executable instructions or a required persisted schema.
 Use actual approved values and omit inapplicable fields. Keep secrets out.
+WORKFLOW "Initiative coordination" owns investigation and continuation authority.
 
 ## Register content
 
@@ -72,6 +73,45 @@ required checks and independent review evidence (or explicit missing evidence);
 recipe/evidence paths; remaining assumptions, blockers and delivery state;
 cleanup or exact retained-resource handoff. Return a compact summary, with links
 to full child evidence. Process exit alone is not acceptance.
+
+## Investigation-only variant
+
+Use the same root-capable transport, selected instruction source and repository
+identity. Replace the execution packet's resources/tier, Objective, Authority,
+Ownership, Retention and Handoff with the fields below. Omit Source-writing
+policy; this assignment does not authorize implementation.
+
+Objective: explain why the reported operation does not produce the requested
+behavior, identify affected callers and state, and propose the smallest supported
+change. Separate evidence from hypotheses; unavailable reproduction is a limit.
+
+Investigation resources: parent-assigned model/effort, or the user's configured
+task-root default explicitly selected in this packet through the host controls.
+Name each delegated analyst's resources and bounded assignment separately;
+there is no inferred role matrix. Execution tier: the user's existing selection,
+or pending their decision.
+
+Authority: read-only investigation and a report at the parent-named accessible
+private path. No source edits, task branch creation, phase plan/state, commit or
+delivery. Any host-provisioned checkout has its named owner and retention/cleanup
+choice.
+
+Ownership: this investigation, report and its owned resources; not implementation
+or initiative coordination. Retention: parent-readable report and actual root
+handle, plus owned-resource cleanup or explicitly authorized retention.
+
+Handoff: inspected full revision, findings with evidence locations, affected
+scope, risks, unresolved product decisions, verification approach and recommended
+tier. Include the specification and a plan candidate when useful, plus the
+accessible report and actual child handle. Return for the parent's synthesis and
+user decision; do not report implementation acceptance.
+
+## Approval continuation
+
+Apply WORKFLOW "Initiative coordination" and "Context and planning". The
+continuation packet names the existing root handle, report reference, user
+corrections, approved scope and tier, actual implementation/phase-commit/delivery
+grants, and any material change to the product revision or assumptions.
 
 ## Repair packet
 

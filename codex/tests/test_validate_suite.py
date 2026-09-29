@@ -118,11 +118,11 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertIn("modular-routing: orchestra-engineering must link ../orchestra-project-verification/SKILL.md", result.stdout)
 
     def test_writer_requires_mandatory_comment_policy_route(self) -> None:
-        skill = self.root / "codex/skills/orchestra-lite/SKILL.md"
+        skill = self.root / "codex/skills/orchestra-role-implementer/SKILL.md"
         skill.write_text(skill.read_text().replace("architecture_guidance.md#source-comments", "architecture_guidance.md"))
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("orchestra-lite/SKILL.md must directly link architecture_guidance.md#source-comments", result.stdout)
+        self.assertIn("orchestra-role-implementer/SKILL.md must directly link architecture_guidance.md#source-comments", result.stdout)
 
     def test_maintenance_requires_existing_execution_route(self) -> None:
         skill = self.root / "codex/skills/orchestra-repo-maintenance/SKILL.md"
@@ -134,7 +134,7 @@ class ValidateSuiteTests(unittest.TestCase):
     def test_testing_consumers_require_behavioral_verification_route(self) -> None:
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",
                      "orchestra-role-reviewer", "orchestra-role-verifier",
-                     "orchestra-engineering", "orchestra-lite",
+                     "orchestra-engineering",
                      "orchestra-project-verification"):
             with self.subTest(name=name):
                 skill = self.root / f"codex/skills/{name}/SKILL.md"
@@ -183,6 +183,16 @@ class ValidateSuiteTests(unittest.TestCase):
         skill.write_text(skill.read_text().replace("(project-workspace.md)", "(packet-example.md)"))
         failures = validator.check_modular_routing(self.root)
         self.assertIn("modular-routing: orchestra-coordinate must link project-workspace.md", failures)
+
+    def test_parent_requires_full_workflow_and_acceptance_routes(self) -> None:
+        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        original = skill.read_text()
+        for target in ("../orchestra/SKILL.md", "acceptance-packet.md"):
+            with self.subTest(target=target):
+                skill.write_text(original.replace(f"({target})", "(packet-example.md)"))
+                failures = validator.check_modular_routing(self.root)
+                self.assertIn(f"modular-routing: orchestra-coordinate must link {target}", failures)
+        skill.write_text(original)
 
     def test_repository_conventions_contract_requires_agent_hard_gate(self) -> None:
         conventions = self.root / ".agent/backend-testing.md"
@@ -592,7 +602,7 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_missing_runtime_route_is_actionable_across_entry_points(self) -> None:
-        for name in ("orchestra", "orchestra-engineering", "orchestra-lite", "orchestra-role-analyst"):
+        for name in ("orchestra", "orchestra-engineering", "orchestra-role-analyst"):
             with self.subTest(skill=name):
                 path = self.root / "codex/skills" / name / "SKILL.md"
                 original = path.read_text()
@@ -627,18 +637,18 @@ class FullModeFixtureTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("codex/tests/invalid_fixture.py: cannot establish Python comment policy", result.stdout)
 
-    def test_decision_evidence_routes_are_required_for_roles_and_lite(self) -> None:
+    def test_decision_evidence_routes_are_required_for_roles_and_acceptance(self) -> None:
         relatives = [
             f"codex/skills/{name}/SKILL.md"
             for name in ("orchestra-role-analyst", "orchestra-role-implementer",
                          "orchestra-role-reviewer", "orchestra-role-verifier",
-                         "orchestra-engineering", "orchestra-lite")
+                         "orchestra-engineering")
         ]
         relatives += [
             f"codex/skills/orchestra/references/{name}.md"
             for name in ("repository_context", "technical_planning", "runtime_verification")
         ]
-        relatives.append("codex/skills/orchestra-lite/review-packet.md")
+        relatives.append("codex/skills/orchestra-coordinate/acceptance-packet.md")
         for relative in relatives:
             with self.subTest(consumer=relative):
                 path = self.root / relative
@@ -649,50 +659,6 @@ class FullModeFixtureTest(unittest.TestCase):
                 self.assertIn(f"{relative} must directly link architecture_guidance.md#decision-evidence", result.stdout)
                 path.write_text(original)
 
-    def test_lite_coordinator_requires_legacy_and_remote_review_routes(self) -> None:
-        path = self.root / "codex/skills/orchestra-lite/coordinator.md"
-        original = path.read_text()
-        for target in ("result-v1-example.json", "review-packet.md"):
-            with self.subTest(target=target):
-                path.write_text(original.replace(f"({target})", "(result-example.json)"))
-                result = self.run_validator()
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn(f"coordinator.md must link {target}", result.stdout)
-        path.write_text(original)
-
-    def test_lite_result_object_key_order_is_not_part_of_the_contract(self) -> None:
-        example = self.root / "codex/skills/orchestra-lite/result-example.json"
-        payload = json.loads(example.read_text(encoding="utf-8"))
-        payload = dict(reversed(list(payload.items())))
-        payload["Rama"] = dict(reversed(list(payload["Rama"].items())))
-        payload["Checks"] = [dict(reversed(list(item.items()))) for item in payload["Checks"]]
-        example.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        result = self.run_validator()
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_lite_result_and_kickoff_contracts_are_actionable(self) -> None:
-        skill_dir = self.root / "codex/skills/orchestra-lite"
-        example = skill_dir / "result-example.json"
-        original_example = example.read_text(encoding="utf-8")
-        payload = json.loads(original_example)
-        payload["Estado nuevo"] = payload.pop("Estado")
-        example.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("lite-contract: result-example.json must contain exactly", result.stdout)
-        example.write_text("{not json", encoding="utf-8")
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("lite-contract: result-example.json is invalid JSON", result.stdout)
-        example.write_text(original_example, encoding="utf-8")
-
-        template = skill_dir / "kickoff-template.md"
-        template.write_text(
-            template.read_text(encoding="utf-8").replace("\nPR:\n", "\n", 1), encoding="utf-8"
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("kickoff template is missing mandatory field PR", result.stdout)
 
     def test_missing_common_helper_fails_quick(self) -> None:
         (self.root / "codex/scripts/_common.py").unlink()

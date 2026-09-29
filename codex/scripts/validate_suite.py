@@ -59,7 +59,6 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-repo-onboard/agents/openai.yaml",
     "codex/skills/orchestra-delegate/SKILL.md",
     "codex/skills/orchestra-delegate/agents/openai.yaml",
-    "codex/skills/orchestra-lite/SKILL.md",
     "codex/skills/orchestra-engineering/SKILL.md",
     "codex/skills/orchestra-engineering/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/SKILL.md",
@@ -70,21 +69,12 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-coordinate/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/feature-example.md",
     "codex/skills/orchestra-coordinate/packet-example.md",
+    "codex/skills/orchestra-coordinate/acceptance-packet.md",
     "codex/skills/orchestra-coordinate/host-transports.md",
     "codex/skills/orchestra-coordinate/project-workspace.md",
     "docs/evaluation/MODULAR_ACCEPTANCE.md",
     "codex/tests/fixtures/modular_engineering/make_fixture.py",
     "codex/tests/test_modular_fixture.py",
-    "codex/skills/orchestra-lite/agents/openai.yaml",
-    "codex/skills/orchestra-lite/kickoff-template.md",
-    "codex/skills/orchestra-lite/result-example.json",
-    "codex/skills/orchestra-lite/result-v1-example.json",
-    "codex/skills/orchestra-lite/coordinator.md",
-    "codex/skills/orchestra-lite/review-packet.md",
-    "codex/tests/test_orchestra_lite.py",
-    "codex/tests/fixtures/orchestra-lite/README.md",
-    "codex/tests/fixtures/orchestra-lite/make_fixture.py",
-    "codex/tests/fixtures/orchestra-lite/gh_shim.py",
     "codex/skills/orchestra/references/repository_context.md",
     "codex/skills/orchestra/references/web_research.md",
     "codex/skills/orchestra/references/technical_planning.md",
@@ -245,7 +235,6 @@ SKILL_NAMES = (
     "orchestra-project-start",
     "orchestra-repo-onboard",
     "orchestra-delegate",
-    "orchestra-lite",
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestra-coordinate",
@@ -261,32 +250,6 @@ SKILL_NAMES = (
     "orchestra-role-reviewer",
     "orchestra-role-verifier",
 )
-LITE_KICKOFF_MARKER = "ORCHESTRA_LITE_SPEC"
-LITE_MANDATORY_FIELDS = (
-    "Repo",
-    "Base",
-    "Slug",
-    "Rama",
-    "PR",
-    "Autorización",
-    "Objetivo",
-    "Aceptación",
-)
-LITE_V1_RESULT_KEYS = (
-    "Estado",
-    "PR",
-    "Rama",
-    "Publicada",
-    "Commits",
-    "Checks",
-    "CI",
-    "Decisiones tomadas",
-    "Riesgos / no hecho",
-    "Pendiente para merge",
-    "Bloqueo",
-)
-LITE_RESULT_KEYS = (*LITE_V1_RESULT_KEYS, "Versión", "Base", "Evidencia")
-LITE_CHECK_KEYS = ("Comando", "Resultado", "Código de salida")
 VALID_MODELS = {
     "gpt-6-astra",
     "gpt-5.6-sol",
@@ -777,7 +740,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
-        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "../orchestra-lite/SKILL.md", "../orchestra-lite/coordinator.md", "../orchestra/SKILL.md")),
+        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
     }
     workflow = root / "docs/WORKFLOW.md"
     policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
@@ -800,7 +763,7 @@ def check_modular_routing(root: Path) -> list[str]:
     consumers = [
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-implementer", "orchestra-role-reviewer",
-                     "orchestra-engineering", "orchestra-lite", "orchestra-project-start",
+                     "orchestra-engineering", "orchestra-project-start",
                      "orchestra-project-verification", "orchestra-repo-onboard",
                      "orchestra-repo-maintenance", "orchestra-delegate")
     ]
@@ -819,18 +782,18 @@ def check_modular_routing(root: Path) -> list[str]:
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",
                      "orchestra-role-reviewer", "orchestra-role-verifier",
-                     "orchestra-engineering", "orchestra-lite")
+                     "orchestra-engineering")
     ]
     evidence_consumers.extend(
         root / f"codex/skills/orchestra/references/{name}.md"
         for name in ("repository_context", "technical_planning", "runtime_verification")
     )
-    evidence_consumers.append(root / "codex/skills/orchestra-lite/review-packet.md")
+    evidence_consumers.append(root / "codex/skills/orchestra-coordinate/acceptance-packet.md")
     testing_consumers = [
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",
                      "orchestra-role-reviewer", "orchestra-role-verifier",
-                     "orchestra-engineering", "orchestra-lite",
+                     "orchestra-engineering",
                      "orchestra-project-verification", "orchestra-repo-maintenance")
     ]
     testing_consumers.extend(
@@ -842,7 +805,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "behavioral-verification": testing_consumers,
         "change-quality": [root / f"codex/skills/{name}/SKILL.md" for name in
                            ("orchestra-role-implementer", "orchestra-role-reviewer",
-                            "orchestra-engineering", "orchestra-lite")],
+                            "orchestra-engineering")],
         "test-maintenance": [root / "codex/skills/orchestra-repo-maintenance/SKILL.md"],
     }
     for anchor, consumers in guidance_routes.items():
@@ -855,141 +818,6 @@ def check_modular_routing(root: Path) -> list[str]:
             }
             if (guidance.resolve(), anchor) not in targets:
                 failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#{anchor}")
-    return failures
-
-
-def lite_result_errors(payload: object, version: int) -> list[str]:
-    keys = LITE_RESULT_KEYS if version == 2 else LITE_V1_RESULT_KEYS
-    if not isinstance(payload, dict) or set(payload) != set(keys):
-        return [f"must contain exactly the fixed v{version} result keys"]
-    errors: list[str] = []
-
-    def text(value: object) -> bool:
-        return isinstance(value, str) and bool(value.strip())
-
-    def sha(value: object) -> bool:
-        return isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value) is not None
-
-    def revision(value: object, name: str, label: str) -> bool:
-        valid = isinstance(value, dict) and set(value) == {label, "SHA"}
-        if valid:
-            valid = (value[label] is None or text(value[label])) and (value["SHA"] is None or sha(value["SHA"]))
-        if not valid:
-            errors.append(f"{name} must record {label} and a full SHA (or null when unknown)")
-        return valid
-
-    state = payload["Estado"]
-    success = state in ("DONE", "DONE_PR_PENDING")
-    if state not in ("DONE", "DONE_PR_PENDING", "BLOCKED"):
-        errors.append("Estado must be DONE, DONE_PR_PENDING, or BLOCKED")
-    if type(payload["Publicada"]) is not bool:
-        errors.append("Publicada must be boolean")
-    if payload["PR"] is not None and (not text(payload["PR"]) or not payload["PR"].startswith("https://")):
-        errors.append("PR must be an HTTPS URL or null")
-    if state == "DONE" and payload["PR"] is None:
-        errors.append("DONE requires a draft PR URL")
-    if state == "DONE_PR_PENDING" and payload["PR"] is not None:
-        errors.append("DONE_PR_PENDING requires PR null")
-    if not text(payload["CI"]):
-        errors.append("CI must be a nonempty string")
-    for name in ("Commits", "Decisiones tomadas", "Riesgos / no hecho", "Pendiente para merge"):
-        if not isinstance(payload[name], list) or not all(text(item) for item in payload[name]):
-            errors.append(f"{name} must be an array of nonempty strings")
-    if state == "BLOCKED":
-        if not text(payload["Bloqueo"]):
-            errors.append("BLOCKED requires a concrete Bloqueo")
-    elif payload["Bloqueo"] is not None:
-        errors.append("a success result requires Bloqueo null")
-    if revision(payload["Rama"], "Rama", "Nombre"):
-        if (success or payload["Publicada"] is True) and not all(payload["Rama"].values()):
-            errors.append("delivered or published results require Rama Nombre and SHA")
-    if success and payload["Publicada"] is not True:
-        errors.append("success requires Publicada true for the delivered SHA")
-    checks = payload["Checks"]
-    if not isinstance(checks, list):
-        errors.append("Checks must be an array")
-    else:
-        if success and not checks:
-            errors.append("success requires executed Checks")
-        for check in checks:
-            if not isinstance(check, dict) or set(check) != set(LITE_CHECK_KEYS):
-                errors.append("every Checks item must record Comando, Resultado, and Código de salida")
-                continue
-            code = check["Código de salida"]
-            if not text(check["Comando"]) or not text(check["Resultado"]) or (code is not None and type(code) is not int):
-                errors.append("Checks requires nonempty command/result and integer or null exit code")
-            if success and (type(code) is not int or code != 0):
-                errors.append("success requires green executed Checks")
-    if version == 2:
-        if type(payload["Versión"]) is not int or payload["Versión"] != 2:
-            errors.append("Versión must be integer 2")
-        if revision(payload["Base"], "Base", "Referencia") and success and not all(payload["Base"].values()):
-            errors.append("success requires the inspected Base Referencia and SHA")
-        evidence = payload["Evidencia"]
-        if not isinstance(evidence, dict) or set(evidence) != {"Mapa", "Resumen", "Rojo-verde"}:
-            errors.append("Evidencia must record Mapa, Resumen, and Rojo-verde")
-        else:
-            if any(value is not None and not text(value) for value in evidence.values()):
-                errors.append("Evidencia values must be nonempty strings or null")
-            if success and not all(text(evidence[name]) for name in ("Resumen", "Rojo-verde")):
-                errors.append("success requires evidence summary and observed or justified inapplicable Rojo-verde")
-    return errors
-
-
-def check_orchestra_lite(root: Path) -> list[str]:
-    failures: list[str] = []
-    skill_dir = root / "codex/skills/orchestra-lite"
-    skill = skill_dir / "SKILL.md"
-    template = skill_dir / "kickoff-template.md"
-    example = skill_dir / "result-example.json"
-    workflow = root / "docs/WORKFLOW.md"
-    if not all(path.is_file() for path in (skill, template, example, workflow)):
-        return failures
-
-    skill_text = skill.read_text(encoding="utf-8")
-    links = {target.split("#", 1)[0] for target in _local_markdown_links(skill_text)}
-    for resource in (template.name, example.name, "coordinator.md"):
-        if resource not in links:
-            failures.append(f"lite-contract: orchestra-lite must link {resource}")
-    section = "Orchestra Lite companion"
-    if f"## {section}" not in workflow.read_text(encoding="utf-8"):
-        failures.append(f"lite-contract: docs/WORKFLOW.md must define the {section} section")
-    if section not in skill_text:
-        failures.append(f"lite-contract: orchestra-lite must route to WORKFLOW {section}")
-
-    template_text = template.read_text(encoding="utf-8")
-    template_lines = {line.split(":", 1)[0].strip() for line in template_text.splitlines()}
-    if LITE_KICKOFF_MARKER not in template_lines:
-        failures.append(f"lite-contract: kickoff template must start with {LITE_KICKOFF_MARKER}")
-    for field in LITE_MANDATORY_FIELDS:
-        if field not in template_lines:
-            failures.append(f"lite-contract: kickoff template is missing mandatory field {field}")
-
-    routes = {
-        "coordinator.md": ("../orchestra/runtime.md", "kickoff-template.md", "result-example.json", "result-v1-example.json", "review-packet.md", "../orchestra-role-analyst/SKILL.md"),
-        "review-packet.md": ("../orchestra-role-reviewer/SKILL.md",),
-        "../orchestra-role-reviewer/SKILL.md": ("../orchestra-lite/review-packet.md",),
-    }
-    for resource, required in routes.items():
-        path = skill_dir / resource
-        if not path.is_file():
-            failures.append(f"lite-contract: missing resource {resource}")
-            continue
-        links = {target.split("#", 1)[0] for target in _local_markdown_links(path.read_text(encoding="utf-8"))}
-        for target in required:
-            if target not in links:
-                failures.append(f"lite-contract: {resource} must link {target}")
-    for filename, version in (("result-example.json", 2), ("result-v1-example.json", 1)):
-        path = skill_dir / filename
-        if not path.is_file():
-            failures.append(f"lite-contract: missing resource {filename}")
-            continue
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeError) as error:
-            failures.append(f"lite-contract: {filename} is invalid JSON: {error}")
-            continue
-        failures.extend(f"lite-contract: {filename} {error}" for error in lite_result_errors(payload, version))
     return failures
 
 
@@ -1527,7 +1355,6 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_roles_and_profiles,
     check_skills_and_runtime,
-    check_orchestra_lite,
     check_modular_routing,
     check_repository_conventions,
     check_direct_sync,

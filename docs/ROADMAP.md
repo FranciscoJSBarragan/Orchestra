@@ -36,7 +36,7 @@ observation. No release or public marketplace publication is claimed.
 
 ### Tasks separation
 
-The source split keeps engineering skills, full execution, Lite, delegation,
+The source split kept engineering skills, full execution, delegation,
 initiative coordination and local plan/Git helpers in Orchestra. The separate
 Orchestra Tasks repository owns cards, global snapshots, MCP, identity hooks and
 Hub clients. Direct tracking is explicit opt-in. Each has its own package and
@@ -110,7 +110,8 @@ profile, persist workflow telemetry, or require a benchmark control plane.
 ## Modular workflow acceptance
 
 Reusable engineering and project-verification entries plus an explicit parent
-coordinator now compose with full Orchestra, Lite and custom child workflows.
+coordinator compose with full Orchestra task roots. Standalone and explicitly
+selected custom work remain modular uses.
 [Modular acceptance](evaluation/MODULAR_ACCEPTANCE.md) separates source/routing
 checks, the two-repository integration canary, live host trials and matched
 quality evaluation. Host-provided checkouts are retained for host cleanup after
@@ -137,9 +138,26 @@ public role, report schema or automatic installation migration.
 separates helper/routing/package checks from still-pending live Codex and Cursor
 Projects trials. Actual Project coordinator launch tools, nested tool inheritance,
 background continuation and browser access remain host-specific acceptance gaps;
-a worker's schema report is not a successful run. Installed packages are not
-updated by these source changes. Preserve the deferred authority/continuity and
+a worker's schema report is not a successful run. Active-package replacement
+and remote Project pin changes are separate delivery steps. Preserve the deferred authority/continuity and
 matched-quality trials, Bridge and public distribution boundaries above.
+
+### One coordinated execution workflow
+
+Coordinated children use full Orchestra; investigation-only authority makes the
+existing discovery usable before implementation approval. The parent explains
+that evidence and resumes the same root when supported, without repeating settled
+approval. Ordinary roles and engineering remain available independently.
+Lite has been removed, including its public kickoff/result contract, exclusive
+validator and fixtures. There is no transitional route or automatic fallback.
+Conditional cross-environment acceptance uses existing review/verifier roles.
+
+The next live trial must exercise the parent, investigation-only child,
+approval continuation, local roles,
+retrievable evidence and cleanup on the actual host. That trial remains pending;
+removal does not establish nested execution or quality improvement. Remote Project
+preferences must point to the updated pinned source; local package updates cannot
+change those preferences. Preserve the deferred evaluations listed above.
 
 ## Preventive engineering and maintenance
 
@@ -158,13 +176,12 @@ Event intake, scheduled gardener jobs, automatic feature-map maintenance, formal
 verification and dashboards remain deferred. Existing distribution, coordinator
 host acceptance and Bridge work above retain their separate boundaries.
 
-## Decision evidence and remote Lite acceptance
+## Decision evidence and cross-environment acceptance
 
-The v2 source contract keeps coordinator instructions with the worker and ships
-explicit legacy interpretation. Cloud coordinators must select the same pinned
-revision and refresh their kickoffs; source changes do not migrate active workers.
-Decision evidence applies proportionally across ordinary roles, full Orchestra
-and Lite. Package conformance proves routing and shapes, not agent compliance.
+Shared decision evidence and conditional parent-side reproduction apply through
+one coordinated workflow. Retired Lite delivery observations remain in the pilot
+record; its kickoff/result contract and distribution are removed. Conformance
+proves source routing and structure, not agent compliance.
 
 The remaining bounded
 [three-case pilot](evaluation/MODULAR_ACCEPTANCE.md#decision-evidence-pilot)
@@ -179,10 +196,10 @@ speed, and preserve all earlier distribution, adoption and Bridge follow-ups.
 ## Decision quality and useful verification
 
 The shared criteria now cover risk-specific decisions, bounded pre-code review,
-necessary scope, affected documentation and behavioral test quality across full,
-Lite and standalone work. Test-suite diagnosis and repair extend repository
-maintenance; no new role, result schema or E2E-only policy is introduced. Lite
-coordinators reconcile required checks and reject inconsistent success reports;
+necessary scope, affected documentation and behavioral test quality across full
+Orchestra and standalone work. Test-suite diagnosis and repair extend repository
+maintenance; no new role, result schema or E2E-only policy is introduced.
+Coordinators reconcile required checks and reject inconsistent success reports;
 source conformance still does not establish live report acceptance.
 
 Use the [pilot follow-up](evaluation/MODULAR_ACCEPTANCE.md#decision-quality-and-useful-test-follow-up)

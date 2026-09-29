@@ -47,6 +47,8 @@ When dispatched as an explicitly authorized initiative child root, first read
 WORKFLOW "Initiative coordination" and the supplied-checkout rule in "Task
 checkout and branch". Reuse inherited scope/tier/authority and the existing
 owned checkout; preserve this route's independent implementation review.
+An investigation-only child follows that section's bounded analysis resources,
+report and continuation rules before any execution-tier or setup decision.
 
 Identify the execution host from its available adapter and use its native
 spawn protocol. Explicit CLI delegation follows its separate executor contract.
@@ -60,7 +62,8 @@ execution preset, resolve capability overrides through
 lookup. Apply WORKFLOW "Tier flows and models" before resuming a task from the
 retired external integration.
 
-Before resources exist, read `Tier flows and models`, recommend one assigned
+Except for the bounded investigation-only resources above, before resources
+exist read `Tier flows and models`, recommend one assigned
 tier with concise risk and cost evidence, and obtain the user's choice. The
 matrix supplies native defaults and the explicitly selected preset supplies
 its overrides; a cheaper tier never waives authority, review, verification, or delivery gates.

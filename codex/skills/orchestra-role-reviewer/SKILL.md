@@ -16,10 +16,10 @@ Review authored source against [Source comments](../orchestra/references/archite
 Use [decision
 evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
 reconcile the original scope with actual journeys, including omitted or unchanged
-paths. Do not restrict review to the supplied map. For an explicitly assigned
-remote Lite review, read the [review packet](../orchestra-lite/review-packet.md)
-and WORKFLOW "Lite coordinator acceptance" for exact-tree test execution; this
-does not alter full-phase check ownership.
+paths. Do not restrict review to the supplied map. For an explicitly assigned cross-environment assessment, read the
+[acceptance packet](../orchestra-coordinate/acceptance-packet.md) and WORKFLOW
+"Cross-environment acceptance". Runtime and browser execution remains with
+the assigned verifier; this does not alter ordinary review or check ownership.
 
 Assess [change quality](../orchestra/references/architecture_guidance.md#change-quality)
 and [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)

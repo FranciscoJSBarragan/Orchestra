@@ -213,32 +213,6 @@ one discovered source. `uninstall` has no
 dry-run flag; do not substitute an unverified command. The active installation
 is a separate user-selected migration.
 
-## Orchestra Lite worker route
-
-`orchestra-lite` ships inside every target as an ordinary skill with its
-kickoff template and result example; no extra manifest entry, helper, or
-hook is needed. The first installation route selected for Lite worker
-validation is the **Cursor plugin bundle**: build `--target cursor`
-into a new directory and load it in the worker's session with
-`cursor-agent --plugin-dir`. Pushing the repository to GitHub does not
-install the skill anywhere; the coordinator must make the bundle available
-to the worker's environment. Direct sync and the other targets carry the same
-skill but are outside this first route's validation scope.
-
-Two milestones require separate evidence. The local milestone, "implemented
-and tested locally", requires passing canonical validation and package tests,
-a candidate Cursor bundle built from the same sources, and observed results
-from a fresh local agent following the fixture recipe in
-`codex/tests/fixtures/orchestra-lite/README.md`. Those trials exercise blocked
-preflight, delivery, supplied-branch handoff, missing PR tooling, required
-pre-commit review and resumption, and failed publication against
-disposable repositories, bare remotes, and a simulated `gh`. The cloud
-milestone requires an external coordinator to run one real task on a cloud
-worker and prove skill discovery, resolved bundled references, the model and
-effort actually applied at launch, executed checks, verified publication, and
-the draft PR or handoff. A local bundle or a green validator does not
-establish that cloud support; do not claim it until that evidence exists.
-
 ## Optional companions and lifecycle
 
 Orchestra Tasks is distributed and installed separately. Core bundles contain no
@@ -261,7 +235,7 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 
 All targets and direct sync include `orchestra-engineering`,
 `orchestra-project-verification`, `orchestra-coordinate` and
-`orchestra-repo-maintenance` from canonical sources, alongside `orchestra-lite`. References relocate with the bundle.
+`orchestra-repo-maintenance` from canonical sources. References relocate with the bundle.
 Engineering and verification entries allow host discovery; the initiative
 coordinator and repository maintenance require an explicit request. Distribution makes resources
 available, not guaranteed selection or native root-task APIs. See

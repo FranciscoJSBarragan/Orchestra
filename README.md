@@ -121,8 +121,10 @@ functional exceptions. Personal global adoption is separate from plugin loading.
 
 Use `$orchestra-coordinate` when the outcome requires independent projects or
 task roots. The parent sets shared contracts and checks the combined result;
-each child can use full Orchestra, Lite or the chosen custom flow. Available
-host tools determine the transport. See [the coordination packet](codex/skills/orchestra-coordinate/packet-example.md)
+each child runs full Orchestra with proportional phases. Exploratory children
+return evidence and a proposal before implementation approval, then continue in
+the same task root when supported. Available host tools determine the transport.
+Explicit custom and standalone work remain available outside that route. See [the coordination packet](codex/skills/orchestra-coordinate/packet-example.md)
 and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 
 ## Companion skills
@@ -133,33 +135,8 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
 | `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI with scoped permissions |
-| `orchestra-lite` | Another agent coordinates: it hands one approved task to a fresh worker with an `ORCHESTRA_LITE_SPEC` kickoff; the worker implements, runs the repository checks, publishes `orchestra/<slug>`, and returns a draft PR or handoff plus a JSON `ORCHESTRA_LITE_RESULT`. No tier negotiation, phases, or review dispatch inside the worker |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
-
-### Orchestra Lite: one task, one fresh worker, one draft PR
-
-When another agent already split the work and approved each task, the full
-workflow is more process than the worker needs. `orchestra-lite` covers that
-case: the coordinator picks the tier as a resource choice (model and effort
-at launch), writes the kickoff from
-[`kickoff-template.md`](codex/skills/orchestra-lite/kickoff-template.md),
-and organizes independent review; the worker runs without questions, stops
-only with `BLOCKED`, and always ends with the
-[`ORCHESTRA_LITE_RESULT`](codex/skills/orchestra-lite/result-example.json)
-JSON. `critical` work stays on `$orchestra`, and `DONE` never means
-merge-ready. The policy is in
-[Orchestra Lite companion](docs/WORKFLOW.md#orchestra-lite-companion).
-
-The first documented installation route for a Lite worker is the Cursor
-plugin bundle below; a local trial recipe with disposable repositories, bare
-remotes, and a simulated `gh` lives in
-[`codex/tests/fixtures/orchestra-lite`](codex/tests/fixtures/orchestra-lite/README.md).
-Local tests and fixture trials provide local evidence only. Cloud validation
-requires a coordinator to run a real task on a cloud worker and prove
-discovery, resolved references, the launched model and effort, checks,
-publication, and the draft or handoff. The acceptance milestones are described
-in [the packaging guide](packaging/README.md#orchestra-lite-worker-route).
 
 ## Install as a plugin
 

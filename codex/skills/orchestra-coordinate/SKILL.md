@@ -1,6 +1,6 @@
 ---
 name: orchestra-coordinate
-description: Coordinate an explicitly requested initiative across concurrent tasks in one repository or independent projects, repositories, or task roots. Keep shared contracts, dependencies and combined acceptance in the parent while each child uses Orchestra, Orchestra Lite or the user's selected workflow. Does not activate from an ordinary multi-file change.
+description: Coordinate an explicitly requested initiative across concurrent tasks in one or several repositories. Delegate full Orchestra task roots, including investigation before implementation approval, while keeping shared decisions and combined acceptance in the parent. Does not activate from an ordinary multi-file change.
 ---
 
 # Coordinate independent task roots
@@ -24,19 +24,14 @@ assignment. These are examples, not schemas. The register replaces the initiativ
 index and links child evidence instead of copying plans. Optional Tasks links do
 not make Task Control or Hub a dependency.
 
-Select a child route per responsibility:
-
-- Full [Orchestra](../orchestra/SKILL.md) for a child needing its planned,
-  independently reviewed phases. Carry the explicit activation, approved scope,
-  tier and delivery bounds into its own root; do not make it a leaf implementer.
-- [Orchestra Lite](../orchestra-lite/SKILL.md) for a fresh bounded cloud worker
-  with its kickoff and external review contract. Respect its supported tiers
-  and exact publication authority. Read its
-  [coordinator instructions](../orchestra-lite/coordinator.md) from the same pinned
-  revision as the worker. Lite cannot become a delegating child root.
-- [Engineering](../orchestra-engineering/SKILL.md) or the user's custom flow for
-  a bounded task that does not need Orchestra. State its review and completion
-  expectations instead of silently certifying it as an Orchestra phase.
+Use [Orchestra](../orchestra/SKILL.md) task roots under WORKFLOW "Initiative
+coordination", carrying explicit activation and the actual authority. For an
+exploratory problem, use the investigation-only [packet variant](packet-example.md)
+and synthesize its evidence for the user's decision before implementation.
+Continue the same root when supported; its report is the recovery input when
+the handle is unavailable. Already approved work retains its authority.
+Ordinary [engineering](../orchestra-engineering/SKILL.md) and explicitly selected
+custom work remain separate modular uses under WORKFLOW "Standalone tools".
 
 Use [host transports](host-transports.md) to dispatch supported task roots.
 The leaf-role delegate is still appropriate for an independent review or other
@@ -49,6 +44,8 @@ evidence rather than relying on a child's optimistic progress description.
 At stable handoff, consume the child's compact result once: exact revision,
 acceptance and review evidence, unresolved issues, delivery state, and owned
 resource cleanup. Run the combined journey against the actual set of revisions.
+Use the [acceptance packet](acceptance-packet.md) only for the named verification
+gap described by WORKFLOW "Cross-environment acceptance".
 If the base moved, route the same child through WORKFLOW "Base refresh before
 delivery" and refresh affected acceptance. If integration exposes a local defect
 before delivery, send the same child a

@@ -43,6 +43,7 @@ class PluginPackagingTests(unittest.TestCase):
             with self.subTest(target=target):
                 plugin = self.build(target)
                 self.assertEqual(sorted(p.name for p in (plugin / "skills").iterdir()), sorted(SKILLS))
+                self.assertFalse((plugin / "skills/orchestra-lite").exists())
                 for helper in HELPERS:
                     self.assertEqual((plugin / "scripts" / helper).read_bytes(), (ROOT / "codex/scripts" / helper).read_bytes())
                 for profile in AGENTS:
@@ -63,16 +64,6 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
-    def test_every_target_bundles_the_lite_producer_and_coordinator_contracts(self) -> None:
-        source = ROOT / "codex/skills/orchestra-lite"
-        for target in TARGETS:
-            with self.subTest(target=target):
-                lite = self.build(target) / "skills/orchestra-lite"
-                for relative in ("SKILL.md", "agents/openai.yaml", "kickoff-template.md", "result-example.json",
-                                 "result-v1-example.json", "coordinator.md", "review-packet.md"):
-                    self.assertEqual((lite / relative).read_bytes(), (source / relative).read_bytes(), relative)
-                self.assertIsInstance(json.loads((lite / "result-example.json").read_text()), dict)
-
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
         manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "devin": ".devin-plugin/plugin.json"}
@@ -88,14 +79,15 @@ class PluginPackagingTests(unittest.TestCase):
             self.assertFalse((plugin / "hooks.json").exists())
 
     def test_relative_skill_links_stay_inside_the_bundle_and_resolve(self) -> None:
-        plugin = self.build()
-        for page in [plugin / "WORKFLOW.md", *(plugin / "skills").rglob("*.md")]:
-            for link in re.findall(r"\]\(([^)]+)\)", page.read_text()):
-                if link.startswith(("https://", "http://", "#")):
-                    continue
-                destination = (page.parent / link.split("#")[0]).resolve()
-                self.assertTrue(destination.is_relative_to(plugin), (page, link))
-                self.assertTrue(destination.is_file(), (page, link))
+        for target in TARGETS:
+            plugin = self.build(target)
+            for page in [plugin / "WORKFLOW.md", *(plugin / "skills").rglob("*.md")]:
+                for link in re.findall(r"\]\(([^)]+)\)", page.read_text()):
+                    if link.startswith(("https://", "http://", "#")):
+                        continue
+                    destination = (page.parent / link.split("#")[0]).resolve()
+                    self.assertTrue(destination.is_relative_to(plugin), (page, link))
+                    self.assertTrue(destination.is_file(), (page, link))
 
     def test_relocated_helpers_use_bundled_presets_and_external_task_data(self) -> None:
         original = self.build()

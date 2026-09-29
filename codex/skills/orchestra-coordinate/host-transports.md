@@ -3,6 +3,9 @@
 WORKFLOW "Initiative coordination" owns the behavior. This reference maps it to
 host primitives; it is not a second scheduler or a promise of tool availability.
 Inspect the current host tools or CLI help before relying on a transport.
+Apply WORKFLOW "Initiative coordination" to investigation-only authority and
+continuation. Observe launch, role-tool availability, readable evidence and
+continuation separately on the actual host before claiming that route works.
 
 ## Codex desktop
 

@@ -71,6 +71,28 @@ Do not claim Projects parity from a Codex run, or vice versa. No live task, clou
 build change, public distribution or active-installation update is authorized by
 this recipe. Matched model-quality evaluation remains deferred.
 
+## Investigation and continuation acceptance
+
+Review these cases against the single coordinated route and exercise them only
+with the user's actual host and authority. Source/link/package tests do not
+establish live nesting, continuation or model execution.
+
+| Case | Required observation |
+| --- | --- |
+| Unknown-cause defect, investigation only | Root-capable child returns inspected revision, evidence, uncertainty, scope and proposal; no product or phase-state writes; report is accessible to the parent. |
+| Execution tier not yet selected | Investigation uses its explicitly assigned resources; it recommends a tier with evidence and never invents an execution assignment. |
+| Approval after investigation | Same available child consumes actual grants and valid evidence; implementation and review happen inside that child, with no repeated broad investigation. |
+| Implementation already authorized | Parent acceptance of a derived plan stays within the existing grant; no redundant user stop. |
+| Lost session or moved base | Reconcile ownership before replacement; reuse the report and inspect only material revision/context changes. |
+| Missing full-root transport | Precise capability blocker; no automatic worker-only route or custom fallback. |
+| Failed check reported as pre-existing | Compare actual failure evidence with the base; no green claim or inferred waiver; separate delivery obligations remain. |
+| Fresh root review in the same VM | Preserve independent context and accessible evidence; external reproduction is conditional on a named gap. |
+| Stale Project preference or source pin | Next child resolves the approved instruction revision; parent references canonical coordination rather than duplicated routing rules. |
+
+Lite skill, result validator and fixtures are absent from current distribution.
+Upgrade checks preserve unrelated files while removing manifest-owned retired
+resources. The historical authorization pilot remains unchanged below.
+
 ## Independent behavioral review
 
 Use these cases to inspect the current instructions and, where execution is
@@ -153,13 +175,15 @@ First inspect representative cases without claiming a behavioral run: a trivial
 edit, regression versus preservation tests, a contract with an indirect caller,
 an interrupted stateful operation, performance evidence, a browser journey and
 a recurring failure. Check whether the relevant evidence reaches its consumer,
-omissions remain discoverable and authority remains proportional. Add remote
-Lite cases for v1/v2 mismatch, an inaccessible map/report, stale review SHA and
-required pre-commit patch review.
+omissions remain discoverable and authority remains proportional. Include an
+inaccessible child report, stale inspected revision and failed mandatory check
+in conditional cross-environment acceptance. Historical Lite observations below
+remain evidence about their original revisions, not the current execution route.
 
 After bounded plugin acceptance, begin with map plus review together on three
-cases under fixed worker/reviewer models, effort, budgets, environment and task
-inputs. Pin baseline and revised Orchestra plus exact repository bases. Use the
+cases using full Orchestra child roots for both matched variants. Fix parent,
+task-root and role models, effort, budgets, environment and task inputs. Historical
+Lite pilots remain separate. Pin baseline and revised Orchestra plus exact repository bases. Use the
 same independently verified acceptance oracle for paired baseline/revised runs;
 keep it out of worker/analyst/reviewer prompts. Retain the complete approved scope
 in every prompt so mapping cannot redefine success. Record repetitions and

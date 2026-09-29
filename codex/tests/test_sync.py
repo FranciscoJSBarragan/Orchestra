@@ -196,11 +196,12 @@ class SyncTests(unittest.TestCase):
                 ".agents/skills/orchestra-repo-onboard/SKILL.md"
             ).is_file()
         )
-        for relative in ("SKILL.md", "kickoff-template.md", "result-example.json"):
+        for relative in ("SKILL.md", "packet-example.md", "acceptance-packet.md"):
             self.assertTrue(
-                self.home.joinpath(f".agents/skills/orchestra-lite/{relative}").is_file(),
+                self.home.joinpath(f".agents/skills/orchestra-coordinate/{relative}").is_file(),
                 relative,
             )
+        self.assertFalse(self.home.joinpath(".agents/skills/orchestra-lite").exists())
         for name in sync.AGENTS:
             self.assertTrue(self.codex_home.joinpath(f"agents/{name}.toml").is_file())
         self.assertTrue(self.codex_home.joinpath("orchestra/roles.toml").is_file())
@@ -1229,6 +1230,40 @@ class SyncTests(unittest.TestCase):
         for _, root, name, _ in resources:
             self.assertTrue((root / name).is_file(), name)
 
+    def seed_removed_skill(self):
+        self.assertEqual(self.run_sync("apply", host="all")["status"], "ok")
+        manifest = self.manifest()
+        paths = []
+        for relative, scope in ((".agents/skills/orchestra-lite/SKILL.md", "shared"),
+                                (".config/devin/skills/orchestra-lite/SKILL.md", "devin"),
+                                (".cursor/plugins/local/orchestra/skills/orchestra-lite/SKILL.md", "cursor")):
+            path = self.home / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"previous owned skill\n")
+            manifest["entries"].append({"root": "home", "path": relative, "scope": scope,
+                                        "type": "file", "digest": sync._digest(path.read_bytes())})
+            paths.append(path)
+        self.manifest_path().write_text(json.dumps(manifest))
+        return paths
+
+    def test_removed_skill_retires_owned_files_and_preserves_unowned_content(self):
+        paths = self.seed_removed_skill()
+        unowned = paths[0].with_name("personal.md")
+        unowned.write_text("User-owned reference\n")
+        result = self.run_sync("apply", host="all")
+        self.assertEqual(result["status"], "ok", result)
+        for path in paths:
+            self.assertFalse(path.exists(), path)
+        self.assertEqual(unowned.read_text(), "User-owned reference\n")
+
+    def test_removed_skill_drift_blocks_before_retirement(self):
+        paths = self.seed_removed_skill()
+        paths[0].write_text("User-owned edits\n")
+        before = {path: path.read_bytes() for path in paths}
+        result = self.run_sync("apply", host="all")
+        self.assertEqual(result["status"], "blocked", result)
+        self.assertEqual({path: path.read_bytes() for path in paths}, before)
+
     def test_permission_install_keeps_another_marked_mcp_block_intact(self):
         self.codex_home.mkdir(parents=True)
         config = self.codex_home / "config.toml"
@@ -2193,7 +2228,7 @@ class SyncTests(unittest.TestCase):
             self.home.joinpath(".config/devin/skills/orchestra/SKILL.md").is_file()
         )
         self.assertTrue(
-            self.home.joinpath(".config/devin/skills/orchestra-lite/SKILL.md").is_file()
+            self.home.joinpath(".config/devin/skills/orchestra-coordinate/acceptance-packet.md").is_file()
         )
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         for name in sync.AGENTS:

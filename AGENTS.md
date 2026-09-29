@@ -35,7 +35,7 @@ invocation; Orchestra observes the host mode and never changes it.
 never activates the full workflow without an explicit user choice.
 `orchestra-repo-onboard` is explicit only and writes a repository's tracked
 `.agent/` conventions after confirmation without activating the workflow. Details:
-`docs/WORKFLOW.md` ("Activation and specification gate").
+`docs/WORKFLOW.md` ("Orchestrator behavior" and "Context and planning").
 
 The modular engineering, project-verification and explicit initiative entry
 points follow WORKFLOW "Modular engineering", "Project verification" and

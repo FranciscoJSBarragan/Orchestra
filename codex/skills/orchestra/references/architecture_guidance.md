@@ -12,7 +12,7 @@ operational routing and evidence placement.
 ## Source comments
 
 This policy applies whenever an Orchestra entry authors source text, including
-ordinary engineering, Lite, project-start, maintenance and delegated work. Do
+ordinary engineering, project-start, maintenance and delegated work. Do
 not add explanatory comments, narrative docstrings, TODO/FIXME commentary,
 decorative section markers or commented-out code. Express behavior and
 invariants through names, structure, types and executable tests. Why a change

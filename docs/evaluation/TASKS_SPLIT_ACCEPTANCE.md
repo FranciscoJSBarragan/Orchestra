@@ -1,5 +1,9 @@
 # Core / Tasks separation acceptance
 
+This records the 2026-09-26 split baseline, including its then-current Lite
+companion. For today's coordinated workflow and acceptance, see WORKFLOW
+"Initiative coordination" and `MODULAR_ACCEPTANCE.md`.
+
 ## Reviewed scope
 
 The owner approved extracting the optional task manager after an independent

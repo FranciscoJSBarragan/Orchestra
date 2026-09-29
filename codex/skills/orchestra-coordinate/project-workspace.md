@@ -48,3 +48,19 @@ consumes child handoffs; children never rewrite the board. Stable repository
 knowledge belongs in its existing maintained docs under the established authority,
 not in duplicated progress notes. Read [the packet example](packet-example.md)
 for the bounded information passed to each task root.
+
+## Project working instructions
+
+Keep Project preferences as a pointer to the prepared source, not a copy of its
+workflow. For example:
+
+```text
+Use orchestra-coordinate from Orchestra revision <full approved SHA>.
+Resolve that source's runtime and read its coordination entry and host transport.
+Project context: <accessible PROJECT.md and BOARD.md>.
+Task authority: <the grants from this conversation; backlog is not approval>.
+Report the instruction revision the next child actually resolves.
+```
+
+Replace the pin only for new assignments or an explicitly reconciled continuation.
+Updating a plugin on a developer's machine does not edit remote Project preferences.
