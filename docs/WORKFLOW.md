@@ -66,9 +66,9 @@ Every Orchestra dispatch starts from a clean context: the packet and named
 artifacts carry the assignment. The root identifies the execution host from
 available tools and reads that host's spawn reference. Codex: `spawn_agent`
 and `wait_agent` exist; pass `fork_turns: none` explicitly on every spawn
-to preserve focused context and reviewer independence. Grok Build: use `spawn_subagent` when the session
-schema offers it, otherwise the host `workflow` `agent()` transport per the
-Grok spawn reference; use a fresh isolated subagent per dispatch,
+to preserve focused context and reviewer independence. Grok Build: select native
+`spawn_subagent` or host `workflow` `agent()` through the Grok spawn reference;
+use a fresh isolated subagent per dispatch,
 `isolation: none`, `cwd` equal to the task checkout, and resume only the same
 phase-cohort agent with `resume_from` while it is available. If an owner or
 reviewer is closed, record it unavailable and replace it with the same logical
@@ -710,18 +710,28 @@ by renaming the same unresolved assignment or switching its capability.
 The root is the technical lead: it receives the objective, hard constraints,
 and success criteria, and decides the steps itself.
 
-Preserve the approved objective, constraints, acceptance, and authority unless
-the user explicitly changes them. Treat a proposed mechanism or causal
-explanation as a hypothesis, challenge it against current source and evidence,
-and prefer the smallest supported approach that preserves the approved result.
+Preserve the approved objective, behavioral acceptance, scope, authority, and
+binding user, repository and verified-contract constraints. An explicitly
+user-selected mechanism remains a constraint; if satisfying the result requires
+changing a binding constraint, seek user direction instead of overriding it.
+Approval authorizes the plan's work; it does not establish the truth of an
+agent-proposed technical premise, even when the plan labels that premise a
+constraint or acceptance criterion.
+When evidence shows that a planned mechanism cannot satisfy the approved
+result, the root corrects the affected plan through the existing replacement
+and review rules. Reassess only changed decisions and affected evidence. Do not
+weaken behavioral acceptance or hard gates to preserve the mechanism; seek user
+direction only when the correction crosses a boundary below. Treat causal
+explanations as hypotheses and prefer the smallest supported approach that
+preserves the approved result.
 
 For requests to answer, explain, review, diagnose, or plan: inspect the
 relevant materials and report the result; implement nothing.
 
 Within an approved objective or plan: make in-scope reversible decisions and
-carry out every step named in the plan without asking again — technical
-choices, tool and configuration details, file and directory locations,
-dependency and environment fixes, changed-approach retries, and
+carry out the approved work, correcting technical steps as above without asking
+again — technical choices, tool and configuration details, file and directory
+locations, dependency and environment fixes, changed-approach retries, and
 non-destructive validation. A step named in the approved plan is authorized
 by that approval. Never ask the user to make a technical choice the root can
 make and reverse (a folder name, a port, a config location, which of two
@@ -983,8 +993,9 @@ not updated for such a change. Structural invariants the matrices must keep:
 - Grok assigns `standard` and `critical` on `grok-4.7-build-fast` at effort
   `xhigh` with identical spawn rows (`critical` raises root scrutiny, not the
   model) and blocks unassigned `minimal`. The Grok spawn reference maps rows
-  onto `general-purpose` and passes that model and effort on the native
-  transport that accepts them. It does not invent a field that transport lacks.
+  onto `general-purpose` using supported explicit fields or documented host
+  resolution, verified against host-recorded child model and effort. The spawn
+  reference owns dispatch and recovery; do not invent a field a transport lacks.
 - Devin assigns `standard` and `critical` with every capability on `swe-2-max`
   at `inherit` effort (`critical` raises root scrutiny, not the model) and
   blocks unassigned `minimal`. The model is pinned in each installed Devin
@@ -1209,9 +1220,10 @@ After explicit activation in an execution-capable mode:
     persisted review counter or mechanical limit is introduced.
 13. The root presents the exact accepted bundle at the user's altitude and
     requests implementation approval, unless step 7 already combined that
-    request with specification confirmation. For a multi-phase bundle it names,
-    in one line per additional phase, the step 10 boundary that phase buys, so
-    the user can reject a split.
+    request with specification confirmation. Distinguish required outcomes and
+    binding constraints from the proposed technical approach. For a multi-phase
+    bundle it names, in one line per additional phase, the step 10 boundary that
+    phase buys, so the user can reject a split.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact selected task checkout. Managed mode leaves the base checkout

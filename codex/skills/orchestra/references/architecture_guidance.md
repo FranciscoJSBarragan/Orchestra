@@ -210,7 +210,7 @@ intent; already authorized intent does not need repeated user approval.
 | --- | --- |
 | Authorization | Operation/resource × caller × actor/permission × expected effect. Establish policy from approved intent and maintained authority; UI visibility is caller evidence, not the server's permission policy. Cover unauthenticated denial, insufficient permission and allowed success, plus ownership or pre-login cases when relevant. Trace alternative entry points to the same protected effect. |
 | Contract | Producer, direct/indirect consumer, supported variants and failure semantics. Exercise the real boundary and retained compatibility, not just matching local types or independent green suites. |
-| Data | Writer, reader, invariant and persistence boundary. Identify interruption, repetition and rollback/reconciliation behavior; check relevant round trips and failure states. |
+| Data | Writer, reader, invariant and persistence boundary. Trace other reachable writers of that invariant, including earlier operations and alternative paths. Identify interruption, repetition and rollback/reconciliation behavior; check relevant round trips and failure states. |
 | Behavior | Entry point, visible outcome, relevant negative/boundary case and behavior that must remain unchanged. Distinguish a defect reproducer from preservation coverage. |
 | Configuration | Source, precedence, default, activation and consuming runtime. Verify effective behavior, including invalid or absent values where material; parsing alone may not establish use. |
 
@@ -236,7 +236,10 @@ or comparison branch replaces judgment about each change's purpose.
 
 Reuse a suitable existing primitive before adding another, but check ownership
 and semantics: a private helper in another component is not automatically a
-shared API. Do not introduce coupling or a new abstraction merely to eliminate
+shared API. When an informational or derived value gains an authoritative use
+(such as a write, authorization or billing decision), establish its contract for
+that new consumer rather than assuming its previous use proves correctness.
+Do not introduce coupling or a new abstraction merely to eliminate
 a few similar lines. Follow the consumer design and readability criteria above;
 nearby patterns still require evidence when they affect correctness.
 
@@ -300,6 +303,12 @@ the same rejection even if expiry validation is broken. Use a valid control or
 the smallest discriminating observation where another rejection could mask the
 defect. A status code alone may not establish the claimed cause or absence of
 side effects.
+
+When a fixture stands in for a supported prior operation, establish that its
+state is reachable and preserves that operation's relevant effects. If those
+effects on the invariant are uncertain, exercise the actual predecessor instead
+of inventing its result. Deliberately invalid or corrupt-state tests remain valid
+when that condition is the named failure being tested.
 
 Judge a test by the meaningful incorrect behavior it would reject. Avoid
 assertions that mirror control flow, recompute expected output with the same

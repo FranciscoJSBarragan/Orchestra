@@ -56,6 +56,11 @@ class PluginPackagingTests(unittest.TestCase):
                 for host in ("codex", "cursor", "grok", "devin"):
                     with (plugin / "hosts" / host / "roles.toml").open("rb") as handle:
                         self.assertIn("tiers", tomllib.load(handle))
+                    if host != "codex":
+                        self.assertEqual(
+                            (plugin / "hosts" / host / "spawn.md").read_bytes(),
+                            (ROOT / "hosts" / host / "references/spawn.md").read_bytes(),
+                        )
                 self.assertFalse((plugin / "scripts/sync.py").exists())
                 self.assertFalse((plugin / ".mcp.json").exists())
                 self.assertFalse((plugin / "mcp.json").exists())

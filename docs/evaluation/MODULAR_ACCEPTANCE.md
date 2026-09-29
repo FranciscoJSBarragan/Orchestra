@@ -115,6 +115,10 @@ authorized, the actual run. Record which were reviewed versus exercised.
 | Interrupted coordinator | Existing handles, Git and evidence recovered before continuation; no duplicate launch or lost unique work. |
 | Scope change in one child | Material decision reaches the user through the parent while safe independent work can continue. |
 | Host-created worktree | One checkout owner; no second worktree; guarded remote-ref cleanup and explicit local-ref handoff after host release. |
+| Informational value becomes authoritative | The new writer or authorization decision establishes the value's contract for that use, including other reachable writers of the invariant. Reuse alone is not proof. |
+| Fixture replaces an earlier operation | Its state matches the supported predecessor's relevant effects, or the check executes that operation. Deliberately invalid-state tests remain distinguishable. |
+| Planned mechanism contradicts the objective | The root corrects the affected plan and review evidence while preserving behavioral acceptance; an explicit user or binding contract constraint still requires reconciliation. |
+| Rejected or ambiguous Grok dispatch | A confirmed pre-start rejection permits one corrected supported launch with the same assignment. Active/unknown children are reconciled, not duplicated; host metadata establishes the effective assignment. |
 
 ## Maintenance and personal policy acceptance
 
@@ -161,8 +165,12 @@ change permissions or silently turn a plugin install into a global policy edit.
 
 After the bounded plugin acceptance recorded in ROADMAP, run baseline and revised
 sources on identical fresh task fixtures with matched models, effort, budgets,
-host versions, permissions and repository state. Keep expected answers out of
-worker prompts. Use repeated paired runs and
+host versions, permissions and repository state. Keep expected answers, prior
+candidate implementations and evaluator reports out of root and role context,
+including conversation history and experience memory. A fresh worktree does not
+isolate conversation context; record any exposure and exclude it from blind
+comparisons. This isolation is for evaluation, not ordinary reuse of prior work.
+Use repeated paired runs and
 independent assessment, preserving failures and human interventions. Prioritize
 executable correctness, regressions and unmet acceptance; then review usefulness,
 maintainability, tokens, latency and recovery cost. Report samples, variation and
@@ -185,7 +193,7 @@ cases using full Orchestra child roots for both matched variants. Fix parent,
 task-root and role models, effort, budgets, environment and task inputs. Historical
 Lite pilots remain separate. Pin baseline and revised Orchestra plus exact repository bases. Use the
 same independently verified acceptance oracle for paired baseline/revised runs;
-keep it out of worker/analyst/reviewer prompts. Retain the complete approved scope
+apply the root-and-role isolation above. Retain the complete approved scope
 in every prompt so mapping cannot redefine success. Record repetitions and
 variance, not just the best run.
 
@@ -347,6 +355,37 @@ execution passes. The correction also removes unobserved logging/wait setup
 and corrects misleading download-test names. Its focused checks passed 60
 tests; `make test` passed 2,543 offline and 10 isolated-Supabase tests. These
 are correction results, not an improvement to the original trial's score.
+
+## Recorded refund pilot, 2026-09-28
+
+Historical forensic evidence, not a matched quality estimate: NeniTPV Lite
+`31cc619afec2ab67e089bbd768947f31f6aa089a` and full Orchestra
+`44ec847fb8239d20a40348d1a17a3be87aba6262` share application base
+`453509491867fab74523a45cf59656fe697ce8a3`. The Grok root read the Lite diff
+before creating its new branch. Captured child logs showed no direct read of
+that diff, but their plan came from the exposed root. Branch separation did not
+make the second run blind; exposure is established, causation of its defect is
+not. Native records identify the full run's root and successful roles as
+`grok-4.7-build-fast/xhigh`. The caller retains original evidence privately.
+
+The approved plan and downstream packets made an existing detector's result the
+refund acceptance criterion. Both candidates' original helpers, replayed with
+an earlier cash refund against a transfer payment, failed to reduce the pending
+amount. The new prior-refund fixture summed a payment and a positive refund into
+sale total rather than representing the remaining sale. Relevant source and
+shared guidance had been read; the demonstrated gap was connecting supported
+operations and challenging the technical premise. The initial context dispatch
+also failed before starting because explicit model selection was unsupported;
+the root investigated directly and later native role dispatches succeeded.
+
+Implementation and verifier reports record passing deterministic suites, with
+an initial verifier environment failure followed by a passing retry. The audit
+inspected source, native logs and reports; its helper replay was not a complete
+partial-then-full runtime journey or browser reproduction of the reported click.
+That journey and a held-out case remain pending. Do not attribute the result to
+a model, claim all edge cases are covered, or treat instruction conformance as
+measured code-quality improvement. No consumer application fix is part of this
+Orchestra guidance correction.
 
 ## Design references
 

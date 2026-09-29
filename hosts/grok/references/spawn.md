@@ -38,22 +38,29 @@ For each capability:
 
 1. Resolve `profile`, `subagent_type`, product `model`, and `effort` from
    `tiers.<selected-tier>.<capability>`.
-2. Launch a **fresh** subagent with that `subagent_type`. Use
-   `spawn_subagent` when its live schema can carry the assigned `model` and
-   `effort`. Some Grok sessions omit `spawn_subagent` (and it is not reachable
-   through `use_tool`). The current schema often accepts neither `model` nor
-   a reasoning field. In either case, dispatch through the host `workflow`
-   tool with one `agent()` call carrying `model: "grok-4.7-build-fast"`,
-   `effort: "xhigh"`, and `agent_type` set to the matrix `subagent_type`.
-   `agent()` has no `cwd`: the root's working directory must already be the
-   Orchestra task checkout before that call. For `spawn_subagent`, pass
-   `background: true`, `isolation: none`, and `cwd` set to that same checkout.
+2. Launch a **fresh** subagent. Prefer `spawn_subagent` when its live schema
+   can express the assignment, or documented host resolution establishes the
+   same assignment without explicit fields. Before relying on inheritance,
+   verify the parent model and effort match the row and no applicable per-type,
+   role or persona override changes them. Matching the parent alone does not
+   establish the child's configured defaults. If the live schema omits
+   `subagent_type`, confirm the host's implicit type is `general-purpose`.
+   Pass only supported fields; for the schema exposing them use
+   `background: true`, `isolation: none`, and `cwd` set to the task checkout.
    Never pass `isolation: worktree` (or `isolation_worktree: true`);
    Orchestra already owns the checkout.
-3. Do not invent a field the chosen transport lacks. Inheriting the parent
-   session satisfies the contract only when that parent is already
-   `grok-4.7-build-fast` at `xhigh`. Do not treat a child's self-reported
-   worker label as the assignment.
+   If native spawn is absent or cannot resolve the assignment, use the host
+   `workflow` transport only when it supports one `agent()` call with the
+   exact model, effort and `agent_type`. `agent()` has no `cwd`: the root's
+   working directory must already be the task checkout. Do not seek a missing
+   `spawn_subagent` through `use_tool` or force fields rejected by the catalog.
+3. Before accepting the result, compare host-recorded child model and effort
+   with the assigned row, whether dispatch was explicit or inherited. Requested
+   arguments and a child's self-reported label are not execution evidence.
+   An unknown or mismatched assignment blocks acceptance: preserve and reconcile
+   any changes and live resources. Another dispatch requires evidence that the
+   supported resolution now meets the row; do not repeat an unchanged mismatched
+   launch. Do not change global settings or substitute a model to make it succeed.
 4. The prompt is the packet plus: read
    `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
    conduct it names, then execute only the assigned capability. Role mapping:
@@ -66,6 +73,14 @@ For each capability:
    fresh spawn; delta reviews within the same phase resume that same
    reviewer, matching the open phase cohort on Codex. A second critical
    review, when required, uses a fresh reviewer.
+
+An explicit rejection before a child starts permits one corrected dispatch
+through a supported route with the same assignment. Confirm no child started;
+an active child or ambiguous launch instead follows WORKFLOW "Agent waiting"
+and "Conversation continuity". Do not retry, duplicate, or silently omit its
+work. If the workflow permits direct root context gathering instead of the
+failed analyst, disclose that change and retain its evidence. The root never
+substitutes for a required independent role.
 
 Apply the phase verification contract before launching a subagent. When the
 `Independent verification gate` is `none`, do not spawn a verifier; matrix

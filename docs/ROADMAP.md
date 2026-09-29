@@ -202,6 +202,14 @@ maintenance; no new role, result schema or E2E-only policy is introduced.
 Coordinators reconcile required checks and reject inconsistent success reports;
 source conformance still does not establish live report acceptance.
 
+The [refund pilot](evaluation/MODULAR_ACCEPTANCE.md#recorded-refund-pilot-2026-09-28)
+adds evidence about technical premises frozen into plan acceptance, prior-operation
+fixtures and root exposure to another candidate. The correction separates binding
+outcomes from technical plan choices, checks new authoritative uses and reachable
+writers, and clarifies Grok dispatch recovery. The real state-transition journey,
+fresh root-and-role evaluation and live host recovery remain pending; source
+validation does not complete them or update active installations.
+
 Use the [pilot follow-up](evaluation/MODULAR_ACCEPTANCE.md#decision-quality-and-useful-test-follow-up)
 to evaluate correctness and maintainability separately from diff size, test
 counts or speed. Preserve known-answer regressions and include a held-out case

@@ -33,7 +33,14 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   bundle; never make a consumer infer the current bundle from timestamps.
 - The overview states objective, intended user-visible result, global
   constraints and acceptance, decisions, exclusions, phase order and
-  dependencies, and the overall verification strategy.
+  dependencies, and the overall verification strategy. State acceptance as
+  observable outcomes independent of the proposed mechanism. Keep user-selected
+  mechanisms and binding contracts in constraints with their authority; put
+  proposed helpers and algorithms in Decisions, and test design in Verification,
+  with their evidence and limits. A stop condition identifies a conflict with the
+  required outcome or invariant, not whether the mechanism can reproduce its own
+  answer. WORKFLOW "Autonomy within an approved objective" governs technical
+  corrections to an approved plan.
 - Every overview contains a `Review context` section. It names the exact
   `repository-context` and `context-delta` artifact identifiers and inspected
   revisions, or a stable label and revision for each complete inline fallback;
