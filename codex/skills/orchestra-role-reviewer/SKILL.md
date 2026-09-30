@@ -100,7 +100,8 @@ explicit review authority, worktree, exact artifacts directory, review target,
 revision identity, stop conditions, and exact artifact IDs. Plan review
 requires the complete `plan-overview` and every current `plan-phase`, with
 the producer evidence supplied under WORKFLOW "Engineering guidance and evidence";
-implementation review requires overview, phase, implementation report,
+implementation review requires the authority basis specified in WORKFLOW
+"Phase execution", overview, phase, implementation report,
 required verification reports, and the exact context artifacts named by the
 plan; PR review requires current GitHub evidence and only semantic artifacts
 needed for judgment. Later delta reviews require the full-review base and
@@ -116,7 +117,8 @@ missing evidence. In `orchestra_phase` mode, return the complete
 `plan-review`, `implementation-review`, or `pr-review` ID with stable finding
 IDs, context basis, evidence gaps, rejected feedback, diagnostics, and prior
 finding dispositions as applicable. Publication and inline fallback follow
-shared conduct.
+shared conduct. Authority-based finding dispositions follow WORKFLOW
+"Review policy".
 
 ## Stop conditions
 

@@ -40,7 +40,8 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   with their evidence and limits. A stop condition identifies a conflict with the
   required outcome or invariant, not whether the mechanism can reproduce its own
   answer. WORKFLOW "Autonomy within an approved objective" governs technical
-  corrections to an approved plan.
+  corrections to an approved plan; "Context and planning" governs disclosure
+  of material consequences at approval.
 - Every overview contains a `Review context` section. It names the exact
   `repository-context` and `context-delta` artifact identifiers and inspected
   revisions, or a stable label and revision for each complete inline fallback;

@@ -294,8 +294,12 @@ the risk. A browser journey need not repeat every deterministic edge case.
 Reuse relevant coverage and add tests only for observable acceptance or a named
 regression risk. Tests added after implementation remain useful for newly found
 defects, legacy behavior or review findings; chronology neither proves nor
-disproves quality. For reproductions and selective sensitivity checks, use
-"Evidence for consequential changes" below. Preservation tests may correctly
+disproves quality. A characterization test establishes observed behavior,
+including known defects, without making it intended behavior or authorizing its
+preservation. When changing such coverage, keep that observation distinct from
+the required outcome in the existing verification evidence; characterization
+does not authorize unrelated fixes. For reproductions and selective sensitivity
+checks, use "Evidence for consequential changes" below. Preservation tests may correctly
 pass on both revisions. Never manufacture a failure to satisfy a red-green claim.
 
 For an authorized policy change, compare the prior behavior with the new required

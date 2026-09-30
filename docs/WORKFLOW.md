@@ -1236,9 +1236,13 @@ After explicit activation in an execution-capable mode:
 13. The root presents the exact accepted bundle at the user's altitude and
     requests implementation approval, unless step 7 already combined that
     request with specification confirmation. Distinguish required outcomes and
-    binding constraints from the proposed technical approach. For a multi-phase
-    bundle it names, in one line per additional phase, the step 10 boundary that
-    phase buys, so the user can reject a split.
+    binding constraints from the proposed technical approach. Before either
+    approval path, name material consequences of that approach in the existing
+    Decisions or Risks, including changed outputs or pending actions observed
+    by indirect consumers. Present those consequences for approval even when
+    the consumer's files are excluded from edits. For a multi-phase bundle it
+    names, in one line per additional phase, the step 10 boundary that phase
+    buys, so the user can reject a split.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact selected task checkout. Managed mode leaves the base checkout
@@ -1677,7 +1681,8 @@ The loop is:
    current source and diff invalidates that packet. Context discovered by a
    verifier stays in its verification report and receives the same root
    disposition before downstream use.
-4. One reviewer receives exact overview, phase, implementation, and
+4. One reviewer receives the plan path and its relevant user and root decisions
+   as the authority basis, exact overview, phase, implementation, and
    verification IDs, plus every exact repository-context artifact or inline
    fallback required by the approved overview and current phase. For a phase
    that changed a user-visible surface, the packet also names the cited
@@ -1914,6 +1919,10 @@ apply.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence in that order.
+A root packet cannot reorder that priority or exempt an accepted mechanism from
+independent judgment. Authority-based finding dispositions by the root or
+reviewer follow shared "Decision evidence"; phase acceptance alone does not
+establish that an unpresented consequence was authorized.
 It records only the exact context basis actually used. Context evidence must
 name its review use; a discovery or blocker must name the affected material
 judgment and current-task consumer. Incidental stale information is omitted. A
