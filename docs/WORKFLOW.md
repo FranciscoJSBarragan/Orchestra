@@ -211,12 +211,18 @@ without producing Orchestra artifacts.
 The substantive criteria, including the mandatory source-comment policy for
 authored source, live in `architecture_guidance.md`; capability
 playbooks add domain technique, and role skills define bounded assignments.
-Conventions can be improved when evidence supports a better mechanism. Within
-authorized scope, propose and review that change at its canonical source;
-an existing convention is evidence and a current constraint, not an immutable
-product decision. Until an authorized change is accepted, do not silently
-ignore normative instructions. New rules must address the demonstrated cause
-rather than accumulate prohibitions after every failure.
+Orchestra's own workflow rules, role boundaries and engineering conventions
+are revisable design choices. Within authorized scope, propose and review a
+better mechanism at its canonical source; an existing rule is a current
+constraint, not an immutable product decision or a reason to reject a viable
+improvement. Evaluate Orchestra changes against VISION.md "Success criteria"
+and "Quality per token". Distinguish a proposed benefit from observed
+improvement and generalization evidence. Changes to authority or delivery
+policy follow their respective authority boundaries; rule changes do not
+themselves grant task or host permissions. Until an
+authorized change is accepted, do not silently ignore normative instructions.
+New rules must address the demonstrated cause rather than accumulate
+prohibitions after every failure.
 
 ## Repository maintenance
 
@@ -816,6 +822,14 @@ authorization, cross-system compatibility, data integrity or recovery behavior,
 including choices an analyst claims are settled. A lower tier or cheaper model
 does not exempt that risk. Use the existing plan review or a bounded decision
 review; do not add a second gate when that review already covers the choices.
+Combined specification and implementation approval does not waive this review.
+The root supplies the exact identities and accessible results of producers
+underlying the consequential decision, including relevant results omitted from
+the candidate's `Review context`.
+A consequential decision reviewer reads the named producer result's material
+conclusions and stated limits and checks for decision-changing omissions against
+the original intent. `Review context` routes that evidence rather than replacing
+it with the plan author's summary; incidental facts need no inventory.
 Merely touching related files or preserving an explicit, already reviewed policy
 does not require another decision review. Assess alternatives, authority,
 preservation and discriminating checks using shared "Decision evidence".
@@ -983,9 +997,7 @@ not updated for such a change. Structural invariants the matrices must keep:
   planning, and review assignments, Luna `max` implementation assignments,
   and Luna `xhigh` evidence/browser assignments. The matrix remains the source
   of exact rows; this description is only the routing constraint.
-- No Orchestra assignment uses Sol xhigh. A second critical review reuses
-  `independent_review` only for a named measurable risk and independently
-  detectable defect class.
+- No Orchestra assignment uses Sol xhigh.
 - Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast
   remains the fast lane for repository, research, and runtime verification
   on `minimal` and `critical`. The Cursor spawn reference maps each row onto
@@ -1109,7 +1121,10 @@ After explicit activation in an execution-capable mode:
    visually separated as what it understood and what it will do; one explicit
    user approval then covers both, and any specification correction
    invalidates the plan candidate with it. Critical and multi-phase tasks keep
-   two stops: specification confirmation, then plan approval.
+   two stops: specification confirmation, then plan approval. On the combined
+   path, approval is followed by any required decision review before
+   implementation; review corrections follow "Autonomy within an approved
+   objective".
 8. Immediately after specification confirmation, the root creates the task
    checkout per [Task checkout and branch](#task-checkout-and-branch): it
    fetches the configured upstream for a fresh canonical-base task (a failed
@@ -1194,9 +1209,9 @@ After explicit activation in an execution-capable mode:
    evidence.
 11. After the complete bundle exists, the root reads the overview, phase
    index, named risks, and only the detail needed for judgment. It may skip
-   independent plan review when current evidence settles the material design
-   choices. Apply "Engineering guidance and evidence" for consequential decision
-   review within this pass. Dispatch it for a concrete unresolved architectural alternative,
+   independent plan review only when current evidence settles the material design
+   choices and "Engineering guidance and evidence" requires no consequential
+   decision review. Dispatch it for a concrete unresolved architectural alternative,
    consequential contract, migration or recovery assumption, unfamiliar
    dependency, or costly-to-reverse decision. Phase/file counts alone do not
    create the gate. Resolve empirical uncertainty with a bounded authorized
@@ -1208,7 +1223,7 @@ After explicit activation in an execution-capable mode:
    before defect hunting. Collapsing phases that name no step 10 boundary is
    a root direction correction, not a review finding: when the candidate
    bundle fits one phase under step 9, the root authors the single-phase plan
-   directly instead of opening a plan-review cycle for it.
+   directly instead of opening a plan-review cycle solely to collapse phases.
 12. A dispatched reviewer reads the exact bundle and publishes `plan-review`
     with stable finding identifiers. Accepted IDs and the review artifact
     return to the same author, which publishes complete replacement documents
@@ -1257,7 +1272,10 @@ checkout and require no protected-path escalation.
 The file records task and Git identity, checkout mode and resource ownership,
 the hybrid starting branch/revision when applicable, owning host, active tier,
 user and root decisions, authorized preexisting
-changes, and the approved overview verbatim. Its phase manifest maps every
+changes, and the effective approved overview verbatim, including authorized
+in-scope replacements under "Autonomy within an approved objective". Record
+material corrections in the existing root decisions so resume uses the current
+authorized bundle. Its phase manifest maps every
 phase number to the exact artifact ID, private path, artifact revision, progress
 status, accepted commit, blocker, and next action. It does not duplicate phase
 details. Private paths allow resolution when SQLite is unavailable. When
@@ -1876,6 +1894,23 @@ terminal revision before their delivery mutation or clean result. The first
 review completes the entire bounded target and returns all known material
 findings together. Later reviews inspect only the meaningful delta and
 interactions affected by accepted fixes.
+
+The root may add a fresh focused plan or decision reviewer using
+`independent_review` when a named measurable risk and independently detectable
+defect class justify complementary scrutiny. State its distinct question and
+evidence basis in the existing plan risks or decisions; this is optional, not
+a mandatory pair. An omissions-focused assignment can examine supported prior
+states, alternative paths, indirect consumers or pending external actions.
+It does not narrow the first review's full target or duplicate a decision gate
+already covered under "Engineering guidance and evidence".
+Both reviewers receive the original intent, candidate and relevant producer
+evidence supplied by the root under that section. Independent read-only passes
+with distinct publication targets may run in parallel; the root keeps their
+findings separate until both handoffs. Corrections reuse each affected reviewer
+under the existing meaningful-delta review rules.
+The root resolves findings under "Context and planning"; reviewer agreement
+does not grant authority. The selected tier and configured matrix row still
+apply.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence in that order.

@@ -137,10 +137,12 @@ Git operations.
 
 Quality per token includes the complete cost of a mechanism: root and delegated
 agent context, tool calls, wall time, and workflow repair when the mechanism
-fails. More checks are not automatically safer. A helper or gate is an
-improvement only when it reduces expected total cost while protecting a
-demonstrated requirement or realistic risk. The root's engineering judgment is
-part of that control surface, not a gap that must be replaced with machinery.
+fails. Token savings, additional agents, more rules or passing structural
+checks alone do not establish better task results. A helper or gate is an
+improvement when its demonstrated quality or reliability benefit justifies its
+total cost while protecting a demonstrated requirement or realistic risk.
+The root's engineering judgment is part of that control surface, not a gap
+that must be replaced with machinery.
 
 Every planned or added test maps to an observable acceptance journey or a named
 regression risk. Duplicated coverage, tests added only to increase counts, and
@@ -324,6 +326,8 @@ external or integration mutation.
 
 Orchestra succeeds when:
 
+- delivered software meets the accepted behavior with correct code, coherent
+  maintainable architecture and meaningful verification of its material risks;
 - a task can be prepared durably without starting Orchestra, then adopted in a
   visible native Codex, Cursor, Grok Build, or Devin chat without losing its origin, human ID, or
   UUID;

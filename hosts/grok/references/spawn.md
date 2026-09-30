@@ -38,6 +38,11 @@ For each capability:
 
 1. Resolve `profile`, `subagent_type`, product `model`, and `effort` from
    `tiers.<selected-tier>.<capability>`.
+   Scope runtime discovery to the host model catalog, live dispatch schema and
+   records for the exact current root and dispatched child IDs. Do not search
+   unrelated sessions or memory, or recursively search host directories, to
+   infer an assignment. Unavailable execution evidence follows step 3; it
+   does not authorize broader discovery or a model substitution.
 2. Launch a **fresh** subagent. Prefer `spawn_subagent` when its live schema
    can express the assignment, or documented host resolution establishes the
    same assignment without explicit fields. Before relying on inheritance,
@@ -71,8 +76,8 @@ For each capability:
 5. Resume only the same phase-cohort agent with `resume_from` after that
    agent has completed. A reviewer's first review of a phase is always a
    fresh spawn; delta reviews within the same phase resume that same
-   reviewer, matching the open phase cohort on Codex. A second critical
-   review, when required, uses a fresh reviewer.
+   reviewer, matching the open phase cohort on Codex. A complementary review
+   under WORKFLOW "Review policy" uses a fresh reviewer.
 
 An explicit rejection before a child starts permits one corrected dispatch
 through a supported route with the same assignment. Confirm no child started;

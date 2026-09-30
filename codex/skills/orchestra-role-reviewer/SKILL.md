@@ -98,7 +98,8 @@ explicit output path. Do not load phase recipes for a direct task.
 In `orchestra_phase` mode, require capability exactly `independent_review`,
 explicit review authority, worktree, exact artifacts directory, review target,
 revision identity, stop conditions, and exact artifact IDs. Plan review
-requires the complete `plan-overview` and every current `plan-phase`;
+requires the complete `plan-overview` and every current `plan-phase`, with
+the producer evidence supplied under WORKFLOW "Engineering guidance and evidence";
 implementation review requires overview, phase, implementation report,
 required verification reports, and the exact context artifacts named by the
 plan; PR review requires current GitHub evidence and only semantic artifacts

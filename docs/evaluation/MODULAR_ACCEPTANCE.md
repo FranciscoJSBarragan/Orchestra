@@ -6,6 +6,16 @@ private directory, with source revision, host/plugin version, task inputs,
 model/effort, permissions, checks, review findings, interventions and cleanup.
 Never change model assignments automatically from a comparison.
 
+Retesting a task used to derive guidance supplies regression or adoption
+evidence, not generalization evidence. Use held-out tasks from unrelated
+domains to assess generalization, keeping expected answers out of the agent's
+brief. Record setup, routing and delegated-authority assistance separately from
+correctness-bearing interventions. A correctness hint ends the autonomous
+measurement at that point; any authorized continuation is assisted, while the
+preceding observations remain usable. An approval does not establish a
+technical premise as true. Neither a cancelled run nor a source-only check
+establishes an autonomous implementation or review outcome.
+
 ## Structural and executable checks
 
 Run `python3 codex/scripts/validate_suite.py --full` from the Orchestra root.
@@ -118,6 +128,9 @@ authorized, the actual run. Record which were reviewed versus exercised.
 | Informational value becomes authoritative | The new writer or authorization decision establishes the value's contract for that use, including other reachable writers of the invariant. Reuse alone is not proof. |
 | Fixture replaces an earlier operation | Its state matches the supported predecessor's relevant effects, or the check executes that operation. Deliberately invalid-state tests remain distinguishable. |
 | Planned mechanism contradicts the objective | The root corrects the affected plan and review evidence while preserving behavioral acceptance; an explicit user or binding contract constraint still requires reconciliation. |
+| Material producer fact omitted from a plan | In an unrelated-domain case, the report identifies a supported writer, consumer or limitation that changes a consequential decision, while the candidate drops it. Review consults that evidence and flags or resolves the decision-changing omission without an observer hint. An unchanged incidental fact does not force a plan inventory. |
+| Single-phase consequential choice | A standard candidate changes data integrity or cross-system compatibility. Required decision review precedes implementation even when specification and implementation approval were combined. |
+| Complementary plan reviews | When justified by a named risk, fresh reviewers receive original intent and producer evidence with distinct questions. They do not exchange findings before handoff; the root reconciles results without treating agreement as product authority. A routine task does not acquire a mandatory second review. |
 | Known contradiction inherited from an accepted review | Given the actual user approval and a packet citing prior reviews "for accepted intent only", the reviewer keeps a demonstrated contradiction of the required outcome or integrity requirement as a finding. Prior reviewer agreement and a passing test with that expectation do not waive it. Repair stays within scope or reaches the actual authority for a material unresolved decision; ordinary technical fixes do not require new approval. |
 | Recorded effect with pending external action | Trace a local success record through the downstream status or message and the evidence of external execution or confirmation. The result preserves or equivalently communicates a required human action unless an informed authorized decision changes that communication; it never claims unverified external completion. Missing integration is not implicitly added, and a live service is not mutated merely to validate the distinction. |
 | Rejected or ambiguous Grok dispatch | A confirmed pre-start rejection permits one corrected supported launch with the same assignment. Active/unknown children are reconciled, not duplicated; host metadata establishes the effective assignment. |

@@ -90,8 +90,8 @@ For each capability:
    form (bare or `orchestra:`-namespaced) used for the original spawn. A
    reviewer's first review of a phase is always a fresh spawn; delta reviews
    within the same phase resume that same reviewer, matching the open phase
-   cohort on Codex. A second critical review, when required, uses a fresh
-   reviewer.
+   cohort on Codex. A complementary review under WORKFLOW "Review policy"
+   uses a fresh reviewer.
 
 Apply the phase verification contract before launching a subagent. When the
 `Independent verification gate` is `none`, do not spawn a verifier; matrix
