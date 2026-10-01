@@ -30,9 +30,11 @@ mandatory extra pass.
 - For each persisted or shared value the requested outcome depends on, report
   one `State writers` line: the value, the existing operations that write it
   (other entry points, earlier steps, alternative paths), and the state each
-  can leave behind for the changed operation. Bound the inventory to the
-  requested outcome; packet questions cannot omit it, and an unbounded
-  inventory is a blocker.
+  can leave behind for the changed operation, stated as its effect on the
+  requested outcome in concrete quantities (for example, "part of the value was
+  already returned by another method"), not only the records it writes. Bound
+  the inventory to the requested outcome; packet questions cannot omit it, and
+  an unbounded inventory is a blocker.
 - Separate direct observations, inferences, and unresolved facts. Name evidence
   that could disprove an inference.
 - Identify the canonical versioned sources that support each material project

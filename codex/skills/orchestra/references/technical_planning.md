@@ -94,9 +94,10 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   plus the structural declarations below. Other sections appear only when
   they carry material content; never invent content to satisfy a format.
 - `Outcome invariants` state what must remain true from every reachable prior
-  state, derived from the quoted user outcome and binding contracts, never from
-  the chosen mechanism (for example: a total never exceeds its source, an
-  operation is idempotent, a permission is never widened). Each invariant maps
+  state, derived from the quoted user outcome, the specification's prior-state
+  expectations and binding contracts, never from the chosen mechanism (for
+  example: a total never exceeds its source, an operation is idempotent, a
+  permission is never widened). Each invariant maps
   to an existing or planned check: deterministic, verifier, or preview.
   Acceptance values follow from an invariant and the user's intent; a value
   only the mechanism justifies is not acceptance. Write `none beyond
