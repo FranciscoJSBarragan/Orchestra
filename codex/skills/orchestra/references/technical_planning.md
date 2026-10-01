@@ -5,7 +5,10 @@ guidance below, but omit phase-only transport, artifact IDs, and formal plan
 bundles. Return inline evidence or an explicitly requested output path.
 
 For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the
-explicit `technical_planning` capability. Use the relevant sections of
+explicit `technical_planning` capability. A root that authors the plan under
+WORKFLOW "Context and planning" step 9 applies the same plan-document rules in
+`Contract` without dispatching a role; analyst role limits and dispatch
+transport do not apply to it. Use the relevant sections of
 [shared engineering guidance](architecture_guidance.md) to identify design
 risks, consequential assumptions, and proportionate evidence in either mode.
 
@@ -33,7 +36,9 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   bundle; never make a consumer infer the current bundle from timestamps.
 - The overview states objective, intended user-visible result, global
   constraints and acceptance, decisions, exclusions, phase order and
-  dependencies, and the overall verification strategy. State acceptance as
+  dependencies, and the overall verification strategy. Carry quoted human
+  authority unchanged under WORKFLOW "Local task plan"; the objective remains
+  the author's labeled synthesis. State acceptance as
   observable outcomes independent of the proposed mechanism. Keep user-selected
   mechanisms and binding contracts in constraints with their authority; put
   proposed helpers and algorithms in Decisions, and test design in Verification,

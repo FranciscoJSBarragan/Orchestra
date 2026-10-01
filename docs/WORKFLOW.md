@@ -837,10 +837,10 @@ Merely touching related files or preserving an explicit, already reviewed policy
 does not require another decision review. Assess alternatives, authority,
 preservation and discriminating checks using shared "Decision evidence".
 Factual questions may first be settled by the analyst or an authorized experiment.
-A reviewer may recommend a policy but cannot authorize it on the user's behalf
-or mark dependent work ready while its material authority remains unresolved.
-Do not re-ask decisions already authorized; if the owner selects an alternative
-whose consequences were reviewed, inspect only any newly affected assumptions.
+Reviewer recommendations and agreement follow the authority limits in shared
+"Decision evidence". Do not re-ask decisions already authorized; if the owner
+selects an alternative whose consequences were reviewed, inspect only any newly
+affected assumptions.
 In standalone/custom work,
 use the caller's authorized review route and surface a missing decision or
 review as a concrete dependency; do not silently dispatch agents or activate
@@ -1118,7 +1118,8 @@ After explicit activation in an execution-capable mode:
    confirms the final specification with Objective, User-visible behavior,
    Constraints, Acceptance, Exclusions, Decisions, and Open questions, then
    recommends any justified tier change; the user chooses whether to change
-   it. If the worktree has no normative project conventions, include the missing-store
+   it. A first-time confirmation visibly shows the specification it confirms.
+   If the worktree has no normative project conventions, include the missing-store
    checkpoint in that same consolidated request rather than a later turn.
 7. For a task the root judges single-phase on a non-critical tier, it may
    present the specification and the candidate plan in the same message only
@@ -1153,10 +1154,12 @@ After explicit activation in an execution-capable mode:
    User preview Decision must already be recorded from tier selection; do not
    introduce it at plan approval. The root authors the plan directly whenever
    the work fits one phase and its material design decisions are resolved,
-   using the same two-document shape. It dispatches `technical_planning` when
-   the work does not fit one phase, carries critical risk, or has unresolved
-   material boundary decisions, such as version
-   compatibility, migration order, recovery semantics, or ownership handoffs.
+   using the same two-document shape and the plan-document contract in the
+   `technical_planning` playbook without dispatching a role. It dispatches
+   `technical_planning` when the work does not fit one phase, carries
+   critical risk, or has unresolved material boundary decisions, such as
+   version compatibility, migration order, recovery semantics, or ownership
+   handoffs.
    Work fits one phase when one owner of one
    implementation capability can cover it, its risk order is uniform, and no
    result must be reviewed and committed before another begins; the number of
@@ -1178,8 +1181,9 @@ After explicit activation in an execution-capable mode:
    declarations below. Every other section (risks, exclusions, dependencies,
    execution readiness) appears only when it carries material content; an
    empty risks section is a sign of a well-bounded plan, and no author ever
-   invents content to satisfy a format. Every overview contains
-   `Review context`: exact context artifact IDs and revisions or stable
+   invents content to satisfy a format. Every overview carries quoted human
+   authority under "Local task plan" and contains `Review context`: exact
+   context artifact IDs and revisions or stable
    inline-fallback labels, canonical source paths, and only the material
    facts, each with a `Review use` naming the exact acceptance, risk,
    invariant, exclusion, or phase dependency it informs. Every phase names its
@@ -1233,24 +1237,41 @@ After explicit activation in an execution-capable mode:
    bundle fits one phase under step 9, the root authors the single-phase plan
    directly instead of opening a plan-review cycle solely to collapse phases.
 12. A dispatched reviewer reads the exact bundle and publishes `plan-review`
-    with stable finding identifiers. Accepted IDs and the review artifact
-    return to the same author, which publishes complete replacement documents
-    only for affected members and names all current members in the next
-    bundle. The root observes convergence after a second material plan review.
-    Before a third correction, or immediately for marginal, contradictory, or
-    out-of-scope findings, it reads the exact bundle and review artifacts,
-    accepts or rejects findings by identifier, and corrects direction. No
-    persisted review counter or mechanical limit is introduced.
-13. The root presents the exact accepted bundle at the user's altitude and
-    requests implementation approval, unless step 7 already combined that
-    request with specification confirmation. Distinguish required outcomes and
-    binding constraints from the proposed technical approach. Before either
-    approval path, name material consequences of that approach in the existing
-    Decisions or Risks, including changed outputs or pending actions observed
-    by indirect consumers. Present those consequences for approval even when
-    the consumer's files are excluded from edits. For a multi-phase bundle it
-    names, in one line per additional phase, the step 10 boundary that phase
-    buys, so the user can reject a split.
+    with stable finding identifiers. In every round the root judges each
+    finding's defect and its proposed correction separately. Accepting the
+    defect requires its cited basis under "Review policy" and does not approve
+    the proposed correction. A correction that narrows, excludes, or makes an
+    exception to the confirmed outcome is rejected and replaced by an in-scope
+    correction that preserves it. Only a genuine new product choice, or
+    infeasibility of the outcome that crosses an authority boundary, becomes a
+    user decision presented with options and consequences. Accepted IDs, the
+    root's correction direction, and the review artifact return to the same
+    author, which publishes complete replacement documents only for affected
+    members and names all current members in the next bundle. The root
+    observes convergence after a second material plan review. Before a third
+    correction, or immediately for marginal, contradictory, or out-of-scope
+    findings, it reads the exact bundle and review artifacts, accepts or
+    rejects findings by identifier, and corrects direction. No persisted
+    review counter or mechanical limit is introduced.
+13. The root requests implementation approval for the exact accepted bundle at
+    the user's altitude, unless step 7 already combined that request with
+    specification confirmation. Distinguish required outcomes and binding
+    constraints from the proposed technical approach. In either path the
+    approval interaction itself visibly presents the plan being approved and
+    every material change to the requested outcome: a narrowing, exclusion or
+    exception; a changed user-visible amount or behavior; or a new
+    user-facing consequence. Each appears with its consequence, including
+    changed outputs or pending actions observed by indirect consumers even
+    when the consumer's files are excluded from edits, and is recorded in the
+    existing Decisions or Risks. A native selector that visibly shows this
+    content suffices without a preceding message. The concise plan summary may
+    describe its technical approach, but the material-change disclosure does
+    not present ordinary technical conditions within the outcome as outcome
+    exceptions needing approval. The interaction does not reconfirm unchanged
+    authorized requirements or reversible technical decisions, and adds no
+    gate. For a multi-phase bundle it names, in one line per additional
+    phase, the step 10 boundary that phase buys, so the user can reject a
+    split.
 
 Every planning, implementation, review, verification, plan, and commit operation
 uses the exact selected task checkout. Managed mode leaves the base checkout
@@ -1293,6 +1314,22 @@ status, accepted commit, blocker, and next action. It does not duplicate phase
 details. Private paths allow resolution when SQLite is unavailable. When
 adoption applies, it also records source revision, imported paths, existing
 commit range, and remaining phases.
+
+Material human authority is quoted, not paraphrased. The plan overview records
+the user's material outcome statement, and each user answer that settles a
+material product-choice question together with that question, once as exact
+quotes in its existing Constraints or Decisions. Quotes keep their original
+language and are never translated; the author's surrounding text remains
+English. The outcome statement and answer are attributed to the user; the
+question is attributed to its actual speaker, normally the root, and is context
+rather than user authorization. A labeled gloss may follow a quote when needed
+but never replaces or extends it. The root's Objective remains its separately
+labeled synthesis. A dispatched planner receives these quotes with the
+confirmed specification. Replacement overviews carry them unchanged. A later
+user correction adds a new entry quoting the new answer and naming the entry it
+supersedes; the superseded overview remains immutable evidence. Consumers reach
+the quotes through the overview ID or `plan.md`; packets do not replay
+conversations or every answer. This adds no field, artifact, or ledger.
 
 Task identity explicitly records `origin: prepared-card` or `origin: direct`.
 For `prepared-card`, it also records the exact `kanban_uuid`, canonical
@@ -1943,9 +1980,9 @@ evidence supplied by the root under that section. Independent read-only passes
 with distinct publication targets may run in parallel; the root keeps their
 findings separate until both handoffs. Corrections reuse each affected reviewer
 under the existing meaningful-delta review rules.
-The root resolves findings under "Context and planning"; reviewer agreement
-does not grant authority. The selected tier and configured matrix row still
-apply.
+The root resolves findings under "Context and planning" within the authority
+limits of shared "Decision evidence". The selected tier and configured matrix
+row still apply.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence in that order.

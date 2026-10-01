@@ -24,7 +24,7 @@ the current checkpoint:
 | Follow-ups, worker progress and interrupted work | `Conversation continuity`, `Agent waiting` |
 | Host, tier, and assignment | `Tier flows and models`, `Installed matrices are the assignment truth`, and the selected host adapter |
 | Direct tools, CLI executor, or execution preset | `Standalone tools`, `CLI delegation`, `Delegated execution presets`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
-| Context, specification, and plan | `Context and planning`, `Task-private artifacts`, `Local task plan`, and the named analysis playbook |
+| Context, specification, and plan | `Context and planning`, `Task-private artifacts`, `Local task plan`, the named analysis playbook, and the [technical planning](references/technical_planning.md) plan-document contract for either plan author |
 | Phase work and preview | `Phase execution`, `User preview`, `Material context discovery and promotion` |
 | Waiting and teardown | `Agent waiting`, `Phase teardown`, `Test permissions and browser routing` |
 | Review and commit | `Review policy`, `Commit path`, and [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) |

@@ -116,10 +116,11 @@ that owner returns an outcome or blocker, the root coordinates without reading
 the evolving implementation diff, exercising it with speculative canaries, or
 sending design corrections. At each handoff the root may perform one bounded
 Git identity, status, allowed-scope, `diff --check`, and evidence-inventory
-check. A required user preview starts only at that handoff after every
-Orchestra-owned resource is closed; no process is retained across the pause.
-A fresh owner absorbs any in-scope user delta after resume. The frozen
-revision is that post-absorption revision with green handoff checks.
+check. A required user preview starts only at that handoff and keeps only the
+resources needed to show the approved result. The same logical owner absorbs
+any in-scope user delta after resume unless it is confirmed unavailable. The
+frozen revision is that post-absorption revision with green handoff checks.
+WORKFLOW "User preview" owns preview process retention and cleanup.
 A root-originated correctness investigation completes against the
 current source and diff before it produces one consolidated finding packet with
 evidence, impact, and acceptance.
@@ -182,8 +183,10 @@ root approves or rejects.
 
 The implementation owner, reviewer, and each required capability verifier form
 a bounded phase cohort. Ordinary deterministic non-critical phases have no
-verifier unless the selected execution preset assigns the terminal gate to one. A required user preview closes the first owner before the pause;
-after resume a fresh owner joins the remainder of the phase. One-shot analysts close after their result is consumed. The cohort
+verifier unless the selected execution preset assigns the terminal gate to one.
+A required user preview keeps the same logical owner through absorption under
+WORKFLOW "User preview" and "Phase execution". One-shot analysts close after
+their result is consumed. The cohort
 closes only after final phase evidence is consumed, preserving relevant context
 without carrying implementation state across phases. Analysis agents are
 one-shot except that a technical planner remains open through a dispatched
@@ -237,10 +240,9 @@ documentation, or a separate artifact, and no empty section is emitted when
 nothing new was found.
 
 Every profile preserves the approved objective, constraints, acceptance, and
-authority. A proposed mechanism or causal explanation is not evidence by
-itself: profiles distinguish observed facts, supported inference, and
-uncertainty, and report a conflict instead of silently broadening or replacing
-the approved result.
+authority under shared "Decision evidence" and WORKFLOW "Autonomy within an
+approved objective", reporting a conflict instead of silently broadening or
+replacing the approved result.
 
 For approved implementation, focused read-only inspection of the affected flow
 and relevant callers does not expand edit authority. The worker chooses existing
@@ -371,10 +373,9 @@ same reviewer evaluates the meaningful delta before commit.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
-approval, authority or risk judgment, and failed convergence. After a second
-material plan review it observes convergence; before a third correction, or
-immediately for marginal, contradictory, or out-of-scope findings, it
-adjudicates the exact bundle and reviews. No review counter or limit persists.
+approval, authority or risk judgment, and failed convergence. WORKFLOW
+"Context and planning" step 12 owns finding disposition and convergence. No
+review counter or limit persists.
 
 Optional Tasks cards are not a core workflow authority. Do not
 introduce a global workflow event ledger, authority-bundle chain, duplicate Git

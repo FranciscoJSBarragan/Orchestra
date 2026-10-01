@@ -189,7 +189,10 @@ Put the answer and its evidence in the existing brief, map or plan. Distinguish
 observed behavior from authorized intended behavior, a proposed recommendation
 and missing evidence. Classify the claim, not its whole source document: code
 and tests can establish current behavior without authorizing its preservation.
-An analyst's conclusion or agreement between reviewers does not grant authority.
+An analyst's conclusion, a reviewer's recommendation or agreement between agents
+does not grant authority or authorize a policy on the user's behalf. A decision
+is attributed to the user only to the extent of the user's quoted words; a
+synthesis that extends them is a recommendation.
 
 A material policy question remains open when the authorized outcome cannot be
 established, even if all relevant code is understood. State the question, viable

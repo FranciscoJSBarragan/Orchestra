@@ -37,8 +37,9 @@ manufacture an approved plan when none was supplied.
 In `orchestra_phase` mode, read the canonical
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`; the source checkout is the
 [runtime resources](../runtime.md). Read the sections named by
-the root and enforce its full exact-ID evidence, review, verification, cleanup,
-and authority gates. A formal packet with missing required fields is blocked;
+the root in addition to the required instructions under "Assignment and
+authority", and enforce its full exact-ID evidence, review, verification,
+cleanup, and authority gates. A formal packet with missing required fields is blocked;
 do not silently downgrade it to standalone. When explicit CLI delegation is
 selected, also follow the canonical CLI delegation boundary; it does not
 change this mode decision.
@@ -58,6 +59,15 @@ choose or combine capabilities, select a model or effort, route work, spawn
 agents, orchestrate, claim product authority, or broaden scope. A current
 source or observed result can expose a conflict, but does not silently replace
 the approved objective or grant authority.
+
+The instructions that the loaded role skill and capability reference require
+for the assigned capability and mode are a minimum. A packet or brief may add
+WORKFLOW sections or bound the evidence sources consulted, but it cannot remove
+those required instructions; neither requires reading all of WORKFLOW. An
+explicit human restriction remains binding, and an excluded source is not read.
+When such a restriction prevents applying a required instruction, report it as
+an evidence gap, or as `blocked` under the stop rule when it is material to the
+assigned judgment.
 
 ## Resources and cleanup
 
@@ -114,11 +124,12 @@ report, or infer authority.
 ## Reports and publication
 
 Keep material unresolved decisions, blockers, verification limits and the exact
-report location visible in the final handoff. Recommendations remain proposals
-under [decision evidence](architecture_guidance.md#decision-evidence), even when
-another agent agrees. WORKFLOW "Engineering guidance and evidence" owns how the
-consumer verifies and synthesizes a report; do not require it to infer authority
-from omitted details or read every exploratory log.
+report location visible in the final handoff. Recommendations and agreement
+between agents follow the authority limits in
+[decision evidence](architecture_guidance.md#decision-evidence). WORKFLOW
+"Engineering guidance and evidence" owns how the consumer verifies and
+synthesizes a report; do not require it to infer authority from omitted details
+or read every exploratory log.
 
 Return the outcome or status first, then capability or target, the revision,
 blockers, material risks, and decisions requested. In `standalone` mode the

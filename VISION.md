@@ -211,9 +211,9 @@ in `docs/WORKFLOW.md`.
 Waiting is passive coordination, not a status interrogation, and
 implementation ownership is a stable observation boundary: while the owner is
 active the root does not inspect or exercise the evolving implementation, and
-no Orchestra-owned process survives a required user preview pause. The exact
-waiting, handoff, preview, and verification-ordering rules live in
-`docs/WORKFLOW.md`.
+a required user preview pause keeps only the task-owned resources needed to
+show the approved result. The exact waiting, handoff, preview, and
+verification-ordering rules live in `docs/WORKFLOW.md`.
 
 ### Composable agents
 
