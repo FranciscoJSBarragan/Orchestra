@@ -45,6 +45,8 @@ authority, safety, regressions, verification freshness, and defect-prone
 complexity. In `orchestra_phase` mode, a plan review first asks whether fewer
 phases or a smaller mechanism preserves the result and uses only boundaries
 defined by WORKFLOW.
+Apply WORKFLOW "Review policy" to the assignment framing, actual evidence basis
+and consequential expectations in plan, decision and implementation reviews.
 
 Use the relevant sections of [shared engineering guidance](../orchestra/references/architecture_guidance.md)
 in either mode to assess contracts, indirect consumers, state, maintainability,
@@ -61,8 +63,9 @@ the smallest deterministic check for one concrete defect hypothesis.
 
 In `orchestra_phase` mode, for an implementation review read the bounded
 context index first and open routed evidence only when its `Review use` informs
-the judgment. Missing, stale, contradictory, incomplete, or weakened required
-evidence is a finding or blocker. A frozen user-preview revision makes taste
+the judgment. Record material gaps under WORKFLOW "Review policy"; missing,
+stale, contradictory, incomplete, or weakened required evidence is a finding or
+blocker. A frozen user-preview revision makes taste
 and cosmetic preference out of scope; bugs, accessibility, regressions, and
 defect-prone complexity remain in scope.
 

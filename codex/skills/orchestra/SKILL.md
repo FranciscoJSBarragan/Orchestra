@@ -24,7 +24,7 @@ the current checkpoint:
 | Follow-ups, worker progress and interrupted work | `Conversation continuity`, `Agent waiting` |
 | Host, tier, and assignment | `Tier flows and models`, `Installed matrices are the assignment truth`, and the selected host adapter |
 | Direct tools, CLI executor, or execution preset | `Standalone tools`, `CLI delegation`, `Delegated execution presets`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
-| Context, specification, and plan | `Context and planning`, `Local task plan`, and the named analysis playbook |
+| Context, specification, and plan | `Context and planning`, `Task-private artifacts`, `Local task plan`, and the named analysis playbook |
 | Phase work and preview | `Phase execution`, `User preview`, `Material context discovery and promotion` |
 | Waiting and teardown | `Agent waiting`, `Phase teardown`, `Test permissions and browser routing` |
 | Review and commit | `Review policy`, `Commit path`, and [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) |
@@ -107,10 +107,12 @@ Follow the named WORKFLOW sections rather than reproducing their rules here:
 2. Read `Tier flows and models` and `Installed matrices are the assignment
    truth`; inspect the selected host adapter, recommend a tier, and obtain the
    user's explicit choice.
-3. Read `Context and planning`; perform the read-only preflight, resolve the
+3. Read `Context and planning` and `Task-private artifacts`; perform the read-only preflight, resolve the
    checkout, run `task_state.py init`, and apply `Attached Tasks companion` only
-   for a card or explicitly requested tracking. Confirm the specification and candidate plan according to its
-   phase rule, then obtain plan approval.
+   for a card or explicitly requested tracking. Transfer any retained inline
+   producer result through that artifact recipe. Use `Review policy` for the
+   review mandate and evidence basis. Follow the specification and plan approval
+   path selected by `Context and planning`.
 4. For each phase, read `Phase execution`, `Review policy`, and
    `Material context discovery and promotion`. Check ownership follows
    the selected execution preset, or the implementation owner by default.

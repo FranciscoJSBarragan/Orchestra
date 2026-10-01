@@ -48,7 +48,7 @@ Orchestra makes different bets:
 1. **Brief and tier.** Orchestra reuses the conversation you already had, summarizes the brief, recommends a tier with its cost-benefit, and asks you to choose.
 2. **Specification.** A short read-only preflight and focused repository context close real gaps. You confirm observable acceptance in one message for simple tasks.
 3. **Checkout.** One collision-free `orchestra/<slug>` branch is created — in a dedicated worktree (`managed`) or in your clean current checkout (`hybrid`). Never directly on `main`.
-4. **Plan.** A planner writes one overview and one self-contained document per phase. You approve; the plan lands in the task's private `.orchestra/plan.md`.
+4. **Plan.** The root or a planner writes one overview and one self-contained document per phase. Any required plan or decision review finishes before the plan is presented for approval; simple tasks that need neither review can combine specification and plan approval. The approved plan lands in the task's private `.orchestra/plan.md`.
 5. **Phases.** For each phase: implement and self-check → optional visual preview for UI work → independent review → verification where the boundary demands it → phase commit with exact path scope and evidence.
 6. **Delivery.** `implementation complete; delivery pending`. You decide: hold, open a PR, or integrate locally — according to the repository's declared policy.
 

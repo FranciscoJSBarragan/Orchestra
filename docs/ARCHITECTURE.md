@@ -212,6 +212,8 @@ The implementation-review packet additionally carries the exact
 `repository-context` and `context-delta` evidence required by the approved
 overview and phase, or complete labeled inline fallbacks. This is routed
 evidence, not a profile, capability, persisted packet, or new artifact kind.
+Retaining an inline producer result adds no artifact kind; WORKFLOW
+"Task-private artifacts" owns that transfer and lifecycle.
 
 Every profile applies the same owner-cleanup contract. It tracks task-owned
 servers, managed or detached processes, terminal sessions, Chrome connector

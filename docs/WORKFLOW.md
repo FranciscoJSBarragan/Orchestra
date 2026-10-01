@@ -822,7 +822,10 @@ authorization, cross-system compatibility, data integrity or recovery behavior,
 including choices an analyst claims are settled. A lower tier or cheaper model
 does not exempt that risk. Use the existing plan review or a bounded decision
 review; do not add a second gate when that review already covers the choices.
-Combined specification and implementation approval does not waive this review.
+If a consequential choice emerges after combined specification and
+implementation approval, that approval does not waive this review; reconcile
+newly material consequences under "Autonomy within an approved objective"
+before dependent work.
 The root supplies the exact identities and accessible results of producers
 underlying the consequential decision, including relevant results omitted from
 the candidate's `Review context`.
@@ -1078,7 +1081,8 @@ After explicit activation in an execution-capable mode:
    the current repository checkout and returns the complete inline report with
    a stable label; after checkout creation it publishes a revision-identified
    context artifact to the task-private artifacts path. Consume the result and
-   close each one-shot analyst. Additional dispatches are allowed only for
+   close each one-shot analyst. Carry any inline result needed by later
+   consumers through "Task-private artifacts". Additional dispatches are allowed only for
    newly material factual questions and request only the targeted context
    delta.
    The brief's factual questions may also include time-sensitive external
@@ -1117,14 +1121,16 @@ After explicit activation in an execution-capable mode:
    it. If the worktree has no normative project conventions, include the missing-store
    checkpoint in that same consolidated request rather than a later turn.
 7. For a task the root judges single-phase on a non-critical tier, it may
-   present the specification and the candidate plan in the same message,
+   present the specification and the candidate plan in the same message only
+   when step 11 permits skipping independent plan and consequential decision review,
    visually separated as what it understood and what it will do; one explicit
    user approval then covers both, and any specification correction
-   invalidates the plan candidate with it. Critical and multi-phase tasks keep
-   two stops: specification confirmation, then plan approval. On the combined
-   path, approval is followed by any required decision review before
-   implementation; review corrections follow "Autonomy within an approved
-   objective".
+   invalidates the plan candidate with it. Tasks requiring that review, critical
+   tasks and multi-phase tasks use specification confirmation followed by
+   planning and required review, then plan approval. Resolve material product
+   questions during the specification dialogue; technical review does not
+   substitute for the user's authority. Later in-scope corrections follow
+   "Autonomy within an approved objective".
 8. Immediately after specification confirmation, the root creates the task
    checkout per [Task checkout and branch](#task-checkout-and-branch): it
    fetches the configured upstream for a fresh canonical-base task (a failed
@@ -1208,7 +1214,9 @@ After explicit activation in an execution-capable mode:
    blocking planning; feasibility-determining facts still require direct
    evidence.
 11. After the complete bundle exists, the root reads the overview, phase
-   index, named risks, and only the detail needed for judgment. It may skip
+   index, named risks, and only the detail needed for judgment. Complete any
+   required plan or consequential decision review before presenting the plan
+   for implementation approval. It may skip
    independent plan review only when current evidence settles the material design
    choices and "Engineering guidance and evidence" requires no consequential
    decision review. Dispatch it for a concrete unresolved architectural alternative,
@@ -1364,6 +1372,18 @@ protected-write escalation under Guardian. A detected legacy task continues
 using its exact Git-private paths without migration or dual writes. If the
 selected artifacts directory cannot be written, the agent returns the complete
 report inline instead.
+
+When an inline producer result must survive task setup for a named downstream
+consumer, copy its complete body as received into the next matching artifact
+kind, preserving the original stable label and inspected revision. Added
+publication metadata identifies the producer and does not change its report.
+The packet routes that exact file or carries the complete labeled inline
+result; when no existing artifact kind fits, keep the complete result inline.
+A label alone is not a readable evidence location. Root synthesis
+belongs in `Review context` or the existing root decisions and never replaces
+or inherits the identity of the producer's report. If the original result
+cannot be recovered, disclose the missing evidence instead of reconstructing it
+as a producer result. These copies use the existing task-private lifecycle.
 
 Every packet carries capability, explicit authority, worktree, exact target
 artifact IDs and roles, stop conditions, current revision, accepted finding
@@ -1899,6 +1919,16 @@ terminal revision before their delivery mutation or clean result. The first
 review completes the entire bounded target and returns all known material
 findings together. Later reviews inspect only the meaningful delta and
 interactions affected by accepted fixes.
+
+Review mandates lead with the intended outcome and readable producer evidence.
+Author-supplied concerns are explicitly non-exhaustive prompts within the
+bounded target, not the review's agenda or a narrower scope.
+Plan, decision and implementation reviews distinguish producer results they
+read from author summaries. A named material producer result that is unreadable
+or supplied only as a summary belongs in the existing evidence gaps, with the
+affected judgment. Apply shared "Behavioral verification" when accepting a
+consequential expected result and cite its basis in the report's existing
+context basis or an affected finding's rationale.
 
 The root may add a fresh focused plan or decision reviewer using
 `independent_review` when a named measurable risk and independently detectable
