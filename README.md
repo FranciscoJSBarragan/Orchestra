@@ -60,7 +60,7 @@ Tier controls intensity (models, review depth, double evidence), never authority
 | --- | --- | --- |
 | **Codex** | `standard`, `critical` | Native model matrix; active host permissions (Guardian default with direct sync) |
 | **Cursor** | `minimal`, `standard`, `critical` | Reads its own role matrix; browser work routed through Browser Use |
-| **Grok Build** | `standard`, `critical` | `grok-4.7-build-fast` at `xhigh`; no cheaper tier |
+| **Grok Build** | `standard`, `critical` | `grok-4.6` at `xhigh`; no cheaper tier |
 | **Devin** | `standard`, `critical` | `swe-2-max` pinned in each agent profile; no cheaper tier; native browser routes `blocked`; browser acceptance requires an explicit Codex CLI Chrome handoff |
 
 All four share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.

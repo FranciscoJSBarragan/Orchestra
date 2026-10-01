@@ -19,7 +19,7 @@ Read the selected matrix from `orchestra/runtime.md`: installed layouts use
 `<source>/hosts/grok/config/roles.grok.toml`, outside `<source>/codex`.
 Never silently fall back to another installed copy.
 Assigned tiers are those with complete capability rows. This cut assigns `standard` and
-`critical`. The live catalog row is `grok-4.7-build-fast` (Grok 4.7 Fast) at
+`critical`. The live catalog row is `grok-4.6` (Grok 4.6) at
 effort `xhigh` and one cost, so there is no cheaper assigned tier. Recommend
 `standard`. Recommend `critical` when the brief matches security, credentials,
 payments, migrations, destructive actions, or production mutation. If the user
