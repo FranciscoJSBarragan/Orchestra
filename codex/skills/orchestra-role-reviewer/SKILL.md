@@ -16,22 +16,19 @@ Review authored source against [Source comments](../orchestra/references/archite
 Use [decision
 evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
 reconcile the original scope with actual journeys, including omitted or unchanged
-paths. Do not restrict review to the supplied map. For an explicitly assigned cross-environment assessment, read the
+paths. For an explicitly assigned cross-environment assessment, read the
 [acceptance packet](../orchestra-coordinate/acceptance-packet.md) and WORKFLOW
 "Cross-environment acceptance". Runtime and browser execution remains with
 the assigned verifier; this does not alter ordinary review or check ownership.
 
 Assess [change quality](../orchestra/references/architecture_guidance.md#change-quality)
 and [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
-independently of the author's conclusions. Assess the changed fixtures and
-assertions themselves, not only the reported suite outcome; identify concrete
-unnecessary scope or false confidence even when checks pass. A bounded pre-code
-decision review uses this same capability and WORKFLOW "Engineering guidance and evidence";
-its accepted verdict covers only those decisions, never unwritten implementation.
-Assess the authority for each material choice using shared decision evidence,
-including choices labeled settled by the author. A recommendation is not an
-approval; an unresolved material policy question belongs in findings or blockers
-and prevents acceptance of the dependent decisions.
+independently of the author's conclusions, including the changed fixtures and
+assertions themselves; passing checks can still carry false confidence. A
+pre-code decision review accepts only those decisions, never unwritten
+implementation. Judge the authority of each material choice, including choices
+the author labels settled; an unresolved policy question is a finding or
+blocker for the dependent decisions.
 
 ## Responsibility
 
@@ -42,11 +39,13 @@ and required evidence. The first review covers the
 whole target and reports all known material findings; later reviews cover only
 the meaningful delta and affected interactions. Review correctness, scope,
 authority, safety, regressions, verification freshness, and defect-prone
-complexity. In `orchestra_phase` mode, a plan review first asks whether fewer
-phases or a smaller mechanism preserves the result and uses only boundaries
-defined by WORKFLOW.
-Apply WORKFLOW "Review policy" to the assignment framing, actual evidence basis
-and consequential expectations in plan, decision and implementation reviews.
+complexity.
+
+Start every review with the counterexample question in WORKFLOW "Review
+policy"; no packet can omit or narrow it. In either mode apply the rest of
+"Review policy" that fits the target; in `orchestra_phase` mode a plan review
+also asks whether fewer phases, using only
+WORKFLOW step 10 boundaries, or a smaller mechanism preserves the result.
 
 Use the relevant sections of [shared engineering guidance](../orchestra/references/architecture_guidance.md)
 in either mode to assess contracts, indirect consumers, state, maintainability,
@@ -56,9 +55,8 @@ style alone is not a finding.
 
 In `orchestra_phase` mode, every accepted phase and both local and PR delivery
 paths require an independent code review. A reviewer remains read-only and
-never fixes findings,
-chooses a capability or model, routes work, spawns agents, commits, pushes,
-merges, or claims approval. It does not rerun routine gates; it may run only
+never fixes findings, routes work, spawns agents, commits, pushes, merges, or
+claims approval. It does not rerun routine gates; it may run only
 the smallest deterministic check for one concrete defect hypothesis.
 
 In `orchestra_phase` mode, for an implementation review read the bounded
@@ -76,17 +74,6 @@ revalidation when required, and a delta review. A reviewer may block a named
 material judgment whose context remains unresolved; incidental stale
 information is omitted.
 
-If the prior reviewer is closed or unavailable in `orchestra_phase` mode, the
-root dispatches a fresh independent reviewer with the exact approved bundle,
-full-review base, prior finding dispositions, and replacement evidence. Do not
-assume an impossible same-runtime resume.
-
-When the shared conduct router selects `standalone`, review only the caller's
-bounded target and stated intent. The review remains read-only and independent
-of any implementation conclusion supplied in the brief; return findings and
-evidence inline. A standalone review neither approves an Orchestra plan nor
-creates a review artifact or coordination record.
-
 ## Input
 
 In `standalone` mode, resolve capability as `independent_review` from this
@@ -96,7 +83,10 @@ a defensible review from the direct task and current worktree when safe. Ask
 only for a material detail that is ambiguous or cannot be inferred. Do not
 require plan or artifact IDs, `.orchestra`, coordination, tier selection, or a
 phase manifest. Keep the complete review inline unless the caller supplies an
-explicit output path. Do not load phase recipes for a direct task.
+explicit output path. Do not load phase recipes for a direct task. A
+standalone review stays independent of conclusions in the brief and neither
+approves an Orchestra plan nor creates a review artifact or coordination
+record.
 
 In `orchestra_phase` mode, require capability exactly `independent_review`,
 explicit review authority, worktree, exact artifacts directory, review target,

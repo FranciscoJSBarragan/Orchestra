@@ -13,9 +13,8 @@ reading this reference does not itself dispatch a role or grant authority.
 
 For consequential questions, return [decision
 evidence](architecture_guidance.md#decision-evidence) connecting journeys and
-decisions to the original bounded scope. This can be a standalone analyst
-assignment with caller-selected resources; it creates no mapper role or mandatory
-extra pass.
+decisions to the original bounded scope. It creates no mapper role or
+mandatory extra pass.
 
 ## Contract
 
@@ -28,6 +27,12 @@ extra pass.
   targeted historical intent. Stay within read-only evidence gathering; do not
   start implementing a reproducer or broaden the scan without a named need.
 - Report paths, symbols, relationships, established patterns, relevant tests, and unresolved facts at the exact inspected revision.
+- For each persisted or shared value the requested outcome depends on, report
+  one `State writers` line: the value, the existing operations that write it
+  (other entry points, earlier steps, alternative paths), and the state each
+  can leave behind for the changed operation. Bound the inventory to the
+  requested outcome; packet questions cannot omit it, and an unbounded
+  inventory is a blocker.
 - Separate direct observations, inferences, and unresolved facts. Name evidence
   that could disprove an inference.
 - Identify the canonical versioned sources that support each material project
@@ -39,9 +44,8 @@ extra pass.
 - Never treat current code as proof that a normative source is stale. Report a
   code-versus-intent conflict explicitly so the root can decide whether code,
   documentation, the phase, or user authority must change.
-- When feasibility depends on persisted types, schema versions, API contracts,
-  signatures, transactions, invariants, downstream consumers, migrations,
-  fixtures, or canonical verification commands, inspect those exact constraints
+- Inspect feasibility-determining constraints (persisted types, contracts,
+  invariants, consumers, migrations, fixtures, verification commands) directly
   rather than leaving them as assumptions.
 - Report read-only execution readiness relevant to the task: canonical setup and
   verification commands, runtime and dependency expectations, required services
@@ -72,11 +76,9 @@ extra pass.
   evidence needed by the root's disposition. Also state the result's effect on
   the named judgment and consumer. Publish an unresolved conflict instead of
   guessing which source should win.
-- After a context-documentation correction, rerun the checks affected by the
-  changed claim. Independent review evaluates the delta. Request a separate
-  context revalidation only when a named unresolved factual question could
-  change acceptance or a finding disposition; documentation edits alone do
-  not create another mandatory analysis pass.
+- After a context-documentation correction, rerun the affected checks.
+  Request revalidation only when a named unresolved factual question could
+  change acceptance or a finding disposition.
 
 Return `blocked` when the questions or boundaries are missing, the requested
 scan is unbounded, a material canonical-source conflict remains unresolved, a

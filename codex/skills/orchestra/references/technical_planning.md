@@ -38,29 +38,20 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   constraints and acceptance, decisions, exclusions, phase order and
   dependencies, and the overall verification strategy. Carry quoted human
   authority unchanged under WORKFLOW "Local task plan"; the objective remains
-  the author's labeled synthesis. State acceptance as
-  observable outcomes independent of the proposed mechanism. Keep user-selected
-  mechanisms and binding contracts in constraints with their authority; put
-  proposed helpers and algorithms in Decisions, and test design in Verification,
-  with their evidence and limits. A stop condition identifies a conflict with the
-  required outcome or invariant, not whether the mechanism can reproduce its own
-  answer. WORKFLOW "Autonomy within an approved objective" governs technical
-  corrections to an approved plan; "Context and planning" governs disclosure
-  of material consequences at approval.
-- Every overview contains a `Review context` section. It names the exact
-  `repository-context` and `context-delta` artifact identifiers and inspected
-  revisions, or a stable label and revision for each complete inline fallback;
-  the canonical source paths consulted; and only the task-relevant
-  architecture, runtime, exposure, persistence, user-visible surface, primary
-  risks, invariants, and exclusions. For each included fact or coherent group,
-  add `Review use` naming the exact acceptance, risk, invariant, exclusion, or
-  phase dependency it informs. Omit anything without a current-task use and do
-  not copy cited evidence bodies. Treat the section as a bounded index.
-- Map every planned test or check to an observable acceptance journey or a
-  named regression risk. Do not add redundant coverage without a concrete
-  fidelity, feedback or diagnostic benefit, count-driven tests,
-  or tests coupled to implementation details unless those details are an
-  approved contract.
+  the author's labeled synthesis. State acceptance as observable outcomes.
+  Keep user-selected mechanisms and binding contracts in constraints with
+  their authority; proposed helpers and algorithms go in Decisions and test
+  design in Verification. Corrections and consequence disclosure follow
+  WORKFLOW "Autonomy within an approved objective" and "Context and planning".
+- Every overview contains a `Review context` section: a bounded index naming
+  the exact `repository-context` and `context-delta` artifact identifiers and
+  revisions (or stable inline-fallback labels), the canonical source paths
+  consulted, and only task-relevant facts. Each fact or coherent group carries
+  `Review use` naming the acceptance, risk, invariant, exclusion, or phase
+  dependency it informs. Do not copy cited evidence bodies.
+- Map every planned test or check to an invariant, an observable acceptance
+  journey, or a named regression risk. Avoid redundant or count-driven tests and
+  tests coupled to implementation details that are not an approved contract.
 - Where existing commands do not establish acceptance, put the missing parts
   of the shared guidance's verification recipe in the existing `Verification`
   section. Identify the evidence needed for applicable regression, stateful,
@@ -74,17 +65,12 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   assign every required local deterministic check to the implementation owner,
   including affected tests, lint, type checks, builds, validation commands,
   and the canonical full suite when one exists. Copy literal `.agent/` hard-gate
-  commands into the selected gate and cite those `.agent/` paths
-  in `Review context`. Also cite the exact `.agent/` convention paths that
-  bear on the change in `Review context`, and name in each phase the
-  conventions it consumes; do not paste their bodies or add conventions the
-  task does not touch. Descriptive operational recipe paths may be exact
-  `Context maintenance paths`; normative policy remains root-owned under
-  WORKFLOW "Repository conventions". A greenfield first plan records any
-  still-needed normative seed Decision in `plan.md`; the first phase
-  names those exact `.agent/` paths in its scope and outputs; the first-phase
-  review packet must cite the exact `.agent/` seed paths. Do not write `.agent/`
-  before plan approval. Set
+  commands into the selected gate. Cite in `Review context` the exact `.agent/`
+  hard-gate and convention paths that bear on the change, and name in each
+  phase the conventions it consumes, without pasting bodies. Descriptive
+  recipe paths may be exact `Context maintenance paths`; normative policy and
+  greenfield seeds follow WORKFLOW "Repository conventions", and nothing writes
+  `.agent/` before plan approval. Set
   the independent gate to `none` for an ordinary deterministic non-critical
   phase without an execution-preset gate. Otherwise assign a verifier only for
   browser interaction, owned services or
@@ -103,12 +89,27 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   owner capability and risk order; when no listed boundary applies, collapse
   the phases rather than inventing one or returning `blocked`. Each phase
   document is independently executable with a small
-  mandatory core — one outcome, exact allowed scope, acceptance criteria,
-  verification, and stop conditions — plus the structural declarations below.
-  Preconditions, dependencies, later-phase outputs, risks, and exclusions
-  appear only when they carry material content: an empty risks section is a
-  sign of a well-bounded plan, and no section is ever filled with invented
-  content to satisfy a format.
+  mandatory core — one outcome, exact allowed scope, `Outcome invariants`,
+  `State writers`, acceptance criteria, verification, and stop conditions —
+  plus the structural declarations below. Other sections appear only when
+  they carry material content; never invent content to satisfy a format.
+- `Outcome invariants` state what must remain true from every reachable prior
+  state, derived from the quoted user outcome and binding contracts, never from
+  the chosen mechanism (for example: a total never exceeds its source, an
+  operation is idempotent, a permission is never widened). Each invariant maps
+  to an existing or planned check: deterministic, verifier, or preview.
+  Acceptance values follow from an invariant and the user's intent; a value
+  only the mechanism justifies is not acceptance. Write `none beyond
+  acceptance` with a reason when acceptance states the whole outcome. A stop
+  condition names a conflict with an invariant or the required outcome.
+- `State writers` lists, for each persisted or shared value an outcome
+  invariant constrains, the existing operations that write it, including
+  other entry points, earlier steps and sequences that reach the changed
+  operation. A writer whose resulting state could violate an invariant gets a
+  check seeded through that real operation; others are dismissed in one line
+  with cited evidence. Excluding an operation from edits never excludes the
+  states it produces. Write `none` with a reason when no existing operation
+  writes state an invariant depends on.
 - Each phase names the exact review-context evidence it consumes and contains
   `Context maintenance paths`. Use `none` unless an exact versioned
   human-readable documentation path is already a named current-phase or
@@ -132,12 +133,11 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   dependencies, services, permissions, credential categories, test-data source
   and reset, commands, and generated paths. Add a preparation phase only when
   current evidence demonstrates that the task needs one.
-- Expect the root to decide whether the complete candidate bundle needs
-  independent review under WORKFLOW "Context and planning". Name concrete
-  unresolved design risks rather than using phase or file counts as the gate;
-  propose an authorized experiment when it can settle an empirical question.
-  A plan-review mandate asks first whether fewer phases or a smaller mechanism
-  preserves the approved result.
+- The root decides whether the bundle needs independent review under WORKFLOW
+  "Context and planning". Name concrete unresolved design risks, and propose an
+  authorized experiment when it can settle an empirical question.
+  Plan review follows the review order in WORKFLOW "Context and planning"
+  step 11.
 - Remain available while a dispatched plan review is active. Read the exact
   `plan-review` artifact and accepted finding identifiers, then publish complete
   replacement overview or phase documents only for affected members. Return a

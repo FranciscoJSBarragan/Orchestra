@@ -223,7 +223,7 @@ intent; already authorized intent does not need repeated user approval.
 | Authorization | Operation/resource × caller × actor/permission × expected effect. Establish policy from approved intent and maintained authority; UI visibility is caller evidence, not the server's permission policy. Cover unauthenticated denial, insufficient permission and allowed success, plus ownership or pre-login cases when relevant. Trace alternative entry points to the same protected effect. |
 | Contract | Producer, direct/indirect consumer, supported variants and failure semantics. Exercise the real boundary and retained compatibility, not just matching local types or independent green suites. |
 | External effect | Distinguish a local record or queued request from actual external execution or confirmation. Trace downstream status and message consumers; preserve or equivalently communicate a required human action unless an informed authorized decision changes it. Never claim unverified external completion or implicitly add a missing integration. |
-| Data | Writer, reader, invariant and persistence boundary. Trace other reachable writers of that invariant, including earlier operations and alternative paths. Identify interruption, repetition and rollback/reconciliation behavior; check relevant round trips and failure states. |
+| Data | Writer, reader, invariant and persistence boundary. Trace every reachable writer of the invariant, including earlier operations and alternative paths; a plan records them in `State writers` ([technical planning](technical_planning.md)). Identify interruption, repetition and rollback/reconciliation behavior; check relevant round trips and failure states. |
 | Behavior | Entry point, visible outcome, relevant negative/boundary case and behavior that must remain unchanged. Distinguish a defect reproducer from preservation coverage. |
 | Configuration | Source, precedence, default, activation and consuming runtime. Verify effective behavior, including invalid or absent values where material; parsing alone may not establish use. |
 
@@ -321,10 +321,10 @@ the smallest discriminating observation where another rejection could mask the
 defect. A status code alone may not establish the claimed cause or absence of
 side effects.
 
-When a fixture stands in for a supported prior operation, establish that its
-state is reachable and preserves that operation's relevant effects. If those
-effects on the invariant are uncertain, exercise the actual predecessor instead
-of inventing its result. Deliberately invalid or corrupt-state tests remain valid
+A fixture standing in for a supported prior operation must reproduce a
+reachable state with that operation's relevant effects; when uncertain, seed it
+through the actual prior operation (in a plan, its `State writers` entry).
+Deliberately invalid or corrupt-state tests remain valid
 when that condition is the named failure being tested.
 
 Judge a test by the meaningful incorrect behavior it would reject. Avoid

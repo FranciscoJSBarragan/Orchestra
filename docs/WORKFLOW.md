@@ -1176,12 +1176,11 @@ After explicit activation in an execution-capable mode:
    `plan-phase` per phase, returned as an explicit candidate bundle; no
    consumer reconstructs the bundle from a summary or chooses members by
    timestamp. The mandatory core of each phase is small: outcome, exact
-   allowed scope, acceptance, `Implementation handoff checks` versus the
-   `Independent verification gate`, and stop conditions, plus the structural
-   declarations below. Every other section (risks, exclusions, dependencies,
-   execution readiness) appears only when it carries material content; an
-   empty risks section is a sign of a well-bounded plan, and no author ever
-   invents content to satisfy a format. Every overview carries quoted human
+   allowed scope, `Outcome invariants`, `State writers`, acceptance,
+   `Implementation handoff checks` versus the `Independent verification gate`,
+   and stop conditions, defined in the `technical_planning` playbook, plus the
+   structural declarations below. Other sections appear only with material
+   content. Every overview carries quoted human
    authority under "Local task plan" and contains `Review context`: exact
    context artifact IDs and revisions or stable
    inline-fallback labels, canonical source paths, and only the material
@@ -1222,17 +1221,18 @@ After explicit activation in an execution-capable mode:
    required plan or consequential decision review before presenting the plan
    for implementation approval. It may skip
    independent plan review only when current evidence settles the material design
-   choices and "Engineering guidance and evidence" requires no consequential
-   decision review. Dispatch it for a concrete unresolved architectural alternative,
+   choices, every `State writers` entry, including `none`, cites source evidence
+   rather than the root's inference, and "Engineering guidance and evidence" requires no
+   consequential decision review. Dispatch it for a concrete unresolved architectural alternative,
    consequential contract, migration or recovery assumption, unfamiliar
    dependency, or costly-to-reverse decision. Phase/file counts alone do not
    create the gate. Resolve empirical uncertainty with a bounded authorized
    experiment when that can answer it more directly. A critical plan always
    receives a focused review naming its measurable risk, supporting evidence,
-   affected area, and detectable defect class. Every plan-review mandate asks
-   first whether fewer phases or a smaller mechanism preserves the approved
-   result — the same anti-overengineering judgment the code reviewer applies —
-   before defect hunting. Collapsing phases that name no step 10 boundary is
+   affected area, and detectable defect class. Every plan or decision review
+   starts with the counterexample question in "Review policy", then asks
+   whether fewer phases or a smaller mechanism preserves the approved result.
+   Collapsing phases that name no step 10 boundary is
    a root direction correction, not a review finding: when the candidate
    bundle fits one phase under step 9, the root authors the single-phase plan
    directly instead of opening a plan-review cycle solely to collapse phases.
@@ -1960,6 +1960,16 @@ interactions affected by accepted fixes.
 Review mandates lead with the intended outcome and readable producer evidence.
 Author-supplied concerns are explicitly non-exhaustive prompts within the
 bounded target, not the review's agenda or a narrower scope.
+Every plan, decision, architecture, implementation and PR review starts with
+the counterexample question, which belongs to the reviewer role and no packet
+can omit or narrow:
+which states, reachable through each listed writer and through sequences of
+operations the system already permits, make the plan or diff yield a wrong
+result, and would the planned or changed checks fail on them? A writer missing
+from `State writers`, or an acceptance value only the mechanism justifies, is a
+finding. Root-supplied exclusions bound edits, not scenarios; a counterexample
+inside a user exclusion is reported for authority disposition, and excluded
+sources stay unread.
 Plan, decision and implementation reviews distinguish producer results they
 read from author summaries. A named material producer result that is unreadable
 or supplied only as a summary belongs in the existing evidence gaps, with the
@@ -1967,19 +1977,16 @@ affected judgment. Apply shared "Behavioral verification" when accepting a
 consequential expected result and cite its basis in the report's existing
 context basis or an affected finding's rationale.
 
-The root may add a fresh focused plan or decision reviewer using
-`independent_review` when a named measurable risk and independently detectable
-defect class justify complementary scrutiny. State its distinct question and
-evidence basis in the existing plan risks or decisions; this is optional, not
-a mandatory pair. An omissions-focused assignment can examine supported prior
-states, alternative paths, indirect consumers or pending external actions.
-It does not narrow the first review's full target or duplicate a decision gate
-already covered under "Engineering guidance and evidence".
-Both reviewers receive the original intent, candidate and relevant producer
-evidence supplied by the root under that section. Independent read-only passes
-with distinct publication targets may run in parallel; the root keeps their
+The root may add an optional second plan or decision reviewer, using
+`independent_review`, when a named measurable risk and an independently
+detectable defect class justify a distinct question, for example omissions in
+indirect consumers or pending external actions. The root records that question
+in the plan risks or decisions and gives the reviewer the same intent,
+candidate and producer evidence. The second review never narrows the first
+review's target or duplicates a gate under "Engineering guidance and evidence";
+it may run in parallel with a distinct publication target, and the root keeps
 findings separate until both handoffs. Corrections reuse each affected reviewer
-under the existing meaningful-delta review rules.
+under the meaningful-delta rules.
 The root resolves findings under "Context and planning" within the authority
 limits of shared "Decision evidence". The selected tier and configured matrix
 row still apply.
