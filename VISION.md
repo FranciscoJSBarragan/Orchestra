@@ -311,9 +311,8 @@ immediately after specification confirmation, in a managed Orchestra-owned
 worktree or the opt-in hybrid clean primary checkout. Orchestra never pulls, implicitly merges, or
 rebases setup work; existing work is never cleaned, stashed, or rewritten
 implicitly; and completed resources are removed only when exact Git and
-integration evidence make cleanup safe. The complete checkout, sync, and
-permission mechanics live in `docs/WORKFLOW.md` ("Task checkout and branch")
-and the installation boundary in `docs/ARCHITECTURE.md`.
+integration evidence make cleanup safe. The complete checkout mechanics live in `docs/WORKFLOW.md` ("Task checkout and
+branch"), sync and permission mechanics in "Host adapters", and the installation boundary in `docs/ARCHITECTURE.md`.
 
 Completion freezes the approved objective, acceptance, and artifact selection.
 The terminal phase commit may advance for the reviewed corrections before delivery

@@ -62,28 +62,16 @@ to an execution-capable mode, then continue without a second invocation.
 Orchestra observes the host mode; it never changes the host into a
 planning-only mode.
 
-Every Orchestra dispatch starts from a clean context: the packet and named
-artifacts carry the assignment. The root identifies the execution host from
-available tools and reads that host's spawn reference. Codex: `spawn_agent`
-and `wait_agent` exist; pass `fork_turns: none` explicitly on every spawn
-to preserve focused context and reviewer independence. Grok Build: select native
-`spawn_subagent` or host `workflow` `agent()` through the Grok spawn reference;
-use a fresh isolated subagent per dispatch,
-`isolation: none`, `cwd` equal to the task checkout, and resume only the same
-phase-cohort agent with `resume_from` while it is available. If an owner or
-reviewer is closed, record it unavailable and replace it with the same logical
-assignment and exact approved artifact IDs; a replacement reviewer is always
-a fresh independent reviewer. Cursor: `Task` exists; use a fresh isolated Task per
-dispatch, resume only the same phase-cohort agent id while available, and never
-`resume: self` for a reviewer. Devin: `run_subagent` and `read_subagent`
-exist; use a fresh subagent per dispatch in foreground by default and resume
-only the same phase-cohort subagent while it remains available. On every
-host, the first review is fresh and
-later delta reviews reuse that reviewer only while it remains available; a
-closed reviewer is replaced by a fresh independent reviewer with the same
-review target and evidence. Native agent dispatch always uses the owning
-host's protocol. Explicit CLI delegation is a separate executor boundary,
-specified below; it never changes the owning host or its native spawn API.
+Every dispatch starts from a clean context: the packet and named artifacts
+carry the assignment. The root identifies the execution host from available
+tools and follows its native protocol under "Host adapters" and that host's
+spawn reference. On every host the
+first review is fresh; later delta reviews reuse that reviewer only while it is
+available, and a closed owner or reviewer is recorded unavailable and replaced
+with the same logical assignment and exact approved artifact IDs (a replacement
+reviewer is always fresh and independent). Explicit CLI delegation is a
+separate executor boundary that never changes the owning host or its native
+spawn API.
 
 ## Host adapters
 
@@ -92,19 +80,24 @@ identical across hosts. Each host owns spawn/wait/close, the model matrix,
 conversation identity, permissions, and `browser_route`.
 
 - Codex uses its native assignment matrix and four behavior profiles.
-  Wait uses `wait_agent` with
+  Dispatch uses `spawn_agent` with `fork_turns: none` on every spawn to keep
+  focused context and reviewer independence. Wait uses `wait_agent` with
   `timeout_ms: 600000`; teardown requires completed-state evidence.
 - Cursor reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml`. Dispatch
-  uses Cursor Task workers from that matrix plus the existing `orchestra-role-*`
-  skill. Custom `~/.cursor/agents` files are not the dispatch API. Wait uses a
+  uses a fresh isolated Cursor Task worker per dispatch from that matrix plus
+  the existing `orchestra-role-*` skill, resumes only the same phase-cohort
+  agent id while available, and never uses `resume: self` for a reviewer.
+  Custom `~/.cursor/agents` files are not the dispatch API. Wait uses a
   foreground completion or supported background notification under "Agent waiting",
   without busy-polling. Cleanup
   requires completed agents with no retained write-capable resources. Cursor
   sync never writes Codex `config.toml` or Cursor `settings.json`.
 - Grok Build reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Dispatch
   uses `general-purpose` plus the existing `orchestra-role-*` skill through
-  the native transport defined by the Grok spawn reference. Do not use
-  `isolation: worktree`. Wait uses `get_command_or_subagent_output` with
+  native `spawn_subagent` or host `workflow` `agent()` as the Grok spawn
+  reference defines: a fresh isolated subagent per dispatch with `isolation:
+  none` (never `worktree`) and `cwd` equal to the task checkout, resuming only
+  the same phase-cohort agent with `resume_from` while available. Wait uses `get_command_or_subagent_output` with
   `timeout_ms: 600000`. Cleanup requires completed agents with no retained
   write-capable resources. Grok sync never writes `~/.grok/config.toml` or
   Codex `config.toml`.
@@ -140,6 +133,23 @@ uses its registered profile type. Both routes preserve the same responsibility,
 capability, and independence requirements. If the host cannot dispatch the
 required independent agents or explicit model assignment, report that concrete
 capability gap; plugin compatibility alone does not imply workflow support.
+
+Codex synchronization reads `codex --version` before mutation and requires
+0.146.0 or later. It installs exactly `default_permissions = ":workspace"`,
+`approval_policy = "on-request"` and `approvals_reviewer = "auto_review"`, with
+no legacy sandbox mode, custom permission profile, workspace-root list,
+execpolicy rule or Git helper. Older or unreadable clients block before any
+change; historical manifest-owned Full Access or legacy blocks migrate
+atomically, and
+`uninstall` restores the exact prior configuration regardless of version.
+Cursor, Grok and Devin synchronization never write Codex permission keys or
+Grok or Devin permission configuration. Native host chats inherit their
+configured permissions; Task Control never launches a host or overrides
+permissions, and explicit host choices stay authoritative and are neither
+rejected nor rewritten. Under Codex
+Guardian, protected shared Git metadata is outside the workspace boundary, so
+the root issues the exact direct Git operation once with a narrow escalation
+for automatic review; a denial is never bypassed or turned into Full Access.
 
 A plugin inherits the active host permissions without modifying them. Guardian
 configuration is specific to direct Codex sync. Installing or loading a plugin
@@ -799,86 +809,73 @@ create a recovery database or promise continuation the host cannot provide.
 
 ## Engineering guidance and evidence
 
-The shared `architecture_guidance.md` reference, reached through the loaded
-role skill and its runtime resources, owns the reusable engineering criteria
-and verification-recipe guidance. Apply only sections relevant to the task's
-acceptance or material risks. A trivial edit does not acquire design exercises,
-new tests, benchmarks, or a dedicated verifier from this guidance.
+The shared `architecture_guidance.md` reference, reached through the loaded role
+skill and its runtime resources, owns reusable engineering criteria and
+verification recipes. Apply only sections relevant to the task's acceptance or
+material risks; a trivial edit acquires no design exercises, new tests,
+benchmarks or dedicated verifier from it. Planning uses "Decision evidence" and
+"Behavioral verification" to identify consequential choices, expected outcomes,
+failure hypotheses and the evidence to settle them; implementation fills
+affected gaps and applies "Change quality"; review assesses necessity,
+maintainability and test sensitivity, reconciling original scope with actual
+journeys and omitted paths; verification executes assigned checks against
+their expectations and records observed effects and limits.
+These criteria also apply to standalone roles; capability boundaries,
+terminal-check ownership, authority rules and dedicated-gate reasons stay
+decisive.
 
-Planning uses shared "Decision evidence" and "Behavioral verification" to
-identify consequential choices, expected outcomes, relevant failure hypotheses
-and the evidence needed to settle them. Implementation consumes that evidence,
-fills affected gaps and applies "Change quality" before handoff. Independent
-review assesses necessity, maintainability and test sensitivity, reconciling
-original scope with actual journeys and omitted paths. Verification executes
-assigned checks against their expectations and records observed effects and
-limits. These criteria apply to standalone roles as well as the full
-workflow. Existing capability boundaries, terminal-check ownership, authority
-rules and dedicated-gate reasons remain decisive.
-
-Resolve a material acceptance or policy ambiguity before dependent code. Before
-implementation, independently review consequential choices that select or change
-authorization, cross-system compatibility, data integrity or recovery behavior,
-including choices an analyst claims are settled. A lower tier or cheaper model
-does not exempt that risk. Use the existing plan review or a bounded decision
-review; do not add a second gate when that review already covers the choices.
-If a consequential choice emerges after combined specification and
-implementation approval, that approval does not waive this review; reconcile
-newly material consequences under "Autonomy within an approved objective"
-before dependent work.
-The root supplies the exact identities and accessible results of producers
-underlying the consequential decision, including relevant results omitted from
-the candidate's `Review context`.
-A consequential decision reviewer reads the named producer result's material
-conclusions and stated limits and checks for decision-changing omissions against
-the original intent. `Review context` routes that evidence rather than replacing
-it with the plan author's summary; incidental facts need no inventory.
-Merely touching related files or preserving an explicit, already reviewed policy
-does not require another decision review. Assess alternatives, authority,
-preservation and discriminating checks using shared "Decision evidence".
-Factual questions may first be settled by the analyst or an authorized experiment.
-Reviewer recommendations and agreement follow the authority limits in shared
-"Decision evidence". Do not re-ask decisions already authorized; if the owner
-selects an alternative whose consequences were reviewed, inspect only any newly
-affected assumptions.
-In standalone/custom work,
-use the caller's authorized review route and surface a missing decision or
-review as a concrete dependency; do not silently dispatch agents or activate
-Orchestra. Decision review does not replace implementation review.
+Resolve material acceptance or policy ambiguity before dependent code. Before
+implementation, independently review consequential choices that select or
+change authorization, cross-system compatibility, data integrity or recovery
+behavior, including choices an analyst calls settled; no tier or model exempts
+them. Use the plan review or a bounded decision review, not a second gate for
+choices already covered. A consequential choice emerging after combined
+approval is still reviewed and reconciled under "Autonomy within an approved
+objective" before dependent work. The root supplies the exact identities and
+accessible results of the producers behind the decision, including results
+omitted from `Review context`; the reviewer reads their material conclusions
+and limits and checks for decision-changing omissions against the original
+intent. `Review context` routes that evidence rather than replacing it with the
+author's summary; incidental facts need no inventory. Assess alternatives,
+authority, preservation and discriminating checks using "Decision evidence".
+Touching related files or preserving an already reviewed policy needs
+no new decision review. Factual questions may first be settled by the analyst
+or an authorized experiment. Recommendations and agreement follow the
+authority limits in "Decision evidence"; do not re-ask authorized decisions,
+and if the owner picks a reviewed alternative, inspect only newly affected
+assumptions. Standalone work uses the caller's review route and surfaces a
+missing decision or review as a dependency; it never silently dispatches
+agents or activates Orchestra. Decision review never replaces implementation review.
 
 At intake, reconcile task acceptance, repository hard gates and optional
-diagnostics, naming their execution owner and environment. A phrase such as
-"if available" does not waive a repository or workflow requirement. A genuine
-exception must explicitly identify the requirement and come from authority
-allowed to change it; inherited task approval alone does not supply it. Record
-an already authorized exception and its limits in existing decisions rather than
-asking again. Until reconciliation, keep the required gate and report its blocker.
-An exception applies only to its named task obligation; it does not waive
-separate review or configured delivery checks. Changing those requires their
-own explicit authority and supported policy/configuration change.
-Never relabel a missing mandatory check as optional or passing at delivery.
-Before accepting a report, compare actual commands/results and source identity
-with the required set; well-formed output and a green subset are insufficient.
+diagnostics with their execution owner and environment. "If available" waives
+nothing. A genuine exception names the requirement and comes from authority
+allowed to change it; inherited task approval does not supply it. Record an
+already authorized exception and its limits in decisions instead of asking
+again; until reconciled, keep the gate and report its blocker. An exception
+covers only its named obligation, never separate review or configured delivery
+checks, which need their own explicit authority and a supported policy or
+configuration change. Never relabel a
+missing mandatory check as optional or passing. Before accepting a report,
+compare actual commands, results and source identity with the required set; well-formed output or a green subset is insufficient.
 
 Before accepting work, diagnosing a failure or changing the workflow from a
-retrospective, read the producer's relevant report and inspect evidence that
-could change that judgment. A missing detail in its short final message does
-not prove missing investigation. Preserve the distinction between observed
-facts, authorized decisions, recommendations and uncertainty when synthesizing.
-If a summary contradicts its source, correct the summary and its dependent
-claims; do not prescribe a fix for the unsupported diagnosis. Preserve prior
-reports and identify a superseded recommendation in the current handoff. This
-requires bounded source consumption, not replaying all logs or repeating research.
+retrospective, read the producer's relevant report and the evidence that could
+change the judgment; a short final message does not prove missing
+investigation. Keep observed facts, authorized decisions, recommendations and
+uncertainty distinct when synthesizing. If a summary contradicts its source,
+correct the summary and its dependent claims and prescribe no fix for the
+unsupported diagnosis. Preserve prior reports and name superseded recommendations. This is
+bounded source consumption, not replaying logs or repeating research.
 
-Keep task-specific recipes and material assumptions in the existing plan
-acceptance, risks, and `Verification` sections, or the standalone brief.
-Implementation and verification reports carry observed evidence and limits in
-their existing fields. A useful decision map can live in that report or an
-explicitly supplied portable document; consumers verify revision and access,
-not just the presence of a path. Do not create a new artifact kind or a separate
-recipe registry. Reusable repository knowledge follows
-"Repository conventions" and "Durable knowledge checkpoint"; a suggested
-recipe does not become a hard gate merely by appearing in a report.
+Task-specific recipes and material assumptions live in the plan's acceptance,
+risks and `Verification`, or the standalone brief; reports carry observed
+evidence and limits in their existing fields. A decision map may live in a
+report or an explicitly supplied portable document whose revision and access
+consumers verify. There is no separate recipe registry or new artifact kind.
+Reusable knowledge follows "Repository conventions" and "Durable knowledge
+checkpoint"; a suggested recipe never becomes a hard gate by appearing in a
+report.
 
 ## Attached Tasks companion
 
@@ -1023,435 +1020,325 @@ not updated for such a change. Structural invariants the matrices must keep:
 
 ## Context and planning
 
-For an explicitly coordinated child root, resolve inherited approval and the
+An explicitly coordinated child root first resolves inherited approval and the
 supplied checkout through "Initiative coordination" and "Task checkout and
-branch" before this sequence. Reuse settled scope, tier and authority rather
-than presenting the same approval as a new user decision. Its investigation-only
-grant uses the read-only steps and returns at specification confirmation (or the
-combined specification/plan candidate); it never reaches task setup or execution
-without the corresponding authority. Pending tier selection follows the bounded
-analysis-resource rule in "Initiative coordination".
+branch", reusing settled scope, tier and authority instead of presenting them
+as new decisions. Its investigation-only grant runs the read-only steps and
+returns at specification confirmation (or the combined candidate); it never
+reaches task setup or execution without that authority. Pending tier selection
+follows the analysis-resource rule in "Initiative coordination".
 
 After explicit activation in an execution-capable mode:
 
-1. The root reuses the prior conversation, classifies the internal checkpoint
-   (exploration, candidate specification, candidate plan, adopted
-   implementation, or resumable Orchestra task), and obtains a minimum brief:
-   objective, visible result, approximate repository area, known critical
-   risks, and bounded factual open questions. If `$orchestra` arrives without
-   an objective, ask for it before creating resources. If the user explicitly
-   limits the request to brainstorming, remain read-only until the user
-   authorizes formal task setup.
-2. The root identifies the owning host and reads its installed native matrix:
-   Codex and Grok assign `standard` and `critical`; Cursor additionally assigns
-   `minimal`. Check the available host capabilities without inspecting Codex
-   rollout files or choosing a provider compatibility mode.
-3. From that brief, the root recommends an available assigned tier with one
-   concise explanation of material risk, added scrutiny, and expected
-   cost-benefit. Codex offers `standard` or `critical` and defaults to
-   `standard`. Cursor recommends
-   `standard`, recommends `minimal` when cost or speed is the priority, and
-   offers `critical` for matching high-impact risk. Grok recommends `standard`
-   and offers `critical` for matching high-impact risk; it blocks `minimal`.
-   The user
-   explicitly chooses the active assigned tier. In that same message, offer
-   user preview when the [User preview](#user-preview) detection rule matches;
-   a bare tier choice is preview `none`. A user-selected `luna`,
-   `minimal`, or `standard` tier does not waive separate authority gates for
-   production, migrations, data, security, payments, destructive actions, or
-   delivery.
-4. The root performs a short read-only Git and execution-readiness preflight:
-   it resolves the intended base branch and revision, reads repository policy,
-   and identifies the canonical runtime, dependency setup, services,
-   permissions, credential categories without reading secrets, verification
-   commands, test-data provenance, and generated paths relevant to the task.
-   It also resolves the installed checkout mode. No branch, worktree, plan, or
-   fetch mutation happens yet.
-   During authorized execution-readiness work, establish the baseline of cheap
-   required checks such as lint or configuration validation before substantial
-   implementation. Surface existing failures early with their scope and gate
-   implications. Do not run the whole suite speculatively, silently waive a
-   baseline failure, or expand the implementation to unrelated fixes.
-5. The root answers the brief's bounded factual questions itself when its
-   read-only preflight already covers them; the criterion is the volume of
-   evidence still needed, never the root's familiarity with the repository.
-   When the remaining questions require reading a material amount of source,
-   dispatch an `orchestra_analyst` with `repository_context` and those bounded
-   questions. Before the task checkout exists, that analyst works read-only in
-   the current repository checkout and returns the complete inline report with
-   a stable label; after checkout creation it publishes a revision-identified
-   context artifact to the task-private artifacts path. Consume the result and
-   close each one-shot analyst. Carry any inline result needed by later
-   consumers through "Task-private artifacts". Additional dispatches are allowed only for
-   newly material factual questions and request only the targeted context
-   delta.
-   The brief's factual questions may also include time-sensitive external
-   questions. They arise only when the task introduces a capability the
-   repository lacks or replaces an existing mechanism (authentication,
-   payments, email, storage, search, jobs, analytics, and similar), adds or
-   pins a dependency, depends on an external API, SDK, or platform contract
-   the repository does not pin, touches auth, payments, stores, or compliance
-   rules, or hinges on a deprecation or CVE. Cosmetic, layout, refactor, or
-   defect work inside existing code raises none, and then no external
-   dispatch happens. The same volume criterion applies: the root resolves
-   external questions itself when two or three bounded lookups suffice, and
-   dispatches one `orchestra_analyst` with `web_research` and dated,
-   versioned questions when the remaining volume or the risk of mis-stating
-   a version or contract is material. This happens before specification
-   confirmation, never as a standing step. A specification or plan claim
-   about an external contract the repository does not pin (version, API, SDK,
-   quota, platform policy, deprecation, CVE) requires current primary
-   evidence with its version or date cited, or it is recorded under Open
-   questions or Decisions; neither the root nor any planner closes such a
-   claim from memory, and plan review may block a version or contract claim
-   that lacks that evidence under the planning playbook's existing
-   feasibility-evidence rule. When the trigger is a capability the
-   repository lacks, the root compares adopting an established current
-   solution against building it, judged against the constraints the
-   preflight and `repository_context` already report (stack, runtime,
-   hosting, credential categories, cost, lock-in, data residency), and
-   presents the recommendation with its alternatives as a specification
-   Decision in the same confirmation message. Adopting is not a default
-   preference; the user decides, and the approved plan inherits that
-   Decision with the pinned version.
-6. The orchestrator continues the user dialogue using that evidence and
-   confirms the final specification with Objective, User-visible behavior,
-   Constraints, Acceptance, Exclusions, Decisions, and Open questions, then
-   recommends any justified tier change; the user chooses whether to change
-   it. A first-time confirmation visibly shows the specification it confirms.
-   If the worktree has no normative project conventions, include the missing-store
-   checkpoint in that same consolidated request rather than a later turn.
-7. For a task the root judges single-phase on a non-critical tier, it may
-   present the specification and the candidate plan in the same message only
-   when step 11 permits skipping independent plan and consequential decision review,
-   visually separated as what it understood and what it will do; one explicit
-   user approval then covers both, and any specification correction
-   invalidates the plan candidate with it. Tasks requiring that review, critical
-   tasks and multi-phase tasks use specification confirmation followed by
-   planning and required review, then plan approval. Resolve material product
-   questions during the specification dialogue; technical review does not
-   substitute for the user's authority. Later in-scope corrections follow
-   "Autonomy within an approved objective".
-8. Immediately after specification confirmation, the root creates the task
-   checkout per [Task checkout and branch](#task-checkout-and-branch): it
-   fetches the configured upstream for a fresh canonical-base task (a failed
-   fetch blocks; no remote or upstream permits only an explicitly identified
-   locally unverified base), creates the collision-free `orchestra/*` branch
-   in the managed worktree or verified clean hybrid checkout, and never runs
-   `git pull`, creates an implicit merge, or rebases the base. Dirty,
-   detached, conflicted, active-operation, or identity-ambiguous state
-   requires one consolidated decision before mutation. For an adopted prepared
-   card, the root revalidates that the inspected specification revision still
-   matches the fetched base; a changed revision triggers only a focused
-   context delta and reopens confirmation only for a material change. It then
-   runs one idempotent `task_state.py init --worktree <task-worktree>`, keeps
-   the returned state, plan and artifacts paths, and passes the exact artifacts
-   path to every producer. No global registration is required. Apply
-   "Attached Tasks companion" only for an attached card or explicit tracking.
-9. Final specification confirmation starts formal planning. Apply the selected
-   execution preset's root-reuse rule when present; otherwise use the default
-   planner-dispatch criteria below. The task-level
-   User preview Decision must already be recorded from tier selection; do not
-   introduce it at plan approval. The root authors the plan directly whenever
-   the work fits one phase and its material design decisions are resolved,
-   using the same two-document shape and the plan-document contract in the
-   `technical_planning` playbook without dispatching a role. It dispatches
-   `technical_planning` when the work does not fit one phase, carries
-   critical risk, or has unresolved material boundary decisions, such as
-   version compatibility, migration order, recovery semantics, or ownership
-   handoffs.
-   Work fits one phase when one owner of one
-   implementation capability can cover it, its risk order is uniform, and no
-   result must be reviewed and committed before another begins; the number of
-   items, areas, screens, or files in the brief is not a criterion. Crossing a
-   runtime or ownership boundary does not by itself require a second
-   implementation capability. A non-visual client credential change and its
-   server route can be one `general_implementation` phase with a root-authored
-   plan when their material decisions are settled. The root records
-   any material unresolved boundary in the existing risks or open questions;
-   a short diff does not settle it. This routing does not waive material
-   decision review, independent implementation review, or verification gates.
-   Either author reads the exact context
-   evidence and produces one complete `plan-overview` plus one complete
-   `plan-phase` per phase, returned as an explicit candidate bundle; no
-   consumer reconstructs the bundle from a summary or chooses members by
-   timestamp. The mandatory core of each phase is small: outcome, exact
-   allowed scope, `Outcome invariants`, `State writers`, acceptance,
-   `Implementation handoff checks` versus the `Independent verification gate`,
-   and stop conditions, defined in the `technical_planning` playbook, plus the
-   structural declarations below. Other sections appear only with material
-   content. Every overview carries quoted human
-   authority under "Local task plan" and contains `Review context`: exact
-   context artifact IDs and revisions or stable
-   inline-fallback labels, canonical source paths, and only the material
-   facts, each with a `Review use` naming the exact acceptance, risk,
-   invariant, exclusion, or phase dependency it informs. Every phase names its
-   exact context dependencies, declares `Context maintenance paths` as `none`
-   unless an exact repository-relative versioned documentation path is already
-   a named consumer (globs and directory-wide authority are forbidden), and
-   declares `User preview: required | none`.
-10. Default to one phase for ordinary work and two to three for a large task.
-   Every additional phase must name the independent review boundary it buys;
-   phase splits without one are format inflation. A phase is a full serial
-   cycle, not a ticket: a fresh implementation owner with no carried context,
-   handoff checks, any required verifier, one independent review with possible
-   fixes, teardown, and a commit. Phases never run in parallel, so a split
-   never shortens the task; it only adds cycles. A boundary exists only when
-   at least one of these holds: the next work depends on a reviewed and
-   committed state; one owner or capability cannot safely cover the whole
-   (frontend and non-frontend work that cannot remain bounded); the task-level
-   User preview Decision is `required` and a reviewed commit is needed before
-   the inspectable work; preview alone does not require a split; or the risk order differs materially (a contract or
-   migration versus its UI). Distinct areas, screens, files, or brief bullets,
-   cleaner commits, or the mere fact that two changes could be reviewed
-   separately are not boundaries. Same capability, same risk order, and no
-   need to commit A before B means one phase with several acceptance criteria;
-   the owner orders that work internally within one handoff. The limit is
-   size, not count: the combined diff must remain reviewable in one pass, and
-   a large task splits legitimately. Changes that ship separately are Kanban
-   decomposition, not phases. A migration plus the UI that consumes it is a
-   legitimate split; two small screens in one frontend capability is not.
-   These criteria apply to every implementation capability. An unverified
-   assumption that does not determine feasibility may be checked at the start
-   of the phase that consumes it instead of creating a preparation phase or
-   blocking planning; feasibility-determining facts still require direct
-   evidence.
-11. After the complete bundle exists, the root reads the overview, phase
-   index, named risks, and only the detail needed for judgment. Complete any
-   required plan or consequential decision review before presenting the plan
-   for implementation approval. It may skip
-   independent plan review only when current evidence settles the material design
-   choices, every `State writers` entry, including `none`, cites source evidence
-   rather than the root's inference, and "Engineering guidance and evidence" requires no
-   consequential decision review. Dispatch it for a concrete unresolved architectural alternative,
-   consequential contract, migration or recovery assumption, unfamiliar
-   dependency, or costly-to-reverse decision. Phase/file counts alone do not
-   create the gate. Resolve empirical uncertainty with a bounded authorized
-   experiment when that can answer it more directly. A critical plan always
-   receives a focused review naming its measurable risk, supporting evidence,
-   affected area, and detectable defect class. Every plan or decision review
-   starts with the counterexample question in "Review policy", then asks
-   whether fewer phases or a smaller mechanism preserves the approved result.
-   Collapsing phases that name no step 10 boundary is
-   a root direction correction, not a review finding: when the candidate
-   bundle fits one phase under step 9, the root authors the single-phase plan
-   directly instead of opening a plan-review cycle solely to collapse phases.
-12. A dispatched reviewer reads the exact bundle and publishes `plan-review`
-    with stable finding identifiers. In every round the root judges each
-    finding's defect and its proposed correction separately. Accepting the
-    defect requires its cited basis under "Review policy" and does not approve
-    the proposed correction. A correction that narrows, excludes, or makes an
-    exception to the confirmed outcome is rejected and replaced by an in-scope
-    correction that preserves it. Only a genuine new product choice, or
-    infeasibility of the outcome that crosses an authority boundary, becomes a
-    user decision presented with options and consequences. Accepted IDs, the
-    root's correction direction, and the review artifact return to the same
-    author, which publishes complete replacement documents only for affected
-    members and names all current members in the next bundle. The root
-    observes convergence after a second material plan review. Before a third
-    correction, or immediately for marginal, contradictory, or out-of-scope
-    findings, it reads the exact bundle and review artifacts, accepts or
-    rejects findings by identifier, and corrects direction. No persisted
-    review counter or mechanical limit is introduced.
-13. The root requests implementation approval for the exact accepted bundle at
-    the user's altitude, unless step 7 already combined that request with
-    specification confirmation. Distinguish required outcomes and binding
-    constraints from the proposed technical approach. In either path the
-    approval interaction itself visibly presents the plan being approved and
-    every material change to the requested outcome: a narrowing, exclusion or
-    exception; a changed user-visible amount or behavior; or a new
-    user-facing consequence. Each appears with its consequence, including
-    changed outputs or pending actions observed by indirect consumers even
-    when the consumer's files are excluded from edits, and is recorded in the
-    existing Decisions or Risks. A native selector that visibly shows this
-    content suffices without a preceding message. The concise plan summary may
-    describe its technical approach, but the material-change disclosure does
-    not present ordinary technical conditions within the outcome as outcome
-    exceptions needing approval. The interaction does not reconfirm unchanged
-    authorized requirements or reversible technical decisions, and adds no
-    gate. For a multi-phase bundle it names, in one line per additional
-    phase, the step 10 boundary that phase buys, so the user can reject a
-    split.
+1. Reuse the prior conversation, classify the checkpoint (exploration,
+   candidate specification, candidate plan, adopted implementation, or
+   resumable task) and obtain a minimum brief: objective, visible result,
+   approximate area, known critical risks and bounded factual open questions.
+   Without an objective, ask for it before creating resources. A request
+   the user explicitly limits to brainstorming stays read-only until formal setup is authorized.
+2. Identify the owning host and read its installed matrix and capabilities
+   (see "Tier flows and models"); do not inspect Codex rollout files or choose
+   a provider compatibility mode.
+3. Recommend one available assigned tier with a concise explanation of risk,
+   added scrutiny and cost, following the host defaults in "Tier flows and
+   models". The user explicitly chooses the active tier. In the same message, offer user preview
+   when the [User preview](#user-preview) detection rule matches; a bare tier
+   choice is preview `none`. No tier waives authority gates for production,
+   migrations, data, security, payments, destructive actions or delivery.
+4. Run a short read-only preflight: intended base branch and revision,
+   repository policy, canonical runtime, dependency setup, services,
+   permissions, credential categories (never secrets), verification commands,
+   test-data provenance, generated paths and the installed checkout mode. No
+   branch, worktree, plan or fetch mutation yet. Once execution readiness is
+   authorized, establish the baseline of cheap required checks (lint,
+   configuration validation) before substantial work; surface existing
+   failures with their gate implications, without running the whole suite
+   speculatively, waiving a baseline failure or fixing unrelated issues.
+5. Answer bounded factual questions directly when the preflight covers them;
+   the criterion is the volume of evidence still needed, never familiarity.
+   When a material amount of source remains, dispatch an `orchestra_analyst`
+   with `repository_context` and those questions. Before checkout it works
+   read-only in the current checkout and returns the complete inline report
+   with a stable label; afterwards it publishes a revision-identified
+   artifact. Close each one-shot analyst and carry inline results through
+   "Task-private artifacts". Later dispatches request only targeted deltas for
+   newly material questions.
+   External questions arise only when the task adds a capability the
+   repository lacks or replaces a mechanism (authentication, payments, email,
+   storage, search, jobs, analytics and similar), adds or pins a dependency,
+   depends on an unpinned external API, SDK or platform contract, touches
+   auth, payments, stores or compliance, or hinges on a deprecation or CVE;
+   cosmetic, refactor or in-code defect work raises none. Resolve them
+   directly when two or three bounded lookups suffice; dispatch one
+   `web_research` analyst with dated, versioned questions when the remaining
+   volume or the risk of mis-stating a version or contract is material,
+   before specification confirmation and never as a standing step. A
+   claim about an unpinned external contract needs current primary evidence
+   with version or date, or stays an Open question or Decision; nobody closes
+   it from memory, and plan review may block it. For a missing capability,
+   present the adopt-versus-build recommendation with its alternatives, judged
+   against the reported constraints (stack, runtime, hosting, credentials,
+   cost, lock-in, data residency), as a specification Decision in the same
+   confirmation message; adopting is not a default, the user decides, and
+   the plan inherits the Decision with its pinned version.
+6. Confirm the final specification (Objective, User-visible behavior,
+   Constraints, Acceptance, Exclusions, Decisions, Open questions) and
+   recommend any justified tier change; the user chooses whether to change
+   it. A first confirmation visibly shows the
+   specification. Resolve material product questions here; technical review
+   never substitutes for the user's authority. Include the missing-conventions
+   checkpoint in the same request when the worktree has no normative
+   conventions.
+7. A single-phase, non-critical task may combine specification and candidate
+   plan in one message, visibly separated as what the root understood and what
+   it will do, only when step 11 permits skipping plan and consequential
+   decision review. One approval covers both, and a specification correction
+   invalidates the plan. All other tasks confirm the specification, plan,
+   complete required review, then request plan approval. Later in-scope
+   corrections follow "Autonomy within an approved objective".
+8. Immediately after confirmation, create the task checkout under "Task
+   checkout and branch" (fresh canonical-base tasks fetch the configured
+   upstream; a failed fetch blocks; never `git pull`, implicit merge or base
+   rebase). Dirty, detached, conflicted, active-operation or
+   identity-ambiguous state needs one consolidated decision before mutation.
+   For an adopted prepared card, revalidate the specification revision
+   against the fetched base; a change triggers a focused context delta and
+   reopens confirmation only if material. Run one idempotent `task_state.py
+   init --worktree <task-worktree>` and pass the returned artifacts path to
+   every producer. No global registration is required. Apply "Attached Tasks
+   companion" only for an attached card or explicit tracking.
+9. Confirmation starts formal planning. A selected execution preset's
+   root-reuse rule replaces the default planner-dispatch criteria below when
+   present. The User
+   preview Decision is already recorded from tier selection and is not
+   introduced at plan approval. The root authors the plan directly when the
+   work fits one phase and its material design decisions are resolved;
+   otherwise, or for critical risk or unresolved boundary decisions (version
+   compatibility, migration order, recovery semantics, ownership handoffs),
+   it dispatches `technical_planning`. Work fits one phase when one owner of
+   one implementation capability covers it, its risk order is uniform, and no
+   result must be committed before another begins; item, area, screen or file
+   counts and crossing a runtime or ownership boundary are not criteria. Record unresolved
+   boundaries in risks or open questions; a short diff does not settle them,
+   and this routing waives no review or verification gate.
+   Either author reads the exact context evidence and returns one complete
+   `plan-overview` plus one `plan-phase` per phase as an explicit candidate
+   bundle; no consumer reconstructs it from summaries or timestamps. Each
+   phase's mandatory core is: outcome, exact allowed scope, `Outcome
+   invariants`, `State writers`, acceptance, `Implementation handoff checks`
+   versus `Independent verification gate`, and stop conditions, as defined in
+   the `technical_planning` playbook. Other sections appear only with
+   material content. Every overview carries quoted human authority ("Local
+   task plan") and a `Review context` index of exact context artifact IDs and
+   revisions (or inline-fallback labels), canonical source paths and material
+   facts, each with its `Review use`. Every phase names its context
+   dependencies, declares `Context maintenance paths` (`none` unless an exact
+   versioned documentation path is already a named consumer; no globs or
+   directories) and `User preview: required | none`.
+10. Default to one phase; a large task may need two or three. Each extra
+    phase is a full serial cycle (fresh owner with no carried context,
+    handoff checks, any verifier,
+    one review, teardown, commit), never parallel, so it only adds cost and
+    must name the boundary it buys. A boundary exists only when the next work
+    depends on a reviewed commit; one owner or capability cannot safely cover
+    the whole; required user preview needs a reviewed commit before the
+    inspectable work (preview alone is no boundary); or risk order differs
+    materially (a migration versus its UI). Distinct areas, screens, files,
+    cleaner commits or separate reviewability are not boundaries; the limit is
+    a diff reviewable in one pass. Same capability and risk order with no
+    commit dependency means one phase whose owner orders the work internally.
+    These criteria apply to every implementation capability. Separately
+    shippable changes are Kanban decomposition. A non-feasibility assumption may be checked at the start of
+    the consuming phase; feasibility facts need direct evidence.
+11. With the complete bundle, read the overview, phase index, named risks and
+    only the detail judgment needs, and complete any required plan or
+    consequential decision review before requesting approval. Skip
+    independent plan review only when current evidence settles the material
+    design choices, every `State writers` entry, including `none`, cites
+    source evidence rather than the root's inference, and "Engineering guidance
+    and evidence" requires no decision review. Dispatch it for an unresolved
+    architectural alternative, consequential contract, migration or recovery
+    assumption, unfamiliar dependency or costly-to-reverse decision; counts
+    alone never create the gate. Prefer a bounded authorized experiment when
+    it settles an empirical question. A critical plan always gets a focused
+    review naming its measurable risk, evidence, affected area and detectable
+    defect class. Every plan or decision review starts with the counterexample
+    question in "Review policy", then asks whether fewer phases or a smaller
+    mechanism preserves the approved result. Collapsing phases that name no
+    step 10 boundary is a root correction: the root writes the single-phase
+    plan directly instead of opening a review cycle for it.
+12. A dispatched reviewer publishes `plan-review` with stable finding IDs. In
+    every round the root judges each defect and its proposed correction
+    separately; accepting a defect requires its cited basis and does not
+    approve the correction. A correction that narrows, excludes or makes an
+    exception to the confirmed outcome is replaced by an in-scope correction.
+    Only a genuine new product choice, or infeasibility crossing an authority
+    boundary, becomes a user decision with options and consequences. Accepted
+    IDs, correction direction and the review return to the same author, which
+    republishes only affected members and names the full current bundle. After
+    a second material review, and immediately for marginal, contradictory or
+    out-of-scope findings, the root reads the exact bundle and reviews and
+    corrects direction by finding ID. No review counter or mechanical limit.
+13. Request implementation approval for the exact accepted bundle at the
+    user's altitude (or in the combined step 7 message), separating required
+    outcomes and binding constraints from the technical approach. The approval
+    interaction itself shows the plan and every material change to the
+    requested outcome (narrowing, exclusion, exception, changed user-visible
+    amount or behavior, new user-facing consequence, including effects on
+    indirect consumers whose files are not edited), each with its consequence
+    and recorded in Decisions or Risks. A native selector that shows this
+    content suffices. Ordinary technical conditions are not outcome
+    exceptions; unchanged requirements and reversible technical decisions are
+    not reconfirmed, and the disclosure adds no gate. A multi-phase bundle names, one line per extra phase,
+    the step 10 boundary it buys.
 
-Every planning, implementation, review, verification, plan, and commit operation
-uses the exact selected task checkout. Managed mode leaves the base checkout
-read-only; hybrid mode switches only the selected clean checkout to the new
-task branch. Scoped dirty adoption remains available only into a managed task
-worktree unless the user explicitly authorizes carrying named changes in place.
+Every planning, implementation, review, verification, plan and commit
+operation uses the exact selected task checkout. Managed mode leaves the base
+checkout read-only; hybrid mode switches only the selected clean checkout to
+the task branch. Scoped dirty adoption goes only into a managed task worktree
+unless the user authorizes carrying named changes in place.
 
-Standard and critical implementation does not begin until the user explicitly
-approves the aligned plan, or the authorized initiative parent accepts the
-derived child plan under "Initiative coordination". That approval covers implementation and successful
-commits at the approved phase boundaries; it does not authorize merge, release,
-deployment, production mutation, or another delivery action. If adopted
-committed work passes unchanged, completion does not require an artificial
-commit.
+Standard and critical implementation begins only after the user explicitly
+approves the aligned plan, or the authorized initiative parent accepts the derived child
+plan under "Initiative coordination". Approval covers implementation and
+commits at approved phase boundaries, never merge, release, deployment,
+production mutation or other delivery. Adopted committed work that passes
+unchanged needs no artificial commit.
 
-If the user rejects or abandons the task before plan approval, preserve unique
-work. Remove a managed task worktree or restore a hybrid starting branch only
-when the exact checkout and task branch still match their captured identity and
-contain no unique work. No plan has been persisted at this point.
+If the user rejects or abandons the task before approval, preserve unique work
+and remove a managed worktree or restore a hybrid starting branch only when the
+captured checkout and branch identity still match and hold no unique work. No
+plan has been persisted yet.
 
 ### Local task plan
 
-Before approval, the provisional specification remains in conversation while
-the formal candidate exists only as private `plan-overview`, `plan-phase`, and
-optional `plan-review` artifacts. After approval, the root writes `active` to
-the exact plan path returned by task-state initialization, normally
-`<task-worktree>/.orchestra/plan.md`. It is an intent, exact-bundle, and resume
-aid, not a workflow database. New-task plan writes remain inside the writable
-checkout and require no protected-path escalation.
+Before approval, the specification stays in conversation and the candidate
+exists only as private `plan-overview`, `plan-phase` and optional
+`plan-review` artifacts. After approval the root writes `active` to the plan
+path returned by task-state initialization, normally
+`<task-worktree>/.orchestra/plan.md`, inside the writable checkout with no
+protected-path escalation. The plan is
+an intent, exact-bundle and resume aid, not a workflow database: it adds no
+field, artifact kind, ledger or status beyond those named here.
 
-The file records task and Git identity, checkout mode and resource ownership,
-the hybrid starting branch/revision when applicable, owning host, active tier,
-user and root decisions, authorized preexisting
-changes, and the effective approved overview verbatim, including authorized
-in-scope replacements under "Autonomy within an approved objective". Record
-material corrections in the existing root decisions so resume uses the current
-authorized bundle. Its phase manifest maps every
-phase number to the exact artifact ID, private path, artifact revision, progress
-status, accepted commit, blocker, and next action. It does not duplicate phase
-details. Private paths allow resolution when SQLite is unavailable. When
-adoption applies, it also records source revision, imported paths, existing
-commit range, and remaining phases.
+It records task and Git identity, checkout mode and resource ownership, the
+hybrid starting branch and revision when applicable, owning host, active tier,
+user and root decisions, authorized preexisting changes, and the effective
+approved overview verbatim, including authorized in-scope replacements. Material corrections go
+in the root decisions so resume uses the current bundle. Its phase manifest
+maps each phase to the exact artifact ID, private path, revision, progress,
+accepted commit, blocker and next action, without duplicating phase details.
+Adoption also records source revision, imported paths, existing commit range
+and remaining phases.
 
-Material human authority is quoted, not paraphrased. The plan overview records
-the user's material outcome statement, and each user answer that settles a
-material product-choice question together with that question, once as exact
-quotes in its existing Constraints or Decisions. Quotes keep their original
-language and are never translated; the author's surrounding text remains
-English. The outcome statement and answer are attributed to the user; the
-question is attributed to its actual speaker, normally the root, and is context
-rather than user authorization. A labeled gloss may follow a quote when needed
-but never replaces or extends it. The root's Objective remains its separately
-labeled synthesis. A dispatched planner receives these quotes with the
-confirmed specification. Replacement overviews carry them unchanged. A later
-user correction adds a new entry quoting the new answer and naming the entry it
-supersedes; the superseded overview remains immutable evidence. Consumers reach
-the quotes through the overview ID or `plan.md`; packets do not replay
-conversations or every answer. This adds no field, artifact, or ledger.
+Material human authority is quoted, not paraphrased. The overview records the
+user's material outcome statement, and each answer that settles a material
+product question together with that question, once, as exact quotes in
+Constraints or Decisions, in their original language and attributed to their
+actual speakers, while the author's surrounding text stays English; the
+question is context, not user authorization. A labeled
+gloss may follow a quote but never replaces or extends it, and the root's
+Objective remains its labeled synthesis. A dispatched planner receives these
+quotes; replacement overviews carry them unchanged. A later correction adds a
+new quoted entry naming the one it supersedes, whose overview remains
+immutable evidence. Consumers reach quotes through the overview ID or
+`plan.md`; packets do not replay conversations.
 
-Task identity explicitly records `origin: prepared-card` or `origin: direct`.
-For `prepared-card`, it also records the exact `kanban_uuid`, canonical
-`kanban_short_id`, and confirmed `kanban_title` returned by `task adopt`; resume
-requires all three to match the adopted card. For `direct`, those Kanban fields
-are absent and the plan never creates a short ID. These are identity fields in
-the existing plan, not a new manifest or allocator.
+Task identity records `origin: prepared-card` with the exact `kanban_uuid`,
+canonical `kanban_short_id` and confirmed `kanban_title` from `task adopt`
+(resume requires all three to match), or `origin: direct` without Kanban fields
+or a short ID.
 
-Its statuses are:
+Statuses are `active` (executing after approval), `blocked` (stopped at a named
+blocker and next action; a `user_preview` pause uses it) and `completed`
+(phases reviewed, verified and committed; delivery authority stays separate).
+The root owns every update; plan state never grants authority.
 
-- `active`: the root is executing after explicit user approval;
-- `blocked`: execution stopped at a named blocker and next action;
-- `completed`: phases are reviewed, verified, and committed, while delivery
-  authority remains separate.
-
-The normal lifecycle is `active` to `completed`, with `active` to `blocked` to
-`active` when needed. A `user_preview` pause uses that existing `blocked` to
-`active` resume; it is not a fourth status. The root owns every update; plan state never grants
-authority beyond the user's instruction.
-
-On resume, the root resolves the path again and requires checkout, initial
-identity, current branch, base, HEAD, and relevant commits to reconcile with
-Git, then resolves every current phase through its exact ID or recorded path.
-Do not require a clean worktree or a phase commit. Preserve uncommitted unique
-work and report observed Git and plan status. After reclaim, skip the previous
-host's wait and close contract, spawn fresh workers on this host, re-read this
-host's assignment matrix, and recommend an assigned tier; a recorded Codex
-tier is not a Cursor assignment. Permissions stay those of the current chat.
-Git is authoritative for code, worktree state, and history; the plan is
-authoritative only for approved intent, exact bundle selection, and progress.
-A missing or unreadable plan prevents automatic continuation until reconstructed
-and realigned with the user. Worktree cleanup removes the plan; optional global observation
+On resume, resolve the path again and reconcile checkout, initial identity,
+branch, base, HEAD and relevant commits with Git, then resolve each phase by
+exact ID or path. Do not require a clean worktree or a phase commit; preserve
+uncommitted unique work and report Git and plan status. After reclaim on
+another host, skip the previous host's wait and close contract, spawn fresh
+workers, re-read this host's matrix and recommend an assigned tier (a
+recorded tier on another host is not an assignment here); permissions stay
+those of the current chat. Git is authoritative for code, worktree state and history; the
+plan only for approved intent, bundle selection and progress. A missing or
+unreadable plan blocks automatic continuation until reconstructed and realigned
+with the user. Worktree cleanup removes the plan; optional global observation
 never substitutes for it or supplies authority.
 
-Plan artifacts are immutable. A reversible clarification within approved
-objective and authority creates a complete replacement phase and the root
-updates its manifest entry. A material scope, public-contract, or user-visible
-behavior change requires renewed user approval.
+Plan artifacts are immutable. A reversible in-scope clarification creates a
+complete replacement phase and a manifest update; a material scope,
+public-contract or user-visible change needs renewed approval. `completed`
+freezes objective, acceptance and artifact selection. During authorized PR
+review, an initiative's bounded joint-acceptance repair or "Base refresh before
+delivery", an in-intent correction may advance a phase's terminal commit only
+through the phase path (or the reviewed base-refresh merge exception), with
+the manifest updated before pushing. A new objective, behavior or material
+scope after `completed` or `hold` needs a new task. Before delivery, the
+effective task head must equal the manifest's terminal commit; an unexplained
+mismatch blocks. Between the last phase commit and `completed`, run the
+"Durable knowledge checkpoint".
 
-Setting the plan to `completed` freezes its approved objective, acceptance,
-and artifact selection. During an authorized PR review or an initiative's
-bounded joint-acceptance repair or "Base refresh before delivery", an accepted
-correction before delivery may
-advance the affected phase's terminal commit only when it remains inside that
-approved intent and is verified, reviewed, and committed through the existing
-phase path (or its reviewed base-refresh merge exception); the root updates the
-manifest before pushing it. A new objective,
-user-visible behavior, or material scope after `completed` or `hold` requires a
-new Orchestra task and plan rather than reopening or rewriting the old one.
-Before PR or local delivery, the root reads the terminal commit from the
-completed manifest and requires the effective task head to match it exactly.
-An unexplained mismatch blocks continuation and delivery under that plan.
-Between the last phase commit and `completed`, the root runs the durable
-knowledge checkpoint ("Durable knowledge checkpoint").
-
-`Review context`, `Context maintenance paths`, and `User preview` are
-semantic sections of the approved overview and phase artifacts; they add no
-`plan.md` status, manifest field, coordination state, or new artifact kind. A later validated context
-delta that changes a future dependency produces a complete replacement for the
-affected phase. Widening a maintenance path follows the same replacement and
-authority rules.
+`Review context`, `Context maintenance paths` and `User preview` are semantic
+sections of the approved artifacts, not plan status or coordination state. A
+validated context delta that changes a future dependency produces a complete
+replacement for that phase; widening a maintenance path follows the same
+replacement and authority rules.
 
 ### Task-private artifacts
 
-Artifacts live only on the filesystem. Agents write each semantic handoff
-directly as UTF-8 Markdown under the exact task-private artifacts directory
-returned by `task_state.py init`, normally
-`<task-worktree>/.orchestra/artifacts`, named
-`<NN>-<kind>[-p<phase>].md` with a zero-padded creation ordinal (for example
-`03-plan-phase-p2.md`). The file name is the artifact identifier. Packets and
-the plan manifest reference these exact file names; no database locator
-exists. `task_state.py` creates a self-ignored ownership marker and artifacts
-directory after branch/worktree creation, refuses tracked or unsafe collisions,
-and proves that the private state leaves Git status unchanged. New-task
-publication therefore stays inside the writable checkout without a
-protected-write escalation under Guardian. A detected legacy task continues
-using its exact Git-private paths without migration or dual writes. If the
-selected artifacts directory cannot be written, the agent returns the complete
-report inline instead.
+Artifacts live only on the filesystem as UTF-8 Markdown in the exact
+task-private directory returned by `task_state.py init`, normally
+`<task-worktree>/.orchestra/artifacts`, named `<NN>-<kind>[-p<phase>].md` with a
+zero-padded creation ordinal (for example `03-plan-phase-p2.md`). The file name
+is the identifier that packets and the manifest reference; there is no
+database locator. `task_state.py` creates a self-ignored ownership marker and
+the directory after branch or worktree creation, refuses tracked or unsafe
+collisions and proves Git status is unchanged, so publication needs no
+protected-write escalation. A detected legacy task keeps its exact Git-private
+paths without migration or dual writes. If the directory cannot be written,
+the agent returns the complete report inline.
 
-When an inline producer result must survive task setup for a named downstream
-consumer, copy its complete body as received into the next matching artifact
-kind, preserving the original stable label and inspected revision. Added
-publication metadata identifies the producer and does not change its report.
-The packet routes that exact file or carries the complete labeled inline
-result; when no existing artifact kind fits, keep the complete result inline.
-A label alone is not a readable evidence location. Root synthesis
-belongs in `Review context` or the existing root decisions and never replaces
-or inherits the identity of the producer's report. If the original result
-cannot be recovered, disclose the missing evidence instead of reconstructing it
-as a producer result. These copies use the existing task-private lifecycle.
+When an inline producer result must survive task setup for a named consumer,
+copy its complete body as received into the next matching artifact kind,
+keeping its label and inspected revision; publication metadata identifies the
+producer without changing the report. If no artifact kind fits, keep the
+complete result inline. The packet routes that exact file or carries the
+complete labeled inline result; a label alone is not a readable evidence
+location. Root
+synthesis belongs in `Review context` or root decisions and never replaces or
+inherits the identity of a producer report. An unrecoverable original is
+disclosed as missing evidence, never reconstructed. These copies follow the
+task-private lifecycle.
 
 Every packet carries capability, explicit authority, worktree, exact target
-artifact IDs and roles, stop conditions, current revision, accepted finding
-IDs, and only the new context delta. An implementation-review packet also
-carries every exact `repository-context` and `context-delta` required by the
-approved overview and current phase, or each complete inline fallback with its
-stable label and revision. Initial repository context also carries
-its minimum objective and focused questions. Later agents read objective,
-scope, acceptance, verification, plan details, and findings directly from named
-documents. A changed HEAD invalidates only affected evidence.
+artifact IDs and roles, stop conditions, current revision, accepted finding IDs
+and only the new context delta. An implementation-review packet also carries
+every `repository-context` and `context-delta` required by the overview and
+current phase, or each complete inline fallback with its label and revision.
+Initial repository context also carries its minimum objective and focused
+questions. Later agents read objective, scope, acceptance, verification and
+findings from the named documents. A changed HEAD invalidates only affected
+evidence.
 
-Load shared instructions once per available context and read only sections
-needed for the checkpoint; reread when the source changed or the relevant
-context is no longer available. Consume a delegated investigation rather than
-repeating it. Reopen source for a named unresolved question or independent
-judgment, not to observe progress. Reports keep enough evidence to establish
-their outcome, while citing exact prior evidence for unchanged facts. A delta
-report names its prior report, current revision, affected findings and new
-verification; it does not replay the full history. Keep raw logs and large
-fingerprint tables in the named evidence location instead of duplicating them
-in packets, reports and the root's response. An inline publication fallback
-must still contain the complete substantive result.
+Load shared instructions once per available context and read only the sections
+the checkpoint needs; reread when the source changed or the context is gone.
+Consume delegated investigation rather than repeating it, and reopen source
+only for a named question or independent judgment, not to observe progress.
+Reports keep enough evidence to establish their outcome and cite prior
+evidence for unchanged facts; a delta report names its prior report, revision,
+affected findings and new verification. Keep raw logs and large tables in the
+named evidence location, not in packets, reports or the root's response. An
+inline fallback still contains the complete result.
 
-Conventional artifact kinds are `repository-context`, `context-delta`,
-`plan-overview`, `plan-phase`, `plan-review`, `implementation-report`,
-`verification-report`, `implementation-review`, `debugging-report`, and
-`pr-review` only when PR analysis has a semantic downstream consumer. Corrected
-overview or phase documents are complete immutable replacements. Current
-membership is selected only by exact packet or manifest IDs, never timestamp or
-list order. Start, final, commit, push, check, and merge facts do not receive
-semantic artifacts.
+Conventional kinds are `repository-context`, `context-delta`, `plan-overview`,
+`plan-phase`, `plan-review`, `implementation-report`, `verification-report`,
+`implementation-review`, `debugging-report`, and `pr-review` only when PR
+analysis has a semantic downstream consumer. Corrected overview or phase
+documents are complete immutable replacements, and current membership is
+selected only by exact packet or manifest IDs. Start, final, commit, push,
+check and merge facts get no semantic artifacts.
 
 ### Material context discovery and promotion
 
@@ -1950,32 +1837,33 @@ the report.
 ## Review policy
 
 Every phase is accepted only after one current independent code review of its
-exact revision; no phase is accepted on implementation checks alone. Local
-integration and PR delivery also require an independent review of the exact
-terminal revision before their delivery mutation or clean result. The first
-review completes the entire bounded target and returns all known material
-findings together. Later reviews inspect only the meaningful delta and
-interactions affected by accepted fixes.
+exact revision, never on implementation checks alone; local integration and PR
+delivery also need an independent review of the exact terminal revision before
+their mutation or clean result. The first review covers the whole bounded
+target and returns all known material findings; later reviews inspect only the
+meaningful delta and interactions affected by accepted fixes.
 
-Review mandates lead with the intended outcome and readable producer evidence.
-Author-supplied concerns are explicitly non-exhaustive prompts within the
-bounded target, not the review's agenda or a narrower scope.
+Mandates lead with the intended outcome and readable producer evidence; author
+concerns are non-exhaustive prompts, never the agenda or a narrower scope.
 Every plan, decision, architecture, implementation and PR review starts with
 the counterexample question, which belongs to the reviewer role and no packet
-can omit or narrow:
-which states, reachable through each listed writer and through sequences of
-operations the system already permits, make the plan or diff yield a wrong
-result, and would the planned or changed checks fail on them? A writer missing
-from `State writers`, or an acceptance value only the mechanism justifies, is a
-finding. Root-supplied exclusions bound edits, not scenarios; a counterexample
-inside a user exclusion is reported for authority disposition, and excluded
-sources stay unread.
-Plan, decision and implementation reviews distinguish producer results they
-read from author summaries. A named material producer result that is unreadable
-or supplied only as a summary belongs in the existing evidence gaps, with the
-affected judgment. Apply shared "Behavioral verification" when accepting a
-consequential expected result and cite its basis in the report's existing
-context basis or an affected finding's rationale.
+can omit or narrow: which states, reachable through each listed writer and
+through sequences of operations the system already permits, make the plan or
+diff yield a wrong result, and would the planned or changed checks fail on
+them? A writer missing from `State writers`, or an acceptance value only the
+mechanism justifies, is a finding. Root-supplied exclusions bound edits, not
+scenarios. A counterexample whose correction stays within the reviewed change's
+allowed scope is an in-scope finding even when an excluded operation or writer
+produced its state; deciding how the reviewed change handles reachable state is
+not an excluded policy change. Only a counterexample whose every correction
+requires editing excluded scope, or whose expected result the approved outcome
+and `Outcome invariants` leave undetermined, is reported for root disposition
+under "Context and planning" step 12. No reachable counterexample is dismissed
+silently, and excluded sources stay unread. Reviews distinguish producer
+results they read from author summaries; a material producer result that is
+unreadable or only summarized is an evidence gap with its affected judgment.
+Accepting a consequential expected result applies "Behavioral verification"
+and cites its basis.
 
 The root may add an optional second plan or decision reviewer, using
 `independent_review`, when a named measurable risk and an independently
@@ -1986,57 +1874,41 @@ candidate and producer evidence. The second review never narrows the first
 review's target or duplicates a gate under "Engineering guidance and evidence";
 it may run in parallel with a distinct publication target, and the root keeps
 findings separate until both handoffs. Corrections reuse each affected reviewer
-under the meaningful-delta rules.
-The root resolves findings under "Context and planning" within the authority
-limits of shared "Decision evidence". The selected tier and configured matrix
+under the meaningful-delta rules. The root resolves findings under "Context and
+planning" within the authority limits of "Decision evidence"; tier and matrix
 row still apply.
 
 Implementation review follows approved user intent, material project
-guardrails, current source and diff, and verification evidence in that order.
-A root packet cannot reorder that priority or exempt an accepted mechanism from
-independent judgment. Authority-based finding dispositions by the root or
-reviewer follow shared "Decision evidence"; phase acceptance alone does not
-establish that an unpresented consequence was authorized.
-It records only the exact context basis actually used. Context evidence must
-name its review use; a discovery or blocker must name the affected material
-judgment and current-task consumer. Incidental stale information is omitted. A
-stale descriptive fact may become an authorized documentation correction only
-after decision-changing independent validation; normative intent is never
-silently rewritten to match current implementation.
+guardrails, current source and diff, and verification evidence, in that order;
+no packet reorders it or exempts an accepted mechanism. Authority-based
+dispositions follow "Decision evidence"; phase acceptance does not establish
+that an unpresented consequence was authorized. The review records only the
+context basis actually used; context evidence names its review use, and a
+discovery or blocker names the affected judgment and current-task consumer.
+Incidental stale information is omitted. A stale descriptive fact becomes a
+documentation correction only after decision-changing independent validation;
+normative intent is never rewritten to match current implementation.
 
-Automatically fix findings that demonstrate:
+Automatically fix findings that demonstrate incorrect behavior or unmet acceptance; security,
+privacy or data-integrity risk; likely regression; unsafe error handling or
+concurrency; a maintainability defect likely to cause incorrect behavior;
+missing verification of important behavior; or unnecessary scope, duplication
+or fragile tests with a demonstrated maintenance cost ("Change quality",
+"Behavioral verification"). Do not cycle on formatter-covered style,
+speculative architecture without a failure mode, unrelated cleanup, scope
+expansion disguised as review, or restated rejected suggestions.
 
-- incorrect behavior or unmet acceptance criteria;
-- security, privacy, or data-integrity risk;
-- likely regression;
-- unsafe error handling or concurrency;
-- a maintainability defect likely to cause future incorrect behavior;
-- missing verification for important behavior;
-- unnecessary changed scope, duplication or fragile tests with a demonstrated
-  maintenance cost, using shared "Change quality" and "Behavioral verification".
+Judge a suggestion by its acceptance, correctness or maintenance impact, not
+its label or editing cost. Group accepted in-scope corrections per owner and
+explicitly defer or reject the rest when delivery depends on it. A false
+authorization claim in documentation is not cosmetic. Changed tests or
+instructions also need affected checks and delta review. Do not reopen
+unaffected evidence or loop on pure preference.
 
-Do not cycle on:
-
-- personal style preference already covered by formatter/linter;
-- speculative architecture without a concrete failure mode;
-- unrelated cleanup;
-- scope expansion disguised as review;
-- repeated restatements of an already rejected suggestion.
-
-Assess a suggestion by its concrete acceptance, correctness or maintenance
-impact, not its label or low editing cost. Group accepted in-scope corrections
-for the same owner; explicitly defer or reject the rest when their disposition
-matters to delivery. A false authorization claim in documentation is not merely
-cosmetic because it is outside production code. Changed tests or instructions
-also need the affected checks and meaningful delta review; a production-only
-review rule would leave their evidence stale. Do not reopen unaffected evidence
-or run a full correction loop for pure preference.
-
-When the review packet names a frozen user-preview revision, do not treat
-taste or cosmetic preference as a required finding. Bugs, accessibility,
-regressions, and defect-prone complexity remain in scope. A defect that
-forces a constrained visual change enables a short re-inspection rather than
-reopening taste.
+With a frozen user-preview revision, taste and cosmetic preference are not
+required findings; bugs, accessibility, regressions and defect-prone
+complexity remain. A defect forcing a constrained visual change enables a
+short re-inspection, not reopened taste.
 
 ### Mechanical release metadata
 
@@ -2057,151 +1929,100 @@ to replace the completed plan's terminal revision with an unreviewed commit.
 
 ## Task checkout and branch
 
-Every formal Orchestra task normally uses a fresh `orchestra/<task-slug>[-N]`
-branch. An initiative child may adopt a clean isolated host-supplied checkout
-and owned non-base task branch after verifying repository identity, exact
-approved captured base/HEAD and no other writer. Detached HEAD or the base
-branch in a clean isolated host-owned environment gets one collision-free task
-branch at that exact approved revision. Unexpected commits, even descendants,
-require reconciliation before mutation; preserve them and report the mismatch.
-The parent can direct safe selection of the approved revision or accept a new
-captured base under the existing focused context-delta rule. Do not reset unknown
-work. If host metadata and actual branch disagree, establish how resume and
-publication use the branch before changing it; do not invent a metadata API.
-
-Record the checkout creator and branch in existing plan Decisions. Exactly one
-owner creates/adopts the checkout; never create a redundant worktree. A child
-launched from a shared primary directory must establish its isolated managed
-checkout before any source, plan or task-state writes, then use it exclusively.
-An explicitly shared-checkout choice instead serializes conflicting writers.
-Supplied task branches are not the integration base; use managed semantics.
-If the supplied branch is outside `orchestra/*`, declare before setup that optional
-Coordinator registration and its Hub projection are skipped; use the child plan
-and parent register for visibility. If that projection is required, select an
-owned `orchestra/*` branch in the same checkout before registration; never
-silently lose a required card's identity.
-
-For a host-owned managed checkout, pass `--preserve-task-resources` to
-`pr.py merge` or `integrate_local.py`. It preserves the worktree and private
-evidence for host-owned release, with no policy, review, freshness or check
-waiver. PR delivery still attempts the existing SHA/lease-guarded remote-branch
-cleanup and reports moved or inaccessible refs. The checked-out local task ref
-cannot be removed yet: the helper reports verified delivery with `partial`
-cleanup and a `retained_resources` handoff. The parent records the exact local
-ref, delivered SHA and cleanup owner; after the host releases the checkout it
-uses existing guarded cleanup rules to remove only an unchanged reviewed ref.
-Do not rerun merge/integration merely to finish cleanup. Keep preserved evidence
-accessible until the parent no longer needs it. Other managed and hybrid tasks
-keep their existing cleanup.
+A formal task normally uses a fresh `orchestra/<task-slug>[-N]` branch, created
+immediately after specification confirmation; only read-only preflight and
+pre-checkout context precede it. Neither mode ever implements on the starting
+branch or on `main`.
 
 The installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` file selects
-`managed` by default or opt-in `hybrid`; an explicit task direction may override
-that value and is recorded in the approved plan. If that file is missing, read
-the Codex compatibility copy at
-`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode`. If neither file exists,
-use `managed`; loading a plugin does not create a settings file.
+`managed` (default) or opt-in `hybrid`, with fallback to
+`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode` and then `managed`; an
+explicit task direction overrides it and is recorded in the plan. Loading a
+plugin creates no settings file. Managed mode uses a dedicated worktree below
+`ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
+`$HOME/.orchestra/worktrees`, in that order. Hybrid mode creates the task
+branch from the exact captured HEAD of the current clean primary checkout or
+linked worktree.
 
-Managed mode uses a dedicated Git worktree below the effective root resolved
-from `ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
-`$HOME/.orchestra/worktrees`, in that order. Hybrid mode uses the current clean
-primary checkout or linked worktree and creates the task branch from its exact
-captured HEAD with direct Git. For a fresh task on the repository's canonical
-base branch, the root resolves its configured upstream, fetches that remote
-branch, and compares the two commits before fixing the task base. Managed mode
-creates from the fetched upstream commit without updating the local base
-checkout. Hybrid mode proceeds when the commits are equal, fast-forwards a
-strictly behind clean base with `git merge --ff-only <upstream>`, and blocks for
-a user decision when the local base is ahead or diverged. A configured upstream
-fetch failure blocks. With no remote or upstream, the root may proceed from the
-local canonical base only after identifying it as not remotely verified.
-Orchestra never runs `git pull`, creates an implicit merge, or rebases the base.
+For a fresh task on the canonical base, resolve and fetch its configured
+upstream and compare commits. Managed mode creates from the fetched upstream
+without updating the local base. Hybrid mode proceeds when equal,
+fast-forwards a strictly behind clean base with `git merge --ff-only
+<upstream>`, and blocks for a user decision when ahead or diverged. A failed
+upstream fetch blocks; with no remote or upstream, proceed from the local base
+only when identified as not remotely verified. Never `git pull`, create an
+implicit merge or rebase the base. An explicitly selected noncanonical base
+stays at its captured commit (stacking stays possible), but a PR-required task
+must first prove it remotely usable.
 
-For managed initiative setup, an explicit approved full base SHA in the parent
-packet overrides the fresh-task upstream selection above. Verify that exact commit
-is available in this repository and contained in the selected local base branch
-or its fetched upstream, then create the checkout at that SHA, not the current tip
-of a different ref. Otherwise block before creation for parent reconciliation.
-This preserves authorized local base commits without moving or rewriting the base.
+Initiative children: a child may adopt a clean isolated host-supplied checkout
+and owned non-base branch after verifying repository identity, the exact
+approved base and HEAD, and no other writer; detached HEAD or the base branch
+there gets one collision-free task branch at that revision. For managed
+initiative setup, an approved full base SHA in the parent packet overrides
+upstream selection: verify it is available here and contained in the selected local base or its fetched upstream and create the
+checkout there, or block for parent reconciliation. Before setup or refresh
+meant to publish, the base SHA must be in the fetched upstream unless the grant
+covers publishing those local-only commits; otherwise the parent reconciles
+publication scope before proceeding. This never limits an authorized
+held result or local-only integration. A child launched from a shared
+primary directory establishes its isolated checkout before any write and uses
+it exclusively; an explicit shared-checkout choice serializes writers.
+Supplied branches are not the integration base; use managed semantics. A
+supplied branch outside `orchestra/*` skips optional Coordinator registration
+and its Hub projection (declare it before setup; the child plan and parent
+register provide visibility); when that projection is required, select an
+owned `orchestra/*` branch in the same checkout before registration, never
+silently losing a required card's identity. Unexpected commits, even descendants, require reconciliation: preserve
+and report them, never reset unknown work. The parent may direct safe
+selection of the approved revision or accept a new captured base through a
+focused context delta. When host metadata and the actual
+branch disagree, establish how resume and publication use the branch first;
+do not invent a metadata API.
 
-Before setup or refresh intended to publish a task branch, also require the
-approved base SHA to be contained in its selected fetched upstream, unless the
-existing grant explicitly covers publishing the included local-only base commits.
-Otherwise the parent reconciles that publication scope before proceeding. A grant
-to push the task branch does not silently publish unrelated private base history.
-This does not restrict an authorized held result or local-only integration.
+Exactly one owner creates or adopts the checkout, recorded with the branch in
+plan Decisions; never create a redundant worktree. Before the first dispatch
+into it, write and remove one canary file there (creating the managed
+repository directory first); failure blocks with exact path and environment
+evidence. A failed `git worktree add` gets one inspection of branch, path and
+error, then blocks. Active tasks outside the configured root are not migrated.
 
-An explicitly selected noncanonical base remains at its captured commit, so
-stacked work stays possible; a PR-required task must still prove that selected
-base is remotely usable before task mutation.
-Neither mode ever implements on the starting branch or directly on `main`.
+The root keeps checkout mode and path, starting branch and HEAD, task branch,
+resource ownership, base and revision, and authorized preexisting changes in
+transient context, with no classifier or registry. Fresh tasks start at the
+intended committed base; adopted committed work starts at the source HEAD and
+keeps the integration base. Scoped dirty adoption imports selected
+non-ignored paths through `adopt_worktree.py` (content may stay unstaged);
+ambiguous dirty ownership blocks. When the fetched base changes an adopted
+prepared card's revision, request only a focused `repository_context` delta
+and reopen confirmation only for a material change.
 
-Codex synchronization reads `codex --version` before mutation and requires
-Codex 0.146.0 or later. It installs exactly one modern configuration:
-`default_permissions = ":workspace"`, `approval_policy = "on-request"`, and
-`approvals_reviewer = "auto_review"`. No legacy sandbox mode, custom permission
-profile, workspace-root list, execpolicy rule, or Git helper is installed.
-Older or unreadable clients block before any destination changes. Historical
-manifest-owned Full Access or legacy blocks migrate atomically; `uninstall`
-remains version-independent and restores the exact prior configuration.
-Cursor, Grok, and Devin synchronization never write those Codex permission
-keys or Grok or Devin permission configuration.
+Reuse is allowed only for the same live pre-approval task, or when plan,
+objective, checkout mode and path, starting identity, task branch, base and
+HEAD all identify the same resumed task; missing or conflicting identity
+blocks. A legacy plan with a retired environment field blocks automatic resume
+unless it already identifies the exact sibling worktree and the user
+authorizes adoption.
 
-Native host chats inherit their configured permission choice; Task Control
-never launches an execution host or supplies a permission override. Explicit
-host choices remain authoritative and Orchestra does not reject or rewrite
-them. When Codex Guardian is active, protected shared
-Git metadata remains outside the workspace boundary, so the root issues the
-exact direct Git operation once with a narrow escalation for automatic review.
-A denial is not bypassed or converted to Full Access.
-
-Checkout creation happens immediately after specification confirmation; only
-read-only preflight and read-only pre-checkout context work precede it. Before
-the first capability dispatch into the task checkout, the root writes and
-removes one temporary canary in the selected checkout location (creating the
-managed repository directory first when applicable). A failure blocks the task
-with exact path and environment evidence. Existing
-active tasks outside the configured root are not migrated automatically. If
-`git worktree add` fails, the root inspects the exact branch, path, and Git error
-once and blocks before capability dispatch.
-
-The root records checkout mode, checkout path, starting branch and HEAD, task
-branch, resource ownership, base branch and revision, and any authorized
-preexisting changes in transient context. It
-creates no classifier, registry, or additional workflow state. Fresh tasks
-start at the intended committed base revision. Adopted committed work starts at
-the adopted source HEAD while retaining the integration base. Scoped dirty
-adoption imports selected non-ignored paths through `adopt_worktree.py`;
-imported content may remain unstaged. Ambiguous dirty ownership always blocks.
-When fetching the canonical base changes the revision of an adopted prepared
-Kanban task, the root requests only a focused `repository_context` delta from
-the prepared revision to the fetched revision. It reopens specification
-confirmation only when that delta materially changes the confirmed objective,
-behavior, constraints, acceptance, exclusions, decisions, or open questions.
-
-Reuse is allowed only for the same live pre-approval task or when the approved
-local plan, objective, checkout mode/path, starting identity, task branch, base,
-and HEAD all identify the
-same resumed task. Missing or conflicting identity blocks reuse. A legacy plan
-with a retired environment field blocks automatic resume unless the root
-verifies that it already identifies the exact sibling task worktree and the
-user authorizes adoption. Preapproval cancellation never discards unique work
-and removes only proven-clean task resources.
-
-After authorized integration or merge, managed cleanup removes the exact
-worktree-local `.orchestra/` state before removing the clean task worktree and
-safe branches. Hybrid cleanup restores the unchanged starting branch, preserves
-the user/host-owned checkout, and removes only the guarded Orchestra task branch
-and its worktree-local state. Hold and an open PR intentionally retain the
-selected checkout state and task branch. Preapproval cancellation uses the same
-state helper and never recursively deletes an unrecognized directory.
-
-Dirty, moved, ambiguous, or unverified resources are never removed. Cleanup
-after a completed mutation returns `partial` for resources that could not be
-cleaned safely.
-Because `.orchestra/` is intentionally ignored, an explicit user-run
-`git clean -x` may remove it; Orchestra never runs that destructive clean, and
-a missing approved plan blocks automatic resume under the normal reconciliation
-rules.
+After authorized integration or merge, managed cleanup removes the
+worktree-local `.orchestra/` state, then the clean worktree and safe branches;
+hybrid cleanup restores the unchanged starting branch, keeps the user's
+checkout and removes only the guarded task branch and its state. Hold and an
+open PR retain checkout and branch. For a host-owned managed checkout, pass
+`--preserve-task-resources` to `pr.py merge` or `integrate_local.py`: it keeps
+worktree and evidence for host release with no policy, review, freshness or
+check waiver; PR delivery still attempts guarded remote-branch cleanup and
+reports moved or inaccessible refs, and the helper reports verified delivery
+with `partial` cleanup and `retained_resources`. The parent records
+the local ref, delivered SHA and cleanup owner and, after release, removes only
+an unchanged reviewed ref without rerunning delivery, keeping preserved
+evidence accessible until it no longer needs it. Pre-approval
+cancellation uses the state helper, removes only proven-clean resources and
+never recursively deletes an unrecognized directory.
+Dirty, moved, ambiguous or unverified resources are never removed; cleanup
+after a completed mutation reports `partial` for them. Orchestra never runs
+`git clean -x`; if a user's clean removes `.orchestra/`, the missing plan
+blocks automatic resume.
 
 ## Agent waiting
 
@@ -2524,26 +2345,29 @@ harness remain deferred.
 ## User-facing progress and handoff
 
 Report only material phase transitions, findings or decisions, blockers, fresh
-verification results, and authority requests. Each update states current state,
-user-visible result or evidence, and next action without routine agent/model
-plumbing. At completion, distinguish implementation-complete from delivered and
-state the result location, how to run or demonstrate it, verification performed,
-safe test data, limitations, exact delivery state, and the next authority needed.
-An attached card uses its canonical identity from the Tasks companion; a direct
-task uses its repository and human title without inventing a card ID.
+verification results and authority requests. Each update states current state,
+user-visible result or evidence, and next action. Describe behavior and
+decisions; mention process facts (tier, model assignment, checkout, branch,
+registration, service stacks, agent plumbing) only when they need a user
+decision, block progress, or another rule requires their disclosure
+(completion handoff, unverified base, skipped registration, resume status,
+partial cleanup). At completion, distinguish implementation-complete
+from delivered and state the result location, how to run or demonstrate it,
+verification performed, safe test data, limitations, exact delivery state and
+the next authority needed. An attached card uses its canonical identity from
+the Tasks companion; a direct task uses its repository and human title without
+inventing a card ID.
 
-For user explanations, the root distinguishes verified facts, supported
-inference, and uncertainty, and uses an available visualization capability only
-when a complex sequence, hierarchy, comparison, or mapping becomes materially
-easier to understand. Simple explanations remain concise prose and an
-unavailable visualization capability never blocks progress. Delegated agents
-report evidence to the root and do not create user-facing visualizations.
+Explanations distinguish verified facts, supported inference and uncertainty,
+and use an available visualization only when a complex sequence, hierarchy,
+comparison or mapping becomes materially clearer; an unavailable capability
+never blocks. Delegated agents report to the root and create no user-facing
+visualizations.
 
-A question whose answer is required to continue uses `request_user_input`
-without `autoResolutionMs` when the tool is available and remains open until
-the user responds. If the tool is not available or does not return a usable
-selection, ask one concise plain-text question in the final response and wait
-for the user without retrying the selector. Automatic resolution is reserved
-for explicitly informational, non-blocking questions whose timeout can safely
-accept the recommended default. This rule does not change command, test, or
-host-wait timeouts.
+A question required to continue uses `request_user_input` without
+`autoResolutionMs` when available and stays open until the user answers. If
+the tool is unavailable or returns no usable selection, ask one concise
+plain-text question in the final response and wait, without retrying the
+selector. Automatic resolution is only for informational, non-blocking
+questions whose timeout can safely accept the recommended default. This does
+not change command, test or host-wait timeouts.

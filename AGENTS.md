@@ -80,7 +80,9 @@ neither activates the full workflow. Legacy helpers (`commitbot`, `prbot`,
   plane, or workflow state engine.
 - Every test proves observable acceptance or a named regression risk; tests pin
   structure and invariants, never prose wording.
-- Prefer deletion and direct code over compatibility layers.
+- Prefer deletion and direct code over compatibility layers; workflow changes
+  are net-deleting unless a demonstrated failure or reproducible risk requires
+  growth.
 
 Before accepting a mechanism, name its consumer, the demonstrated failure or
 reproducible risk it addresses, why an existing primitive is insufficient, its

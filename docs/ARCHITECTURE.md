@@ -415,7 +415,7 @@ host-neutral. Each execution host supplies only spawn/wait/close, the model
 matrix, conversation identity, permissions, and `browser_route`.
 
 The root detects the host and resolves its native transport as specified in
-WORKFLOW "Orchestrator behavior" and the host spawn reference. An explicit
+WORKFLOW "Host adapters" and the host spawn reference. An explicit
 CLI executor does not change the owning host. Codex keeps
 `fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
 phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
