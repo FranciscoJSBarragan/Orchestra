@@ -44,7 +44,9 @@ ask the root to restate them. For `frontend_implementation`, also read
    before adding a new file or helper. Build earlier states through the real
    operation that creates them (the plan's `State writers`), not hand-made
    rows. Do not assert a value only your mechanism computes, and skip
-   redundant, count-driven or implementation-coupled tests.
+   redundant, count-driven or implementation-coupled tests. Keep added test
+   code close to the size of the production change; when an invariant truly
+   needs more, say which one in the report.
 
 5. **Run every required check.** Affected tests, lint, type checks, builds,
    validation commands, the canonical full suite and each repository hard
