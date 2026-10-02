@@ -108,7 +108,8 @@ actionable finding's severity, causal rationale, evidence and locator, and
 correction rationale in the inline result; state the review basis and any
 missing evidence. In `orchestra_phase` mode, return the complete
 `plan-review`, `implementation-review`, or `pr-review` ID with stable finding
-IDs, context basis, evidence gaps, rejected feedback, diagnostics, and prior
+IDs, context basis, evidence gaps, rejected feedback, `Dismissed
+counterexamples` under WORKFLOW "Review policy", diagnostics, and prior
 finding dispositions as applicable. Publication and inline fallback follow
 shared conduct. Authority-based finding dispositions follow WORKFLOW
 "Review policy".

@@ -1193,11 +1193,14 @@ After explicit activation in an execution-capable mode:
     requested outcome (narrowing, exclusion, exception, changed user-visible
     amount or behavior, new user-facing consequence, including effects on
     indirect consumers whose files are not edited), each with its consequence
-    and recorded in Decisions or Risks. A native selector that shows this
-    content suffices. Ordinary technical conditions are not outcome
+    and recorded in Decisions or Risks. Each `Dismissed counterexamples`
+    entry whose effect changes a user-visible result is asked as a question
+    with the recommended reading, unless an earlier user answer already
+    settles it; technical-only entries stay root decisions. A native selector
+    that shows this content suffices. Ordinary technical conditions are not outcome
     exceptions; unchanged requirements and reversible technical decisions are
-    not reconfirmed, and the disclosure adds no gate. A multi-phase bundle names, one line per extra phase,
-    the step 10 boundary it buys.
+    not reconfirmed, and the disclosure adds no gate. A multi-phase bundle
+    names, one line per extra phase, the step 10 boundary it buys.
 
 Every planning, implementation, review, verification, plan and commit
 operation uses the exact selected task checkout. Managed mode leaves the base
@@ -1866,7 +1869,10 @@ not an excluded policy change. Only a counterexample whose every correction
 requires editing excluded scope, or whose expected result the approved outcome
 and `Outcome invariants` leave undetermined, is reported for root disposition
 under "Context and planning" step 12. No reachable counterexample is dismissed
-silently, and excluded sources stay unread. Reviews distinguish producer
+silently, and excluded sources stay unread. Every reachable counterexample a
+review does not raise as a finding is listed under `Dismissed
+counterexamples` with its user-visible effect, if any, and the reason it was
+not raised. Reviews distinguish producer
 results they read from author summaries; a material producer result that is
 unreadable or only summarized is an evidence gap with its affected judgment.
 Accepting a consequential expected result applies "Behavioral verification"
