@@ -1169,8 +1169,8 @@ After explicit activation in an execution-capable mode:
     alone never create the gate. Prefer a bounded authorized experiment when
     it settles an empirical question. A critical plan always gets a focused
     review naming its measurable risk, evidence, affected area and detectable
-    defect class. Every plan or decision review starts with the counterexample
-    question in "Review policy", then asks whether fewer phases or a smaller
+    defect class. Every plan or decision review follows the reviewer role
+    skill: counterexamples first, then whether fewer phases or a smaller
     mechanism preserves the approved result. Collapsing phases that name no
     step 10 boundary is a root correction: the root writes the single-phase
     plan directly instead of opening a review cycle for it.
@@ -1853,30 +1853,14 @@ their mutation or clean result. The first review covers the whole bounded
 target and returns all known material findings; later reviews inspect only the
 meaningful delta and interactions affected by accepted fixes.
 
-Mandates lead with the intended outcome and readable producer evidence; author
-concerns are non-exhaustive prompts, never the agenda or a narrower scope.
-Every plan, decision, architecture, implementation and PR review starts with
-the counterexample question, which belongs to the reviewer role and no packet
-can omit or narrow: which states, reachable through each listed writer and
-through sequences of operations the system already permits, make the plan or
-diff yield a wrong result, and would the planned or changed checks fail on
-them? A writer missing from `State writers`, or an acceptance value only the
-mechanism justifies, is a finding. Root-supplied exclusions bound edits, not
-scenarios. A counterexample whose correction stays within the reviewed change's
-allowed scope is an in-scope finding even when an excluded operation or writer
-produced its state; deciding how the reviewed change handles reachable state is
-not an excluded policy change. Only a counterexample whose every correction
-requires editing excluded scope, or whose expected result the approved outcome
-and `Outcome invariants` leave undetermined, is reported for root disposition
-under "Context and planning" step 12. No reachable counterexample is dismissed
-silently, and excluded sources stay unread. Every reachable counterexample a
-review does not raise as a finding is listed under `Dismissed
-counterexamples` with its user-visible effect, if any, and the reason it was
-not raised. Reviews distinguish producer
-results they read from author summaries; a material producer result that is
-unreadable or only summarized is an evidence gap with its affected judgment.
-Accepting a consequential expected result applies "Behavioral verification"
-and cites its basis.
+How to review (counterexamples first, what counts as a finding, the scope of
+exclusions, `Dismissed counterexamples` and the report) is defined only by the
+reviewer role skill, which no packet can omit or narrow. A review packet names
+the target, revision, producer evidence to read in full, quoted user outcome,
+artifacts directory, accepted finding IDs and any exclusions; it does not send
+the reviewer to WORKFLOW sections. Author concerns in a packet are
+non-exhaustive prompts, never the agenda or a narrower scope. The root uses
+`Dismissed counterexamples` at approval under "Context and planning" step 13.
 
 The root may add an optional second plan or decision reviewer, using
 `independent_review`, when a named measurable risk and an independently

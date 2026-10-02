@@ -4,9 +4,11 @@ Before any authorized source write, apply [Source comments](architecture_guidanc
 This applies even when no other engineering section is relevant; it never grants
 write authority to a read-only role.
 
-Every Orchestra role reads this contract before its role skill. It supplies
-the common assignment, authority, evidence, cleanup, report, and stop rules;
-role skills add only capability-specific behavior.
+The analyst, implementer and verifier roles read this contract before their
+role skill. It supplies the common assignment, authority, evidence, cleanup,
+report, and stop rules; role skills add only capability-specific behavior. The
+reviewer role skill is self-contained and names this file only for cleanup and
+publication details.
 
 ## Operating-mode router
 

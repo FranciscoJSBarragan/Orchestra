@@ -85,7 +85,7 @@ conditions; it does not replay the workflow.
 | `difficult_debugging` | `orchestra_analyst` | [difficult debugging](references/difficult_debugging.md) |
 | `general_implementation` | `orchestra_implementation_worker` | role skill and applicable shared engineering guidance |
 | `frontend_implementation` | `orchestra_implementation_worker` | [frontend implementation](references/frontend_implementation.md) |
-| `independent_review` | `orchestra_reviewer` | role skill and applicable [shared engineering guidance](references/architecture_guidance.md) |
+| `independent_review` | `orchestra_reviewer` | the self-contained role skill only |
 | `browser_acceptance` | `orchestra_verifier` | [browser acceptance](references/browser_acceptance.md) |
 | `runtime_verification` | `orchestra_verifier` | [runtime verification](references/runtime_verification.md) |
 
