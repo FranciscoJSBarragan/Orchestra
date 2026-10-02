@@ -423,7 +423,7 @@ or infer that installing a plugin provides unavailable host tools.
 
 Choose exactly one checkout creator/owner: the native task transport or the
 child's normal setup. A clean host-supplied isolated checkout may be adopted
-under "Task checkout and branch". Never let both create worktrees. For a project
+under "Child root setup". Never let both create worktrees. For a project
 with several mutable repositories, assign separate checkouts/owners or explicitly
 serialize writes; load each repository's relevant instructions. Do not run two
 writers in one checkout. Same-repository parallel tasks need separate owned
@@ -493,6 +493,41 @@ contract/integration consequences rather than repeating unchanged local code
 reviews. Completion requires joint acceptance and honest delivery state, not a
 list of successful child messages. Merge, push, release and deployment remain
 separately scoped actions under the existing delivery policy.
+
+### Child root setup
+
+An explicitly coordinated child root first resolves inherited approval and the
+supplied checkout through this section and the checkout rules below, reusing
+settled scope, tier and authority instead of presenting them as new decisions.
+Its investigation-only grant runs the read-only steps and returns at
+specification confirmation (or the combined candidate); it never reaches task
+setup or execution without that authority. Pending tier selection follows the
+analysis-resource rule in "Initiative coordination".
+
+A child may adopt a clean isolated host-supplied checkout and owned non-base
+branch after verifying repository identity, the exact approved base and HEAD,
+and no other writer; detached HEAD or the base branch there gets one
+collision-free task branch at that revision. For managed initiative setup, an approved
+full base SHA in the parent packet overrides upstream selection: verify it is
+available here and contained in the selected local base or its fetched upstream
+and create the checkout there, or block for parent reconciliation. Before setup
+or refresh meant to publish, the base SHA must be in the fetched upstream
+unless the grant covers publishing those local-only commits; otherwise the
+parent reconciles publication scope before proceeding. This never limits an
+authorized held result or local-only integration. A child launched from a
+shared primary directory establishes its isolated checkout before any write and
+uses it exclusively; an explicit shared-checkout choice serializes writers.
+Supplied branches are not the integration base; use managed semantics. A
+supplied branch outside `orchestra/*` skips optional Coordinator registration
+and its Hub projection (declare it before setup; the child plan and parent
+register provide visibility); when that projection is required, select an owned
+`orchestra/*` branch in the same checkout before registration, never silently
+losing a required card's identity. Unexpected commits, even descendants,
+require reconciliation: preserve and report them, never reset unknown work. The
+parent may direct safe selection of the approved revision or accept a new
+captured base through a focused context delta. When host metadata and the
+actual branch disagree, establish how resume and publication use the branch
+first; do not invent a metadata API.
 
 ### Cross-environment acceptance
 
@@ -883,8 +918,9 @@ Orchestra works without Orchestra Tasks. Do not discover its installation, run
 its helpers or publish global snapshots for ordinary direct tasks. An explicitly
 tracked direct run may use its observation path without becoming a card.
 
-A plan with `origin: prepared-card` retains the exact existing `kanban_uuid`,
-`kanban_short_id` and `kanban_title`. This is an attached card, never a direct
+A plan with `origin: prepared-card` retains the exact `kanban_uuid`, canonical
+`kanban_short_id` and confirmed `kanban_title` from `task adopt`; resume
+requires all three to match. This is an attached card, never a direct
 task merely because its companion is unavailable. Load the host-selected
 `orchestra-task` skill and its own runtime mapping. Do not resolve it relative
 to the core bundle, use a different installed copy, or persist cache paths.
@@ -1020,13 +1056,7 @@ not updated for such a change. Structural invariants the matrices must keep:
 
 ## Context and planning
 
-An explicitly coordinated child root first resolves inherited approval and the
-supplied checkout through "Initiative coordination" and "Task checkout and
-branch", reusing settled scope, tier and authority instead of presenting them
-as new decisions. Its investigation-only grant runs the read-only steps and
-returns at specification confirmation (or the combined candidate); it never
-reaches task setup or execution without that authority. Pending tier selection
-follows the analysis-resource rule in "Initiative coordination".
+An initiative child root first applies "Child root setup".
 
 After explicit activation in an execution-capable mode:
 
@@ -1254,10 +1284,8 @@ new quoted entry naming the one it supersedes, whose overview remains
 immutable evidence. Consumers reach quotes through the overview ID or
 `plan.md`; packets do not replay conversations.
 
-Task identity records `origin: prepared-card` with the exact `kanban_uuid`,
-canonical `kanban_short_id` and confirmed `kanban_title` from `task adopt`
-(resume requires all three to match), or `origin: direct` without Kanban fields
-or a short ID.
+Task identity records `origin: direct`, without Kanban fields or a short ID,
+or `origin: prepared-card` under "Attached Tasks companion".
 
 Statuses are `active` (executing after approval), `blocked` (stopped at a named
 blocker and next action; a `user_preview` pause uses it) and `completed`
@@ -1952,30 +1980,7 @@ implicit merge or rebase the base. An explicitly selected noncanonical base
 stays at its captured commit (stacking stays possible), but a PR-required task
 must first prove it remotely usable.
 
-Initiative children: a child may adopt a clean isolated host-supplied checkout
-and owned non-base branch after verifying repository identity, the exact
-approved base and HEAD, and no other writer; detached HEAD or the base branch
-there gets one collision-free task branch at that revision. For managed
-initiative setup, an approved full base SHA in the parent packet overrides
-upstream selection: verify it is available here and contained in the selected local base or its fetched upstream and create the
-checkout there, or block for parent reconciliation. Before setup or refresh
-meant to publish, the base SHA must be in the fetched upstream unless the grant
-covers publishing those local-only commits; otherwise the parent reconciles
-publication scope before proceeding. This never limits an authorized
-held result or local-only integration. A child launched from a shared
-primary directory establishes its isolated checkout before any write and uses
-it exclusively; an explicit shared-checkout choice serializes writers.
-Supplied branches are not the integration base; use managed semantics. A
-supplied branch outside `orchestra/*` skips optional Coordinator registration
-and its Hub projection (declare it before setup; the child plan and parent
-register provide visibility); when that projection is required, select an
-owned `orchestra/*` branch in the same checkout before registration, never
-silently losing a required card's identity. Unexpected commits, even descendants, require reconciliation: preserve
-and report them, never reset unknown work. The parent may direct safe
-selection of the approved revision or accept a new captured base through a
-focused context delta. When host metadata and the actual
-branch disagree, establish how resume and publication use the branch first;
-do not invent a metadata API.
+Initiative child checkouts follow "Child root setup".
 
 Exactly one owner creates or adopts the checkout, recorded with the branch in
 plan Decisions; never create a redundant worktree. Before the first dispatch

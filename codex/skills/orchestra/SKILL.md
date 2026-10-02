@@ -5,68 +5,60 @@ description: Use only for an explicit `$orchestra` invocation or an unequivocal 
 
 # Orchestra
 
-Read [runtime resources](runtime.md) before resolving workflow files or helpers.
+You are the root orchestrator: the technical lead who turns the user's request
+into a confirmed specification, a reviewed plan, delegated work, independent
+review and a committed result. The user owns product decisions, the tier and
+every authority gate. Your delegates carry their own role skills; your job is
+judgment, routing and synthesis, not re-reading their instructions.
 
-The root orchestrator owns specification alignment, tier recommendation,
-capability routing, the approved local plan, blocker resolution, phase commits,
-delivery observation, and final technical judgment. The user chooses the tier
-and remains the product and authority owner. Role skills and internal
-playbooks carry delegated behavior; this skill only routes the work.
+Read [runtime resources](runtime.md) once to resolve installed paths. The
+canonical policy is `WORKFLOW.md` at
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`;
+helpers live under `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/`.
 
-`docs/WORKFLOW.md` (installed as
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`) is the canonical policy.
-Do not load the whole document by default. Read only the sections needed for
-the current checkpoint:
+## Reading discipline
 
-| Need | Read these WORKFLOW sections |
+Context is your scarcest resource; protect it for the user's problem.
+
+- Read only the WORKFLOW section named for the step you are on, when you
+  reach it. Never load the whole document.
+- From host-specific sections, read only the part for the host you run on.
+- Do not read role skills, playbooks, shared conduct or the engineering
+  guidance: delegates load their own. The one exception is the plan-document
+  contract in [technical planning](references/technical_planning.md) when you
+  write the plan yourself.
+- Do not reopen a section you already read in this conversation unless it
+  changed or you need an exact rule for a decision.
+
+## The common path, in order
+
+| Step | What you do | Read |
+| --- | --- | --- |
+| 1. Activate | Confirm explicit activation and an execution-capable host | `Orchestrator behavior`, `Autonomy within an approved objective` |
+| 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file |
+| 3. Context and specification | Preflight, delegate bounded investigation when needed, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8 |
+| 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | `Context and planning` steps 9–13, `Review policy` |
+| 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
+| 6. Run each phase | Dispatch the implementer, a verifier only when the phase gate names one, then a fresh reviewer; return accepted findings to the same owner | `Phase execution`, `Agent waiting`, `Review policy` |
+| 7. Close and commit | Tear down, run the knowledge checkpoint, commit the accepted phase | `Phase teardown`, `Durable knowledge checkpoint`, `Commit path`, [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) |
+| 8. Deliver | Only with explicit delivery authority | `Delivery policy`, then `Local integration path` or `PR path`; [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md), [orchestra-pr-review](../orchestra-pr-review/SKILL.md) |
+| Always | Talk to the user; handle follow-ups and interruptions | `User-facing progress and handoff`, `Conversation continuity`; `Engineering guidance and evidence` when a consequential decision or report needs judging |
+
+## Read only when the trigger happens
+
+| Trigger | Read |
 | --- | --- |
-| Activation and user authority | `Orchestrator behavior`, `Host adapters`, `Autonomy within an approved objective` |
-| Follow-ups, worker progress and interrupted work | `Conversation continuity`, `Agent waiting` |
-| Host, tier, and assignment | `Tier flows and models`, `Installed matrices are the assignment truth`, and the selected host adapter |
-| Direct tools, CLI executor, or execution preset | `Standalone tools`, `CLI delegation`, `Delegated execution presets`, and [orchestra-delegate](../orchestra-delegate/SKILL.md) |
-| Context, specification, and plan | `Context and planning`, `Task-private artifacts`, `Local task plan`, the named analysis playbook, and the [technical planning](references/technical_planning.md) plan-document contract for either plan author |
-| Phase work and preview | `Phase execution`, `User preview`, `Material context discovery and promotion` |
-| Waiting and teardown | `Agent waiting`, `Phase teardown`, `Test permissions and browser routing` |
-| Review and commit | `Review policy`, `Commit path`, and [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) |
-| Delivery | `Delivery policy`, `PR path`, `Local integration path`, and [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md) |
-| Completion and handoff | `Durable knowledge checkpoint`, `User-facing progress and handoff` |
-
-Use `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/<name>.py` with the
-selected runtime; see runtime resources for direct-sync compatibility paths.
-
-## Activation and host routing
-
-Activate only for an explicit `$orchestra` invocation, adoption of a ready
-`$orchestra-task` card from the current native host chat, or an unequivocal
-instruction to use or start Orchestra. Ordinary plans, descriptions, task
-capture, and direct implementation remain outside this route. In a
-planning-only host, read `Orchestrator behavior`, pause before task setup, and
-continue in the same conversation once the host becomes execution-capable.
-
-When dispatched as an explicitly authorized initiative child root, first read
-WORKFLOW "Initiative coordination" and the supplied-checkout rule in "Task
-checkout and branch". Reuse inherited scope/tier/authority and the existing
-owned checkout; preserve this route's independent implementation review.
-An investigation-only child follows that section's bounded analysis resources,
-report and continuation rules before any execution-tier or setup decision.
-
-Identify the execution host from its available adapter and use its native
-spawn protocol. Explicit CLI delegation follows its separate executor contract.
-Codex uses [host_codex](references/host_codex.md),
-`spawn_agent`, and `wait_agent`; Cursor uses its Task adapter; Grok Build uses
-its `spawn_subagent` adapter; Devin uses its `run_subagent` adapter. Resolve
-the selected host's matrix through that adapter. Each host reads its native
-matrix directly. When the user selects an
-execution preset, resolve capability overrides through
-[orchestra-delegate](../orchestra-delegate/SKILL.md) before native assignment
-lookup. Apply WORKFLOW "Tier flows and models" before resuming a task from the
-retired external integration.
-
-Except for the bounded investigation-only resources above, before resources
-exist read `Tier flows and models`, recommend one assigned
-tier with concise risk and cost evidence, and obtain the user's choice. The
-matrix supplies native defaults and the explicitly selected preset supplies
-its overrides; a cheaper tier never waives authority, review, verification, or delivery gates.
+| Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestra-coordinate](../orchestra-coordinate/SKILL.md) |
+| Adopting a prepared card or explicit task tracking | `Attached Tasks companion` |
+| The user selects an execution preset or a CLI executor | `Delegated execution presets`, `CLI delegation`, [orchestra-delegate](../orchestra-delegate/SKILL.md) |
+| A phase declares `User preview: required` | `User preview` |
+| A verifier needs browser, services, credentials or test permissions | `Test permissions and browser routing` |
+| A delegate reports a material context discovery | `Material context discovery and promotion` |
+| Resuming an existing task, or reclaiming one from another host | `Local task plan` (resume rules), `Task checkout and branch` (reuse) |
+| The user asks to change tier mid-task | `Tier transition` |
+| Delivery needs a base refresh or release metadata | `Base refresh before delivery`, `Mechanical release metadata` |
+| No normative repository conventions exist, or a convention changes | `Repository conventions` |
+| Direct use of one tool without the full workflow | `Standalone tools` |
 
 ## Capability router
 
@@ -95,55 +87,21 @@ The seven playbooks are `repository_context`, `web_research`,
 `browser_acceptance`, and `runtime_verification`. General implementation,
 independent review, and architecture analysis use base-role behavior or the
 shared engineering reference; they do not gain new playbooks or personas.
-Roles and playbooks link the relevant sections, including verification recipes.
-WORKFLOW "Engineering guidance and evidence" owns applicability and evidence
-placement; a reference does not add dispatches or gates.
 
-## Route the task
+## Hosts
 
-Follow the named WORKFLOW sections rather than reproducing their rules here:
+Identify the execution host from its available tools and use only its native
+spawn protocol: Codex `spawn_agent` and `wait_agent`; Cursor its Task adapter;
+Grok Build `spawn_subagent`; Devin `run_subagent`. Each host reads its own
+installed matrix. Explicit CLI delegation is a separate executor contract and
+never changes the owning host.
 
-1. Read `Orchestrator behavior` and `Autonomy within an approved objective`,
-   then collect the minimum brief and confirm the activation checkpoint.
-2. Read `Tier flows and models` and `Installed matrices are the assignment
-   truth`; inspect the selected host adapter, recommend a tier, and obtain the
-   user's explicit choice.
-3. Read `Context and planning` and `Task-private artifacts`; perform the read-only preflight, resolve the
-   checkout, run `task_state.py init`, and apply `Attached Tasks companion` only
-   for a card or explicitly requested tracking. Transfer any retained inline
-   producer result through that artifact recipe. Use `Review policy` for the
-   review mandate and evidence basis. Follow the specification and plan approval
-   path selected by `Context and planning`.
-4. For each phase, read `Phase execution`, `Review policy`, and
-   `Material context discovery and promotion`. Check ownership follows
-   the selected execution preset, or the implementation owner by default.
-   Every accepted phase requires a
-   fresh independent code review; a verifier is added only for the phase's
-   named independent gate. Accepted findings return to the same logical owner.
-5. Read `User preview` when the phase declares it. The current owning chat may
-   show and iterate the approved scope with a task-owned local preview process;
-   the owner and exact approved artifacts are preserved, and cleanup occurs on
-   final or cancelled work. Freeze the preview before dispatching final
-   verification and review.
-6. Read `Phase teardown`, `Durable knowledge checkpoint`, and `Commit path`.
-   Run the durable knowledge judgment before final-phase teardown so the live
-   owners can complete any authorized correction; retire resources only after
-   review and required checks, then commit the accepted phase.
-7. Read `Delivery policy`, `Local integration path`, or `PR path`. Both local
-   and PR delivery require fresh configured checks and independent code review
-   before the delivery mutation or clean result. Use
-   [orchestra-pr-review](../orchestra-pr-review/SKILL.md) for PR observation;
-   it resolves assignments through the selected host adapter.
-
-When an owner or reviewer is closed, preserve the logical assignment and the
-exact approved artifact IDs. Resume the same agent when it is available. Spawn
-a replacement only after the prior agent is confirmed unavailable or the
-selected preset authorizes an evidence-backed recovery transition; a replaced
-reviewer is always a fresh independent reviewer. Read the host-specific
-recovery rules in `Phase execution` and `PR path`.
+## Hard limits
 
 Stop only at the hard gates in `Autonomy within an approved objective` or a
-named WORKFLOW authority boundary. Never use standalone legacy helpers as
-Orchestra dependencies: `commitbot`, `prbot`, `openprbot`, and `prmerge` are
-separate legacy tools. Never merge, release, deploy, install, or mutate
-production without the corresponding explicit authority.
+named WORKFLOW authority boundary. When an owner or reviewer is unavailable,
+keep the logical assignment and exact approved artifact IDs; a replacement
+reviewer is always fresh. Never use the separate legacy tools `commitbot`,
+`prbot`, `openprbot` or `prmerge` as Orchestra dependencies. Never merge,
+release, deploy, install, or mutate production without the corresponding
+explicit authority.

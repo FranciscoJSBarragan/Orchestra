@@ -41,8 +41,8 @@ repositories normally need separate tasks. Remote hosts may have different
 project and tool support; inspect rather than infer parity.
 
 The app-created checkout is already isolated. A full Orchestra child adopts
-that clean, collision-free owned checkout under WORKFLOW's supplied-checkout
-rule, rather than creating a second worktree. Follow that section's explicit
+that clean, collision-free owned checkout under WORKFLOW "Child root setup",
+rather than creating a second worktree. Follow that section's explicit
 namespace/observability choice and cleanup handoff for retained local refs.
 For internal subtasks that are
 not user-owned separate tasks, use the available native agent protocol only
@@ -69,7 +69,7 @@ in the current session, not a completed Projects acceptance test.
 Where that schema supplies task-root dispatch, a cloud Task creates an isolated
 VM from the published `cloud_base_branch`; a local Task is a role in the owning
 VM. One cloud task root per independent task is sufficient. The root adopts the
-actual checkout under WORKFLOW "Task checkout and branch", compares HEAD with
+actual checkout under WORKFLOW "Child root setup", compares HEAD with
 the approved full product SHA and reconciles host metadata mismatches. A Build ID
 pins an environment snapshot, not product or Orchestra identity. Resolve pinned
 instructions using [source preparation](../orchestra/references/source_preparation.md);
