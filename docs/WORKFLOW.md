@@ -950,8 +950,9 @@ no missing-companion warning. Loading either plugin does not activate this route
 
 Tiers are host-specific lookups, not a shared enum.
 
-On Codex, Astra low is the recommended native root. The user's current root
-remains authoritative: Orchestra never changes or respawns it. Read
+On Codex, the recommended native root uses the installed matrix's
+`technical_planning` model and effort. The user's current root remains
+authoritative: Orchestra never changes or respawns it. Read
 the Codex matrix selected by runtime resources and check the host's available
 tools and models before dispatch. No rollout inspection, bridge aliases, or
 external-model mode selection is required.
@@ -1029,10 +1030,6 @@ not updated for such a change. Structural invariants the matrices must keep:
 
 - Codex defines exactly `standard` and `critical`. Every defined tier assigns
   all ten capabilities to the four base profiles.
-- Native `standard` follows the installed matrix's Astra low principal,
-  planning, and review assignments, Luna `max` implementation assignments,
-  and Luna `xhigh` evidence/browser assignments. The matrix remains the source
-  of exact rows; this description is only the routing constraint.
 - No Orchestra assignment uses Sol xhigh.
 - Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast
   remains the fast lane for repository, research, and runtime verification

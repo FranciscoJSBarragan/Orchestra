@@ -15,8 +15,8 @@ Resolve the Codex matrix and behavior profiles through
 each row supplies `profile`, `model`, and `reasoning_effort`. Read the matching
 behavior profile and apply WORKFLOW "Host adapters" to choose the native agent
 type. Include the exact role skill path and explicit model and effort in the
-capability packet. The recommended root is Astra low; availability comes from
-the live host catalog. For unsupported rows or a plan from the retired external
+capability packet. The recommended root uses the `technical_planning` model and effort;
+availability comes from the live host catalog. For unsupported rows or a plan from the retired external
 integration, follow WORKFLOW "Tier flows and models".
 
 Set `fork_turns: none` on each native spawn. Provider mode detection and

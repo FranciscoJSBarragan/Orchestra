@@ -435,7 +435,7 @@ class FullModeFixtureTest(unittest.TestCase):
         roles = self.root / "codex/config/roles.native.toml"
         roles.write_text(
             roles.read_text(encoding="utf-8").replace(
-                'model = "gpt-5.6-sol"', 'model = "unsupported"', 1
+                'model = "gpt-6.1-sol"', 'model = "unsupported"', 1
             ),
             encoding="utf-8",
         )
@@ -524,7 +524,7 @@ class FullModeFixtureTest(unittest.TestCase):
                 1,
             )
             .replace(
-                'model = "gpt-5.6-sol"\nreasoning_effort = "high"',
+                'model = "gpt-6.1-sol"\nreasoning_effort = "high"',
                 'model = "gpt-5.6-sol"\nreasoning_effort = "xhigh"',
                 1,
             ),

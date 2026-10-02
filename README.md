@@ -79,7 +79,7 @@ Use $orchestra-phase-commit to commit these changes with the available evidence.
 Or keep your current chat as orchestrator and hand a bounded assignment to another CLI:
 
 ```text
-Use $orchestra-delegate to implement this with Codex CLI, model gpt-6-astra, effort low.
+Use $orchestra-delegate to implement this with Codex CLI, model gpt-6.1-sol, effort high.
 Use $orchestra-delegate to independently review this diff with Grok Build.
 ```
 
