@@ -52,7 +52,9 @@ guide attention; they are not evidence and never narrow what you examine.
 4. **Check the checks.** For each finding and each invariant, would the
    planned or changed tests fail on the wrong result? A test that asserts the
    value the mechanism itself computes proves nothing. Prefer checks seeded
-   through the real earlier operation over hand-built rows.
+   through the real earlier operation over hand-built rows. Tests that only
+   repeat coverage without catching a different failure are a maintainability
+   finding.
 
 5. **Then simplicity.** Ask whether a smaller mechanism or fewer phases keep
    the same result. An extra phase is justified only when later work needs a

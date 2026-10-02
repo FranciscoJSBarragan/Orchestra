@@ -36,12 +36,15 @@ ask the root to restate them. For `frontend_implementation`, also read
    public-behavior change beyond the plan. Prefer obvious code over clever
    code.
 
-4. **Prove it.** For each invariant and acceptance point, write or update a
-   test that fails before your change and passes after it; reproduce a defect
-   first when practical. Build earlier states through the real operation that
-   creates them (the plan's `State writers`), not hand-made rows. Do not
-   assert a value only your mechanism computes. Skip redundant, count-driven
-   or implementation-coupled tests.
+4. **Prove it with the fewest tests that would catch a wrong result.** For
+   each invariant and acceptance point, write or update one test that fails
+   before your change and passes after it; reproduce a defect first when
+   practical. Add another test only when it would fail for a different
+   reason. Extend an existing test or fixture covering the same journey
+   before adding a new file or helper. Build earlier states through the real
+   operation that creates them (the plan's `State writers`), not hand-made
+   rows. Do not assert a value only your mechanism computes, and skip
+   redundant, count-driven or implementation-coupled tests.
 
 5. **Run every required check.** Affected tests, lint, type checks, builds,
    validation commands, the canonical full suite and each repository hard
