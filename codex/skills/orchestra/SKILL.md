@@ -36,7 +36,7 @@ Context is your scarcest resource; protect it for the user's problem.
 | --- | --- | --- |
 | 1. Activate | Confirm explicit activation and an execution-capable host | `Orchestrator behavior`, `Autonomy within an approved objective` |
 | 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file |
-| 3. Context and specification | Preflight, delegate bounded investigation when needed, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8 |
+| 3. Context and specification | Preflight, delegate bounded investigation when needed and wait for its result before continuing, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8, `Agent waiting` before your first dispatch |
 | 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | `Context and planning` steps 9–13, `Review policy` |
 | 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
 | 6. Run each phase | Dispatch the implementer, a verifier only when the phase gate names one, then a fresh reviewer; return accepted findings to the same owner | `Phase execution`, `Agent waiting`, `Review policy` |

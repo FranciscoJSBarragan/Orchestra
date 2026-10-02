@@ -18,7 +18,7 @@ class GrokHostTests(unittest.TestCase):
         for tier in ("standard", "critical"):
             for assignment in roles["tiers"][tier].values():
                 self.assertEqual(assignment["subagent_type"], "general-purpose")
-                self.assertEqual(assignment["model"], "grok-4.6")
+                self.assertEqual(assignment["model"], "grok-4.7-build-fast")
                 self.assertEqual(assignment["effort"], "xhigh")
 
     def test_spawn_adapter_names_grok_primitives_and_forbids_host_worktrees(self) -> None:

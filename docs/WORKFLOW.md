@@ -965,7 +965,7 @@ cost or speed; it recommends `critical` for matching high-impact risk.
 On Grok Build, the root reads
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Grok offers
 `minimal`, `standard`, and `critical`. This cut assigns `standard` and
-`critical` on `grok-4.6` at effort `xhigh`. The root recommends
+`critical` on `grok-4.7-build-fast` at effort `xhigh`. The root recommends
 `standard`. Selecting `minimal` blocks: there is no cheaper Grok row.
 `critical` uses the same spawn rows and raises root scrutiny; it does not
 change model or reasoning.
@@ -1038,7 +1038,7 @@ not updated for such a change. Structural invariants the matrices must keep:
   remains the fast lane for repository, research, and runtime verification
   on `minimal` and `critical`. The Cursor spawn reference maps each row onto
   the closest live Task worker without rewriting product names.
-- Grok assigns `standard` and `critical` on `grok-4.6` at effort
+- Grok assigns `standard` and `critical` on `grok-4.7-build-fast` at effort
   `xhigh` with identical spawn rows (`critical` raises root scrutiny, not the
   model) and blocks unassigned `minimal`. The Grok spawn reference maps rows
   onto `general-purpose` using supported explicit fields or documented host

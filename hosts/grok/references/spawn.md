@@ -19,7 +19,7 @@ Read the selected matrix from `orchestra/runtime.md`: installed layouts use
 `<source>/hosts/grok/config/roles.grok.toml`, outside `<source>/codex`.
 Never silently fall back to another installed copy.
 Assigned tiers are those with complete capability rows. This cut assigns `standard` and
-`critical`. The live catalog row is `grok-4.6` (Grok 4.6) at
+`critical`. The live catalog row is `grok-4.7-build-fast` (Grok 4.7 Fast) at
 effort `xhigh` and one cost, so there is no cheaper assigned tier. Recommend
 `standard`. Recommend `critical` when the brief matches security, credentials,
 payments, migrations, destructive actions, or production mutation. If the user
@@ -67,8 +67,8 @@ For each capability:
    supported resolution now meets the row; do not repeat an unchanged mismatched
    launch. Do not change global settings or substitute a model to make it succeed.
 4. The prompt is the packet plus: read
-   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
-   conduct it names, then execute only the assigned capability. Role mapping:
+   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md`, which is
+   self-contained, then execute only the assigned capability. Role mapping:
    `orchestra_analyst` → `orchestra-role-analyst`;
    `orchestra_implementation_worker` → `orchestra-role-implementer`;
    `orchestra_reviewer` → `orchestra-role-reviewer`;

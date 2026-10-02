@@ -77,7 +77,7 @@ For each capability:
    than `swe-2-max`, report the gap without substituting; never rewrite the
    product contract or pin a different family in the profile.
 5. The prompt is the packet plus: read the `role_skill` path supplied by the
-   packet and the shared conduct it names, then execute only the assigned
+   packet, which is self-contained, then execute only the assigned
    capability. Role mapping:
    `orchestra_analyst` → `orchestra-role-analyst`;
    `orchestra_implementation_worker` → `orchestra-role-implementer`;

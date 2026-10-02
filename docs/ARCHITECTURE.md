@@ -481,7 +481,7 @@ model and effort assignments.
 Grok Build reads one host matrix at
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers
 `minimal`, `standard`, and `critical` with no mode split. This cut assigns
-`standard` and `critical` on `grok-4.6` at effort `xhigh`. There is no cheaper
+`standard` and `critical` on `grok-4.7-build-fast` at effort `xhigh`. There is no cheaper
 assigned tier. `critical` uses the same spawn rows and raises root scrutiny.
 Selecting `minimal` on Grok blocks.
 

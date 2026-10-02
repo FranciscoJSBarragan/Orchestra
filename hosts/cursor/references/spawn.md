@@ -36,8 +36,8 @@ Cursor `Task.subagent_type` is a closed enum. Do not dispatch through custom
    set `run_in_background` only for that supported lifecycle. Do not assume a
    Task-launched root has background continuation. Do not poll.
 3. The Task prompt is the packet plus: read
-   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md` and the shared
-   conduct it names, then execute only the assigned capability. Role mapping:
+   `${ORCHESTRA_SKILLS_ROOT}/orchestra-role-<role>/SKILL.md`, which is
+   self-contained, then execute only the assigned capability. Role mapping:
    `orchestra_analyst` → `orchestra-role-analyst`;
    `orchestra_implementation_worker` → `orchestra-role-implementer`;
    `orchestra_reviewer` → `orchestra-role-reviewer`;
