@@ -103,6 +103,10 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   only the mechanism justifies is not acceptance. Write `none beyond
   acceptance` with a reason when acceptance states the whole outcome. A stop
   condition names a conflict with an invariant or the required outcome.
+- Start from the smallest correction of the operation that fails. Add new
+  infrastructure (file formats, markers, envelopes, migrations, registries or
+  layers) only when that correction cannot satisfy the outcome invariants; the
+  overview names the minimal correction considered and why it is not enough.
 - `State writers` lists, for each persisted or shared value an outcome
   invariant constrains, the existing operations that write it, including
   other entry points, earlier steps and sequences that reach the changed
