@@ -4,11 +4,9 @@ Before any authorized source write, apply [Source comments](architecture_guidanc
 This applies even when no other engineering section is relevant; it never grants
 write authority to a read-only role.
 
-The analyst, implementer and verifier roles read this contract before their
-role skill. It supplies the common assignment, authority, evidence, cleanup,
-report, and stop rules; role skills add only capability-specific behavior. The
-reviewer role skill is self-contained and names this file only for cleanup and
-publication details.
+Role skills are self-contained and name this file only for cleanup and
+publication details. It records the common assignment, authority, evidence,
+cleanup, report and stop rules those skills summarize.
 
 ## Operating-mode router
 

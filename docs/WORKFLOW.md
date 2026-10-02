@@ -1322,15 +1322,16 @@ inherits the identity of a producer report. An unrecoverable original is
 disclosed as missing evidence, never reconstructed. These copies follow the
 task-private lifecycle.
 
-Every packet carries capability, explicit authority, worktree, exact target
-artifact IDs and roles, stop conditions, current revision, accepted finding IDs
-and only the new context delta. An implementation-review packet also carries
-every `repository-context` and `context-delta` required by the overview and
-current phase, or each complete inline fallback with its label and revision.
-Initial repository context also carries its minimum objective and focused
-questions. Later agents read objective, scope, acceptance, verification and
-findings from the named documents. A changed HEAD invalidates only affected
-evidence.
+Role skills are self-contained with their playbooks; a packet never sends a
+role to WORKFLOW sections. Every packet carries capability, explicit authority,
+worktree, exact target artifact IDs and roles, stop conditions, current
+revision, accepted finding IDs and only the new context delta. An
+implementation-review packet also carries every `repository-context` and
+`context-delta` required by the overview and current phase, or each complete
+inline fallback with its label and revision. Initial repository context also
+carries its minimum objective and focused questions. Later agents read
+objective, scope, acceptance, verification and findings from the named
+documents. A changed HEAD invalidates only affected evidence.
 
 Load shared instructions once per available context and read only the sections
 the checkpoint needs; reread when the source changed or the context is gone.
@@ -1857,8 +1858,7 @@ How to review (counterexamples first, what counts as a finding, the scope of
 exclusions, `Dismissed counterexamples` and the report) is defined only by the
 reviewer role skill, which no packet can omit or narrow. A review packet names
 the target, revision, producer evidence to read in full, quoted user outcome,
-artifacts directory, accepted finding IDs and any exclusions; it does not send
-the reviewer to WORKFLOW sections. Author concerns in a packet are
+artifacts directory, accepted finding IDs and any exclusions. Author concerns in a packet are
 non-exhaustive prompts, never the agenda or a narrower scope. The root uses
 `Dismissed counterexamples` at approval under "Context and planning" step 13.
 

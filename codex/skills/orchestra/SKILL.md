@@ -70,11 +70,12 @@ its overrides; a cheaper tier never waives authority, review, verification, or d
 
 ## Capability router
 
-Compose one behavior-only profile with one capability. Load
-[shared conduct](references/shared_conduct.md) and the role skill when first
-needed; reuse them for later dispatches unless changed. The packet carries the explicit capability, authority, worktree,
-revision, exact artifact IDs, new context, accepted finding IDs, and stop
-conditions; it does not replay the workflow.
+Compose one behavior-only profile with one capability. Each role skill is
+self-contained (with its playbook); [shared conduct](references/shared_conduct.md)
+holds only the cleanup and publication details roles name. The packet carries
+the explicit capability, authority, worktree, revision, exact artifact IDs, new
+context, accepted finding IDs, and stop conditions; it neither replays the
+workflow nor sends roles to WORKFLOW sections.
 
 | Capability | Profile | Read |
 | --- | --- | --- |
@@ -83,7 +84,7 @@ conditions; it does not replay the workflow.
 | `technical_planning` | `orchestra_analyst` | [technical planning](references/technical_planning.md) and applicable [shared engineering guidance](references/architecture_guidance.md) |
 | `architecture_analysis` | `orchestra_analyst` | review frame in [shared engineering guidance](references/architecture_guidance.md) |
 | `difficult_debugging` | `orchestra_analyst` | [difficult debugging](references/difficult_debugging.md) |
-| `general_implementation` | `orchestra_implementation_worker` | role skill and applicable shared engineering guidance |
+| `general_implementation` | `orchestra_implementation_worker` | the self-contained role skill only |
 | `frontend_implementation` | `orchestra_implementation_worker` | [frontend implementation](references/frontend_implementation.md) |
 | `independent_review` | `orchestra_reviewer` | the self-contained role skill only |
 | `browser_acceptance` | `orchestra_verifier` | [browser acceptance](references/browser_acceptance.md) |

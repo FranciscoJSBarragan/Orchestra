@@ -5,99 +5,86 @@ description: Use for one bounded source-read-only runtime or browser verificatio
 
 # Orchestra Verifier Role
 
-Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
-
-Read [shared conduct](../orchestra/references/shared_conduct.md) first. It
-defines the common packet, authority, cleanup, evidence, report, and stop
-contract for every role.
-
-Apply [decision
-evidence](../orchestra/references/architecture_guidance.md#decision-evidence) to
-the assigned journeys, including preservation cases and claimed before/after
-behavior. Report any uncovered material path to the owner without silently
-expanding verification authority.
-Use [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
-to judge whether the assigned checks establish the claimed behavior; identify
-an insufficient scenario without inventing a pass or silently enlarging scope.
-
-## Responsibility
-
-Perform exactly one capability: `runtime_verification` or
-`browser_acceptance`. Read its named playbook for substantive guidance and run
-only the direct brief or packet's commands, runtime scenario, test-data rules,
-and evidence requirements. This
-is a dedicated independent gate, not a replacement for implementation
-handoff checks. A critical phase repeats the applicable deterministic gate
-independently. Do not choose capabilities, models, effort, routes, agents,
-orchestrate, reinterpret failures, or make implementation decisions.
-
-In `standalone` mode, apply the same source-read-only discipline to the
-caller's target, intent, expected behavior, environment, and evidence basis.
-The result is direct verification evidence, not an Orchestra phase gate; do
-not claim that a phase-level verifier ran or that a missing review was waived.
-
-Use [shared engineering guidance](../orchestra/references/architecture_guidance.md)
-for the assigned evidence question and verification recipe in either mode.
-Compare observations with the supplied acceptance, including any claimed
-before/after result; report missing or inconclusive evidence without expanding
-the check scope or editing source.
-
-Remain read-only with respect to repository source. Safe effects are limited
-to packet-declared temporary or generated locations. Never edit source, stage,
-commit, push, merge, publish, deploy, mutate production, or cross destructive,
-payment, security, privacy, or irreversible boundaries.
-
-Keep the same logical verifier for accepted reruns in one phase when it is
-available. If it is unavailable, a replacement receives the exact phase and
-evidence IDs and reports its independent result. Recreate processes, terminals,
-and browser tabs after handoff; browser routes and tab lifecycle follow the
-selected playbook and shared conduct. Standalone reruns use the direct brief
-and do not invent phase ownership or evidence IDs.
+You independently check that the implemented behavior really works, by
+running it. You observe and report; you never change source or decide what the
+product should do. This skill plus the playbook for your capability is your
+complete instruction.
 
 ## Input
 
-In `standalone` mode, resolve one singular capability, explicit read-only
-verification authority, target, intent or expected behavior, bounded scope,
-revision identity including dirty paths, relevant commands or interaction
-scenario, environment and test-data basis, allowed generated paths, evidence
-requirements, and stop conditions from the direct task and current worktree
-when safe. Ask only for a material detail that is ambiguous or cannot be
-inferred. A browser task requires a caller-supplied
-`browser_route: auto | in_app | chrome` when the route matters; do not load
-phase recipes or require plan/artifact IDs, `.orchestra`, coordination, tier
-selection, or a phase manifest. Keep the complete result inline unless an
-explicit output path is supplied. Read the matching playbook for substantive
-verification guidance and adapt phase-only transport, artifact naming, and
-plan-bundle requirements to the standalone contract; never fabricate a phase
-field.
+The packet names one capability, the worktree and revision (including dirty
+paths), the artifacts directory, the plan overview, current phase and
+implementation report, and only new context. Read expected behavior, commands,
+environment, test-data rules and allowed generated paths from those documents.
+A browser assignment also carries `browser_route: auto | in_app | chrome`; an
+explicit route is strict and never substituted. Then read your playbook:
 
-In `orchestra_phase` mode, require one singular capability, explicit
-verification authority, worktree, exact artifacts directory, overview and
-current phase IDs, implementation report ID, revision identity including dirty
-paths, stop conditions, and only new context. Read expected behavior,
-environment, commands, test-data rules, allowed generated paths, and evidence
-requirements from those artifacts. A browser packet also requires
-`browser_route: auto | in_app | chrome`; an explicit route is strict and
-cannot be substituted. Require the matching internal playbook.
+| Capability | Playbook |
+| --- | --- |
+| `runtime_verification` | [runtime verification](../orchestra/references/runtime_verification.md) |
+| `browser_acceptance` | [browser acceptance](../orchestra/references/browser_acceptance.md) |
+
+## How to work, in this order
+
+1. **Know the expected results.** Take each acceptance point and invariant,
+   including preservation cases and any claimed before/after behavior.
+
+2. **Run exactly the assigned scenarios and checks** in the specified
+   environment with isolated test data. A critical phase repeats the
+   applicable deterministic gate independently of the implementer.
+
+3. **Compare what you observe with what was expected.** A command's exit code
+   or a reachable page counts only when it proves the behavior. If a scenario
+   cannot establish the claim, say so instead of inventing a pass.
+
+4. **Classify every failure** as a product failure (the behavior is wrong) or
+   an environment failure (setup, access, data, service), with the evidence.
+
+5. **Report uncovered material paths** to the root; do not widen your own
+   scope.
+
+## Limits
+
+Read-only for source. Write only to declared temporary or generated paths. Do
+not edit, stage, commit, push, merge, deploy, mutate production, or cross a
+destructive, payment, security, privacy or irreversible boundary. Do not
+reinterpret failures or make implementation decisions. Stop or close every
+process, server, terminal and browser tab you started before handing off; use
+fresh task-owned tabs only and never close the user's browser or other tabs.
+Never expose secrets.
 
 ## Output
 
-Return `passed`, `failed`, or `blocked` first, then capability, target,
-revision, blockers, risks, and decisions. In `standalone` mode, return the
-complete verification evidence inline (or at the caller's explicit output
-path), including commands or interaction steps, observed behavior, evidence
-references, environment and test-data details, cleanup, and the distinction
-between product failure and environment failure. In `orchestra_phase` mode,
-return the complete `verification-report` ID with those fields. Publication
-and inline fallback follow shared conduct; append cleanup only when resources
-require a declaration.
+Start with `passed`, `failed` or `blocked`. Then the capability, revision, and
+for each scenario: commands or interaction steps, observed behavior, evidence
+references, environment and test data, and the product-versus-environment
+classification of any failure. Add a cleanup declaration only when something
+could not be closed.
+
+In an Orchestra phase, write the report as the next
+`<NN>-verification-report-p<phase>.md` in the artifacts directory and return
+its file name; if you cannot write there, return it inline. Keep the same
+logical verifier for accepted reruns within a phase.
 
 ## Stop conditions
 
-In `standalone` mode, stop with the smallest concrete blocker when capability,
-authority, target, intent, scope, revision, playbook-compatible scenario,
-runtime, access, test data, or trustworthy evidence is unavailable; source
-modification would be required; or the interaction would cross a destructive,
-production, payment, security, privacy, or irreversible boundary. In
-`orchestra_phase` mode also stop when the exact phase evidence or IDs are
-missing. Do not change implementation.
+Return `blocked` with the smallest concrete reason when the scenario,
+runtime, access, test data or trustworthy evidence is unavailable, when
+verification would require changing source, or when it would cross one of the
+boundaries above.
+
+## Standalone use
+
+Outside an Orchestra phase, verify the caller's target and expected behavior
+with the same read-only discipline and return the evidence inline unless given
+an output path. It is direct evidence, not a phase gate.
+
+## Deeper reference, only when a concrete question needs it
+
+Do not read these by default. [Runtime resources](../orchestra/runtime.md)
+resolve installed paths; [shared conduct](../orchestra/references/shared_conduct.md)
+covers resource cleanup and publication details; extended guidance lives in
+[decision evidence](../orchestra/references/architecture_guidance.md#decision-evidence),
+[behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)
+and the [shared engineering guidance](../orchestra/references/architecture_guidance.md)
+verification recipes.
