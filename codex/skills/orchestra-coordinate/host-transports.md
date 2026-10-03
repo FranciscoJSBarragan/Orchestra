@@ -49,6 +49,39 @@ not user-owned separate tasks, use the available native agent protocol only
 when it supports the required responsibility and lifecycle; do not create
 sidebar tasks merely to emulate leaf subagents.
 
+## T3 Code
+
+T3 Code hosts Codex, Cursor, Grok and Claude sessions behind one UI and exposes
+app-owned orchestration through its `t3-code` MCP tools. The parent and each
+task root still run on a supported Orchestra host provider; a thread on an
+unsupported provider can launch children but is not itself an Orchestra root.
+Read `orchestrator_capabilities` before launch for the live provider, model and
+option catalog.
+
+For a task root, use `t3_thread_launch` with an explicit `workspaceStrategy`:
+`worktree` with the approved `baseRef`, an owned `branch` and
+`startFromOrigin: false` for local commits. T3 then owns checkout creation and
+binds the thread to it; the child adopts that checkout under WORKFLOW "Child
+root setup" and never runs `git worktree add` itself. Pass explicit
+`modelSelection` and `runtimeMode`: an omitted runtime mode inherits the
+caller's, which may be `full-access`. Record the returned `threadId`.
+
+Wait with `t3_thread_wait` on that `threadId`; it returns on terminal state.
+Read the result with `t3_thread_read` from the last known position rather than
+rereading the whole timeline. `t3_thread_send` continues the same provider
+session with its context intact, so it carries accepted fixes and deltas; use a
+stable `clientRequestId`. Link delivered PRs with `link_pull_request`.
+
+`delegate_task` is a leaf transport, not a task root. Its child runs in the
+caller's checkout with no workspace option, so it is limited to source-read-only
+roles (`interactionMode: plan`, `runtimeMode: approval-required`). Its
+completion notifies the parent; read it once with `task_status`, and resume a
+delta review with `t3_thread_send` to the returned `childThreadId`. Verify the
+checkout with Git after it returns.
+
+Archiving a thread does not remove its worktree or branch. Release them through
+the child's cleanup handoff after the accepted revision is preserved.
+
 ## Cursor Projects
 
 The parent Project coordinator's model and reasoning remain user-controlled.
