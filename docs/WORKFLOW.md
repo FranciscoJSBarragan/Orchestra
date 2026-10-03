@@ -234,38 +234,33 @@ authorized change is accepted, do not silently ignore normative instructions.
 New rules must address the demonstrated cause rather than accumulate
 prohibitions after every failure.
 
-## Repository maintenance
+## Repository readiness
 
-`orchestra-repo-maintenance` is an explicitly selected maintenance entry for a
-repository or named area. It composes with ordinary engineering and full
-Orchestra without activating a tier, creating task state or adding a mandatory
-audit stage. Shared engineering guidance owns "Source comments", "Prevent
-recurring failures", "Maintain patterns and knowledge" and "Test maintenance";
-test-suite audits and repairs use that existing entry rather than a new cleanup
-role or automatic deletion pass. Every source-writing
-entry consumes the comment policy directly, even for a small edit.
+`orchestra-repo-readiness` is the explicit entry that prepares an existing
+repository so agents can work in it reliably: it diagnoses the repository
+against its target state, repairs what a grant names, cleans the test suite and
+maintains `.agent/` conventions. The target state lives only in that skill. It
+composes with ordinary engineering and full Orchestra without activating a
+tier, creating task state or adding a mandatory audit stage. Every
+source-writing entry consumes the comment policy directly.
 
-A diagnosis is source-read-only and reports prioritized evidence, coverage and
-uncertainty. Running checks still needs the brief's execution/data authority.
-A repair grant names the area or problem classes and exclusions; it covers
-necessary in-scope investigation and reversible fixes without a second approval
-for each candidate. Material unapproved product, public-contract, data, security
-or normative policy changes remain proposals. Repository conventions own policy
-writes; an already approved policy change is not a new gate. Never relax a
-rule to authorize the operation currently blocked by it.
+Diagnosis needs only the brief's execution authority and never edits. It
+reports each item with observed evidence and coverage; sampled inspection never
+certifies the whole repository. A repair grant names the area or items and
+covers in-scope investigation and reversible fixes without a second approval
+per candidate. Material product, public-contract, data, security or normative
+policy changes remain proposals. "Repository conventions" owns policy writes;
+never relax a rule to authorize the operation it blocks.
 
-Bound repair batches by coherent problems and verifiability. Optional analysts
-may investigate independent modules or hypotheses. One implementation owner
-carries each problem across code, docs and tests; parallel writers need disjoint
-paths. The root resolves overlap and policy edits, synthesizes compact results
-and preserves independent implementation review through the selected route.
-Use the existing completion-aware waiting policy; no diff polling, fixed panel,
-health score, backlog service or new report schema is introduced.
-
-Folder reorganization, aesthetic renames, formatting sweeps, major dependency
-upgrades and unrelated behavior changes are outside this maintenance entry.
-Return remaining candidates through existing task output. Diagnosis can conclude
-that no change is warranted; sampled inspection never certifies the whole repo.
+Repairs prefer structure, then mechanical checks, then text. One implementation
+owner carries each problem across code, docs and tests; parallel writers need
+disjoint paths. The root resolves overlap and policy edits and preserves
+independent implementation review through the selected route, using the
+existing completion-aware waiting policy. No health score, backlog service or
+report schema is introduced. Folder reorganization, aesthetic renames,
+formatting sweeps, major dependency upgrades and unrelated behavior changes are
+out of scope. A recurring review finding returns here as a check or a
+structural fix.
 
 ## Project verification
 
@@ -992,9 +987,9 @@ preserves its checkout, approved scope, and accepted evidence. Historical
 compatibility sources are archived in CodexBridge; they are not a runtime
 fallback or a currently supported add-on.
 
-Profiles contain behavior only. Existing public skill identifiers remain stable;
+Profiles contain behavior only.
 `orchestra-project-start` is the additive implicit greenfield entry point;
-`orchestra-repo-onboard` is the explicit-only lane that analyzes an existing
+`orchestra-repo-readiness` is the explicit-only lane that prepares an existing
 repository and writes or refreshes its tracked `.agent/` store without
 activating the workflow.
 `general_implementation` and `independent_review` are assignment keys whose
@@ -2178,7 +2173,7 @@ within scope, without changing what the product is expected to do.
 
 After first `repository_context`, absence of normative project conventions is
 one consolidated question with specification confirmation: offer only a useful,
-evidence-backed seed or the explicit `orchestra-repo-onboard` route. A directory
+evidence-backed seed or the explicit `orchestra-repo-readiness` route. A directory
 containing only operational recipes does not establish normative policy.
 If the user declines, infer and cite existing instructions/checks for this task;
 do not repeatedly interrupt the same task or require an empty store. Greenfield
@@ -2188,7 +2183,7 @@ plan includes only any still-needed normative seed Decision and exact paths.
 Normative seed writes remain root-owned at the approved phase's stable handoff,
 before independent review and commit, never before plan approval. The root's
 exact authorized policy paths are the allowed-path exception; implementers may
-own explicitly scoped descriptive verification entries. Onboarding first reads
+own explicitly scoped descriptive verification entries. Readiness first reads
 and proposes policy, then uses its existing confirmation boundary. That same
 confirmation may authorize bounded recipe execution and helpers; it is not
 product-feature or production authority. All meaningful knowledge changes use

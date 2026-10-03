@@ -6,7 +6,7 @@ Orchestra is an explicit planned-work route, not the default implementation rout
 Ordinary technical work may use `$orchestra-engineering` and maintained project
 verification recipes without activating the planned route. WORKFLOW "Modular
 engineering" owns their composition. Explicit repository audit or deslop requests
-may use `$orchestra-repo-maintenance` under WORKFLOW "Repository maintenance".
+may use `$orchestra-repo-readiness` under WORKFLOW "Repository readiness".
 For meaningful behavior or test changes, use `$orchestra-engineering`'s shared
 "Behavioral verification" and "Change quality" criteria. Suite cleanup uses
 "Test maintenance" through the maintenance entry, within the current authority.

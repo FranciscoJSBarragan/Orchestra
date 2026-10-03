@@ -170,9 +170,9 @@ live in WORKFLOW "Engineering guidance and evidence". The
 internal references, not public skills or additional personas. Public skill
 identifiers include the reusable engineering and project-verification entries,
 explicit initiative coordination, greenfield project-start,
-repository onboarding and explicit `orchestra-repo-maintenance`. Maintenance
+and explicit `orchestra-repo-readiness`. Readiness
 reuses the four roles and existing execution routes; WORKFLOW "Repository
-maintenance" owns its authority and lifecycle. Shared engineering guidance owns
+readiness" owns its authority and lifecycle. Shared engineering guidance owns
 the comment policy and prevention criteria; writing entries link them directly.
 
 Frontend implementation and browser acceptance are independent capabilities on
@@ -262,7 +262,7 @@ public lanes are:
 - modular engineering and project verification;
 - explicit initiative coordination across independent task roots;
 - implicit greenfield project start;
-- explicit repository onboarding into `.agent/` conventions;
+- explicit repository readiness, including `.agent/` conventions;
 - explicit orchestration and discovery;
 - planned delivery;
 - phase commit;

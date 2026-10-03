@@ -113,8 +113,9 @@ Both reuse the same engineering guidance without creating phases or task state.
 Hosts that discover skills automatically can select these entries; explicit
 invocation remains available when they do not.
 
-Use `$orchestra-repo-maintenance` for an explicit repository audit or bounded
-repair of harmful code, documentation, rules and tests. It preserves actual
+Use `$orchestra-repo-readiness` to diagnose an existing repository against a
+checkable readiness target or repair what you name: setup, deterministic gates,
+isolated tests, an isolated runnable app, structure and `.agent/` conventions. It preserves actual
 consumers and useful knowledge; folder reorganization is excluded. Source-writing
 entries apply the shared zero explanatory comments policy, with legal and
 functional exceptions. Personal global adoption is separate from plugin loading.
@@ -133,7 +134,7 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | --- | --- |
 | `orchestra` | Explicit full workflow: spec → plan → phases → delivery |
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
-| `orchestra-repo-onboard` | Existing repo, first time. Verifies build/test commands and conventions from evidence and writes a tracked `.agent/` store so later tasks stop rediscovering them |
+| `orchestra-repo-readiness` | Existing repo. Checks it against a runnable target state (one-command setup, clean and deterministic gates, isolated tests, isolated app, structure) and repairs what you grant, writing a short tracked `.agent/` store |
 | `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI with scoped permissions |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
@@ -224,7 +225,7 @@ name = "suite"
 command = ["python3", "-m", "pytest", "-q"]
 ```
 
-Missing policy is never inferred — Orchestra asks once and recommends `hybrid`. Repository conventions that workers should cite (hard gates, prerequisites, code conventions) live in tracked `.agent/` files; `$orchestra-repo-onboard` writes them for you.
+Missing policy is never inferred — Orchestra asks once and recommends `hybrid`. Repository conventions that workers should cite (hard gates, prerequisites, code conventions) live in tracked `.agent/` files; `$orchestra-repo-readiness` writes them for you.
 
 ## What Orchestra will not do
 

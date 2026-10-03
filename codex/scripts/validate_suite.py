@@ -55,16 +55,14 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra/agents/openai.yaml",
     "codex/skills/orchestra-project-start/SKILL.md",
     "codex/skills/orchestra-project-start/agents/openai.yaml",
-    "codex/skills/orchestra-repo-onboard/SKILL.md",
-    "codex/skills/orchestra-repo-onboard/agents/openai.yaml",
+    "codex/skills/orchestra-repo-readiness/SKILL.md",
+    "codex/skills/orchestra-repo-readiness/agents/openai.yaml",
     "codex/skills/orchestra-delegate/SKILL.md",
     "codex/skills/orchestra-delegate/agents/openai.yaml",
     "codex/skills/orchestra-engineering/SKILL.md",
     "codex/skills/orchestra-engineering/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/SKILL.md",
     "codex/skills/orchestra-project-verification/agents/openai.yaml",
-    "codex/skills/orchestra-repo-maintenance/SKILL.md",
-    "codex/skills/orchestra-repo-maintenance/agents/openai.yaml",
     "codex/skills/orchestra-coordinate/SKILL.md",
     "codex/skills/orchestra-coordinate/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/feature-example.md",
@@ -233,12 +231,11 @@ LEGACY_PROFILE_NAMES = (
 SKILL_NAMES = (
     "orchestra",
     "orchestra-project-start",
-    "orchestra-repo-onboard",
+    "orchestra-repo-readiness",
     "orchestra-delegate",
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestra-coordinate",
-    "orchestra-repo-maintenance",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -649,7 +646,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             "orchestra-role-implementer",
             "orchestra-role-reviewer",
             "orchestra-role-verifier",
-            "orchestra-repo-onboard",
+            "orchestra-repo-readiness",
             "orchestra-project-start",
             "orchestra-engineering",
             "orchestra-project-verification",
@@ -726,7 +723,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
     exempt = {"orchestra-project-start", "orchestra-engineering",
-              "orchestra-project-verification", "orchestra-coordinate", "orchestra-repo-maintenance",
+              "orchestra-project-verification", "orchestra-coordinate", "orchestra-repo-readiness",
               *ROLE_SKILL_BY_PROFILE.values()}
     for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
@@ -739,7 +736,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
 def check_modular_routing(root: Path) -> list[str]:
     failures: list[str] = []
     routes = {
-        "orchestra-repo-maintenance": ("Repository maintenance", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
+        "orchestra-repo-readiness": ("Repository readiness", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
         "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
@@ -757,7 +754,7 @@ def check_modular_routing(root: Path) -> list[str]:
         for target in ("../orchestra/runtime.md", *resources):
             if target not in links:
                 failures.append(f"modular-routing: {name} must link {target}")
-    for name in ("orchestra-coordinate", "orchestra-repo-maintenance"):
+    for name in ("orchestra-coordinate", "orchestra-repo-readiness"):
         metadata = root / f"codex/skills/{name}/agents/openai.yaml"
         if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
             failures.append(f"modular-routing: {name} must remain explicit-only")
@@ -766,8 +763,8 @@ def check_modular_routing(root: Path) -> list[str]:
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-implementer", "orchestra-role-reviewer",
                      "orchestra-engineering", "orchestra-project-start",
-                     "orchestra-project-verification", "orchestra-repo-onboard",
-                     "orchestra-repo-maintenance", "orchestra-delegate")
+                     "orchestra-project-verification", "orchestra-repo-readiness",
+                     "orchestra-delegate")
     ]
     consumers.append(root / "codex/skills/orchestra/references/shared_conduct.md")
     consumers.append(root / "codex/skills/orchestra-coordinate/packet-example.md")
@@ -796,7 +793,7 @@ def check_modular_routing(root: Path) -> list[str]:
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",
                      "orchestra-role-reviewer", "orchestra-role-verifier",
                      "orchestra-engineering",
-                     "orchestra-project-verification", "orchestra-repo-maintenance")
+                     "orchestra-project-verification", "orchestra-repo-readiness")
     ]
     testing_consumers.extend(
         root / f"codex/skills/orchestra/references/{name}.md"
@@ -808,7 +805,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "change-quality": [root / f"codex/skills/{name}/SKILL.md" for name in
                            ("orchestra-role-implementer", "orchestra-role-reviewer",
                             "orchestra-engineering")],
-        "test-maintenance": [root / "codex/skills/orchestra-repo-maintenance/SKILL.md"],
+        "test-maintenance": [root / "codex/skills/orchestra-repo-readiness/SKILL.md"],
     }
     for anchor, consumers in guidance_routes.items():
         for consumer in consumers:

@@ -193,7 +193,7 @@ class SyncTests(unittest.TestCase):
         )
         self.assertTrue(
             self.home.joinpath(
-                ".agents/skills/orchestra-repo-onboard/SKILL.md"
+                ".agents/skills/orchestra-repo-readiness/SKILL.md"
             ).is_file()
         )
         for relative in ("SKILL.md", "packet-example.md", "acceptance-packet.md"):

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestra Repository Readiness"
+  short_description: "Diagnose and repair a repository so agents can work in it reliably"
+  default_prompt: "Use $orchestra-repo-readiness to diagnose this repository against the readiness target state and report each item with evidence."
+policy:
+  allow_implicit_invocation: false

@@ -33,8 +33,9 @@ conversation, pauses before task setup, and later continues without a second
 invocation; Orchestra observes the host mode and never changes it.
 `orchestra-project-start` may activate implicitly for a greenfield idea but
 never activates the full workflow without an explicit user choice.
-`orchestra-repo-onboard` is explicit only and writes a repository's tracked
-`.agent/` conventions after confirmation without activating the workflow. Details:
+`orchestra-repo-readiness` is explicit only; it prepares an existing repository
+for agents and writes its tracked `.agent/` conventions after confirmation
+without activating the workflow. Details:
 `docs/WORKFLOW.md` ("Orchestrator behavior" and "Context and planning").
 
 The modular engineering, project-verification and explicit initiative entry

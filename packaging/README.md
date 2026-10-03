@@ -235,9 +235,9 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 
 All targets and direct sync include `orchestra-engineering`,
 `orchestra-project-verification`, `orchestra-coordinate` and
-`orchestra-repo-maintenance` from canonical sources. References relocate with the bundle.
+`orchestra-repo-readiness` from canonical sources. References relocate with the bundle.
 Engineering and verification entries allow host discovery; the initiative
-coordinator and repository maintenance require an explicit request. Distribution makes resources
+coordinator and repository readiness require an explicit request. Distribution makes resources
 available, not guaranteed selection or native root-task APIs. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
 local integration canaries and the separate live-host evaluation boundary.

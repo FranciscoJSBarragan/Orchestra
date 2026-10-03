@@ -22,12 +22,11 @@ from typing import Any
 SKILLS = (
     "orchestra",
     "orchestra-project-start",
-    "orchestra-repo-onboard",
+    "orchestra-repo-readiness",
     "orchestra-delegate",
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestra-coordinate",
-    "orchestra-repo-maintenance",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",

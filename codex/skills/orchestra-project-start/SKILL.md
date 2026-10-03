@@ -57,7 +57,10 @@ production integration without explicit scope.
 Produce the smallest vertical foundation that demonstrates one confirmed user
 journey, including proportionate error or empty behavior. Establish canonical
 development and verification commands and add only the configuration and tests
-needed to prove the foundation. Preserve unrelated files and existing Git state.
+needed to prove the foundation. Start at the target state of
+[repository readiness](../orchestra-repo-readiness/SKILL.md): one setup command,
+clean and deterministic gates, a strict linter at a green baseline, isolated
+tests and an isolated way to run the application. Preserve unrelated files and existing Git state.
 Initialize Git only when the user approved it.
 
 When canonical commands alone do not establish the confirmed journey, use

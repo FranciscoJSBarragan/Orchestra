@@ -32,7 +32,7 @@ Select only the material question:
 | Fix a defect | Shared guidance, "Evidence for consequential changes"; use [difficult debugging](../orchestra/references/difficult_debugging.md) for competing hypotheses or repeated failed corrections. |
 | Select or assess tests | [Behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification): expected outcomes, relevant failures and the smallest reliable proof. |
 | Check scope and maintainability | [Change quality](../orchestra/references/architecture_guidance.md#change-quality): necessary paths, suitable reuse and affected documentation. |
-| Maintain a harmful pattern or instruction | Shared guidance, "Prevent recurring failures" and "Maintain patterns and knowledge"; use [repository maintenance](../orchestra-repo-maintenance/SKILL.md) for an explicitly requested audit or repair batch. |
+| Maintain a harmful pattern or instruction | Shared guidance, "Prevent recurring failures" and "Maintain patterns and knowledge"; use [repository readiness](../orchestra-repo-readiness/SKILL.md) for an explicitly requested audit or repair batch. |
 | Improve performance | Shared guidance, "Performance evidence": comparable measurement and, where useful, a runtime profile or trace. |
 | Exercise the product | Reuse the repository's verification entry; use [project verification](../orchestra-project-verification/SKILL.md) when creating, running, refreshing, or auditing that knowledge is the requested work. |
 | Assess a change independently | [Reviewer role](../orchestra-role-reviewer/SKILL.md), only for a genuinely independent assignment. Self-checking is not independent review. |

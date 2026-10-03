@@ -125,11 +125,11 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertIn("orchestra-role-implementer/SKILL.md must directly link architecture_guidance.md#source-comments", result.stdout)
 
     def test_maintenance_requires_existing_execution_route(self) -> None:
-        skill = self.root / "codex/skills/orchestra-repo-maintenance/SKILL.md"
+        skill = self.root / "codex/skills/orchestra-repo-readiness/SKILL.md"
         skill.write_text(skill.read_text().replace("../orchestra-engineering/SKILL.md", "../orchestra/SKILL.md"))
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("orchestra-repo-maintenance must link ../orchestra-engineering/SKILL.md", result.stdout)
+        self.assertIn("orchestra-repo-readiness must link ../orchestra-engineering/SKILL.md", result.stdout)
 
     def test_testing_consumers_require_behavioral_verification_route(self) -> None:
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",
@@ -149,11 +149,11 @@ class ValidateSuiteTests(unittest.TestCase):
                     skill.write_text(original)
 
     def test_maintenance_requires_test_audit_guidance(self) -> None:
-        skill = self.root / "codex/skills/orchestra-repo-maintenance/SKILL.md"
+        skill = self.root / "codex/skills/orchestra-repo-readiness/SKILL.md"
         skill.write_text(skill.read_text().replace("architecture_guidance.md#test-maintenance",
                                                   "architecture_guidance.md"))
         failures = validator.check_modular_routing(self.root)
-        self.assertTrue(any("orchestra-repo-maintenance/SKILL.md" in item and "#test-maintenance" in item
+        self.assertTrue(any("orchestra-repo-readiness/SKILL.md" in item and "#test-maintenance" in item
                             for item in failures), failures)
 
     def test_reviewer_requires_change_quality_guidance(self) -> None:
@@ -559,7 +559,7 @@ class FullModeFixtureTest(unittest.TestCase):
             "orchestra-role-implementer/SKILL.md",
             "orchestra-role-reviewer/SKILL.md",
             "orchestra-role-verifier/SKILL.md",
-            "orchestra-repo-onboard/SKILL.md",
+            "orchestra-repo-readiness/SKILL.md",
             "orchestra-project-start/SKILL.md",
             "orchestra/references/repository_context.md",
             "orchestra/references/technical_planning.md",
