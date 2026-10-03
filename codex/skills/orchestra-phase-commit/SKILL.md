@@ -23,9 +23,10 @@ commit truth.
 In `orchestra_phase` mode, require the exact current phase artifact, accepted
 repository-relative paths, an accepted current-review identifier —
 `implementation-review` for ordinary phase completion or `pr-review` for an
-accepted PR fix — and every verification-report identifier required by that
-phase's `Independent verification gate` for the current revision. A gate of
-`none` requires no `verification-report`. Use a concise title plus useful
+accepted PR fix — and a `passed` verification-report for every gate that
+phase's `Independent verification gate` requires at the current revision. A
+`blocked` or failed report is not evidence: leave the phase uncommitted and
+report what clears it. A gate of `none` requires no `verification-report`. Use a concise title plus useful
 intent and validation; include risks only when material. The resulting Git
 commit is authoritative; never create a duplicate commit artifact.
 
