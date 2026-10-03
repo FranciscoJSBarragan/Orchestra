@@ -72,7 +72,12 @@ HELPERS = (
     "_common.py",
 )
 RETIRED_HELPERS = ("create_worktree.py", "session_model.py", "coordination.py", "task_control.py", "task_mcp.py")
-RETIRED_SKILLS = ("orchestra-task", "orchestra-lite")
+RETIRED_SKILLS = (
+    "orchestra-task",
+    "orchestra-lite",
+    "orchestra-repo-onboard",
+    "orchestra-repo-maintenance",
+)
 MODELCONFIGS = ("native",)
 # Accepted only as ownership metadata for migration and uninstall.
 LEGACY_MODELCONFIGS = ("external", "dual")
