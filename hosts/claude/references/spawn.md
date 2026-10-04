@@ -34,9 +34,11 @@ Assigned tiers are those with complete capability rows. This cut assigns
 Recommend `critical` when the brief matches security, credentials, payments,
 migrations, destructive actions, or production mutation.
 
-The recommended root uses the selected tier's `technical_planning` model and
-effort. The user's current `/model` and `/effort` remain authoritative:
-Orchestra never changes or respawns the root.
+Recommend a root of at least `high` effort on every tier: Sonnet 5.5 `high` on
+`minimal` and `standard`, Opus 5.5 `high` on `critical`. Low-effort rows suit
+bounded roles, not the root, which owns the approval gates. The user's current
+`/model` and `/effort` remain authoritative: Orchestra never changes or
+respawns the root.
 
 ## Dispatch
 
@@ -124,7 +126,9 @@ before commit, matching Codex V2 completed-state evidence.
 `browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
 codex-cu MCP server as WORKFLOW defines. `auto` and `chrome` map to Claude in
 Chrome (the `claude-in-chrome` MCP server, enabled with `--chrome` or
-`/chrome`). `in_app` is `blocked` on Claude Code. An explicit user route is
+`/chrome`). `in_app` is `blocked` on Claude Code. Inside T3 Code, which
+starts Claude Code without Chrome integration, `auto` maps to `codex-cu` and
+`chrome` is `blocked`. An explicit user route is
 never vetoed or substituted.
 
 Open each scenario in a new task-owned tab; never claim or reuse a user tab.

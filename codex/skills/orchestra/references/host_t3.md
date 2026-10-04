@@ -18,12 +18,12 @@ Call `t3_worktree_status` before task setup.
   `t3_worktree_handoff` instead of `git worktree add`, with `branch`
   `orchestra/<task-slug>`, `baseRef` the intended base, `startFromOrigin`
   `true` for the fetched upstream or `false` for an explicit local base, a
-  `path` under the configured worktree root, and a `continuationPrompt` naming
-  the task and its next step. Only committed base content reaches the new
-  checkout. The handoff ends the turn: tell the user first that if work does
-  not resume within a minute they should send any message, because the queued
-  continuation can stay idle. On resume, verify path, branch, and HEAD, then
-  run the WORKFLOW canary write.
+  `path` under the configured worktree root, and no `continuationPrompt`:
+  T3 never dispatches a continuation queued behind a handoff. Only committed
+  base content reaches the new checkout. The handoff ends the turn, so first
+  tell the user to send any message to continue in the new checkout. On
+  resume, verify path, branch, and HEAD, then run the WORKFLOW canary write.
+  Starting the thread in a T3 worktree avoids the handoff entirely.
 
 The checkout is T3-owned. Deliver with `--preserve-task-resources`; the user
 releases the worktree and thread from T3, since archiving a thread does not
@@ -56,3 +56,9 @@ assignment may use `delegate_task` with the same provider, model, and effort.
 Native host spawn stays valid; use one transport per phase cohort. Task roots
 for an initiative follow the T3 section of
 [host transports](../../orchestra-coordinate/host-transports.md).
+
+## Browser
+
+T3 starts Claude Code without Chrome integration, so Claude in Chrome is
+unavailable there: on Claude Code inside T3, `auto` maps to `codex-cu` and
+`chrome` is `blocked`.

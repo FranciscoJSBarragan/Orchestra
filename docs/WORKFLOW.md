@@ -1008,7 +1008,8 @@ On Claude Code, the root reads
 offers and assigns `minimal`, `standard`, and `critical`. The root recommends
 `standard`; it recommends `minimal` when the user prioritizes cost or speed;
 it recommends `critical` for matching high-impact risk. The recommended root
-uses the selected tier's `technical_planning` model and effort; the user's
+runs at `high` effort on every tier (Sonnet 5.5 on `minimal` and `standard`,
+Opus 5.5 on `critical`), because the root owns the approval gates; the user's
 `/model` and `/effort` remain authoritative.
 
 For every spawned dispatch, select a capability, profile, and explicit model
@@ -1864,7 +1865,9 @@ no installation writes or removes that setting.
   only when Chrome is unavailable or has a technical capability gap that the
   in-app Browser can satisfy. On Cursor, `auto` and `chrome` map to Browser Use.
   On Grok Build, `auto` maps to Playwright. On Devin, native `auto` is `blocked`.
-  On Claude Code, `auto` and `chrome` map to Claude in Chrome.
+  On Claude Code, `auto` and `chrome` map to Claude in Chrome; inside T3 Code,
+  which starts Claude Code without it, `auto` maps to `codex-cu` and `chrome`
+  is `blocked`.
 - `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor,
   Grok, Devin, and Claude Code.
 - `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
