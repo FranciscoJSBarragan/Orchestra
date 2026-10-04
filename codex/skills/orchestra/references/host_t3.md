@@ -19,7 +19,8 @@ Call `t3_worktree_status` before task setup.
   `orchestra/<task-slug>`, `baseRef` the intended base, `startFromOrigin`
   `true` for the fetched upstream or `false` for an explicit local base, a
   `path` under the configured worktree root, and no `continuationPrompt`:
-  T3 never dispatches a continuation queued behind a handoff. Only committed
+  for Claude and Cursor sessions T3 holds a continuation queued behind a
+  handoff instead of starting it (T3 Code issue #15136). Only committed
   base content reaches the new checkout. The handoff ends the turn, so first
   tell the user to send any message to continue in the new checkout. On
   resume, verify path, branch, and HEAD, then run the WORKFLOW canary write.
@@ -59,6 +60,7 @@ for an initiative follow the T3 section of
 
 ## Browser
 
-T3 starts Claude Code without Chrome integration, so Claude in Chrome is
-unavailable there: on Claude Code inside T3, `auto` maps to `codex-cu` and
-`chrome` is `blocked`.
+T3 starts Claude Code without Chrome integration unless the Claude provider's
+Launch arguments include `--chrome`. On Claude Code inside T3 without the
+`claude-in-chrome` tools, `auto` maps to `codex-cu` and `chrome` is `blocked`;
+tell the user that setting enables Claude in Chrome.

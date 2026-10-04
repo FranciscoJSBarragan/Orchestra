@@ -126,9 +126,9 @@ before commit, matching Codex V2 completed-state evidence.
 `browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
 codex-cu MCP server as WORKFLOW defines. `auto` and `chrome` map to Claude in
 Chrome (the `claude-in-chrome` MCP server, enabled with `--chrome` or
-`/chrome`). `in_app` is `blocked` on Claude Code. Inside T3 Code, which
-starts Claude Code without Chrome integration, `auto` maps to `codex-cu` and
-`chrome` is `blocked`. An explicit user route is
+`/chrome`). `in_app` is `blocked` on Claude Code. Inside T3 Code without
+`--chrome` in the Claude provider's Launch arguments, `auto` maps to
+`codex-cu` and `chrome` is `blocked`. An explicit user route is
 never vetoed or substituted.
 
 Open each scenario in a new task-owned tab; never claim or reuse a user tab.
