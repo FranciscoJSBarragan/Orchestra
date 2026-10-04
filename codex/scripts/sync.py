@@ -1115,7 +1115,7 @@ def _owned_config_parts(
     if marker < 0:
         return None
     for name, start, _ in _table_spans(block):
-        if not name.startswith("mcp_servers.") or name == "mcp_servers.orchestra_tasks":
+        if not name.startswith(("mcp_servers.", "projects.")) or name == "mcp_servers.orchestra_tasks":
             continue
         prefix = block[:start].rstrip(b"\n") + b"\n"
         candidate = prefix + CONFIG_END + b"\n"

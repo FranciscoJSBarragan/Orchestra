@@ -702,13 +702,19 @@ class SyncTests(unittest.TestCase):
         self.assertNotIn("orchestra-workspace", restored)
 
     def test_codex_inserted_mcp_table_inside_marker_is_recovered(self) -> None:
+        self._assert_inserted_table_recovered(b"mcp_servers.node_repl", b'command = "node-repl"')
+
+    def test_codex_inserted_project_trust_inside_marker_is_recovered(self) -> None:
+        self._assert_inserted_table_recovered(
+            b'projects."/home/agent/Code/repo"', b'trust_level = "trusted"'
+        )
+
+    def _assert_inserted_table_recovered(self, name: bytes, body: bytes) -> None:
         self.assertEqual(self.run_sync("apply")["status"], "ok")
         config = self.codex_home / "config.toml"
         installed = config.read_bytes()
-        injected = (
-            b"[mcp_servers.node_repl]\n"
-            b'command = "node-repl"\n\n'
-        )
+        header = b"[" + name + b"]"
+        injected = header + b"\n" + body + b"\n\n"
         config.write_bytes(
             installed.replace(sync.CONFIG_END + b"\n", injected + sync.CONFIG_END + b"\n", 1)
         )
@@ -718,16 +724,12 @@ class SyncTests(unittest.TestCase):
         self.assertNotIn("owned managed block drift", status.get("detail", ""))
         self.assertEqual(self.run_sync("apply")["status"], "ok")
 
-        repaired = config.read_text()
-        self.assertNotIn("mcp_servers.orchestra_tasks", repaired)
-        self.assertNotIn("[mcp_servers.orchestra_tasks]", repaired)
-        self.assertLess(
-            repaired.index("# orchestra-worktree-root:end"),
-            repaired.index("[mcp_servers.node_repl]"),
-        )
+        repaired = config.read_bytes()
+        self.assertNotIn(b"mcp_servers.orchestra_tasks", repaired)
+        self.assertLess(repaired.index(sync.CONFIG_END), repaired.index(header))
         self.assertEqual(sync.uninstall(self.home, self.codex_home)["status"], "ok")
-        self.assertIn("[mcp_servers.node_repl]", config.read_text())
-        self.assertIn('command = "node-repl"', config.read_text())
+        self.assertIn(header, config.read_bytes())
+        self.assertIn(body, config.read_bytes())
 
     def test_permission_rewrite_preserves_multiline_strings_byte_for_byte(
         self,
