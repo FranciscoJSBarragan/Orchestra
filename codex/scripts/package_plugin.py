@@ -10,7 +10,7 @@ import sys
 
 from sync import AGENTS, HELPERS, SKILLS
 
-TARGETS = ("portable", "cursor", "grok", "devin")
+TARGETS = ("portable", "cursor", "grok", "devin", "claude")
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
@@ -48,6 +48,7 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         ("cursor", "hosts/cursor/config/roles.cursor.toml"),
         ("grok", "hosts/grok/config/roles.grok.toml"),
         ("devin", "hosts/devin/config/roles.devin.toml"),
+        ("claude", "hosts/claude/config/roles.claude.toml"),
     ):
         files.append((source / matrix, Path("hosts") / host / "roles.toml"))
         if host != "codex":
@@ -64,6 +65,11 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         for profile in AGENTS:
             files.append((source / "hosts/devin/agents" / f"{profile}.md",
                           Path("agents") / f"{profile}.md"))
+    elif target == "claude":
+        for path in sorted((source / "hosts/claude/agents").glob("orchestra_*.md")):
+            files.append((path, Path("agents") / path.name))
+        for name in ("hooks.json", "read_package.py"):
+            files.append((source / "hosts/claude/plugin/hooks" / name, Path("hooks") / name))
     # Preflight every source before creating anything at the destination.
     for original, _ in files:
         if (not original.is_file() or original.is_symlink()

@@ -81,14 +81,16 @@ RETIRED_SKILLS = (
 MODELCONFIGS = ("native",)
 # Accepted only as ownership metadata for migration and uninstall.
 LEGACY_MODELCONFIGS = ("external", "dual")
-HOSTS = ("codex", "cursor", "grok", "devin", "all")
-HOST_SCOPES = ("codex", "cursor", "grok", "devin")
+HOSTS = ("codex", "cursor", "grok", "devin", "claude", "all")
+HOST_SCOPES = ("codex", "cursor", "grok", "devin", "claude")
 ENTRY_SCOPES = ("shared", *HOST_SCOPES)
 CHECKOUT_MODES = ("managed", "hybrid")
 CURSOR_PLUGIN_ROOT = ".cursor/plugins/local/orchestra"
 DEVIN_CONFIG_PATH = ".config/devin/config.json"
 DEVIN_AGENTS_DIR = ".config/devin/agents"
 DEVIN_SKILLS_DIR = ".config/devin/skills"
+CLAUDE_AGENTS_DIR = ".claude/agents"
+CLAUDE_SKILLS_DIR = ".claude/skills"
 START = b"<!-- orchestra:start -->"
 END = b"<!-- orchestra:end -->"
 CONFIG_START = b"# orchestra-worktree-root:start"
@@ -197,6 +199,10 @@ def _includes_grok(host: str) -> bool:
 
 def _includes_devin(host: str) -> bool:
     return host in {"devin", "all"}
+
+
+def _includes_claude(host: str) -> bool:
+    return host in {"claude", "all"}
 
 
 def _devin_canonical_matcher_bytes(matcher: dict[str, Any]) -> bytes:
@@ -571,12 +577,16 @@ def _entry_scope(root: str, path: str) -> str:
         return "cursor"
     if root == "home" and parts[:2] == (".config", "devin"):
         return "devin"
+    if root == "home" and parts[:2] in {(".claude", "agents"), (".claude", "skills")}:
+        return "claude"
     if root == "orchestra_home" and parts[:2] == ("hosts", "cursor"):
         return "cursor"
     if root == "orchestra_home" and parts[:2] == ("hosts", "grok"):
         return "grok"
     if root == "orchestra_home" and parts[:2] == ("hosts", "devin"):
         return "devin"
+    if root == "orchestra_home" and parts[:2] == ("hosts", "claude"):
+        return "claude"
     return "shared"
 
 
@@ -784,6 +794,40 @@ def _inventory(
                 entries[("home", destination)] = _entry(
                     "home", destination, "file", _read_file(source, str(source))
                 )
+    if _includes_claude(host):
+        for source, destination in (
+            (source_root / "hosts/claude/config/roles.claude.toml", "hosts/claude/roles.toml"),
+            (source_root / "hosts/claude/references/spawn.md", "hosts/claude/spawn.md"),
+        ):
+            entries[("orchestra_home", destination)] = _entry(
+                "orchestra_home",
+                destination,
+                "file",
+                _read_file(source, str(source)),
+            )
+        claude_agents_dir = source_root / "hosts/claude/agents"
+        if claude_agents_dir.is_symlink() or not claude_agents_dir.is_dir():
+            raise SyncError(f"expected a source directory: {claude_agents_dir}")
+        for source in sorted(claude_agents_dir.iterdir(), key=lambda item: item.name):
+            if (
+                source.is_symlink()
+                or not source.is_file()
+                or source.suffix != ".md"
+                or not source.stem.startswith(AGENTS)
+            ):
+                raise SyncError(f"unexpected agent source entry: {source}")
+            destination = f"{CLAUDE_AGENTS_DIR}/{source.name}"
+            entries[("home", destination)] = _entry(
+                "home", destination, "file", _read_file(source, str(source))
+            )
+        for skill in SKILLS:
+            directory = skill_root / skill
+            for source in _walk_files(directory):
+                relative = source.relative_to(directory).as_posix()
+                destination = f"{CLAUDE_SKILLS_DIR}/{skill}/{relative}"
+                entries[("home", destination)] = _entry(
+                    "home", destination, "file", _read_file(source, str(source))
+                )
     return entries
 
 
@@ -803,6 +847,19 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             and parts[:3] == (".config", "devin", "agents")
             and parts[3].startswith("orchestra_")
             and parts[3].endswith(".md")
+        ):
+            return True
+        if (
+            len(parts) >= 4
+            and parts[:2] == (".claude", "skills")
+            and parts[2] in (*SKILLS, *RETIRED_SKILLS)
+        ):
+            return True
+        if (
+            len(parts) == 3
+            and parts[:2] == (".claude", "agents")
+            and parts[2].startswith("orchestra_")
+            and parts[2].endswith(".md")
         ):
             return True
         plugin_parts = Path(CURSOR_PLUGIN_ROOT).parts
@@ -825,6 +882,8 @@ def _allowed_entry(root: str, path: str, kind: str) -> bool:
             "hosts/devin/roles.toml",
             "hosts/devin/spawn.md",
             "hosts/devin/session_identity.py",
+            "hosts/claude/roles.toml",
+            "hosts/claude/spawn.md",
         } or path in {f"scripts/{name}" for name in (*HELPERS, *RETIRED_HELPERS)} or (
             len(parts) >= 2 and parts[0] == "control"
         )
@@ -1905,7 +1964,7 @@ def _restart_required(changes: list[dict[str, str]]) -> bool:
         )
         or (
             change["root"] == "home"
-            and change["path"].startswith(".config/devin/")
+            and change["path"].startswith((".config/devin/", ".claude/"))
         )
         for change in changes
     )

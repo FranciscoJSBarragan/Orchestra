@@ -6,7 +6,8 @@ actually loaded (resolve symlinks), never from the project working directory. Se
 or a delegated packet, reuse the owning skill's resolved root.
 
 When the parent of that skills root contains `.codex-plugin/plugin.json` or a
-host plugin manifest such as `.devin-plugin/plugin.json`, this is a plugin:
+host plugin manifest such as `.devin-plugin/plugin.json` or
+`.claude-plugin/plugin.json`, this is a plugin:
 set `ORCHESTRA_RUNTIME_ROOT` to that parent. Otherwise this is a
 direct-sync installation: use `${ORCHESTRA_HOME:-$HOME/.orchestra}`, unless
 explicit source mode was selected. In source mode bind `source_root` to the
@@ -27,7 +28,8 @@ do not silently fall back to another installed version.
 | Codex matrix | `<runtime>/hosts/codex/roles.toml` | `${CODEX_HOME:-$HOME/.codex}/orchestra/roles.toml` |
 | Codex behavior profiles | `<runtime>/profiles/<profile>.toml` | `${CODEX_HOME:-$HOME/.codex}/agents/<profile>.toml` |
 | Devin agent profiles | `<runtime>/agents/<profile>.md` | `~/.config/devin/agents/<profile>.md` |
-| Cursor/Grok/Devin matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
+| Claude Code agent profiles | `<runtime>/agents/<subagent_type>.md` | `~/.claude/agents/<subagent_type>.md` |
+| Cursor/Grok/Devin/Claude Code matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
 | Role skills and shared references | `<skills-root>/<skill>/` | `<skills-root>/<skill>/` |
 
 ## Explicit source layout
@@ -42,9 +44,9 @@ Resolve remaining resources from that same source, not `<runtime>/hosts`:
 | Execution presets | `<source>/codex/config/execution-presets.toml` |
 | Codex matrix and profiles | `<source>/codex/config/roles.native.toml`, `<source>/codex/agents/<profile>.toml` |
 | Codex spawn reference | `<source>/codex/skills/orchestra/references/host_codex.md` |
-| Cursor/Grok/Devin matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
-| Cursor/Grok/Devin spawn reference | `<source>/hosts/<host>/references/spawn.md` |
-| Devin profile sources | `<source>/hosts/devin/agents/<profile>.md` |
+| Cursor/Grok/Devin/Claude Code matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
+| Cursor/Grok/Devin/Claude Code spawn reference | `<source>/hosts/<host>/references/spawn.md` |
+| Devin and Claude Code profile sources | `<source>/hosts/<host>/agents/<name>.md` |
 | Skills | `<source>/codex/skills/<skill>/` |
 
 Pass the absolute selected matrix and adapter paths when dispatch needs them.
@@ -55,8 +57,8 @@ read-only even when the task's product repository is Orchestra itself; prepare a
 separate pinned copy before editing that product checkout.
 
 Under a Devin direct-sync installation the skills root is
-`~/.config/devin/skills`; under the Devin plugin bundle it is
-`<runtime>/skills`.
+`~/.config/devin/skills`; under Claude Code direct sync it is
+`~/.claude/skills`. Under either plugin bundle it is `<runtime>/skills`.
 
 Every delegated role packet includes the absolute `role_skill` path and the selected
 runtime and skills roots. Resolve sibling skills and references from that same

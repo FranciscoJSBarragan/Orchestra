@@ -1,7 +1,7 @@
 # Orchestra
 
 Orchestra provides reusable engineering skills and an explicit multi-agent
-software-delivery workflow for Codex, Cursor, Grok Build, and Devin.
+software-delivery workflow for Codex, Cursor, Grok Build, Devin, and Claude Code.
 Use individual skills in your current workflow, or invoke `$orchestra` for an
 approved plan, implementation, independent review, verification and phase commits.
 You remain the product owner and final authority.
@@ -62,8 +62,9 @@ Tier controls intensity (models, review depth, double evidence), never authority
 | **Cursor** | `minimal`, `standard`, `critical` | Reads its own role matrix; browser work routed through Browser Use |
 | **Grok Build** | `standard`, `critical` | `grok-4.7-build-fast` at `xhigh`; no cheaper tier |
 | **Devin** | `standard`, `critical` | `swe-2-max` pinned in each agent profile; no cheaper tier; native browser routes `blocked`; browser acceptance requires an explicit Codex CLI Chrome handoff |
+| **Claude Code** | `minimal`, `standard`, `critical` | Sonnet 5.5 and Opus 5.5 by capability; effort pinned per registered agent; the plugin reads its own files without prompts and enters `managed` worktrees with `EnterWorktree`; browser work routed through Claude in Chrome |
 
-All four share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.
+All five share the same skills, helpers, plan format, and Git workflow. Each host contributes only spawn, models, permissions, and browser routing.
 
 ## Use the pieces on their own
 
@@ -135,7 +136,7 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | `orchestra` | Explicit full workflow: spec → plan → phases → delivery |
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-readiness` | Existing repo. Checks it against a runnable target state (one-command setup, clean and deterministic gates, isolated tests, isolated app, structure) and repairs what you grant, writing a short tracked `.agent/` store |
-| `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI with scoped permissions |
+| `orchestra-delegate` | Run one assignment through Codex CLI, Cursor CLI, Grok Build CLI, Devin CLI, or Claude Code CLI with scoped permissions |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
 
@@ -148,10 +149,12 @@ python3 codex/scripts/package_plugin.py --target portable --output dist/portable
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
 python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orchestra
+python3 codex/scripts/package_plugin.py --target claude --output dist/claude/orchestra
 ```
 
 The portable format supports Agent Plugins 1.0 and Codex. Native variants keep
-Cursor's native manifest, Grok's compatible loader and Devin's agent profiles.
+Cursor's native manifest, Grok's compatible loader, and the Devin and Claude
+Code agent profiles.
 All variants include the same workflow, skills, helpers, native adapters and CLI
 delegation. The core contains no Task Control, Hub, identity hook or MCP server.
 The package inherits host permissions.
@@ -177,7 +180,7 @@ for installation, clients and companion validation.
 
 ## Install with direct sync
 
-**Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, Grok Build, or Devin). GitHub CLI only if you want PR delivery.
+**Prerequisites:** Python 3, Git, and at least one host (Codex ≥ 0.146, Cursor, Grok Build, Devin, or Claude Code). GitHub CLI only if you want PR delivery.
 
 Clone this repository and run the sync from the checkout. It installs skills, profiles, role matrices, and helpers into the host's own directories, records everything it owns in a manifest, and never touches unrelated configuration.
 
@@ -189,7 +192,7 @@ cd Orchestra
 python3 codex/scripts/sync.py status --host all
 python3 codex/scripts/sync.py apply --host all --dry-run
 
-# Install for every host (or pick: --host codex | cursor | grok | devin)
+# Install for every host (or pick: --host codex | cursor | grok | devin | claude)
 python3 codex/scripts/sync.py apply --host all
 
 # Later
@@ -204,7 +207,7 @@ Useful flags:
 
 **Browser engine.** With either installation, agents installing Orchestra ask
 the user which engine browser checks use, since the hosts differ (Codex Chrome connector, Cursor
-Browser Use, Grok Playwright, none on Devin):
+Browser Use, Grok Playwright, Claude in Chrome on Claude Code, none on Devin):
 
 - *Host default* — nothing to do; the route stays `auto`.
 - *Codex's engine on every host* — needs macOS with the ChatGPT app installed
@@ -258,7 +261,7 @@ codex/agents/          the four namespaced agent profiles
 codex/config/          Codex role matrix and permission defaults
 codex/scripts/        packaging, sync, validation, local plan, delegation and Git helpers
 codex/tests/           conformance suite
-hosts/cursor, hosts/grok, hosts/devin  host adapters and role matrices
+hosts/cursor, hosts/grok, hosts/devin, hosts/claude  host adapters and role matrices
 ```
 
 Product intent has a strict precedence: `VISION.md` → `docs/WORKFLOW.md` → `docs/ARCHITECTURE.md` → `AGENTS.md` → skills, profiles, scripts, tests. Lower layers never silently redefine higher ones.

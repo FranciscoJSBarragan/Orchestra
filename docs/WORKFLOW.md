@@ -115,6 +115,30 @@ conversation identity, permissions, and `browser_route`.
   Chrome handoff follows "CLI delegation"; otherwise acceptance is `blocked`.
   User preview never replaces browser acceptance. Devin sync installs profiles and skills under
   `~/.config/devin/`; it installs no identity hook or Task configuration.
+- Claude Code reads `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/claude/roles.toml`. Dispatch
+  uses a fresh `Agent` per dispatch with the registered agent named by the
+  matrix (`<profile>_<effort>`, whose frontmatter pins the effort and denies
+  `Agent` to children), the row's explicit `model` alias, and the existing
+  `orchestra-role-*` skill; a plugin installation namespaces the agent as
+  `orchestra:<name>`. Never use `isolation: worktree`; the packet names the
+  task checkout because `Agent` has no working-directory field. Wait on the
+  foreground return or background completion notification under "Agent
+  waiting", without polling, and resume only the same phase-cohort agent with
+  `SendMessage`. Claude Code has no `close_agent`: the returned result is the
+  required completed-state evidence before commit. Permissions are observed,
+  never written. The plugin's only hook allows read-only tools inside the
+  installed package; direct sync instead asks the user to add its runtime and
+  skills directories. A `managed` checkout is entered with `EnterWorktree`
+  (`path`) before the first dispatch, so every agent works there, and left with
+  `ExitWorktree` (`keep`) before cleanup. Claude Code sync installs agents and skills under
+  `~/.claude/`; it writes no settings, hooks, or Task configuration.
+
+Inside T3 Code (its `t3-code` MCP tools are available) the provider remains the
+host and keeps its matrix. T3 creates a `managed` checkout through
+`t3_worktree_handoff` and carries roles through `delegate_task` with the row's
+explicit provider, model and effort, as the `host_t3.md` reference defines;
+the root still checks Git after every child and delivers with preserved
+T3-owned resources.
 
 Resolve executable resources using `orchestra/runtime.md` alongside the loaded
 skills. Plugin installation keeps skills, helpers, profiles, host matrices, and presets in one relocatable
@@ -142,8 +166,8 @@ execpolicy rule or Git helper. Older or unreadable clients block before any
 change; historical manifest-owned Full Access or legacy blocks migrate
 atomically, and
 `uninstall` restores the exact prior configuration regardless of version.
-Cursor, Grok and Devin synchronization never write Codex permission keys or
-Grok or Devin permission configuration. Native host chats inherit their
+Cursor, Grok, Devin and Claude Code synchronization never write Codex
+permission keys or Grok, Devin or Claude Code permission configuration. Native host chats inherit their
 configured permissions; Task Control never launches a host or overrides
 permissions, and explicit host choices stay authoritative and are neither
 rejected nor rewritten. Under Codex
@@ -549,7 +573,7 @@ implementation/review loop.
 ## CLI delegation
 
 On explicit user selection, the root may execute one bounded capability with
-Codex CLI, Cursor CLI, Grok Build CLI, or Devin CLI through `orchestra-delegate`. This executor choice
+Codex CLI, Cursor CLI, Grok Build CLI, Devin CLI, or Claude Code CLI through `orchestra-delegate`. This executor choice
 is independent of the owning host and tier; it changes neither. Use the exact requested CLI model and
 supported effort after inspecting that CLI's current catalog/help. Do not
 silently fall back to another model, provider, account, or API billing path.
@@ -557,8 +581,8 @@ Native capability assignments remain the default; an explicitly selected
 execution preset supplies the overrides described below. A delegate is a worker,
 never a second root running the whole Orchestra workflow.
 
-The same helper is callable from any supported host: a Cursor, Grok, or Devin
-root can choose Codex as its worker without switching its own host or matrix.
+The same helper is callable from any supported host: a Cursor, Grok, Devin, or
+Claude Code root can choose Codex as its worker without switching its own host or matrix.
 Browser acceptance stays in the owning host by default. An explicitly chosen
 Codex CLI Chrome handoff uses `--capability browser_acceptance --browser-route
 chrome` with an explicit model and `--effort`. The result records
@@ -591,12 +615,17 @@ Permissions follow the task's explicit authority and active host restrictions.
 The helper's `default` policy leaves the CLI's own approval rules in place;
 `trusted` enables unattended implementation with Cursor `--force`, Grok
 `bypassPermissions`, Codex `--sandbox danger-full-access` plus
-`approval_policy="never"`, or Devin `--permission-mode dangerous`. Codex
-analysis/review instead uses `read-only` with no approval escalation. Apply these explicit permissions again on
+`approval_policy="never"`, Devin `--permission-mode dangerous`, or Claude Code
+`--permission-mode bypassPermissions`. Codex analysis/review instead uses
+`read-only` with no approval escalation, and Claude Code analysis/review uses
+`plan`. Apply these explicit permissions again on
 resume; Codex default implementation/verification preserves its configured
 permissions. Devin default implementation/verification preserves its configured
 permission mode; analysis/review always pins its least-permissive `auto` mode.
-All Devin assignments preserve workspace-trust checks, including trusted mode. Use trusted
+All Devin assignments preserve workspace-trust checks, including trusted mode.
+Claude Code default implementation/verification likewise preserves its
+configured permission mode, and every Claude Code assignment denies the
+`Agent` tool so the worker never spawns its own agents. Use trusted
 mode only when the user has authorized those
 permissions, including a standing instruction for the task. Analysts and
 reviewers retain the CLI's read-only mode even when trusted is selected.
@@ -669,7 +698,7 @@ CLI text result cannot substitute for it.
 ## Delegated execution presets
 
 `standard-delegate` is an optional execution preset on the `standard` tier,
-available from Codex, Cursor, Grok, and Devin. Selecting it explicitly authorizes its
+available from Codex, Cursor, Grok, Devin, and Claude Code. Selecting it explicitly authorizes its
 assignments and bounded recovery ladder within the task's existing scope and
 permissions; it never activates Orchestra by itself, changes the root model
 or effort, or grants delivery authority. Ordinary native assignments remain
@@ -974,6 +1003,14 @@ maximum reasoning, so there is no cheaper Devin row. The root recommends
 `standard`. Selecting `minimal` blocks. `critical` uses the same spawn rows
 and raises root scrutiny; it does not change model or reasoning.
 
+On Claude Code, the root reads
+`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/claude/roles.toml`. Claude Code
+offers and assigns `minimal`, `standard`, and `critical`. The root recommends
+`standard`; it recommends `minimal` when the user prioritizes cost or speed;
+it recommends `critical` for matching high-impact risk. The recommended root
+uses the selected tier's `technical_planning` model and effort; the user's
+`/model` and `/effort` remain authoritative.
+
 For every spawned dispatch, select a capability, profile, and explicit model
 and effort from the owning host's matrix, unless an explicit CLI assignment or
 execution preset overrides it. An unavailable assignment blocks that dispatch
@@ -1004,8 +1041,9 @@ playbook. Applicability for other roles follows "Engineering guidance and
 evidence".
 
 Codex offers `standard` and `critical`, with `standard` as the default
-recommendation. Cursor additionally assigns `minimal` for ordinary work when
-cost or speed is the priority. Grok and Devin have no cheaper assigned tier.
+recommendation. Cursor and Claude Code additionally assign `minimal` for
+ordinary work when cost or speed is the priority. Grok and Devin have no
+cheaper assigned tier.
 A tier choice
 never waives production, migration, data, security, payment, destructive-action,
 or delivery authority gates. Tier transitions remain user-directed.
@@ -1018,7 +1056,8 @@ execution presets"; the invariants below describe the native matrices.
 The installed TOML matrices, not this document, define native model and
 reasoning assignment. The sources are `codex/config/roles.native.toml`
 (installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`,
-`hosts/grok/config/roles.grok.toml`, and `hosts/devin/config/roles.devin.toml` (installed under
+`hosts/grok/config/roles.grok.toml`, `hosts/devin/config/roles.devin.toml`, and
+`hosts/claude/config/roles.claude.toml` (installed under
 `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/<host>/roles.toml`). Reassigning a
 model or reasoning effort edits only the matching TOML file; this document is
 not updated for such a change. Structural invariants the matrices must keep:
@@ -1042,6 +1081,11 @@ not updated for such a change. Structural invariants the matrices must keep:
   agent profile; `run_subagent` accepts no per-dispatch model or reasoning
   field. The Devin spawn reference maps `subagent_type` onto that custom
   profile name, namespaced `orchestra:<name>` under a plugin installation.
+- Claude Code assigns `minimal`, `standard`, and `critical`. Each row's
+  `subagent_type` is `<profile>_<effort>`, a registered agent whose
+  frontmatter pins that effort, because `Agent` accepts a per-dispatch model
+  but no effort. Every such agent exists and no other is shipped. The Claude
+  Code spawn reference maps product models onto `Agent` model aliases.
 - Frontend implementation composes `orchestra_implementation_worker`; browser
   acceptance composes `orchestra_verifier`. They never run as one combined
   role.
@@ -1795,8 +1839,8 @@ consumed and can never affect the commit result.
 ### Test permissions and browser routing
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor, Grok, and Devin observe the host
-permission choice and never write permission configuration. The active permission choice for the
+Auto-review) as the default. Cursor, Grok, Devin, and Claude Code observe the
+host permission choice and never write permission configuration. The active permission choice for the
 task, host, or launcher remains authoritative: Orchestra never changes it or
 blocks execution solely because it differs. When Codex Guardian is active,
 commands inside the workspace run
@@ -1820,10 +1864,12 @@ no installation writes or removes that setting.
   only when Chrome is unavailable or has a technical capability gap that the
   in-app Browser can satisfy. On Cursor, `auto` and `chrome` map to Browser Use.
   On Grok Build, `auto` maps to Playwright. On Devin, native `auto` is `blocked`.
+  On Claude Code, `auto` and `chrome` map to Claude in Chrome.
 - `in_app` selects only the in-app Browser on Codex and is `blocked` on Cursor,
-  Grok, and Devin.
+  Grok, Devin, and Claude Code.
 - `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
-  Use on Cursor, and is `blocked` on Grok and native Devin.
+  Use on Cursor and Claude in Chrome on Claude Code, and is `blocked` on Grok
+  and native Devin.
 - `codex-cu` selects only the optional
   [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp) MCP server,
   Codex's computer-use engine driving Chrome, on every host. It is `blocked`
@@ -1846,8 +1892,8 @@ in-app Browser task tab, and repeat the complete scenario so evidence from
 different browser surfaces is never combined into one pass. If both surfaces
 are unavailable, return `blocked`. Computer Use and standalone browser
 automation are not substitutes for either route, except the host-mapped
-surfaces: Cursor `auto` and `chrome` use Browser Use, and Grok `auto` uses
-Playwright. The Cursor IDE browser and the Browser Use CLI are not substitutes.
+surfaces: Cursor `auto` and `chrome` use Browser Use, Claude Code `auto` and
+`chrome` use Claude in Chrome, and Grok `auto` uses Playwright. The Cursor IDE browser and the Browser Use CLI are not substitutes.
 If Browser Use MCP is unavailable or Chrome remote-debugging permission is
 missing, return `blocked`.
 
@@ -2342,7 +2388,7 @@ It does not authorize release, deployment, or production mutation.
 ## Maturity
 
 Automated checks and representative canaries provide evidence. Codex, Cursor,
-Grok Build, and Devin are approved execution hosts. Hermes and any further
+Grok Build, Devin, and Claude Code are approved execution hosts. Hermes and any further
 harness remain deferred.
 
 ## User-facing progress and handoff

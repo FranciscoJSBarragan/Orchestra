@@ -1,0 +1,190 @@
+# Claude Code host assignment matrix.
+# Product tiers are minimal, standard, and critical. This cut assigns all three.
+# Reasoning capabilities (planning, architecture, debugging, implementation,
+# review) and fast capabilities (repository context, web research,
+# verification) differ by model and effort, not by role behavior.
+# The Agent tool accepts a per-dispatch model but no effort, so effort is
+# pinned in the registered profile: subagent_type is always
+# `<profile>_<effort>`. spawn.md maps product models onto Agent aliases.
+# Verifier rows express availability only. A phase gate of `none` creates no
+# verifier subagent.
+
+[tiers.minimal.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.web_research]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.minimal.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "orchestra_reviewer_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.standard.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.standard.web_research]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.standard.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.standard.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_low"
+model = "claude-sonnet-5-5"
+effort = "low"
+
+[tiers.standard.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.standard.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.standard.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.standard.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.standard.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.standard.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "orchestra_reviewer_high"
+model = "claude-sonnet-5-5"
+effort = "high"
+
+[tiers.critical.repository_context]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_medium"
+model = "claude-sonnet-5-5"
+effort = "medium"
+
+[tiers.critical.web_research]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_medium"
+model = "claude-sonnet-5-5"
+effort = "medium"
+
+[tiers.critical.runtime_verification]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_medium"
+model = "claude-sonnet-5-5"
+effort = "medium"
+
+[tiers.critical.browser_acceptance]
+profile = "orchestra_verifier"
+subagent_type = "orchestra_verifier_medium"
+model = "claude-sonnet-5-5"
+effort = "medium"
+
+[tiers.critical.general_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_high"
+model = "claude-opus-5-5"
+effort = "high"
+
+[tiers.critical.frontend_implementation]
+profile = "orchestra_implementation_worker"
+subagent_type = "orchestra_implementation_worker_high"
+model = "claude-opus-5-5"
+effort = "high"
+
+[tiers.critical.technical_planning]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-opus-5-5"
+effort = "high"
+
+[tiers.critical.architecture_analysis]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-opus-5-5"
+effort = "high"
+
+[tiers.critical.difficult_debugging]
+profile = "orchestra_analyst"
+subagent_type = "orchestra_analyst_high"
+model = "claude-opus-5-5"
+effort = "high"
+
+[tiers.critical.independent_review]
+profile = "orchestra_reviewer"
+subagent_type = "orchestra_reviewer_high"
+model = "claude-opus-5-5"
+effort = "high"

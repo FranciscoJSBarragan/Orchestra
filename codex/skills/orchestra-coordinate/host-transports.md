@@ -73,8 +73,10 @@ session with its context intact, so it carries accepted fixes and deltas; use a
 stable `clientRequestId`. Link delivered PRs with `link_pull_request`.
 
 `delegate_task` is a leaf transport, not a task root. Its child runs in the
-caller's checkout with no workspace option, so it is limited to source-read-only
-roles (`interactionMode: plan`, `runtimeMode: approval-required`). Its
+caller's checkout with no workspace option. From a parent in a shared checkout
+it is limited to source-read-only roles (`interactionMode: plan`,
+`runtimeMode: approval-required`); a task root bound to its own worktree uses
+it for every role under [T3 Code](../orchestra/references/host_t3.md). Its
 completion notifies the parent; read it once with `task_status`, and resume a
 delta review with `t3_thread_send` to the returned `childThreadId`. Verify the
 checkout with Git after it returns.
@@ -133,7 +135,7 @@ selected retained-result route. Do not equate a VM-local absolute path with a
 shared Project path. Cloud Builds may provision sources through the consumer's
 existing setup; this adapter does not modify builds or install a service.
 
-## Cursor IDE/CLI and Grok
+## Cursor IDE/CLI, Grok and Claude Code
 
 Use a native isolated task/session when the actual interface exposes persistent
 handles, continuation, completion and the child capabilities. Otherwise an
@@ -152,6 +154,11 @@ the relevant primitives are:
 | --- | --- | --- |
 | Cursor | `cursor-agent --print --output-format stream-json --workspace <checkout> --model <supported-model> <packet>` | Add `--resume <observed-chat-id>` with only the current delta. |
 | Grok | `grok --cwd <checkout> --model <supported-model> --reasoning-effort <supported-effort> --output-format streaming-json --prompt-file <private-packet>` | Add `--resume <observed-session-id>` with a new delta prompt file. |
+| Claude Code | `claude -p --output-format stream-json --verbose --model <supported-model> --effort <supported-effort> --session-id <new-uuid> -- <packet>` with the owned checkout as working directory | `--resume <session-id>` with only the current delta. |
+
+A Claude Code subagent is not a task root: background agents lose the `Agent`
+tool and Orchestra role agents deny it, so a full child needs its own root
+session.
 
 These are argument shapes, not shell interpolation templates. Use an argv API
 or safely quoted arguments; never interpolate a prompt into shell code. Do not

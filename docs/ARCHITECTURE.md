@@ -4,7 +4,7 @@
 
 Build a multi-host orchestration product whose complexity is dominated by
 software delivery work, not by its own control plane. Codex, Cursor, Grok
-Build, and Devin are equal execution hosts; shared skills, helpers, and Git
+Build, Devin, and Claude Code are equal execution hosts; shared skills, helpers, and Git
 remain one copy.
 
 ```mermaid
@@ -42,7 +42,8 @@ Orchestra/
 ├── hosts/
 │   ├── cursor/                # Cursor spawn, roles, local plugin
 │   ├── grok/                  # Grok Build spawn and roles
-│   └── devin/                 # Devin spawn, roles, agent profiles
+│   ├── devin/                 # Devin spawn, roles, agent profiles
+│   └── claude/                # Claude Code spawn, roles, effort agent profiles
 └── codex/
     ├── agents/                # four Codex TOML base profiles
     ├── skills/                # public lanes and internal playbook references
@@ -428,7 +429,18 @@ per dispatch in foreground by default; its `subagent_type` is the installed
 custom Devin profile name, namespaced `orchestra:<name>` under a plugin
 bundle. It resumes only the same phase-cohort subagent for delta reviews, and
 the `read_subagent` or foreground result is the completed-state evidence
-because Devin has no `close_agent`.
+because Devin has no `close_agent`. Claude Code uses a fresh `Agent` per
+dispatch with the row's explicit model alias and a registered
+`<profile>_<effort>` agent, because effort is fixed by agent frontmatter rather
+than the dispatch call. Those agents are the four behavior profiles at each
+assigned effort, not new responsibilities; each denies `Agent` to its child. A
+plugin bundle namespaces them `orchestra:<name>`. It resumes only the same
+phase-cohort agent with `SendMessage`, and the returned result is the
+completed-state evidence because Claude Code has no `close_agent`.
+
+T3 Code is an app layer, not a host: inside it the provider keeps its matrix,
+while T3 owns the `managed` worktree (`t3_worktree_handoff`) and carries role
+dispatches (`delegate_task`) with explicit provider, model and effort.
 
 Every host resolves one native matrix through the selected installation, as
 specified in WORKFLOW "Host adapters". Settings and mutable state remain under
@@ -443,7 +455,7 @@ and gates. `WORKFLOW.md` ("Standalone tools") owns that boundary. No alias
 skill, new agent profile, or parallel implementation of the role is needed.
 
 `orchestra-delegate` routes a selected capability to `scripts/delegate.py`.
-The helper adapts Codex, Cursor, Grok, and Devin headless arguments and event output, checks
+The helper adapts Codex, Cursor, Grok, Devin, and Claude Code headless arguments and event output, checks
 Git identity and worktree content around one process, and returns a compact
 result plus a private diagnostic log. An optional private result file preserves
 the same final JSON before stdout delivery; it is atomically published once,
@@ -494,6 +506,14 @@ accepts no per-dispatch model or reasoning field. `subagent_type` is that
 custom Devin profile name. There is no cheaper assigned tier; selecting
 `minimal` on Devin blocks.
 
+Claude Code reads one host matrix at
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/claude/roles.toml`. It offers and
+assigns `minimal`, `standard`, and `critical`. Each row's model is passed per
+dispatch as an `Agent` alias; its effort selects the registered
+`<profile>_<effort>` agent. The validator keeps the shipped agents equal to the
+matrix's `subagent_type` set, so a reassigned effort cannot reference an
+unregistered agent.
+
 The installed rows supply exact models and reasoning efforts. Role profiles
 stay behavior-only; capability playbooks remain independent of providers.
 Workflow owns tier selection, transitions, unsupported assignments, and legacy
@@ -514,12 +534,13 @@ require them to be shipped with core.
 Permission and browser-routing behavior is specified once in
 `docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally:
 each host supplies its own permission surface (Codex synchronizes Guardian as
-the default; Cursor, Grok, and Devin observe the host choice and never write
+the default; Cursor, Grok, Devin, and Claude Code observe the host choice and never write
 permission configuration), and `browser_route` is a transient packet value
 whose host mapping is fixed — Codex `auto` prefers the Chrome connector with a
 capability-based in-app fallback, Cursor maps `auto` and `chrome` to Browser
 Use and blocks `in_app`, Grok maps `auto` to Playwright and blocks
-`in_app` and `chrome`, and Devin blocks all three routes. Browser evidence is
+`in_app` and `chrome`, Claude Code maps `auto` and `chrome` to Claude in
+Chrome and blocks `in_app`, and Devin blocks all three routes. Browser evidence is
 PNG screenshot files cited from the existing report kinds, not a new artifact
 kind.
 
@@ -672,11 +693,15 @@ Generated bundles are disposable distribution artifacts, excluded from Git.
 They contain no installers, active configuration, credentials, or private data.
 
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
-compatibility manifest. Cursor, Grok, and Devin targets use native manifests
-for their host loaders. Task identity hooks are distributed only by Orchestra Tasks. The four Codex behavior
+compatibility manifest. Cursor, Grok, Devin, and Claude Code targets use native manifests
+for their host loaders. Task identity hooks are distributed only by Orchestra Tasks. The Claude Code
+target ships one `PreToolUse` hook that allows read-only tools only inside its
+own package, because Claude Code otherwise denies non-interactive agents their
+role skills; it grants no write, shell, or outside-path access. The four Codex behavior
 profiles are packet content, not plugin-registered agent types; the Devin
 target ships the four Devin agent profiles under `agents/` as the registered
-`subagent_type` dispatch surface. All targets retain the same shared workflow;
+`subagent_type` dispatch surface, and the Claude Code target ships its
+effort agents there for the same purpose. All targets retain the same shared workflow;
 only distribution metadata and registered host profiles vary. Core ships no
 MCP server, Hub or identity hook. Runtime resolution and dispatch policy belong to
 WORKFLOW "Host adapters" and the loaded skill's runtime reference.
@@ -688,7 +713,7 @@ explicit native capability adapter; recognizing a manifest is insufficient.
 
 Repository-driven direct sync remains an alternative installation route. A
 single sync tool owns explicitly managed
-resources per requested host (`codex`, `cursor`, `grok`, `devin`, or `all`; default `codex`). It
+resources per requested host (`codex`, `cursor`, `grok`, `devin`, `claude`, or `all`; default `codex`). It
 supports dry-run and backup, preserves unrelated user configuration, reports
 what it installed, and requires a restart when a Codex permission backend
 changes. Orchestra runtime installation is never part of ordinary task
@@ -696,7 +721,7 @@ execution, and bootstrap of Orchestra itself must not invoke Orchestra.
 
 Shared destinations are `$HOME/.agents/skills/<skill>` including their internal
 playbook references, and `${ORCHESTRA_HOME:-$HOME/.orchestra}/` for helpers,
-checkout-mode, worktree-root, and the Cursor, Grok, and Devin host matrices.
+checkout-mode, worktree-root, and the Cursor, Grok, Devin, and Claude Code host matrices.
 Codex-only destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
 `$CODEX_HOME/orchestra/` for the Codex matrix, helper mirrors, manifest, and
 deterministic current backups, plus the marked blocks in `$CODEX_HOME/AGENTS.md`
@@ -706,9 +731,12 @@ Grok-only destinations are the Grok roles and spawn reference under
 `${ORCHESTRA_HOME}/hosts/grok/`. Devin-only destinations are the agent
 profiles under `~/.config/devin/agents/`, skills under
 `~/.config/devin/skills/`, and the Devin roles and spawn reference under
-`${ORCHESTRA_HOME}/hosts/devin/`. The default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
-`$HOME/.orchestra`. Cursor, Grok, and Devin sync never write Codex, Cursor,
-Grok, or Devin permission configuration.
+`${ORCHESTRA_HOME}/hosts/devin/`. Claude Code-only destinations are the
+effort agents under `~/.claude/agents/`, skills under `~/.claude/skills/`, and
+the Claude Code roles and spawn reference under `${ORCHESTRA_HOME}/hosts/claude/`.
+The default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
+`$HOME/.orchestra`. Cursor, Grok, Devin, and Claude Code sync never write
+Codex, Cursor, Grok, Devin, or Claude Code permission configuration.
 
 The only managed content in `$CODEX_HOME/AGENTS.md` is the single block
 delimited by `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.

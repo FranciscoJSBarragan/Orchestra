@@ -35,7 +35,7 @@ Context is your scarcest resource; protect it for the user's problem.
 | Step | What you do | Read |
 | --- | --- | --- |
 | 1. Activate | Confirm explicit activation and an execution-capable host | `Orchestrator behavior`, `Autonomy within an approved objective` |
-| 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file |
+| 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file; [T3 Code](references/host_t3.md) when `t3-code` tools exist |
 | 3. Context and specification | Preflight, delegate bounded investigation when needed and wait for its result before continuing, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8, `Agent waiting` before your first dispatch |
 | 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | `Context and planning` steps 9–13, `Review policy` |
 | 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
@@ -92,8 +92,11 @@ shared engineering reference; they do not gain new playbooks or personas.
 
 Identify the execution host from its available tools and use only its native
 spawn protocol: Codex `spawn_agent` and `wait_agent`; Cursor its Task adapter;
-Grok Build `spawn_subagent`; Devin `run_subagent`. Each host reads its own
-installed matrix. Explicit CLI delegation is a separate executor contract and
+Grok Build `spawn_subagent`; Devin `run_subagent`; Claude Code `Agent` and
+`SendMessage`. Each host reads its own
+installed matrix. When the `t3-code` MCP tools are available, the session runs
+inside T3 Code: keep the provider's host and matrix, and create the checkout
+and dispatch roles as [T3 Code](references/host_t3.md) defines. Explicit CLI delegation is a separate executor contract and
 never changes the owning host.
 
 ## Hard limits

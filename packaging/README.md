@@ -2,7 +2,7 @@
 
 The plugin contains the native Orchestra workflow, reusable skills, four behavior
 profiles, local Python helpers, execution presets, and the Codex, Cursor,
-Grok Build, and Devin adapters. Python 3.11+ and Git are required; GitHub CLI is required
+Grok Build, Devin, and Claude Code adapters. Python 3.11+ and Git are required; GitHub CLI is required
 only for PR delivery. A host must provide the adapter's native agent tools and
 models to run the full workflow. Package discovery is not proof of those
 capabilities. Standalone skills retain their own bounded authority.
@@ -18,12 +18,15 @@ python3 codex/scripts/package_plugin.py --target portable --output dist/portable
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
 python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orchestra
+python3 codex/scripts/package_plugin.py --target claude --output dist/claude/orchestra
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
 manifest. `cursor` uses Cursor's native manifest.
 `grok` uses the Claude-compatible plugin layout recognized by Grok Build.
-`devin` uses Devin's native `.devin-plugin` manifest and `agents/` profiles. Native
+`devin` uses Devin's native `.devin-plugin` manifest and `agents/` profiles.
+`claude` uses Claude Code's `.claude-plugin` manifest and ships the effort
+agents under `agents/`, namespaced `orchestra:<agent>`. Native
 variants avoid competing root manifests so each loader selects its own format.
 All content is copied from canonical source; there is no generated workflow fork.
 The metadata version is a package version, not a public release declaration.
@@ -37,7 +40,7 @@ resource ships in plugin bundles and direct-sync skill installations.
 ## Downloadable candidates
 
 The repository's `Plugin bundles` GitHub Actions workflow runs the canonical
-full validator, builds all four targets, and uploads one artifact named
+full validator, builds all five targets, and uploads one artifact named
 `orchestra-plugins-<commit>`. It runs for pull requests, pushes to `main`, and
 manual dispatch. Artifacts expire after 14 days; they are development
 candidates, not marketplace publications or releases.
@@ -58,6 +61,18 @@ Cursor supports a session-local directory without global sync:
 ```sh
 cursor-agent --plugin-dir /absolute/path/to/dist/cursor/orchestra
 ```
+
+Claude Code validates a bundle and loads it for one session without
+installation:
+
+```sh
+claude plugin validate /absolute/path/to/dist/claude/orchestra
+claude --plugin-dir /absolute/path/to/dist/claude/orchestra
+```
+
+Its `hooks/hooks.json` lets agents read the package's own files without
+prompts; it allows only `Read`, `Glob`, and `Grep` inside the bundle. A
+`managed` task checkout is entered with one confirmed `EnterWorktree`.
 
 Grok Build can validate and install a local bundle with its plugin manager
 (verified with 1.0.34):
@@ -228,7 +243,8 @@ into your active environment are separate actions from building this artifact.
 
 Format references: [Agent Plugins](https://agent-plugins.org/specification),
 [Codex plugins](https://developers.openai.com/plugins/build/plugins),
-[Cursor plugins](https://cursor.com/docs/reference/plugins), and
+[Cursor plugins](https://cursor.com/docs/reference/plugins),
+[Claude Code plugins](https://code.claude.com/docs/en/plugins-reference), and
 [Grok plugins](https://docs.x.ai/build/features/skills-plugins-marketplaces).
 
 ## Modular entries

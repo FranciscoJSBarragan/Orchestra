@@ -53,7 +53,7 @@ class PluginPackagingTests(unittest.TestCase):
                 resources = (*skill_root.rglob("*.md"), *skill_root.glob("*/agents/openai.yaml"))
                 for source in resources:
                     self.assertEqual((plugin / "skills" / source.relative_to(ROOT / "codex/skills")).read_bytes(), source.read_bytes())
-                for host in ("codex", "cursor", "grok", "devin"):
+                for host in ("codex", "cursor", "grok", "devin", "claude"):
                     with (plugin / "hosts" / host / "roles.toml").open("rb") as handle:
                         self.assertIn("tiers", tomllib.load(handle))
                     if host != "codex":
@@ -65,22 +65,22 @@ class PluginPackagingTests(unittest.TestCase):
                 self.assertFalse((plugin / ".mcp.json").exists())
                 self.assertFalse((plugin / "mcp.json").exists())
                 self.assertFalse((plugin / "config.toml").exists())
-                self.assertEqual((plugin / "agents").exists(), target == "devin")
+                self.assertEqual((plugin / "agents").exists(), target in {"devin", "claude"})
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
-        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "devin": ".devin-plugin/plugin.json"}
+        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "devin": ".devin-plugin/plugin.json", "claude": ".claude-plugin/plugin.json"}
         for target in TARGETS:
             plugin = self.build(target)
             manifest = json.loads((plugin / manifests[target]).read_text())
             for key in ("name", "version", "description", "license"):
                 self.assertEqual(manifest[key], metadata[key])
             self.assertEqual(json.loads((plugin / ".codex-plugin/plugin.json").read_text()), metadata)
-            for other, name in manifests.items():
-                self.assertEqual((plugin / name).exists(), target == other)
-            self.assertFalse((plugin / "hooks/hooks.json").exists())
+            for name in set(manifests.values()):
+                self.assertEqual((plugin / name).exists(), name == manifests[target])
+            self.assertEqual((plugin / "hooks/hooks.json").exists(), target == "claude")
             self.assertFalse((plugin / "hooks.json").exists())
 
     def test_relative_skill_links_stay_inside_the_bundle_and_resolve(self) -> None:
@@ -170,6 +170,22 @@ class PluginPackagingTests(unittest.TestCase):
         )
         self.assertFalse((plugin / "hooks").exists())
 
+
+    def test_claude_target_registers_every_effort_agent(self) -> None:
+        plugin = self.build("claude")
+        sources = sorted((ROOT / "hosts/claude/agents").glob("*.md"))
+        self.assertEqual(sorted(p.name for p in (plugin / "agents").iterdir()), [p.name for p in sources])
+        for source in sources:
+            self.assertEqual((plugin / "agents" / source.name).read_bytes(), source.read_bytes())
+        self.assertEqual(
+            (plugin / "hosts/claude/roles.toml").read_bytes(),
+            (ROOT / "hosts/claude/config/roles.claude.toml").read_bytes(),
+        )
+        hooks = json.loads((plugin / "hooks/hooks.json").read_text())
+        command = hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}", command)
+        self.assertTrue((plugin / "hooks/read_package.py").is_file())
+        self.assertFalse((self.build("grok") / "agents").exists())
 
     def test_existing_destination_is_never_overwritten(self) -> None:
         plugin = self.build()

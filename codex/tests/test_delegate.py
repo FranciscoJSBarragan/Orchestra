@@ -243,6 +243,59 @@ class DelegateTests(unittest.TestCase):
             re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"),
         )
 
+    def test_claude_permissions_follow_capability_and_never_spawn_agents(self) -> None:
+        def command(capability: str, permissions: str = "default", **extra: str) -> list[str]:
+            return delegate.build_command(
+                executor="claude", repo=self.repo, model="sonnet", capability=capability,
+                permissions=permissions, prompt="--brief", **extra,
+            )
+
+        review = command("independent_review", "trusted")
+        self.assertEqual(review[review.index("--permission-mode") + 1], "plan")
+        implementation = command("general_implementation")
+        self.assertNotIn("--permission-mode", implementation)
+        verification = command("runtime_verification", "trusted", effort="low")
+        self.assertEqual(verification[verification.index("--permission-mode") + 1], "bypassPermissions")
+        self.assertEqual(verification[verification.index("--effort") + 1], "low")
+        for built in (review, implementation, verification):
+            self.assertEqual(built[built.index("--disallowed-tools") + 1], "Agent")
+            self.assertEqual(built[-2:], ["--", "--brief"])
+            self.assertNotIn("--continue", built)
+        resumed = command("independent_review", resume="11111111-1111-4111-8111-111111111111")
+        self.assertEqual(resumed[resumed.index("--resume") + 1], "11111111-1111-4111-8111-111111111111")
+        self.assertNotIn("--session-id", resumed)
+        for invalid in ({"resume": "latest"}, {"effort": "ultra"}):
+            with self.assertRaises(delegate.DelegateInputError):
+                command("independent_review", **invalid)
+
+    def test_claude_protocol_reuses_allocated_session(self) -> None:
+        self.fake_cli(
+            "claude",
+            """
+            import json, sys
+            session = sys.argv[sys.argv.index("--session-id") + 1]
+            print(json.dumps({"type":"system","subtype":"init","session_id":session,"model":"claude-test-5"}), flush=True)
+            print(json.dumps({"type":"result","subtype":"success","is_error":False,"result":"CLAUDE_OK","session_id":session}), flush=True)
+            """,
+        )
+        result, payload = self.run_cli("claude", "repository_context", model="sonnet", effort="high")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["result"], "CLAUDE_OK")
+        self.assertEqual(payload["observed_model"], "claude-test-5")
+        self.assertEqual(payload["session_id"], payload["allocated_session_id"])
+
+        self.fake_cli(
+            "claude",
+            """
+            import json
+            print(json.dumps({"type":"result","subtype":"error_max_turns","is_error":True,"session_id":"s"}), flush=True)
+            """,
+        )
+        self.log.unlink()
+        _, payload = self.run_cli("claude", "repository_context", model="sonnet")
+        self.assertEqual(payload["status"], "partial")
+
     def test_devin_command_preserves_host_defaults_and_workspace_trust(self) -> None:
         command = delegate.build_command(
             executor="devin",
@@ -1089,7 +1142,7 @@ class ExecutionPresetTests(unittest.TestCase):
             delegate.resolve_preset(args)
 
     def test_shared_assignments_are_identical_across_hosts(self):
-        for host in ("codex", "cursor", "grok", "devin"):
+        for host in ("codex", "cursor", "grok", "devin", "claude"):
             for capability in ("general_implementation", "frontend_implementation", "difficult_debugging"):
                 with self.subTest(host=host, capability=capability):
                     route = delegate.resolve_preset(self.arguments(capability, host))
@@ -1121,7 +1174,7 @@ class ExecutionPresetTests(unittest.TestCase):
         route = delegate.resolve_preset(self.arguments("browser_acceptance"))
         self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
                          ("native", "gpt-5.6-luna", "xhigh"))
-        for host in ("cursor", "grok", "devin"):
+        for host in ("cursor", "grok", "devin", "claude"):
             route = delegate.resolve_preset(self.arguments("browser_acceptance", host))
             self.assertEqual(route["executor"], "host")
             self.assertIsNone(route["model"])

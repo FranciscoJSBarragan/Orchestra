@@ -11,10 +11,10 @@ quality-to-cost ratio.
 ## Vision
 
 Orchestra should make it practical to hand a well-defined implementation to a
-Codex, Cursor, Grok Build, or Devin orchestrator and trust it to reach a correct, reviewed, and
+Codex, Cursor, Grok Build, Devin, or Claude Code orchestrator and trust it to reach a correct, reviewed, and
 committed result. The user remains the product owner and final authority; the
 orchestrator acts as the technical lead responsible for execution. Codex,
-Cursor, Grok Build, and Devin are first-class execution hosts; they share one product, skills, helpers,
+Cursor, Grok Build, Devin, and Claude Code are first-class execution hosts; they share one product, skills, helpers,
 and Git workflow, and each host supplies only spawn, models, conversation
 identity, permissions, and browser routing.
 
@@ -36,7 +36,7 @@ with local execution and cloud environments as separate supported routes.
 
 The same analysis, implementation, review, verification, and commit tools are
 useful independently, without requiring the full planned workflow. A user may
-also choose a Codex, Cursor, Grok, or Devin CLI executor for a bounded assignment while the
+also choose a Codex, Cursor, Grok, Devin, or Claude Code CLI executor for a bounded assignment while the
 owning orchestrator retains scope, independent review, and delivery judgment.
 Reuse the user's chosen tools without introducing another workflow engine or
 weakening the quality contract. An explicitly selected shared execution preset
@@ -90,9 +90,9 @@ workflow, and phase agents do not create user-facing visualizations.
 
 The active tier controls assignment intensity, not user authority. Each host
 provides its own native capability matrix. Codex offers standard and critical;
-Cursor also offers minimal for ordinary work where cost or speed matters.
-Grok Build and Devin offer standard and critical and have no cheaper assigned
-tier.
+Cursor and Claude Code also offer minimal for ordinary work where cost or
+speed matters. Grok Build and Devin offer standard and critical and have no
+cheaper assigned tier.
 The user chooses among assigned tiers after a concise risk recommendation.
 Independent authority boundaries for production, security, payments,
 destructive actions, and delivery remain in force.
@@ -105,7 +105,7 @@ direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
 `$orchestra` invocation, adoption of a prepared task from a native host chat,
 or an unequivocal imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
-scrutiny for actual high-impact risk. On Cursor it recommends `standard`,
+scrutiny for actual high-impact risk. On Cursor and Claude Code it recommends `standard`,
 `minimal` when the user prioritizes
 cost or speed, and `critical` for matching high-impact risk. On Grok Build and
 Devin it recommends `standard` and offers `critical` for matching high-impact
@@ -172,8 +172,8 @@ read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
 On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor, Grok, and Devin observe the host permission choice and
-never write Codex, Cursor, Grok, or Devin permission configuration. The active permission
+Auto-review) as the default. Cursor, Grok, Devin, and Claude Code observe the host permission choice and
+never write Codex, Cursor, Grok, Devin, or Claude Code permission configuration. The active permission
 choice for the task, host, or launcher remains authoritative; the complete
 permission rules live in `docs/WORKFLOW.md`. Deterministic product, assertion,
 compilation, or CLI-usage failures remain real failures.
@@ -369,7 +369,7 @@ Orchestra succeeds when:
   semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
 - Porting to Hermes or any harness beyond the approved Codex, Cursor, Grok
-  Build, and Devin hosts.
+  Build, Devin, and Claude Code hosts.
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
 

@@ -1,6 +1,6 @@
 ---
 name: orchestra-delegate
-description: Delegate a bounded assignment through Codex, Cursor, Grok Build, or Devin CLI, or resolve an explicitly selected execution preset. Supports standalone work without activating Orchestra.
+description: Delegate a bounded assignment through Codex, Cursor, Grok Build, Devin, or Claude Code CLI, or resolve an explicitly selected execution preset. Supports standalone work without activating Orchestra.
 ---
 
 # Delegate one capability
@@ -44,12 +44,12 @@ of who implemented the change.
 1. Resolve the requested executor, exact model, supported effort, checkout,
    capability, scope, acceptance, and permission authority. Infer already
    established facts; do not re-ask for granted permissions. Inspect
-   `cursor-agent models` / `grok models` / `devin models list`
+   `cursor-agent models` / `grok models` / `devin models list` / `claude --help`
    (`--format json` for scripts) and the selected CLI's `--help` when
    availability or flags are not current. Never substitute a model silently.
    For Codex, use `codex exec --help` and the configured model catalog;
    `--effort` maps to `model_reasoning_effort`. Codex is a valid worker for a
-   Cursor, Grok, or Devin root. An explicitly selected Chrome browser handoff
+   Cursor, Grok, Devin, or Claude Code root. An explicitly selected Chrome browser handoff
    uses `--capability browser_acceptance --browser-route chrome`; first verify
    the selected CLI can access the dedicated Chrome connector. Read WORKFLOW
    "CLI delegation" for evidence, cleanup, and unavailable-route behavior.
@@ -65,6 +65,12 @@ of who implemented the change.
    plain-text stdout; a missing `devin` binary or an authentication failure
    stays a blocked result with the CLI's stderr, never a silent executor
    fallback.
+   For Claude Code, the helper runs `claude -p` with stream JSON, the exact
+   `--model` (alias or full name) and optional `--effort` (`low` to `max`) in
+   the checkout, always denying the `Agent` tool. Analysis/review use
+   `--permission-mode plan`; default implementation/verification preserves
+   the configured mode and trusted uses `bypassPermissions`. A new session
+   receives a helper-allocated `--session-id`; resume takes that exact UUID.
 2. Inspect current HEAD and dirty paths. Bound ownership before launching
    another writer. Create the prompt and unique event-log and result paths in a private
    directory outside the repository. The prompt names the role skill,
@@ -83,15 +89,16 @@ Run the shared helper (source fallback: `codex/scripts/delegate.py`):
 
 ```sh
 python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/delegate.py" \
-  --repo <checkout> --executor <codex|cursor|grok|devin> --capability <capability> \
+  --repo <checkout> --executor <codex|cursor|grok|devin|claude> --capability <capability> \
   --model <exact-cli-model> --expected-head <current-sha> \
   --prompt-file <private-prompt> --log-file <new-private-log> \
   --result-file <new-private-result.json> \
   --permissions <default|trusted> --timeout <seconds>
 ```
 
-For Codex or Grok, add `--effort <supported-effort>` when selected. For a
-continuation on Codex, Cursor, or Grok, add `--resume <exact-session-id>` and
+For Codex, Grok, or Claude Code, add `--effort <supported-effort>` when
+selected. For a continuation on Codex, Cursor, Grok, or Claude Code, add
+`--resume <exact-session-id>` and
 choose a new log path. Trusted execution
 requires the user's permission authority. Analysts/reviewers retain native
 read-only mode; verifiers use execution mode for authorized checks and remain

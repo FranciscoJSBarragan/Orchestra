@@ -34,7 +34,8 @@ CAPABILITIES = (
     "browser_acceptance",
     "runtime_verification",
 )
-EXECUTORS = ("cursor", "grok", "codex", "devin")
+EXECUTORS = ("cursor", "grok", "codex", "devin", "claude")
+CLAUDE_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
 PERMISSIONS = ("default", "trusted")
 IMPLEMENTATION_CAPABILITIES = frozenset(
     {"general_implementation", "frontend_implementation"}
@@ -112,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--preset", help="Explicitly selected execution preset")
     parser.add_argument("--presets-file", type=Path, help="Explicit alternative to the managed preset file")
-    parser.add_argument("--host", choices=("codex", "cursor", "grok", "devin"))
+    parser.add_argument("--host", choices=("codex", "cursor", "grok", "devin", "claude"))
     parser.add_argument("--tier", default="standard")
     parser.add_argument("--root-model", help="Observed root model; permits planning reuse without changing its effort")
     parser.add_argument("--independent-planning", action="store_true")
@@ -163,7 +164,7 @@ def load_presets(path: Path) -> dict[str, Any]:
             if row["executor"] == "native":
                 raise DelegateInputError("native assignments require an explicit Codex host override")
         hosts = preset["hosts"]
-        if not isinstance(hosts, dict) or set(hosts) - {"codex", "cursor", "grok", "devin"}:
+        if not isinstance(hosts, dict) or set(hosts) - {"codex", "cursor", "grok", "devin", "claude"}:
             raise DelegateInputError(f"invalid preset hosts: {name}")
         for host, overrides in hosts.items():
             if not isinstance(overrides, dict) or set(overrides) - set(CAPABILITIES):
@@ -217,6 +218,8 @@ def _validate_preset_row(row: Any, capability: str) -> None:
             raise DelegateInputError("Cursor preset effort must be encoded in its exact model alias")
         if executor == "devin" and effort is not None:
             raise DelegateInputError("Devin CLI provides no reasoning effort flag")
+        if executor == "claude" and effort is not None and effort not in CLAUDE_EFFORTS:
+            raise DelegateInputError(f"Claude Code CLI does not accept effort {effort}")
     for key in ("prefer_native", "reuse_root"):
         if key in row and type(row[key]) is not bool:
             raise DelegateInputError(f"{key} must be boolean")
@@ -651,6 +654,8 @@ def build_command(
         effort = _safe_argument(effort, "effort")
     if executor in ("cursor", "devin") and effort is not None:
         raise DelegateInputError(f"effort is not supported for {executor}")
+    if executor == "claude" and effort is not None and effort not in CLAUDE_EFFORTS:
+        raise DelegateInputError(f"Claude Code CLI does not accept effort {effort}")
 
     if executor == "codex":
         if capability == "browser_acceptance":
@@ -716,6 +721,27 @@ def build_command(
         if resume is not None:
             command.extend(("--resume", resume))
         command.append(prompt)
+        return command
+
+    if executor == "claude":
+        if resume is not None:
+            try:
+                uuid.UUID(resume)
+            except ValueError as error:
+                raise DelegateInputError("Claude Code resume requires an exact session UUID") from error
+        command = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model]
+        if effort is not None:
+            command.extend(("--effort", effort))
+        if capability in READONLY_CAPABILITIES and capability not in VERIFICATION_CAPABILITIES:
+            command.extend(("--permission-mode", "plan"))
+        elif permissions == "trusted":
+            command.extend(("--permission-mode", "bypassPermissions"))
+        command.extend(("--disallowed-tools", "Agent"))
+        if resume is not None:
+            command.extend(("--resume", resume))
+        elif session_id is not None:
+            command.extend(("--session-id", _safe_argument(session_id, "session ID")))
+        command.extend(("--", prompt))
         return command
 
     if executor == "devin":
@@ -813,7 +839,7 @@ class ProtocolCapture:
         except (TypeError, ValueError):
             return str(value)
 
-    def _cursor_event(self, event: dict[str, Any]) -> None:
+    def _stream_json_event(self, event: dict[str, Any]) -> None:
         session = event.get("session_id")
         if isinstance(session, str) and session:
             self.session_id = session
@@ -837,7 +863,7 @@ class ProtocolCapture:
                 self.failure_detail = (
                     result
                     or self._string_value(event.get("subtype"))
-                    or "invalid Cursor terminal result"
+                    or f"invalid {self.executor} terminal result"
                 )
 
     def _grok_event(self, event: dict[str, Any]) -> None:
@@ -905,8 +931,8 @@ class ProtocolCapture:
     def _event(self, event: object) -> None:
         if not isinstance(event, dict):
             return
-        if self.executor == "cursor":
-            self._cursor_event(event)
+        if self.executor in ("cursor", "claude"):
+            self._stream_json_event(event)
         elif self.executor == "codex":
             self._codex_event(event)
         elif self.executor == "grok":
@@ -1361,10 +1387,9 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     failure: str | None = None
     failure_kind: str | None = None
     try:
-        if args.executor == "grok" and args.resume is None:
+        if args.executor in ("grok", "claude") and args.resume is None:
             allocated_session_id = str(uuid.uuid4())
-            temporary_prompt = _write_prompt_file(prompt)
-        elif args.executor in ("grok", "devin"):
+        if args.executor in ("grok", "devin"):
             temporary_prompt = _write_prompt_file(prompt)
         command = build_command(
             executor=args.executor,
@@ -1381,7 +1406,7 @@ def execute(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         )
         if allocated_session_id is not None:
             print(
-                f"delegate: executor=grok allocated_session_id={_compact(allocated_session_id, limit=200)}",
+                f"delegate: executor={args.executor} allocated_session_id={_compact(allocated_session_id, limit=200)}",
                 file=sys.stderr,
                 flush=True,
             )

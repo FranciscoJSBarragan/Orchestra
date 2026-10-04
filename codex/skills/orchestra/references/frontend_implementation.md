@@ -27,7 +27,8 @@ reading this reference does not itself dispatch a role or grant authority.
   `in_app`, and `chrome`. On Cursor, `auto` and `chrome` map to Browser Use and
   `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
   connector first and may fall back to Codex's in-app Browser only for a
-  technical gap. On Grok, `auto` maps to Playwright. On Devin, every mapped
+  technical gap. On Grok, `auto` maps to Playwright. On Claude Code, `auto` and
+  `chrome` map to Claude in Chrome and `in_app` is blocked. On Devin, every mapped
   route is `blocked`.
 - On Cursor, drive Browser Use MCP with `new_tab` then `wait_for_load`. If the
   MCP process client is not registered, authenticate once and retry; if it still

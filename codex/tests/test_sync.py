@@ -1345,7 +1345,7 @@ class SyncTests(unittest.TestCase):
 
     def test_other_host_sync_preserves_retired_codex_selection(self) -> None:
         original = self.seed_retired_install("dual")
-        for host in ("cursor", "grok", "devin"):
+        for host in ("cursor", "grok", "devin", "claude"):
             with self.subTest(host=host):
                 result = self.run_sync("apply", host=host)
                 self.assertEqual(result["status"], "ok", result)
@@ -2133,12 +2133,12 @@ class SyncTests(unittest.TestCase):
         manifest = self.manifest()
         self.assertEqual(manifest["schema_version"], sync.MANIFEST_SCHEMA_VERSION)
         self.assertEqual(
-            manifest["installed_hosts"], ["codex", "cursor", "devin", "grok"]
+            manifest["installed_hosts"], ["claude", "codex", "cursor", "devin", "grok"]
         )
         scopes = {entry["scope"] for entry in manifest["entries"]}
-        self.assertEqual(scopes, {"shared", "codex", "cursor", "devin", "grok"})
+        self.assertEqual(scopes, {"shared", "claude", "codex", "cursor", "devin", "grok"})
         self.assertFalse(self.legacy_manifest_path().exists())
-        for selected in ("codex", "cursor", "grok", "devin", "all"):
+        for selected in ("codex", "cursor", "grok", "devin", "claude", "all"):
             with self.subTest(host=selected):
                 status = self.run_sync(
                     "status",
@@ -2285,6 +2285,36 @@ class SyncTests(unittest.TestCase):
 
 
 
+    def test_claude_host_installs_agents_and_skills_without_settings(self) -> None:
+        settings = self.home / ".claude/settings.json"
+        settings.parent.mkdir(parents=True)
+        settings.write_bytes(b'{"model":"opus"}\n')
+        unrelated_agent = self.home / ".claude/agents/reviewer.md"
+        unrelated_agent.parent.mkdir()
+        unrelated_agent.write_text("user agent\n")
+        applied = self.run_sync("apply", modelconfig=None, host="claude")
+        self.assertEqual(applied["status"], "ok", applied.get("detail"))
+        self.assertTrue(applied["restart_required"])
+        installed_agents = sorted(path.name for path in self.home.joinpath(".claude/agents").glob("orchestra_*.md"))
+        self.assertEqual(
+            installed_agents,
+            sorted(path.name for path in (ROOT / "hosts/claude/agents").iterdir()),
+        )
+        for skill in sync.SKILLS:
+            self.assertTrue(self.home.joinpath(f".claude/skills/{skill}/SKILL.md").is_file(), skill)
+        self.assertTrue(self.orchestra_root.joinpath("hosts/claude/roles.toml").is_file())
+        self.assertTrue(self.orchestra_root.joinpath("hosts/claude/spawn.md").is_file())
+        self.assertFalse(self.codex_home.joinpath("config.toml").exists())
+        self.assertEqual(settings.read_bytes(), b'{"model":"opus"}\n')
+        synchronized = self.run_sync("status", modelconfig=None, host="claude")
+        self.assertEqual(synchronized["status"], "ok", synchronized.get("detail"))
+        removed = sync.uninstall(self.home, self.codex_home, host="claude")
+        self.assertEqual(removed["status"], "ok", removed.get("detail"))
+        self.assertFalse(self.home.joinpath(".claude/skills/orchestra").exists())
+        self.assertEqual(list(self.home.joinpath(".claude/agents").glob("orchestra_*.md")), [])
+        self.assertEqual(unrelated_agent.read_text(), "user agent\n")
+        self.assertEqual(settings.read_bytes(), b'{"model":"opus"}\n')
+
     def test_devin_preserves_unowned_configuration_bytes(self) -> None:
         config_path = self.home / ".config/devin/config.json"
         config_path.parent.mkdir(parents=True)
@@ -2391,7 +2421,7 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(migrated["status"], "ok", migrated.get("detail"))
         self.assertFalse(self.legacy_manifest_path().exists())
         self.assertEqual(
-            self.manifest()["installed_hosts"], ["codex", "cursor", "devin", "grok"]
+            self.manifest()["installed_hosts"], ["claude", "codex", "cursor", "devin", "grok"]
         )
         owner = next(
             entry for entry in self.manifest()["entries"] if entry["path"] == "AGENTS.md"

@@ -116,6 +116,7 @@ REQUIRED_PATHS = (
     "codex/tests/test_cursor_host.py",
     "codex/tests/test_grok_host.py",
     "codex/tests/test_devin_host.py",
+    "codex/tests/test_claude_host.py",
     "hosts/cursor/config/roles.cursor.toml",
     "hosts/cursor/references/spawn.md",
     "hosts/cursor/plugin/.cursor-plugin/plugin.json",
@@ -128,6 +129,10 @@ REQUIRED_PATHS = (
     "hosts/devin/agents/orchestra_implementation_worker.md",
     "hosts/devin/agents/orchestra_reviewer.md",
     "hosts/devin/agents/orchestra_verifier.md",
+    "hosts/claude/config/roles.claude.toml",
+    "hosts/claude/references/spawn.md",
+    "hosts/claude/plugin/hooks/hooks.json",
+    "hosts/claude/plugin/hooks/read_package.py",
 )
 
 PERMANENT_DOCS = (
@@ -607,6 +612,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "shared_conduct.md",
         "source_preparation.md",
         "host_codex.md",
+        "host_t3.md",
     }
     if not references.is_dir():
         failures.append("skill-contract: orchestra internal references are missing")
@@ -618,7 +624,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
-                "one source preparation recipe, and the Codex spawn adapter"
+                "one source preparation recipe, and the Codex and T3 Code adapters"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():
@@ -887,9 +893,9 @@ def check_direct_sync(root: Path) -> list[str]:
         failures.append(
             "sync-contract: modelconfig choices must be native only"
         )
-    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "devin", "all"):
+    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "devin", "claude", "all"):
         failures.append(
-            "sync-contract: host choices must be exactly codex, cursor, grok, devin, and all"
+            "sync-contract: host choices must be exactly codex, cursor, grok, devin, claude, and all"
         )
     if constants.get("PERMISSION_PROFILE") != ":workspace":
         failures.append(
@@ -927,8 +933,11 @@ def check_direct_sync(root: Path) -> list[str]:
         "hosts/cursor/roles.toml",
         "hosts/grok/roles.toml",
         "hosts/devin/roles.toml",
+        "hosts/claude/roles.toml",
         ".cursor/plugins/local/orchestra",
         ".config/devin/",
+        ".claude/agents",
+        ".claude/skills",
         "AGENTS.md",
         "config.toml",
     ):
@@ -1328,6 +1337,67 @@ def check_devin_host(root: Path) -> list[str]:
     return failures
 
 
+def check_claude_host(root: Path) -> list[str]:
+    failures: list[str] = []
+    roles_path = root / "hosts/claude/config/roles.claude.toml"
+    spawn_path = root / "hosts/claude/references/spawn.md"
+    agents_dir = root / "hosts/claude/agents"
+    if not roles_path.is_file() or not spawn_path.is_file() or not agents_dir.is_dir():
+        return failures
+    try:
+        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"claude-contract: roles.claude.toml is invalid: {error}"]
+    tiers = roles.get("tiers")
+    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard", "critical"}:
+        return ["claude-contract: roles.claude.toml must assign minimal, standard, and critical"]
+    spawn = spawn_path.read_text(encoding="utf-8")
+    agent_types: set[str] = set()
+    for tier_name, assignments in tiers.items():
+        if not isinstance(assignments, dict) or set(assignments) != set(CURSOR_CAPABILITIES):
+            failures.append(
+                f"claude-contract: {tier_name} must define all ten capabilities and no extras"
+            )
+            continue
+        for capability, assignment in assignments.items():
+            label = f"claude-contract: {tier_name}.{capability}"
+            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
+                failures.append(f"{label} needs profile, subagent_type, model, and effort")
+                continue
+            profile, effort = assignment["profile"], assignment["effort"]
+            if profile != CAPABILITY_PROFILES[capability]:
+                failures.append(f"{label} must use {CAPABILITY_PROFILES[capability]}")
+            if effort not in REASONING_EFFORTS:
+                failures.append(f"{label} has an invalid effort")
+            if assignment["subagent_type"] != f"{profile}_{effort}":
+                failures.append(f"{label} must dispatch {profile}_{effort}")
+            if f"| `{assignment['model']}` |" not in spawn:
+                failures.append(f"{label} model has no Agent alias in spawn.md")
+            agent_types.add(assignment["subagent_type"])
+    agent_files = {path.stem for path in agents_dir.iterdir()}
+    if agent_files != agent_types or any(
+        path.suffix != ".md" for path in agents_dir.iterdir()
+    ):
+        failures.append(
+            "claude-contract: agents/ must contain exactly the matrix subagent types"
+        )
+        return failures
+    for name in sorted(agent_types):
+        metadata = _skill_frontmatter((agents_dir / f"{name}.md").read_text(encoding="utf-8"))
+        if (
+            metadata is None
+            or metadata.get("name") != name
+            or metadata.get("effort") != name.rsplit("_", 1)[1]
+            or metadata.get("disallowedTools") != "Agent"
+            or "model" in metadata
+        ):
+            failures.append(
+                f"claude-contract: {name}.md must pin its name and effort, deny Agent, "
+                "and leave the model to dispatch"
+            )
+    return failures
+
+
 def check_repository_conventions(root: Path) -> list[str]:
     """Keep this repository's `.agent/` hard-gate command declaration exact."""
     failures: list[str] = []
@@ -1362,6 +1432,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_cursor_host,
     check_grok_host,
     check_devin_host,
+    check_claude_host,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,
