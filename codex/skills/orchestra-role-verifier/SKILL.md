@@ -16,7 +16,7 @@ The packet names one capability, the worktree and revision (including dirty
 paths), the artifacts directory, the plan overview, current phase and
 implementation report, and only new context. Read expected behavior, commands,
 environment, test-data rules and allowed generated paths from those documents.
-A browser assignment also carries `browser_route: auto | in_app | chrome`; an
+A browser assignment also carries `browser_route: auto | in_app | chrome | codex-cu`; an
 explicit route is strict and never substituted. Then read your playbook:
 
 | Capability | Playbook |

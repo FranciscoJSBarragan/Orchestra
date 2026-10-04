@@ -1810,7 +1810,10 @@ external service, credential, or dependency may still return `blocked`, but
 never broadens the task's approved authority.
 
 Packets for `frontend_implementation` browser work and `browser_acceptance`
-carry `browser_route: auto | in_app | chrome`:
+carry `browser_route: auto | in_app | chrome | codex-cu`. Without a
+user-selected route, the root uses the route named in the user setting
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/browser-route` (one line), else `auto`;
+no installation writes or removes that setting.
 
 - `auto` on Codex explicitly selects the dedicated Chrome connector first. After
   supported connection recovery, it may fall back to Codex's in-app Browser
@@ -1821,9 +1824,15 @@ carry `browser_route: auto | in_app | chrome`:
   Grok, and Devin.
 - `chrome` selects only the dedicated Chrome connector on Codex, maps to Browser
   Use on Cursor, and is `blocked` on Grok and native Devin.
+- `codex-cu` selects only the optional
+  [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp) MCP server,
+  Codex's computer-use engine driving Chrome, on every host. It is `blocked`
+  when the server, the ChatGPT app or its Chrome extension is unavailable.
+  The engine cannot write files: copy each screenshot from the saved path its
+  result reports and convert it to the required PNG evidence path.
 
-Devin has no native browser surface. A user-selected Codex CLI Chrome handoff
-may perform its browser acceptance under "CLI delegation". Otherwise the
+Devin has no native browser surface. The `codex-cu` route or a user-selected
+Codex CLI Chrome handoff may perform its browser acceptance under "CLI delegation". Otherwise the
 required gate remains `blocked`; User preview never replaces it.
 
 An explicit route from the user, relayed by the root or given directly in the

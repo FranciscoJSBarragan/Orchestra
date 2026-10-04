@@ -26,7 +26,7 @@ reading this reference does not itself dispatch a role or grant authority.
   journey through its expected result; opening a page alone proves only that
   page loaded. Recipe guidance does not change the browser route, data
   authority, or resource lifecycle below.
-- Require `browser_route: auto | in_app | chrome`. An explicit user route,
+- Require `browser_route: auto | in_app | chrome | codex-cu`. An explicit user route,
   relayed by the root or supplied directly in the agent conversation, must be
   attempted even when the scenario is a canary for a previously failing tool,
   and remains fixed without fallback. Do not
@@ -34,6 +34,7 @@ reading this reference does not itself dispatch a role or grant authority.
   blocker when it cannot run.
 - For `auto`, follow the host spawn reference: on Codex, explicitly select the dedicated Chrome connector first and fall back to Codex's in-app Browser only when Chrome is unavailable or has a technical capability gap that the in-app Browser can satisfy; on Cursor, `auto` and `chrome` map to Browser Use; Grok Build maps `auto` to Playwright; on Devin, native `auto` is `blocked`.
 - For `in_app`, use only Codex's in-app Browser; on Cursor, Grok, or Devin return `blocked`. For `chrome`, use only the dedicated Chrome connector on Codex, Browser Use on Cursor, and on Grok or native Devin return `blocked`. Do not substitute Computer Use or standalone browser automation. Cursor `auto` and `chrome` use Browser Use as the host-mapped surface. Grok `auto` may use Playwright as the host-mapped surface. Devin has no native browser surface; an explicit CLI handoff is resolved separately below. Do not substitute the Cursor IDE browser or the Browser Use CLI.
+- For `codex-cu`, use only the codex-cu MCP server on any host, as WORKFLOW "Test permissions and browser routing" defines; when it is unavailable return `blocked`.
 - An explicitly selected Codex CLI `chrome` handoff follows WORKFLOW "CLI delegation". Require the dedicated Chrome connector in the actual CLI session; do not infer it from the owning Desktop or Devin session. An unavailable connector blocks the gate, and User preview does not replace it. All journey, screenshot, source-read-only, and task-tab cleanup requirements below still apply.
 - On Cursor, drive Browser Use MCP with `new_tab` then `wait_for_load`. If the MCP process client is not registered, authenticate once and retry; if it still cannot run, or Chrome remote-debugging Allow is missing, return `blocked`.
 - A functional failure, application timeout, or selector problem never triggers fallback. For an allowed `auto` fallback, capture the Chrome blocker, close any dedicated Chrome tab already created, open a new in-app Browser task tab, and repeat the complete scenario; never combine partial evidence from two browser surfaces into one pass. Return `blocked` when both surfaces are unavailable.

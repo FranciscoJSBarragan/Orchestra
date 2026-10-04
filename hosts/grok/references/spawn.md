@@ -114,7 +114,8 @@ Cursor and Codex V2 completed-state evidence.
 
 ## Browser
 
-`browser_route: auto | in_app | chrome`. `auto` maps to Playwright. `in_app`
+`browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
+codex-cu MCP server as WORKFLOW defines. `auto` maps to Playwright. `in_app`
 is `blocked` on Grok. `chrome` is `blocked` on Grok unless a dedicated Chrome
 connector is later documented here. An explicit user route is never vetoed or
 substituted.

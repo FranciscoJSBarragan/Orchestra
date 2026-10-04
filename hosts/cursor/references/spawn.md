@@ -111,7 +111,8 @@ Codex V2 completed-state evidence.
 
 ## Browser
 
-`browser_route: auto | in_app | chrome`. `auto` and `chrome` map to Browser Use
+`browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
+codex-cu MCP server as WORKFLOW defines. `auto` and `chrome` map to Browser Use
 MCP (`plugin-browser-use-browser-use`). `in_app` is `blocked` on Cursor. An
 explicit user route is never vetoed or substituted.
 

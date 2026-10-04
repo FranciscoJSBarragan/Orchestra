@@ -118,7 +118,8 @@ foreground return) as the evidence of completion; require it before commit.
 
 ## Browser
 
-`browser_route: auto | in_app | chrome`. Devin has no native browser surface.
+`browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
+codex-cu MCP server as WORKFLOW defines. Devin has no native browser surface.
 `auto` is `blocked` (no built-in browser to drive). `in_app` is `blocked`
 (no in-app preview surface). `chrome` is `blocked` unless a dedicated Chrome
 connector is later documented here. An explicit user route that names an

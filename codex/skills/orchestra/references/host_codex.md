@@ -39,10 +39,10 @@ Explicit CLI delegates use their launcher process handle, not `wait_agent`.
 After owner cleanup, retire the cohort using completed agents with no live
 children or retained resources. Follow WORKFLOW "Phase teardown" for exceptions.
 
-Browser packets use `browser_route: auto | in_app | chrome`. `auto` prefers the
+Browser packets use `browser_route: auto | in_app | chrome | codex-cu`. `auto` prefers the
 dedicated Chrome connector and may use Codex's in-app Browser only for a
 technical availability or capability gap that the in-app Browser can satisfy.
-`chrome` and `in_app` remain strict.
+`chrome`, `in_app` and `codex-cu` remain strict.
 
 Direct sync configures Guardian (`:workspace`, `on-request`, and Auto-review)
 as the default. The active permission choice for the task, host, or launcher

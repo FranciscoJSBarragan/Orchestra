@@ -202,6 +202,16 @@ Useful flags:
 - `--checkout-mode managed|hybrid` — dedicated worktree (default) or a fresh branch in your clean current checkout.
 - `--worktree-root /path` — where managed worktrees live (default `~/.orchestra/worktrees`).
 
+**Browser engine.** With either installation, agents installing Orchestra ask
+the user which engine browser checks use, since the hosts differ (Codex Chrome connector, Cursor
+Browser Use, Grok Playwright, none on Devin):
+
+- *Host default* — nothing to do; the route stays `auto`.
+- *Codex's engine on every host* — needs macOS with the ChatGPT app installed
+  and running. Install [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp)
+  for the hosts in use, then `echo codex-cu > ~/.orchestra/browser-route`.
+  Delete that file to return to the host default.
+
 Sync results are `ok`, `partial` (nothing unsafe happened, read `detail`), or `blocked` (a named safety, drift, or ownership issue; nothing was written). Uninstall removes only content whose digest still matches the manifest.
 
 Codex uses its native matrix by default; CodexBridge is not required. Updating

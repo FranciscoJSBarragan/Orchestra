@@ -21,7 +21,7 @@ reading this reference does not itself dispatch a role or grant authority.
 - Reuse existing components and patterns before adding new abstractions. Cover responsive behavior, accessibility, interaction states, loading, empty, error, and success states that are relevant to acceptance.
 - Keep inseparable non-frontend changes within scope only when the packet authorizes them; otherwise return `blocked` so the root can define a separate bounded phase.
 - When visual iteration is needed, require `browser_route: auto | in_app |
-  chrome`. Explicit user selection must be attempted, including a canary of a
+  chrome | codex-cu`. Explicit user selection must be attempted, including a canary of a
   previously failing tool, and remains fixed without fallback. Do
   not veto or substitute it. Follow the host spawn reference for `auto`,
   `in_app`, and `chrome`. On Cursor, `auto` and `chrome` map to Browser Use and
