@@ -5,10 +5,9 @@ description: Use only for an explicit `$orchestra-repo-readiness` invocation or 
 
 # Prepare a repository for agents
 
-Agents copy what a repository shows them and trust what its checks report.
 Bring an existing repository to a state a less capable agent can rely on by
-fixing the environment, not by adding instructions. This skill never builds
-product features and never activates the full workflow.
+fixing the environment, not by adding instructions. Never build product
+features or activate the full workflow.
 
 Read [runtime resources](../orchestra/runtime.md). WORKFLOW "Repository
 readiness" owns scope and authority; "Repository conventions" owns `.agent/`
@@ -17,7 +16,7 @@ policy writes. Every authored source change follows
 
 ## Target state
 
-Each item is checked by running something, never by reading alone.
+Check each item by running something, not by reading alone.
 
 1. **Setup.** One documented command prepares a fresh clone or worktree,
    including dependencies, browsers and local services.
@@ -35,30 +34,31 @@ Each item is checked by running something, never by reading alone.
    data, configuration, ports and test credentials, never the user's profile or
    running services, drive one mapped journey and keep the evidence. Build the
    launcher and feature map with [project verification](../orchestra-project-verification/SKILL.md).
-7. **Structure over words.** One canonical way per recurring task, registries
-   derived instead of hand-edited lists that every change touches, and no
-   workaround comments that agents would copy.
-8. **Short conventions.** `.agent/` holds only what still needs words: hard
-   gates with exact argv and cwd, prerequisites, prohibitions and conventions
-   whose violation the code cannot reject.
+7. **Structure over words.** Agents see only the files they open, copy the
+   nearest example and take the shortest path that compiles. So: one way per
+   recurring task, one owner per piece of state, lists derived from one source
+   instead of synced by hand, internals that other modules cannot import, and
+   no workaround comments to copy.
+8. **Enforced rules.** `.agent/` keeps one table pairing each rule with what
+   enforces it (structure, type, lint, test, CI) plus the hard gates with exact
+   argv and cwd. Prose remains only for judgment calls nothing can check.
 
 ## Diagnose
 
 Diagnosis is the default. With execution authority from the brief, run setup
 and gates for items 1 to 6, on a clean box from the user's fleet when one is
-available. Use the `orchestra_analyst` profile with `repository_context` for a
-large repository. Report every item as pass, fail or not checked, with the
-command, revision, machine and observed output. Separate observed facts from
-inference. A healthy item needs no change, and sampled inspection never
-certifies the whole repository.
+available; use `orchestra_analyst` with `repository_context` for a large
+repository. Report each item as pass, fail or not checked, with command,
+revision, machine and observed output, separating observation from inference.
+Sampled inspection never certifies the whole repository.
 
 ## Repair
 
 Repair needs a grant that names the area or items. Fix by leverage: make the
-failure impossible through structure or data model first, then add a mechanical
-check (type, lint, test, CI), and write `.agent/` text only for what neither can
-express. Prove each repair against a bad and a valid case and rerun the item
-check that failed.
+failure impossible through structure or data model, then a type, then a lint
+whose error names the fix, then a test, and text last. Prove each new check
+fails on a real past instance and passes a valid case; when the pattern is
+already common, fail only on additions. Rerun the item check that failed.
 
 Keep each coherent problem's code, tests and docs in one change with one owner,
 and preserve independent implementation review through
@@ -72,16 +72,21 @@ dependencies incidentally.
 ## Conventions
 
 Read existing `.agent/` first and change only stale, contradicted or missing
-entries. Admit an entry only when a competent agent reading the code would
-otherwise get it wrong. Ask what evidence cannot settle in one batched question
-with evidence-backed defaults. Before writing policy or running a new
-environment, present one summary of paths, branch, commands, data and cleanup,
-and get confirmation unless the same summary is already approved.
+entries. Ask what evidence cannot settle in one batched question with
+defaults. Before writing policy or running a new environment, present one
+summary of paths, branch, commands, data and cleanup, and get confirmation
+unless that summary is already approved.
 
 ## Hand off
 
 Return the item table, the commits with what each fixed, remaining failures as
 proposals, and the command that reruns the diagnosis. Do not push, merge or
-open a pull request without delivery authority. Later, when a review finding
-recurs in this repository, route it back here as a check or a structural fix,
-not as more text.
+open a pull request without delivery authority.
+
+## Recurring mistakes
+
+Run this when asked, or when a mistake class appears twice in commits, reverts
+or review findings. Group the instances, repair each class at the highest level
+above, and add its row to the rule table. A rule already in the table without an
+enforcer that failed again is repaired the same way. Drop a rule once its
+mistake can no longer happen.

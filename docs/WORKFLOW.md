@@ -283,8 +283,7 @@ independent implementation review through the selected route, using the
 existing completion-aware waiting policy. No health score, backlog service or
 report schema is introduced. Folder reorganization, aesthetic renames,
 formatting sweeps, major dependency upgrades and unrelated behavior changes are
-out of scope. A recurring review finding returns here as a check or a
-structural fix.
+out of scope. Recurring mistakes are repaired through that skill.
 
 ## Project verification
 
