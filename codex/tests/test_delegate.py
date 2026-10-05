@@ -1156,6 +1156,22 @@ class ExecutionPresetTests(unittest.TestCase):
             self.assertEqual(review["model"], "claude-fable-5-1-thinking-medium")
             self.assertEqual(review["profile"], "orchestra_reviewer")
 
+    def test_cross_review_keeps_host_roles_and_reviews_in_another_family(self):
+        def route(capability, host):
+            return delegate.resolve_preset(delegate.build_parser().parse_args([
+                "--preset", "cross-review", "--host", host,
+                "--capability", capability, "--resolve-only",
+            ]))
+
+        for host in ("codex", "cursor", "grok", "devin", "claude"):
+            with self.subTest(host=host):
+                self.assertEqual(route("general_implementation", host)["executor"], "host")
+                review = route("independent_review", host)
+                expected = (("codex", "gpt-6.1-sol") if host == "claude"
+                            else ("claude", "claude-sonnet-5-5"))
+                self.assertEqual((review["executor"], review["model"]), expected)
+                self.assertEqual(review["profile"], "orchestra_reviewer")
+
     def test_planning_reuses_matching_root_without_overriding_its_effort(self):
         for capability in ("technical_planning", "architecture_analysis"):
             for host in ("codex", "cursor", "grok", "devin"):

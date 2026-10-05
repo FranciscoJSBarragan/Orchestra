@@ -704,6 +704,9 @@ permissions; it never activates Orchestra by itself, changes the root model
 or effort, or grants delivery authority. Ordinary native assignments remain
 the default. Do not combine it with another tier silently: a tier change
 requires an explicit choice to leave the preset or select a compatible one.
+`cross-review` keeps every assignment on the owning host's matrix and sends
+only independent review to another model family, because a reviewer from
+the implementer's family tends to share its blind spots.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex

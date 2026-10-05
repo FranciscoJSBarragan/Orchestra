@@ -70,3 +70,58 @@ executor = "codex"
 model = "gpt-6-astra"
 reasoning_effort = "low"
 prefer_native = true
+
+# Every role stays on the owning host's matrix except independent review,
+# which runs on another model family: same-family reviewers share blind spots.
+[presets.cross-review]
+tier = "standard"
+
+[presets.cross-review.capabilities.repository_context]
+executor = "host"
+
+[presets.cross-review.capabilities.web_research]
+executor = "host"
+
+[presets.cross-review.capabilities.technical_planning]
+executor = "host"
+
+[presets.cross-review.capabilities.architecture_analysis]
+executor = "host"
+
+[presets.cross-review.capabilities.difficult_debugging]
+executor = "host"
+
+[presets.cross-review.capabilities.general_implementation]
+executor = "host"
+
+[presets.cross-review.capabilities.frontend_implementation]
+executor = "host"
+
+[presets.cross-review.capabilities.independent_review]
+executor = "claude"
+model = "claude-sonnet-5-5"
+reasoning_effort = "high"
+
+[presets.cross-review.capabilities.runtime_verification]
+executor = "host"
+
+[presets.cross-review.capabilities.browser_acceptance]
+executor = "host"
+
+[presets.cross-review.hosts.claude.independent_review]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"
+
+[presets.cross-review.escalation]
+capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]
+
+[[presets.cross-review.escalation.attempts]]
+executor = "claude"
+model = "claude-sonnet-5-5"
+reasoning_effort = "high"
+
+[[presets.cross-review.escalation.attempts]]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"
