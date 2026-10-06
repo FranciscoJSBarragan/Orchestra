@@ -22,9 +22,10 @@ Check each item by running something, not by reading alone.
    including dependencies, browsers and local services.
 2. **Clean gates.** The hard gates are literal commands that pass at the
    inspected revision and leave `git status` clean.
-3. **Deterministic gates.** The full suite passes repeatedly and on a second
-   machine or a different worker count. A failure that appears only there is a
-   finding, not noise.
+3. **Deterministic gates.** The full suite passes repeatedly, on a second
+   machine or a different worker count, and while another checkout of the
+   repository runs it on the same machine. A failure that appears only there,
+   or a gate that stops or reuses another checkout's services, is a finding.
 4. **Green baseline.** Lint, type and format checks pass before any change, so
    a red result always belongs to the current change.
 5. **Isolated, readable tests.** No test or module depends on state another

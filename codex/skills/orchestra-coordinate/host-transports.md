@@ -165,7 +165,10 @@ or safely quoted arguments; never interpolate a prompt into shell code. Do not
 pass leaf-only `--no-subagents` to a child that needs role agents. Do not add
 `--force`, `--yolo`, bypass permissions, trust or sandbox overrides merely to
 make the run finish. Preserve the user's actual permission authority; a CLI
-that needs unavailable interactive approval returns a blocker. Browser evidence
+that needs unavailable interactive approval returns a blocker. A headless
+child runs unattended only under the user's explicit grant for this
+initiative, recorded in the register; then use that CLI's own auto-approve
+control (for example Grok `--always-approve`) and nothing broader. Browser evidence
 still uses the selected host's supported browser route.
 
 Use structured events to obtain the exact session handle and terminal response;
