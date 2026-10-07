@@ -76,10 +76,9 @@ stable `clientRequestId`. Link delivered PRs with `link_pull_request`.
 caller's checkout with no workspace option. From a parent in a shared checkout
 it is limited to source-read-only roles (`interactionMode: plan`,
 `runtimeMode: approval-required`); a task root bound to its own worktree uses
-it for every role under [T3 Code](../orchestra/references/host_t3.md). Its
-completion notifies the parent; read it once with `task_status`, and resume a
-delta review with `t3_thread_send` to the returned `childThreadId`. Verify the
-checkout with Git after it returns.
+it for every role, including resumption and review rounds, under
+[T3 Code](../orchestra/references/host_t3.md). Verify the checkout with Git
+after it returns.
 
 Archiving a thread does not remove its worktree or branch. Release them through
 the child's cleanup handoff after the accepted revision is preserved.

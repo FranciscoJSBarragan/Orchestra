@@ -46,8 +46,12 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   or spawn agents.
 - Prefer `mode: async`; the completion notification wakes the root. End the
   turn instead of polling, then read the result once with `task_status`.
-- Resume the same phase-cohort agent with `t3_thread_send` to its
-  `childThreadId`. A first review is always a fresh `delegate_task`.
+- Resume the same phase-cohort implementer with `t3_thread_send` to its
+  `childThreadId`. That message does not reopen the delegated task, so no
+  completion notification follows: keep the turn and wait on that thread with
+  `t3_thread_wait`, then read only the new turn with `t3_thread_read`.
+- Every review round, including a delta review, is a fresh `delegate_task`
+  carrying the full bounded review context and a new `clientRequestId`.
 - `task_status` `providerInstanceId` and `model` are observed evidence; the
   effort is requested only.
 - After every return, check Git status and HEAD. A read-only role that changed
