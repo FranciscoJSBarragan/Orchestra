@@ -1771,6 +1771,13 @@ authorization claim in documentation is not cosmetic. Changed tests or
 instructions also need affected checks and delta review. Do not reopen
 unaffected evidence or loop on pure preference.
 
+The root alone sees every round, so it stops patching when a phase's third
+implementation review still has findings or a finding lands in machinery an
+earlier correction added. It compares the change's size with the problem and
+seeks a simpler design that removes the failure class; when the outcome admits
+unbounded failures, it narrows the failure model with the parent or user before
+another round.
+
 With a frozen user-preview revision, taste and cosmetic preference are not
 required findings; bugs, accessibility, regressions and defect-prone
 complexity remain. A defect forcing a constrained visual change enables a

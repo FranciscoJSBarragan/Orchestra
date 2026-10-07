@@ -97,7 +97,9 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   state, derived from the quoted user outcome, the specification's prior-state
   expectations and binding contracts, never from the chosen mechanism (for
   example: a total never exceeds its source, an operation is idempotent, a
-  permission is never widened). Each invariant maps
+  permission is never widened). An invariant that must hold under failures
+  names the failures it covers; "under any failure" without that set is a
+  plan-review finding. Each invariant maps
   to an existing or planned check: deterministic, verifier, or preview.
   Acceptance values follow from an invariant and the user's intent; a value
   only the mechanism justifies is not acceptance. Write `none beyond

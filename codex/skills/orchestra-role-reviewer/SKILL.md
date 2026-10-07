@@ -42,6 +42,12 @@ guide attention; they are not evidence and never narrow what you examine.
      a lost or duplicated record) is a **finding**. A literal reading of the
      request, current behavior, or the plan's own wording never turns it into
      a residual risk.
+   - A counterexample is reachable through the product's own operations and
+     its dependencies' documented or actually observed behavior; a dependency
+     behavior seen in a real run of this work is a finding. A hypothesized
+     dependency misreporting its own result, or a race inside it, is a
+     limitation to report, not a finding, unless the outcome or an invariant
+     names that failure.
    - Exclusions limit what may be edited, not which states you consider. If a
      correction fits inside the allowed scope, it is a finding even when an
      excluded operation created the state.
