@@ -454,7 +454,11 @@ paths, blockers, assumptions, delivery state and resource cleanup. The parent
 consumes it once, then runs the real cross-project journey against the exact
 set of accepted revisions and relevant environment and configuration, naming which revisions
 and determining non-Git dependency versions actually ran; individual green
-suites cannot establish a shared contract.
+suites cannot establish a shared contract. Before integrating a child
+revision, the parent runs the repository's hard gates itself at that exact
+SHA in a clean checkout, since a child may reuse evidence across its last
+delta, and reads every changed test assertion against the product's real
+behavior; a test changed to match a mock or current output is a finding.
 
 A joint failure goes to its owning child as a focused repair, keeping the same
 child and reviewer when supported. Before that child's delivery, a repair

@@ -9,7 +9,7 @@ engineering" owns their composition. Explicit repository audit or deslop request
 may use `$orchestra-repo-readiness` under WORKFLOW "Repository readiness".
 For meaningful behavior or test changes, use `$orchestra-engineering`'s shared
 "Behavioral verification" and "Change quality" criteria. Suite cleanup uses
-"Test maintenance" through the maintenance entry, within the current authority.
+"Test maintenance" within the current authority.
 
 User follow-ups and worker updates preserve the active objective under WORKFLOW
 "Conversation continuity". Apply its response and recovery rules without

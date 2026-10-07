@@ -20,8 +20,9 @@ was made belongs in its commit or PR; retain durable constraints in existing
 maintained documentation, without copying removed commentary indiscriminately.
 
 Preserve required legal notices and syntax with an actual machine consumer:
-shebangs, encoding declarations, compiler/linter directives, generator markers
-and configured public documentation contracts. A functional docstring needs a
+shebangs, encoding declarations, compiler/linter directives, generator markers,
+comments a help target parses (such as `make help`) and configured public
+documentation contracts. A functional docstring needs a
 named consumer such as CLI help, runtime schema generation or a configured
 public API documentation build. Generic `pydoc`, `help()` or IDE display is not
 such a consumer. A directive's required reason syntax may remain; a separate
