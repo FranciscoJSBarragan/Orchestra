@@ -439,6 +439,14 @@ cure polling. On a stable result, read full child evidence only when a missing f
 failure requires it. Process success establishes neither acceptance,
 independent review nor delivery.
 
+A child messages the parent only when it needs the parent or is done: a
+decision outside its authority, a derived plan for acceptance, a shared
+resource request or release, a blocker, or its stable final handoff. Progress,
+started work, unsubmitted candidates and intermediate results stay in its own
+thread and reports for the parent to read when needed; a grant is acknowledged
+by acting on it, never by a reply. A parent woken by a message that needs no
+decision records any needed register fact without narrating it to the user.
+
 After interruption or an ambiguous launch, reconcile the existing host handle,
 checkout and Git revision first; a pending entry does not mean nothing
 launched. Never replay a mutating packet or create a replacement while an
