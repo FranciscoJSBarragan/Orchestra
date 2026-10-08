@@ -51,7 +51,8 @@ guide attention; they are not evidence and never narrow what you examine.
      behavior seen in a real run of this work is a finding. A hypothesized
      dependency misreporting its own result, or a race inside it, is a
      limitation to report, not a finding, unless the outcome or an invariant
-     names that failure.
+     names that failure. Accepting input the outcome says to reject is a
+     finding whatever a dependency would later do with it.
    - Exclusions limit what may be edited, not which states you consider. If a
      correction fits inside the allowed scope, it is a finding even when an
      excluded operation created the state.
