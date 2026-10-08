@@ -466,7 +466,12 @@ suites cannot establish a shared contract. Before integrating a child
 revision, the parent runs the repository's hard gates itself at that exact
 SHA in a clean checkout, since a child may reuse evidence across its last
 delta, and reads every changed test assertion against the product's real
-behavior; a test changed to match a mock or current output is a finding.
+behavior; a test changed to match a mock or current output is a finding. A
+child the user authorized to `merge when clean` is its own integrator instead:
+once its PR is clean and its branch contains the current base (otherwise it
+first refreshes under "Base refresh before delivery"), it merges and reports
+the merged SHA to the parent once; joint acceptance then runs on the delivered
+base.
 
 A joint failure goes to its owning child as a focused repair, keeping the same
 child and reviewer when supported. Before that child's delivery, a repair
