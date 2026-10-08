@@ -27,7 +27,11 @@ guide attention; they are not evidence and never narrow what you examine.
    what must stay true from every state the system can already be in. For any
    quantity the change moves or reverses (money, stock, quota, counts), the
    total across all of its writers never exceeds its source, whatever record
-   type each writer uses.
+   type each writer uses. The outcome always includes that existing behavior
+   the repository relies on (its instructions, documented recipes and
+   supported environments) keeps working; a narrowed scope or failure model
+   never removes it. A change that makes such behavior fail, hang or lose
+   diagnostics where it previously worked is a finding.
 
 2. **Hunt counterexamples.** For each value the change reads or adjusts, list
    the existing operations that write it: other entry points, earlier steps,
@@ -71,7 +75,7 @@ guide attention; they are not evidence and never narrow what you examine.
    user preview needs a reviewed commit, or the risk order differs materially.
 
 6. **Then the rest:** scope and authority of each material choice, safety and
-   privacy, regressions in unchanged paths, maintainability, fresh
+   privacy, maintainability, fresh
    verification evidence, and the source-comment policy (no explanatory
    comments, narrative docstrings or commented-out code in authored source).
 

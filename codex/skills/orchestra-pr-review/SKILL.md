@@ -38,7 +38,9 @@ skill never merges, releases, deploys, publishes, or persists PR state.
    `implementation-report`, every required `verification-report`, GitHub
    feedback, stop conditions, and only the new delta. A gate of `none` needs
    no verification report. The reviewer reads intent and acceptance from the
-   exact artifacts.
+   exact artifacts. The baseline review judges the complete diff afresh: its
+   packet carries no earlier implementation or PR review, and it never
+   inherits their acceptance.
 5. Require `pr-review` when semantic findings must pass to the owner or before
    a delivery commit. Every actionable finding has a stable identifier.
 
