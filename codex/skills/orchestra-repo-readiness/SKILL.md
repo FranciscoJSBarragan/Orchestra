@@ -43,6 +43,12 @@ Check each item by running something, not by reading alone.
 8. **Enforced rules.** `.agent/` keeps one table pairing each rule with what
    enforces it (structure, type, lint, test, CI) plus the hard gates with exact
    argv and cwd. Prose remains only for judgment calls nothing can check.
+9. **Protected integration.** When delivery goes through pull requests and CI
+   runs the hard gates on them, the default branch requires those checks on a
+   branch that is up to date with it, for administrators too, so two
+   self-merging tasks cannot land a combination nobody tested. Check it with
+   the host's branch-protection API and set it only after the user confirms;
+   without CI on pull requests the item fails on that missing CI.
 
 ## Diagnose
 
