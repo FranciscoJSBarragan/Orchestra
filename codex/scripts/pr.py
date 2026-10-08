@@ -760,6 +760,13 @@ def _merge_preflight(
         return blocked("PR task or base branch changed after clean observation")
     if view.get("mergeStateStatus") != "CLEAN":
         return blocked("PR merge state is not clean")
+    behind, error = _json_output("gh api compare", _gh(
+        repo, "api", f"repos/{repository}/compare/{base_branch}...{clean_head}",
+        "--jq", ".behind_by"))
+    if error:
+        return error
+    if behind != 0:
+        return blocked("PR head does not contain the current base; refresh the task before merge")
     observation = observe_pr(repo, repository, pr_number, clean_head, acknowledged_feedback)
     if observation["status"] != "ok" or observation.get("head") != clean_head:
         return blocked("PR feedback/checks changed or are incomplete before merge", observation=observation)

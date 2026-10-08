@@ -111,6 +111,8 @@ elif args[:2] == ["pr", "view"]:
         print(os.environ["FAKE_POST_MERGE_VIEW"])
     else:
         print(os.environ["FAKE_OBSERVE_VIEW"])
+elif args[:1] == ["api"] and "/compare/" in args[1]:
+    print(os.environ.get("FAKE_BEHIND_BY", "0"))
 elif args[:1] == ["api"] and args[1].startswith("repos/"):
     print(json.dumps({"object": {"sha": os.environ["FAKE_REMOTE_HEAD"]}}))
 elif args[:2] == ["api", "graphql"]:
@@ -665,6 +667,17 @@ else:
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(payload["status"], "blocked")
         self.assertIn("check", payload["reason"])
+        self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
+
+    def test_merge_blocks_a_head_behind_the_current_base(self) -> None:
+        self.write_policy(passing=True)
+        self.environment["FAKE_BEHIND_BY"] = "1"
+
+        result, payload = self.run_pr(*self.merge_args())
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("current base", payload["reason"])
         self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
     def test_merge_requires_clean_worktree_before_checks(self) -> None:
