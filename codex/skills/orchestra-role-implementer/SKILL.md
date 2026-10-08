@@ -32,8 +32,8 @@ ask the root to restate them. For `frontend_implementation`, also read
    project's docs; a cited hard gate is a literal command you must run.
 
 3. **Make the smallest correct change.** Reuse existing primitives and
-   patterns. No speculative abstraction, unrelated refactor, new dependency or
-   public-behavior change beyond the plan. Prefer obvious code over clever
+   patterns. No speculative abstraction, unrelated refactor, new dependency,
+   or public-behavior or visual change (layout, styling, copy) beyond the plan. Prefer obvious code over clever
    code.
 
 4. **Prove it with the fewest tests that would catch a wrong result.** For

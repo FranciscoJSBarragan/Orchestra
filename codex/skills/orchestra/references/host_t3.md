@@ -3,9 +3,9 @@
 Use this reference when the `t3-code` MCP tools (`delegate_task`,
 `t3_worktree_handoff`, `orchestrator_capabilities`) are available. T3 Code
 hosts the provider session; the provider remains the Orchestra host and its
-matrix still assigns every capability. T3 replaces only checkout creation and
-role transport. Specification, planning, review, commits, and delivery are
-unchanged.
+matrix assigns every capability except the review pair WORKFLOW defines for
+T3. T3 replaces only checkout creation and role transport. Specification,
+planning, review policy, commits, and delivery are unchanged.
 
 ## Checkout
 
@@ -36,8 +36,9 @@ Dispatch each role with `delegate_task`; its child runs in the root's bound
 checkout. Map the matrix row onto `target`: the host's `providerInstanceId`,
 the row's exact `model` from the live `orchestrator_capabilities` catalog, and
 the row's effort in that model's advertised option (`effort` on Claude,
-`reasoningEffort` on Codex and Grok). A missing model or effort blocks; never
-substitute. On Claude Code this sets effort per dispatch, so the
+`reasoningEffort` on Codex and Grok). A pair reviewer uses the provider
+instance that serves its model, and both start in the same turn. A missing
+model or effort blocks; never substitute. On Claude Code this sets effort per dispatch, so the
 `<profile>_<effort>` agents are not needed. A selected execution preset's CLI
 assignment may use `delegate_task` with the same provider, model, and effort.
 
@@ -50,8 +51,12 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   `childThreadId`. That message does not reopen the delegated task, so no
   completion notification follows: keep the turn and wait on that thread with
   `t3_thread_wait`, then read only the new turn with `t3_thread_read`.
-- Every review round, including a delta review, is a fresh `delegate_task`
-  carrying the full bounded review context and a new `clientRequestId`.
+- A review's first round is a fresh `delegate_task` carrying the full bounded
+  review context and a new `clientRequestId`; its delta rounds resume each
+  reviewer thread with `t3_thread_send` and `t3_thread_wait`, carrying only
+  the delta. A reviewer
+  thread that is unavailable gets a fresh `delegate_task` with the
+  full-review base and prior dispositions.
 - `task_status` `providerInstanceId` and `model` are observed evidence; the
   effort is requested only.
 - After every return, check Git status and HEAD. A read-only role that changed

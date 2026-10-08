@@ -242,8 +242,8 @@ else:
             "--authorized",
         ]
 
-    def observe_args(self, previous: str | None = None) -> list[str]:
-        args = [
+    def observe_args(self) -> list[str]:
+        return [
             "observe",
             "--repo",
             str(self.repo),
@@ -252,9 +252,6 @@ else:
             "--pr",
             "7",
         ]
-        if previous:
-            args.extend(("--previous-clean-head", previous))
-        return args
 
     def merge_args(
         self,
@@ -483,14 +480,14 @@ else:
         comment = {"id": "review-1", "body": "Outside diff: fix authorization", "url": "review-url", "author": {"login": "reviewer"}}
         pull["reviews"]["nodes"] = [comment]
         self.environment["FAKE_THREADS"] = json.dumps(data)
-        _, first = self.run_pr(*self.observe_args(self.head))
+        _, first = self.run_pr(*self.observe_args())
         self.assertEqual(first["status"], "partial")
         token = first["supplemental_feedback"][0]["fingerprint"]
-        _, clean = self.run_pr(*self.observe_args(self.head), "--acknowledged-feedback", token)
+        _, clean = self.run_pr(*self.observe_args(), "--acknowledged-feedback", token)
         self.assertEqual(clean["status"], "ok")
         comment["body"] += " and tenant isolation"
         self.environment["FAKE_THREADS"] = json.dumps(data)
-        _, edited = self.run_pr(*self.observe_args(self.head), "--acknowledged-feedback", token)
+        _, edited = self.run_pr(*self.observe_args(), "--acknowledged-feedback", token)
         self.assertEqual(edited["status"], "partial")
         _, merge = self.run_pr(*self.merge_args(), "--acknowledged-feedback", token)
         self.assertEqual(merge["status"], "blocked")
@@ -502,24 +499,24 @@ else:
             {"body": body, "url": "first", "author": None},
             {"body": "Thanks", "url": "last", "author": None}]}}
         self.set_observation([], [thread])
-        _, result = self.run_pr(*self.observe_args(self.head))
+        _, result = self.run_pr(*self.observe_args())
         self.assertEqual(result["unresolved_feedback"][0]["comments"][0]["body"], body)
         data = json.loads(self.environment["FAKE_THREADS"])
         data["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"][0]["comments"]["pageInfo"]["hasNextPage"] = True
         self.environment["FAKE_THREADS"] = json.dumps(data)
-        _, result = self.run_pr(*self.observe_args(self.head))
+        _, result = self.run_pr(*self.observe_args())
         self.assertFalse(result["feedback_complete"])
 
     def test_graphql_errors_and_head_race_never_report_clean(self) -> None:
         data = json.loads(self.environment["FAKE_THREADS"])
         data["errors"] = [{"message": "partial authorization"}]
         self.environment["FAKE_THREADS"] = json.dumps(data)
-        _, result = self.run_pr(*self.observe_args(self.head))
+        _, result = self.run_pr(*self.observe_args())
         self.assertEqual(result["status"], "blocked")
         del data["errors"]
         data["data"]["repository"]["pullRequest"]["headRefOid"] = "b" * 40
         self.environment["FAKE_THREADS"] = json.dumps(data)
-        _, result = self.run_pr(*self.observe_args(self.head))
+        _, result = self.run_pr(*self.observe_args())
         self.assertEqual(result["status"], "blocked")
 
     def test_published_revision_and_body_are_verified(self) -> None:
@@ -560,20 +557,16 @@ else:
             unresolved["unresolved_feedback"][0]["comments"][0]["body"], "Handle the error"
         )
 
-    def test_observe_requires_two_clean_observations_on_same_head(self) -> None:
+    def test_observe_reports_a_complete_clean_observation_as_ok(self) -> None:
         self.set_observation([{"status": "COMPLETED", "conclusion": "SUCCESS"}], [])
 
-        first_result, first = self.run_pr(*self.observe_args())
-        second_result, second = self.run_pr(*self.observe_args(self.head))
+        result, payload = self.run_pr(*self.observe_args())
 
-        self.assertEqual(first_result.returncode, 0)
-        self.assertEqual(first["status"], "partial")
-        self.assertEqual(first["clean_observation"], 1)
-        self.assertEqual(second_result.returncode, 0)
-        self.assertEqual(second["status"], "ok")
-        self.assertEqual(second["clean_observation"], 2)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["head"], self.head)
 
-    def test_head_change_resets_and_outdated_feedback_is_ignored(self) -> None:
+    def test_outdated_feedback_is_ignored(self) -> None:
         new_head = "a" * 40
         outdated = {
             "isResolved": False,
@@ -582,11 +575,10 @@ else:
         }
         self.set_observation([], [outdated], head=new_head)
 
-        result, payload = self.run_pr(*self.observe_args(self.head))
+        result, payload = self.run_pr(*self.observe_args())
 
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(payload["status"], "partial")
-        self.assertEqual(payload["clean_observation"], 1)
+        self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["unresolved_feedback"], [])
         self.assertEqual(payload["head"], new_head)
 
@@ -604,7 +596,7 @@ else:
                     review_decision=decision,
                     merge_state=merge_state,
                 )
-                result, payload = self.run_pr(*self.observe_args(self.head))
+                result, payload = self.run_pr(*self.observe_args())
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(payload["status"], "partial")
                 self.assertEqual(payload["review_decision"], decision)

@@ -370,10 +370,8 @@ def observe_pr(
     repo: Path,
     repository: str,
     pr_number: int,
-    previous_clean_head: str | None,
     acknowledged_feedback: tuple[str, ...] = (),
 ) -> dict[str, Any]:
-    """Return a factual current snapshot and in-memory two-observation result."""
     repo, error = _repository_root(repo)
     if error:
         return error
@@ -507,9 +505,7 @@ def observe_pr(
         return {"status": "partial", "reason": "PR merge state is not clean", **snapshot}
     if "pending" in check_states or "failed" in check_states:
         return {"status": "partial", "reason": "checks are not clean", **snapshot}
-    if previous_clean_head == head:
-        return {"status": "ok", "clean_observation": 2, **snapshot}
-    return {"status": "partial", "reason": "first clean observation", "clean_observation": 1, **snapshot}
+    return {"status": "ok", **snapshot}
 
 
 def merge_pr(
@@ -767,7 +763,7 @@ def _merge_preflight(
         return error
     if behind != 0:
         return blocked("PR head does not contain the current base; refresh the task before merge")
-    observation = observe_pr(repo, repository, pr_number, clean_head, acknowledged_feedback)
+    observation = observe_pr(repo, repository, pr_number, acknowledged_feedback)
     if observation["status"] != "ok" or observation.get("head") != clean_head:
         return blocked("PR feedback/checks changed or are incomplete before merge", observation=observation)
     return None
@@ -1023,7 +1019,6 @@ def parse_args() -> argparse.Namespace:
     observe_parser.add_argument("--repo", type=Path, required=True)
     observe_parser.add_argument("--repository", required=True)
     observe_parser.add_argument("--pr", type=int, required=True)
-    observe_parser.add_argument("--previous-clean-head")
     observe_parser.add_argument("--acknowledged-feedback", action="append", default=[])
 
     merge_parser = subparsers.add_parser("merge")
@@ -1063,7 +1058,7 @@ def main() -> int:
         )
     elif args.action == "observe":
         result = observe_pr(
-            args.repo, args.repository, args.pr, args.previous_clean_head, tuple(args.acknowledged_feedback)
+            args.repo, args.repository, args.pr, tuple(args.acknowledged_feedback)
         )
     else:
         result = merge_pr(

@@ -336,9 +336,8 @@ continue in memory; later reuse requires the approved plan's checkout path,
 branch, base, and HEAD to agree with Git. Rejected planning and completed
 delivery clean only resources that exact Git evidence proves safe.
 
-The previous clean PR head exists only in root memory between consecutive
-observations. GitHub owns PR, check, and review-thread state; Orchestra creates
-no local PR state file.
+GitHub owns PR, check, and review-thread state; Orchestra creates no local PR
+state file.
 
 Artifacts are plain files in the task-private `.orchestra/artifacts` directory.
 The filesystem is their only locator. The self-ignored ownership marker keeps

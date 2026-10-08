@@ -101,7 +101,9 @@ browser route: acceptance uses `codex-cu` or an explicitly selected Codex CLI
 Chrome handoff under "CLI delegation", otherwise `blocked`.
 
 Inside T3 Code (its `t3-code` MCP tools are available) the provider remains
-the host with its matrix. T3 creates a `managed` checkout through
+the host with its matrix, except that on `standard` and `critical` the review
+pair under "Review policy" is `gpt-6.1-sol` and `claude-haiku-5-5`, both at
+`high`. T3 creates a `managed` checkout through
 `t3_worktree_handoff` and carries roles through `delegate_task` with the
 row's explicit provider, model and effort, as `host_t3.md` defines; the root
 still checks Git after every child and delivers with preserved T3-owned
@@ -1724,9 +1726,19 @@ the report.
 Every phase is accepted only after one current independent code review of its
 exact revision, never on implementation checks alone; local integration and PR
 delivery also need an independent review of the exact terminal revision before
-their mutation or clean result. The first review covers the whole bounded
-target and returns all known material findings; later reviews inspect only the
-meaningful delta and interactions affected by accepted fixes.
+their mutation or clean result: a single-phase task's phase review of that
+revision is that review, and a multi-phase task gets one baseline review of the
+complete range whose packet carries no earlier review. The first review covers
+the whole bounded target and returns all known material findings; later reviews
+inspect only the meaningful delta and interactions affected by accepted fixes,
+because each fresh full review finds a different subset and never converges.
+
+Where a host defines a review pair, the review that first covers the complete
+terminal range runs as both reviewers in parallel on the same packet, blind to
+each other. The root merges their findings by defect, and one reviewer's
+dismissal never cancels the other's finding. Its delta rounds resume both
+reviewers with only the meaningful delta; every other review uses the pair's
+first reviewer alone.
 
 How to review (counterexamples first, what counts as a finding, the scope of
 exclusions, `Dismissed counterexamples` and the report) is defined only by the
@@ -1736,57 +1748,49 @@ artifacts directory, accepted finding IDs and any exclusions. Author concerns in
 non-exhaustive prompts, never the agenda or a narrower scope. The root uses
 `Dismissed counterexamples` at approval under "Context and planning" step 13.
 
-The root may add an optional second plan or decision reviewer, using
-`independent_review`, when a named measurable risk and an independently
-detectable defect class justify a distinct question, for example omissions in
-indirect consumers or pending external actions. The root records that question
-in the plan risks or decisions and gives the reviewer the same intent,
-candidate and producer evidence. The second review never narrows the first
-review's target or duplicates a gate under "Engineering guidance and evidence";
-it may run in parallel with a distinct publication target, and the root keeps
-findings separate until both handoffs. Corrections reuse each affected reviewer
-under the meaningful-delta rules. The root resolves findings under "Context and
-planning" within the authority limits of "Decision evidence"; tier and matrix
-row still apply.
+The root may add a second plan or decision reviewer (`independent_review`)
+only for a named measurable risk whose defect class it detects independently,
+for example omissions in indirect consumers or pending external actions,
+recorded in the plan risks or decisions. It gets the same intent, candidate
+and producer evidence, never narrows the first review or duplicates a gate
+under "Engineering guidance and evidence", may run in parallel with a distinct
+publication target, and corrections reuse each affected reviewer.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence, in that order;
 no packet reorders it or exempts an accepted mechanism. Authority-based
 dispositions follow "Decision evidence"; phase acceptance does not establish
-that an unpresented consequence was authorized. The review records only the
-context basis actually used; context evidence names its review use, and a
-discovery or blocker names the affected judgment and current-task consumer.
+that an unpresented consequence was authorized. A review discovery or blocker
+names the affected judgment and current-task consumer.
 Incidental stale information is omitted. A stale descriptive fact becomes a
 documentation correction only after decision-changing independent validation;
 normative intent is never rewritten to match current implementation.
 
-Automatically fix findings that demonstrate incorrect behavior or unmet acceptance; security,
-privacy or data-integrity risk; likely regression; unsafe error handling or
-concurrency; a maintainability defect likely to cause incorrect behavior;
-missing verification of important behavior; or unnecessary scope, duplication
-or fragile tests with a demonstrated maintenance cost ("Change quality",
-"Behavioral verification"). Do not cycle on formatter-covered style,
-speculative architecture without a failure mode, unrelated cleanup, scope
-expansion disguised as review, or restated rejected suggestions.
+The root triages every finding, from its reviewers and PR feedback alike,
+before any fix; a finding is not fixed because it was reported. In order:
+reject one that conflicts with approved intent, an invariant or an earlier
+accepted fix; resolve without code one the current HEAD disproves; take a
+genuine product, contract or authority choice, or a fix that would change
+user-visible appearance or behavior beyond the request, to the user in one
+grouped question; reject what the reviewer role skill lists under "Not
+findings" or what matters only in a deployment or exposure the system does not
+have; and confirm a plausible defect that lacks a concrete reachable scenario
+in a supported environment with one cheap deterministic check, or reject it.
+Fix the rest, grouped per owner, when it shows incorrect behavior or unmet
+acceptance; security, privacy or data-integrity risk; a regression of existing
+behavior; unsafe error handling or concurrency; missing verification of
+important behavior; or scope, duplication or fragile tests with a demonstrated
+maintenance cost ("Change quality", "Behavioral verification"). Judge impact,
+not label or editing cost; a false authorization claim in documentation is not
+cosmetic. Changed tests or instructions also need affected checks and delta
+review. Do not reopen unaffected evidence or loop on pure preference.
 
-Judge a suggestion by its acceptance, correctness or maintenance impact, not
-its label or editing cost. Group accepted in-scope corrections per owner and
-explicitly defer or reject the rest when delivery depends on it. A false
-authorization claim in documentation is not cosmetic. Changed tests or
-instructions also need affected checks and delta review. Do not reopen
-unaffected evidence or loop on pure preference.
-
-The root alone sees every round, so it stops patching when a phase's third
-implementation review still has findings or a finding lands in machinery an
+The root alone sees every round, so it stops patching when the third review
+round of a phase or a PR still has findings or a finding lands in machinery an
 earlier correction added. It compares the change's size with the problem and
 seeks a simpler design that removes the failure class; when the outcome admits
 unbounded failures, it narrows the failure model with the parent or user before
 another round.
-
-With a frozen user-preview revision, taste and cosmetic preference are not
-required findings; bugs, accessibility, regressions and defect-prone
-complexity remain. A defect forcing a constrained visual change enables a
-short re-inspection, not reopened taste.
 
 ### Mechanical release metadata
 
@@ -2125,25 +2129,25 @@ The unchanged public PR skills preserve the proven behavioral chain:
    GitHub/CI feedback surface: review bodies, issue comments, complete review
    threads, checks, review decision, merge state, and current head. It never
    relies on only the last thread comment.
-4. The root evaluates actionable feedback against intent, current code, and
-   scope through an independent `orchestra_reviewer` baseline review and any
-   accepted feedback delta. A PR cannot become clean without that review. The
-   root keeps revision-scoped dispositions in memory for the current observation
-   and never persists a feedback ledger.
-5. The same implementation owner applies accepted fixes, reruns affected
-   deterministic handoff checks and every configured delivery check required for
-   the terminal revision, and publishes a replacement
-   `implementation-report`; any applicable independent gate reruns with the
-   same verifier. The same reviewer evaluates the meaningful delta and
+4. The root triages actionable feedback under "Review policy" against
+   PR-CONTEXT and current code, and dispatches a reviewer only for feedback
+   whose validity needs investigation; status-only bodies need none, but a
+   bot status reporting its review of the current head still in progress
+   counts as a pending check until it completes. A PR
+   cannot become clean without the terminal review "Review policy" requires.
+   The root keeps revision-scoped dispositions in memory for the current
+   observation and never persists a feedback ledger.
+5. The same implementation owner applies accepted fixes, reruns the checks
+   they affect, and publishes a replacement `implementation-report`; only an
+   affected independent gate reruns, with the same verifier. The pushed
+   head's PR checks and the merge helper's configured checks remain the full
+   gate. The same reviewer evaluates the meaningful delta and
    replacement evidence, producing the current accepted `pr-review`. The root
    commits with that current review and only the `verification-report` evidence
    required by the relevant gate, updates the affected phase's terminal
    manifest commit, and pushes.
-6. The loop continues until two complete clean observations occur on the same
-   head. The root passes the first clean head directly to the second observation
-   in memory; a push or head change resets it. The second observation on an
-   unchanged head is a lightweight but complete re-poll of checks and all feedback
-   surfaces; it does not re-read the diff.
+6. The loop continues until one complete observation of the current head is
+   clean; the merge helper observes again before and after its checks.
 
 GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
 in the PR body. The helper reports current checks and review-thread evidence; it

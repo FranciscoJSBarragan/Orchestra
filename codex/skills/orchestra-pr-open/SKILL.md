@@ -7,7 +7,7 @@ description: Create or update one authorized Orchestra pull request from the com
 
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
-The root owns PR intent synthesis and directly invokes the PR helper; PR opening is not a profile or capability assignment. Require explicit repository, base, head, title, human body, exact revision, approved `plan.md` manifest, exact overview and completed phase artifact identifiers, validation reports, and known risks. Read objective, acceptance, invariants, and phase intent from those exact documents rather than a root-authored replay.
+The root owns PR intent synthesis and directly invokes the PR helper; PR opening is not a profile or capability assignment. Require explicit repository, base, head, title, human body, exact revision, approved `plan.md` manifest, exact overview and completed phase artifact identifiers, validation reports, and known risks. Read objective, acceptance, invariants, and phase intent from those exact documents rather than a root-authored replay. The capsule states them with the non-goals, the main regression to avoid, the system's runtime and exposure from the repository context, and whether the change is user-visible, so feedback triage can reject what the system does not need and ask before visible changes.
 
 ## Execute the PR-open contract
 
@@ -24,6 +24,6 @@ The root owns PR intent synthesis and directly invokes the PR helper; PR opening
    head to match the terminal manifest revision before any `gh` command, and
    read back the published remote head and PR body.
 5. Require `ok` and exactly one `<!-- PR-CONTEXT:start -->...<!-- PR-CONTEXT:end -->` capsule. The helper preserves human content and replaces any existing capsule.
-6. Remove the temporary files, then route the open PR to [orchestra-pr-review](../orchestra-pr-review/SKILL.md). The PR must receive an independent code review before a clean delivery result, even when GitHub has no actionable feedback; feedback adds delta review rather than replacing the baseline review.
+6. Remove the temporary files, then route the open PR to [orchestra-pr-review](../orchestra-pr-review/SKILL.md). The PR needs the terminal review WORKFLOW `Review policy` defines before a clean result, even without actionable feedback; accepted feedback adds only a delta review.
 
 The PR body is the only lifecycle for PR-CONTEXT: upsert it while the PR is open and leave closure history to GitHub. Do not create local context or PR state files. Do not merge, release, deploy, or infer authority.
