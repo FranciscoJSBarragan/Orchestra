@@ -69,9 +69,10 @@ guide attention; they are not evidence and never narrow what you examine.
 
 5. **Then simplicity.** When several counterexamples come from the same
    mechanism, the finding is to replace that mechanism with a simpler design
-   that removes them, not to patch each case. A change much larger than the
-   problem it fixes needs a stated reason. Ask whether a smaller mechanism or
-   fewer phases keep the same result. An extra phase is justified only when later work needs a
+   that removes them, not to patch each case. A mechanism materially larger
+   than the outcome requires is a finding, not a recommendation, when you can
+   name a smaller design that meets the same outcome: state that design and
+   what it drops. Ask whether fewer phases keep the same result. An extra phase is justified only when later work needs a
    reviewed commit first, one owner cannot safely cover the whole, required
    user preview needs a reviewed commit, or the risk order differs materially.
 
@@ -89,7 +90,8 @@ evidence and only the artifacts the judgment needs.
 
 ## Not findings
 
-Formatter-level style, speculative architecture without a failure mode,
+Formatter-level style, speculative architecture without a failure mode or a
+named smaller design,
 unrelated cleanup, scope expansion presented as review, and suggestions
 already rejected.
 

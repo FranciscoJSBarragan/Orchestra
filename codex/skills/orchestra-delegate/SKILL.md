@@ -79,9 +79,8 @@ of who implemented the change.
    from the selected runtime; the receiving CLI may not load the root's global
    instructions. Approved phases also supply their exact artifact IDs and required
    reports; direct assignments use inline results.
-3. Start a fresh independent reviewer session. Resume an existing session only
-   for the same logical assignment, with the current revision and a focused
-   delta. Never resume an implementer as its own independent reviewer.
+3. Start a fresh independent reviewer session for every review round, including
+   a delta round; never resume a reviewer or an implementer as reviewer.
 
 ## Execute and inspect
 

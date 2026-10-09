@@ -60,12 +60,9 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   `childThreadId`. That message does not reopen the delegated task, so no
   completion notification follows: keep the turn and wait on that thread with
   `t3_thread_wait`, then read only the new turn with `t3_thread_read`.
-- A review's first round is a fresh `delegate_task` carrying the full bounded
-  review context and a new `clientRequestId`; its delta rounds resume each
-  reviewer thread with `t3_thread_send` and `t3_thread_wait`, carrying only
-  the delta. A reviewer
-  thread that is unavailable gets a fresh `delegate_task` with the
-  full-review base and prior dispositions.
+- Every review round is a fresh `delegate_task` with a new `clientRequestId`:
+  the first carries the full bounded review context, a delta round the
+  full-review base, prior dispositions and only the delta.
 - `task_status` `providerInstanceId` and `model` are observed evidence; the
   effort is requested only.
 - After every return, check Git status and HEAD. A read-only role that changed

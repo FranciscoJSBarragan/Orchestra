@@ -74,10 +74,8 @@ For each capability:
    `orchestra_reviewer` → `orchestra-role-reviewer`;
    `orchestra_verifier` → `orchestra-role-verifier`.
 5. Resume only the same phase-cohort agent with `resume_from` after that
-   agent has completed. A reviewer's first review of a phase is always a
-   fresh spawn; delta reviews within the same phase resume that same
-   reviewer, matching the open phase cohort on Codex. A complementary review
-   under WORKFLOW "Review policy" uses a fresh reviewer.
+   agent has completed. Every review, including a delta review, is a fresh
+   spawn under WORKFLOW "Review policy".
 
 An explicit rejection before a child starts permits one corrected dispatch
 through a supported route with the same assignment. Confirm no child started;

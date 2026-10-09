@@ -72,7 +72,7 @@ explicit task authority, exercise:
 - Codex: one requested task chat creates/adopts one isolated checkout, runs normal
   roles and returns exact review/check evidence. Resume the same task with a delta.
 - Cursor Projects: the actual coordinator launches one task root with the selected
-  model slug, prepares pinned instructions, runs local roles and resumes its reviewer.
+  model slug, prepares pinned instructions, runs local roles and a fresh delta reviewer.
   Verify tools, actual model evidence, browser route where needed and durable results.
 - On the selected trial host, two tasks in one repo demonstrate isolated work,
   ordered delivery, reviewed base refresh and interruption recovery; record the host.

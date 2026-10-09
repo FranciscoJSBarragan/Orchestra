@@ -130,5 +130,5 @@ full SHA. Actual authorized target base and new full SHA: exact values, preservi
 legitimate local base commits for local integration. Reason: the named sibling
 was delivered or the target otherwise moved. Unchanged acceptance/authority and
 changed dependencies: bounded references. Apply WORKFLOW "Base refresh before
-delivery", reuse the reviewer for the affected delta, and report the accepted
+delivery", get a fresh delta review of the affected delta, and report the accepted
 new SHA with refreshed evidence. This packet does not grant delivery into the base.

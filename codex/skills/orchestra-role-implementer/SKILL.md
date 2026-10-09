@@ -92,8 +92,9 @@ not review evidence.
 ## Later rounds
 
 For accepted findings, fix exactly those IDs with the smallest change that
-removes the failure, prefer simplifying an existing mechanism over adding a
-new layer, rerun the affected checks, and report the delta. When the phase has a user preview, treat in-scope
+removes the failure; a correction design in the packet is a proposal and the
+broken invariant is the target. Prefer simplifying an existing mechanism over
+adding a new layer, rerun the affected checks, and report the delta. When the phase has a user preview, treat in-scope
 uncommitted edits and authorized earlier commits as your delta.
 
 ## Stop conditions

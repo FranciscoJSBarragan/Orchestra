@@ -87,11 +87,9 @@ For each capability:
    `~/.config/devin/skills/orchestra-role-<role>/SKILL.md`.
 6. Resume only the same phase-cohort subagent after it has completed or
    failed; a resume always runs in foreground and reuses the same `profile`
-   form (bare or `orchestra:`-namespaced) used for the original spawn. A
-   reviewer's first review of a phase is always a fresh spawn; delta reviews
-   within the same phase resume that same reviewer, matching the open phase
-   cohort on Codex. A complementary review under WORKFLOW "Review policy"
-   uses a fresh reviewer.
+   form (bare or `orchestra:`-namespaced) used for the original spawn. Every
+   review, including a delta review, is a fresh spawn under WORKFLOW "Review
+   policy".
 
 Apply the phase verification contract before launching a subagent. When the
 `Independent verification gate` is `none`, do not spawn a verifier; matrix

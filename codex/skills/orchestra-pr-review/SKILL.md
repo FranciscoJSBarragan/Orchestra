@@ -52,10 +52,9 @@ skill never merges, releases, deploys, publishes, or persists PR state.
 2. The owner applies only accepted fixes, reruns the checks they affect, and
    publishes a replacement `implementation-report`. Rerun only an affected
    independent gate, with the same verifier when available; replace it only
-   after confirmed unavailability. Send the meaningful delta and replacement
-   evidence to the same reviewer when available. If that reviewer is closed or
-   unavailable, dispatch a fresh independent reviewer with the full-review
-   base, prior dispositions, and exact current evidence.
+   after confirmed unavailability. Dispatch a fresh independent reviewer with
+   the full-review base, prior dispositions, the meaningful delta and exact
+   current evidence.
 3. Do not commit or push until the current reviewer accepts the meaningful
    delta, the affected checks are fresh, and the affected phase's review and
    verification evidence is complete. Commit through

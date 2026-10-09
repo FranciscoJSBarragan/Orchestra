@@ -79,10 +79,9 @@ For each capability:
    no explicit `role_skill` path, use
    `~/.claude/skills/orchestra-role-<role>/SKILL.md`.
 6. Resume only the same phase-cohort agent with `SendMessage` to its agent ID
-   after it has returned; a resume keeps its original model. A reviewer's
-   first review of a phase is always a fresh `Agent`; delta reviews within the
-   same phase resume that same reviewer. A complementary review under WORKFLOW
-   "Review policy" uses a fresh reviewer.
+   after it has returned; a resume keeps its original model. Every review,
+   including a delta review, is a fresh `Agent` under WORKFLOW "Review
+   policy".
 
 | Product model | `Agent` `model` passed |
 | --- | --- |

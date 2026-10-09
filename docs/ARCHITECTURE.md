@@ -368,8 +368,8 @@ Each discovery classifies its claim as `descriptive` current-state
 information, `normative` intended behavior or constraint, or `uncertain`.
 Only a confirmed descriptive claim at an exact phase-authorized documentation
 path may receive `persist`; executable configuration and operational data
-remain normal implementation scope. The same owner makes the change and the
-same reviewer evaluates the meaningful delta before commit.
+remain normal implementation scope. The same owner makes the change and a
+fresh reviewer evaluates the meaningful delta before commit.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
@@ -422,11 +422,11 @@ phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
 dispatch API. Grok uses a fresh native subagent per dispatch, `isolation:
 none`, `cwd` equal to the task checkout, may `resume_from` the same
-phase-cohort agent after completion, including the same reviewer for delta
-reviews; first reviews stay fresh spawns. Devin uses a fresh `run_subagent`
+phase-cohort agent after completion, except a reviewer; every review is a
+fresh spawn. Devin uses a fresh `run_subagent`
 per dispatch in foreground by default; its `subagent_type` is the installed
 custom Devin profile name, namespaced `orchestra:<name>` under a plugin
-bundle. It resumes only the same phase-cohort subagent for delta reviews, and
+bundle. Every review is a fresh subagent, and
 the `read_subagent` or foreground result is the completed-state evidence
 because Devin has no `close_agent`. Claude Code uses a fresh `Agent` per
 dispatch with the row's explicit model alias and a registered

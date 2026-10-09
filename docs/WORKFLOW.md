@@ -91,7 +91,7 @@ contract it implements.
 
 Matrix paths resolve under the selected runtime
 (`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}`). Every host
-resumes only the same phase-cohort agent and waits under "Agent waiting"
+resumes only the same phase-cohort agent, never a reviewer, and waits under "Agent waiting"
 without busy-polling. Devin and Claude Code have no `close_agent`; their
 returned result is the completed-state evidence. Devin and Claude Code
 plugin installations namespace agents as `orchestra:<name>`. A Claude Code
@@ -376,7 +376,9 @@ edit these files but is no dependency. Durable repository knowledge follows
 "Repository conventions".
 
 The parent is the register's sole agent writer; children write their reports
-elsewhere. Reread before narrow updates to keep human edits. Write the pending
+elsewhere. Reread before narrow updates to keep human edits. An approved brief
+is never rewritten: a later decision is appended as a dated amendment naming
+what it supersedes, so a reader still sees what was approved. Write the pending
 dispatch intent before launch, then the observed handle. A missing file or
 pending row proves neither an empty project nor a failed launch: reconcile
 native state first. Recover retrievable existing authority without re-asking;
@@ -615,9 +617,9 @@ interactive driver, relay, extra worktree or persisted workflow state. Private
 event logs outside the repository hold the observed session ID for explicit
 resume when the executor reports one. Reuse the implementation session for
 accepted fixes, except on Devin, whose delegation always starts a fresh
-session that receives a bounded continuation packet; start an
-independent review in a fresh session and resume only that reviewer for
-deltas; never resume an implementation session as its reviewer. A resume
+session that receives a bounded continuation packet; start every
+independent review, including a delta review, in a fresh session and never
+resume a reviewer or an implementation session as its reviewer. A resume
 packet names the current revision and context delta after the root rechecks
 the worktree. Never use a last-session shortcut: Codex resume passes the
 exact session UUID, checkout, model and effort, never `--last` or
@@ -1388,7 +1390,7 @@ review judgment it undermines cannot be deferred into an `accepted` phase.
 After an authorized documentation edit (owner `persist` or root `.agent/**`
 write), the same owner reruns affected handoff checks and publishes a
 replacement `implementation-report`, including any new literal hard-gate
-command; the same reviewer does a delta review. Revalidate with
+command; a fresh delta review follows. Revalidate with
 `repository_context` only when an unresolved factual question could change
 acceptance or a finding; rerun a verifier only when its gate is affected. The
 reviewer may still block when a named judgment depends on missing, stale or
@@ -1569,9 +1571,9 @@ delivery gates still apply.
    The reviewer inspects source and diff independently, judges approved
    intent before project guardrails and implementation evidence, and
    publishes a complete initial `implementation-review` with `Context basis`
-   (only evidence actually consulted), then delta reviews that name the
-   full-review base and prior dispositions and receive only new or replaced
-   evidence rather than a replay of the full packet. It inspects source, diff, tests,
+   (only evidence actually consulted); fresh delta reviews under "Review
+   policy" name the full-review base and prior dispositions and receive only
+   new or replaced evidence rather than a replay of the full packet. It inspects source, diff, tests,
    evidence freshness and completeness, and does not rerun checks already
    evidenced; it may run the smallest local deterministic check that tests
    one concrete defect hypothesis and records that command and result in the
@@ -1581,10 +1583,8 @@ delivery gates still apply.
    on it, and returns
    `blocked` for missing or stale context only when that exact material
    judgment is named, after reporting independently resolvable findings.
-5. If the reviewer closes or becomes unavailable, record it and spawn a fresh
-   independent reviewer with the same target, full-review base, prior
-   dispositions and current evidence. The review and accepted finding IDs
-   return to the same logical owner; the root does not restate findings.
+5. The review and accepted finding IDs return to the same logical owner; the
+   root does not restate findings.
    Context discoveries follow "Material context discovery and promotion":
    confirm only when a result could change acceptance, a disposition,
    replanning or a needed persist; product documentation returns to the owner;
@@ -1594,7 +1594,7 @@ delivery gates still apply.
 6. After an authorized documentation or `.agent/` edit, the same owner reruns
    affected handoff checks and publishes a replacement `implementation-report`
    for that revision; a new or changed hard gate requires running its literal
-   command. The same reviewer does a delta review. Apply the revalidation rule
+   command. A fresh delta review follows. Apply the revalidation rule
    in "Material context discovery and promotion" without a second analysis
    cycle, and rerun a verifier only for an affected gate.
 7. After final evidence is consumed and every discovery has a disposition,
@@ -1738,9 +1738,12 @@ because each fresh full review finds a different subset and never converges.
 Where a host defines a review pair, the review that first covers the complete
 terminal range runs as both reviewers in parallel on the same packet, blind to
 each other. The root merges their findings by defect, and one reviewer's
-dismissal never cancels the other's finding. Its delta rounds resume both
-reviewers with only the meaningful delta; every other review uses the pair's
+dismissal never cancels the other's finding. Every other review uses the pair's
 first reviewer alone.
+
+A reviewer is never resumed. Each delta round dispatches fresh reviewers, both
+of the pair when the pair ran, whose packet carries the full-review base, prior
+dispositions and only the meaningful delta.
 
 How to review (counterexamples first, what counts as a finding, the scope of
 exclusions, `Dismissed counterexamples` and the report) is defined only by the
@@ -1756,7 +1759,7 @@ for example omissions in indirect consumers or pending external actions,
 recorded in the plan risks or decisions. It gets the same intent, candidate
 and producer evidence, never narrows the first review or duplicates a gate
 under "Engineering guidance and evidence", may run in parallel with a distinct
-publication target, and corrections reuse each affected reviewer.
+publication target, and corrections get fresh delta reviews.
 
 Implementation review follows approved user intent, material project
 guardrails, current source and diff, and verification evidence, in that order;
@@ -1781,10 +1784,14 @@ in a supported environment with one cheap deterministic check, or reject it.
 Fix the rest, grouped per owner, when it shows incorrect behavior or unmet
 acceptance; security, privacy or data-integrity risk; a regression of existing
 behavior; unsafe error handling or concurrency; missing verification of
-important behavior; or scope, duplication or fragile tests with a demonstrated
-maintenance cost ("Change quality", "Behavioral verification"). Judge impact,
-not label or editing cost; a false authorization claim in documentation is not
-cosmetic. Changed tests or instructions also need affected checks and delta
+important behavior; a mechanism materially larger than a named smaller design
+that meets the same outcome; or scope, duplication or fragile tests with a
+demonstrated maintenance cost ("Change quality", "Behavioral verification").
+Judge impact, not label or editing cost; a false authorization claim in
+documentation is not cosmetic. A fix packet states each accepted defect, its
+evidence and the outcome or invariant it breaks; the owner designs the
+correction. The root prescribes a mechanism only when the user chose it or an
+alternative must stay excluded. Changed tests or instructions also need affected checks and delta
 review. Do not reopen unaffected evidence or loop on pure preference.
 
 The root alone sees every round, so it stops patching when the third review
@@ -1992,8 +1999,7 @@ Use existing replacement implementation-report and delta implementation-review
 `MERGE_HEAD` and `git write-tree` index SHA, with no unmerged paths or unrecorded
 source edits. Run applicable required checks and independent delta review of the
 task against the target plus changed interactions, even after a textually clean
-merge. Reuse the same reviewer when supported and unaffected prior evidence when
-still valid. The root must not replace independent review with conflict resolution.
+merge. Reuse unaffected prior evidence when still valid. The root must not replace independent review with conflict resolution.
 
 Commit the accepted merge directly with Git and normal hooks, without a pathspec;
 `commit_phase.py` deliberately refuses this operation. Verify exact parents,
@@ -2096,7 +2102,7 @@ exact documentation scope under the `persist` rules. A qualifying normative addi
 the exact path and one-line content in the same consolidated final request
 that carries the delivery decision, never as a separate turn, and writes it
 only on confirmation. Either write follows the documented order (authorized owner write,
-affected checks, delta review by the same reviewer, phase
+affected checks, fresh delta review, phase
 commit); that commit becomes the terminal commit before `completed`. The
 checkpoint never reopens scope, adds product behavior, or blocks delivery when
 the user declines. Once the terminal phase commit is accepted, setting
@@ -2143,7 +2149,7 @@ The unchanged public PR skills preserve the proven behavioral chain:
    they affect, and publishes a replacement `implementation-report`; only an
    affected independent gate reruns, with the same verifier. The pushed
    head's PR checks and the merge helper's configured checks remain the full
-   gate. The same reviewer evaluates the meaningful delta and
+   gate. A fresh delta review evaluates the meaningful delta and
    replacement evidence, producing the current accepted `pr-review`. The root
    commits with that current review and only the `verification-report` evidence
    required by the relevant gate, updates the affected phase's terminal
