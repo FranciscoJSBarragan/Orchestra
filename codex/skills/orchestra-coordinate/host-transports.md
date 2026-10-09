@@ -56,7 +56,9 @@ app-owned orchestration through its `t3-code` MCP tools. The parent and each
 task root still run on a supported Orchestra host provider; a thread on an
 unsupported provider can launch children but is not itself an Orchestra root.
 Read `orchestrator_capabilities` before launch for the live provider, model and
-option catalog.
+option catalog. A parent outside T3 uses the same tools through an MCP
+connection to the server: it passes `projectId`, since it has no project to
+inherit, and the connection's approved access caps each root's modes.
 
 For a task root, use `t3_thread_launch` with an explicit `workspaceStrategy`:
 `worktree` with the approved `baseRef`, an owned `branch` and

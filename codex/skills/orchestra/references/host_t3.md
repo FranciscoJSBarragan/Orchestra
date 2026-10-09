@@ -7,6 +7,15 @@ matrix assigns every capability except the review pair WORKFLOW defines for
 T3. T3 replaces only checkout creation and role transport. Specification,
 planning, review policy, commits, and delivery are unchanged.
 
+## Outside T3
+
+An agent outside T3 with an MCP connection to a T3 Code server (the
+deployment documents its endpoint) starts Orchestra work there only when the
+user asks. It launches each task root as a top-level thread through the T3
+section of [host transports](../../orchestra-coordinate/host-transports.md),
+and the launched root runs under this reference. `delegate_task` and
+`create_threads` need a caller inside a T3 thread.
+
 ## Checkout
 
 Call `t3_worktree_status` before task setup.
