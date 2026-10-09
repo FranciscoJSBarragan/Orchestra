@@ -58,7 +58,9 @@ unsupported provider can launch children but is not itself an Orchestra root.
 Read `orchestrator_capabilities` before launch for the live provider, model and
 option catalog. A parent outside T3 uses the same tools through an MCP
 connection to the server: it passes `projectId`, since it has no project to
-inherit, and the connection's approved access caps each root's modes.
+inherit, and the connection's approved access caps each root's modes. Without
+`delegate_task`, it runs a leaf role such as a verifier as its own thread on a
+`worktree` at the exact revision, with the role packet.
 
 For a task root, use `t3_thread_launch` with an explicit `workspaceStrategy`:
 `worktree` with the approved `baseRef`, an owned `branch` and

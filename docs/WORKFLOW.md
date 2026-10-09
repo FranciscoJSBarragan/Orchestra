@@ -473,7 +473,9 @@ child the user authorized to `merge when clean` is its own integrator instead:
 once its PR is clean and its branch contains the current base (otherwise it
 first refreshes under "Base refresh before delivery"), it merges and reports
 the merged SHA to the parent once; joint acceptance then runs on the delivered
-base.
+base. A parent without the repository's execution environment commissions
+these runs to a verifier in that environment at the exact revision and judges
+its actual commands and exit codes.
 
 A joint failure goes to its owning child as a focused repair, keeping the same
 child and reviewer when supported. Before that child's delivery, a repair
