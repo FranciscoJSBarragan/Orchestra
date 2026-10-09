@@ -539,7 +539,9 @@ whose host mapping is fixed — Codex `auto` prefers the Chrome connector with a
 capability-based in-app fallback, Cursor maps `auto` and `chrome` to Browser
 Use and blocks `in_app`, Grok maps `auto` to Playwright and blocks
 `in_app` and `chrome`, Claude Code maps `auto` and `chrome` to Claude in
-Chrome and blocks `in_app`, and Devin blocks all three routes. Browser evidence is
+Chrome and blocks `in_app`, and Devin blocks all three routes. Inside T3 Code,
+T3's collaborative browser precedes these mappings for `auto` and is the only
+`in_app` surface. Browser evidence is
 PNG screenshot files cited from the existing report kinds, not a new artifact
 kind.
 

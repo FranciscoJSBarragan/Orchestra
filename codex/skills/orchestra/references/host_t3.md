@@ -75,7 +75,15 @@ for an initiative follow the T3 section of
 
 ## Browser
 
-T3 starts Claude Code without Chrome integration unless the Claude provider's
-Launch arguments include `--chrome`. On Claude Code inside T3 without the
-`claude-in-chrome` tools, `auto` maps to `codex-cu` and `chrome` is `blocked`;
-tell the user that setting enables Claude in Chrome.
+T3's collaborative browser is the first `auto` surface and the only `in_app`
+surface on every provider, with the tab lifecycle WORKFLOW "Test permissions
+and browser routing" defines; `delegate_task` children receive its `preview_*`
+tools, and each child sees only its own tabs. When it is unavailable, `auto`
+falls back to the host mapping. On a Linux host T3's browser needs a one-time
+`sudo env "PATH=$PATH" t3 browser setup` (AppArmor); until then `preview_open`
+fails with a sandbox error. Orchestra never runs it: tell the user, and an
+`in_app` route returns `blocked` naming that command. T3 starts Claude Code without Chrome
+integration unless the Claude provider's Launch arguments include `--chrome`;
+without the `claude-in-chrome` tools, the Claude Code fallback is `codex-cu`
+and `chrome` is `blocked`, so tell the user that setting enables Claude in
+Chrome.

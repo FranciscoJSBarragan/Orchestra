@@ -207,7 +207,8 @@ Useful flags:
 
 **Browser engine.** With either installation, agents installing Orchestra ask
 the user which engine browser checks use, since the hosts differ (Codex Chrome connector, Cursor
-Browser Use, Grok Playwright, Claude in Chrome on Claude Code, none on Devin):
+Browser Use, Grok Playwright, Claude in Chrome on Claude Code, none on Devin;
+inside T3 Code, T3's built-in browser comes first on every provider):
 
 - *Host default* — nothing to do; the route stays `auto`.
 - *Codex's engine on every host* — needs macOS with the ChatGPT app installed

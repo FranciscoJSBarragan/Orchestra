@@ -23,8 +23,11 @@ reading this reference does not itself dispatch a role or grant authority.
 - When visual iteration is needed, require `browser_route: auto | in_app |
   chrome | codex-cu`. Explicit user selection must be attempted, including a canary of a
   previously failing tool, and remains fixed without fallback. Do
-  not veto or substitute it. Follow the host spawn reference for `auto`,
-  `in_app`, and `chrome`. On Cursor, `auto` and `chrome` map to Browser Use and
+  not veto or substitute it. Inside T3 Code (its `preview_*` tools are
+  available), T3's collaborative browser is the first `auto` surface and the
+  only `in_app` surface, with the tab lifecycle WORKFLOW "Test permissions and
+  browser routing" defines. Otherwise, and for `chrome` or an `auto` fallback,
+  follow the host spawn reference. On Cursor, `auto` and `chrome` map to Browser Use and
   `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
   connector first and may fall back to Codex's in-app Browser only for a
   technical gap. On Grok, `auto` maps to Playwright. On Claude Code, `auto` and
@@ -34,7 +37,7 @@ reading this reference does not itself dispatch a role or grant authority.
   MCP process client is not registered, authenticate once and retry; if it still
   cannot run, or Chrome remote-debugging Allow is missing, return `blocked`. Do
   not substitute the Cursor IDE browser or the Browser Use CLI.
-- A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the Chrome blocker, close any implementation-owned Chrome tab already created, and repeat the complete visual scenario in a new in-app Browser task tab. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
+- A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the first surface's blocker, close any implementation-owned tab already created on it, and repeat the complete visual scenario in a new task tab on the fallback surface. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
 - Use an implementation-owned task tab, separate from independent acceptance.
   Preserve user tabs, authenticated sessions, shared windows and applications.
   Follow WORKFLOW `Phase teardown` for cleanup and explicitly authorized

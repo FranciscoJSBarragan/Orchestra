@@ -1691,16 +1691,30 @@ PNG evidence path. The optional server is
 Chrome handoff under "CLI delegation" may run its acceptance; otherwise the
 gate stays `blocked`, and User preview never replaces it.
 
+Inside T3 Code (its `t3-code` MCP `preview_*` tools are available), T3's
+collaborative browser precedes the table on every provider: `auto` uses it
+first and falls back to the host column only when it is unavailable, and
+`in_app` means T3's browser only. Open each run with `preview_open`
+(`reuseExistingTab: false`, `open: false`, `profileId: incognito` unless the
+recipe needs a signed-in profile) and pass its `tabId` on every call. A
+snapshot with `save: true` returns only the screenshot path, so read page
+state from a separate snapshot and copy the saved file to the PNG evidence
+path. After every open attempt, including a failed one, which can still
+create a tab, close each task-owned tab with `t3_preview_close` and confirm
+through `t3_preview_list` that none remains; a tab that cannot be closed is
+reported as retained, never as clean. An `auto` run treats a `preview_open`
+sandbox or setup error as T3's browser being unavailable.
+
 An explicit user route, relayed or given directly, must be attempted even as
 a canary for a previously failing tool, and stays fixed without fallback. An
 agent may return the route's technical blocker but never veto or substitute
 it. Functional failures, application timeouts and selector problems never
-cause a switch. On an allowed `auto` fallback, capture the Chrome blocker,
-close any task-owned Chrome tab, open a new in-app task tab and repeat the
-complete scenario, so evidence from different surfaces is never combined; if
-both are unavailable, return `blocked`. Computer Use, standalone browser
-automation, the Cursor IDE browser and the Browser Use CLI are not
-substitutes, except the host mappings in the table. A missing Browser Use MCP
+cause a switch. On an allowed `auto` fallback, capture the first surface's
+blocker, close any task-owned tab on it, open a new task tab on the fallback
+surface and repeat the complete scenario, so evidence from different surfaces
+is never combined; if both are unavailable, return `blocked`. Computer Use,
+standalone browser automation, the Cursor IDE browser and the Browser Use CLI
+are not substitutes, except the host mappings in the table and T3's browser. A missing Browser Use MCP
 or Chrome remote-debugging permission returns `blocked`.
 
 Every visual interaction or acceptance run opens a fresh task-owned tab on

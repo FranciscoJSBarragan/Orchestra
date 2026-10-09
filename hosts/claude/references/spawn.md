@@ -125,10 +125,11 @@ before commit, matching Codex V2 completed-state evidence.
 `browser_route: auto | in_app | chrome | codex-cu`. `codex-cu` uses the
 codex-cu MCP server as WORKFLOW defines. `auto` and `chrome` map to Claude in
 Chrome (the `claude-in-chrome` MCP server, enabled with `--chrome` or
-`/chrome`). `in_app` is `blocked` on Claude Code. Inside T3 Code without
-`--chrome` in the Claude provider's Launch arguments, `auto` maps to
-`codex-cu` and `chrome` is `blocked`. An explicit user route is
-never vetoed or substituted.
+`/chrome`). `in_app` is `blocked` on Claude Code. Inside T3 Code, T3's
+collaborative browser is the first `auto` surface and the only `in_app`
+surface as WORKFLOW defines; without `--chrome` in the Claude provider's
+Launch arguments, the `auto` fallback is `codex-cu` and `chrome` is
+`blocked`. An explicit user route is never vetoed or substituted.
 
 Open each scenario in a new task-owned tab; never claim or reuse a user tab.
 Save every screenshot to disk and copy it to the required PNG evidence path.
