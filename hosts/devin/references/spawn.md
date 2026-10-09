@@ -85,8 +85,9 @@ For each capability:
    `orchestra_verifier` → `orchestra-role-verifier`. When the packet supplies
    no explicit `role_skill` path, use
    `~/.config/devin/skills/orchestra-role-<role>/SKILL.md`.
-6. Resume only the same phase-cohort subagent after it has completed or
-   failed; a resume always runs in foreground and reuses the same `profile`
+6. Resume a phase-cohort subagent only for preview absorption or an
+   unfinished turn, after it has completed or failed; every fix round is a
+   fresh spawn with the fix packet. A resume always runs in foreground and reuses the same `profile`
    form (bare or `orchestra:`-namespaced) used for the original spawn. Every
    review, including a delta review, is a fresh spawn under WORKFLOW "Review
    policy".

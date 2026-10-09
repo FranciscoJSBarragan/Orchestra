@@ -125,3 +125,73 @@ reasoning_effort = "high"
 executor = "codex"
 model = "gpt-6.1-sol"
 reasoning_effort = "high"
+
+# Each capability on the model family chosen for it from measured role runs;
+# planning reuses a matching root. Inside T3 Code these run through delegate_task.
+[presets.mixed-models]
+tier = "standard"
+
+[presets.mixed-models.capabilities.repository_context]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.web_research]
+executor = "grok"
+model = "grok-4.7-build-fast"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.technical_planning]
+executor = "claude"
+model = "claude-opus-5-5"
+reasoning_effort = "medium"
+reuse_root = true
+
+[presets.mixed-models.capabilities.architecture_analysis]
+executor = "claude"
+model = "claude-opus-5-5"
+reasoning_effort = "medium"
+reuse_root = true
+
+[presets.mixed-models.capabilities.difficult_debugging]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.general_implementation]
+executor = "claude"
+model = "claude-sonnet-5-5"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.frontend_implementation]
+executor = "claude"
+model = "claude-sonnet-5-5"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.independent_review]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.runtime_verification]
+executor = "claude"
+model = "claude-haiku-5-5"
+reasoning_effort = "high"
+
+[presets.mixed-models.capabilities.browser_acceptance]
+executor = "host"
+
+[presets.mixed-models.hosts]
+
+[presets.mixed-models.escalation]
+capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]
+
+[[presets.mixed-models.escalation.attempts]]
+executor = "claude"
+model = "claude-opus-5-5"
+reasoning_effort = "high"
+
+[[presets.mixed-models.escalation.attempts]]
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "high"

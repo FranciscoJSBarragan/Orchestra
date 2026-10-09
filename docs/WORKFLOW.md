@@ -91,7 +91,8 @@ contract it implements.
 
 Matrix paths resolve under the selected runtime
 (`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}`). Every host
-resumes only the same phase-cohort agent, never a reviewer, and waits under "Agent waiting"
+resumes a phase-cohort agent only for preview absorption or an unfinished
+turn, never for a fix round or a review, and waits under "Agent waiting"
 without busy-polling. Devin and Claude Code have no `close_agent`; their
 returned result is the completed-state evidence. Devin and Claude Code
 plugin installations namespace agents as `orchestra:<name>`. A Claude Code
@@ -615,9 +616,8 @@ evidence.
 Execution is headless with structured output in the selected checkout; no
 interactive driver, relay, extra worktree or persisted workflow state. Private
 event logs outside the repository hold the observed session ID for explicit
-resume when the executor reports one. Reuse the implementation session for
-accepted fixes, except on Devin, whose delegation always starts a fresh
-session that receives a bounded continuation packet; start every
+resume when the executor reports one. Accepted fixes start a fresh
+implementation session that receives a bounded continuation packet; start every
 independent review, including a delta review, in a fresh session and never
 resume a reviewer or an implementation session as its reviewer. A resume
 packet names the current revision and context delta after the root rechecks
@@ -669,6 +669,9 @@ requires an explicit choice to leave the preset or select a compatible one.
 `cross-review` keeps every assignment on the owning host's matrix and sends
 only independent review to another model family, because a reviewer from
 the implementer's family tends to share its blind spots.
+`mixed-models` gives each capability the model family chosen for it from
+measured role runs and reuses a matching root for planning; inside T3 Code its
+assignments run through `delegate_task`.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
@@ -703,9 +706,9 @@ itself. Independent plan and code reviews still follow Review policy.
 
 Delegate coherent assignments, not individual searches or commands. Context
 workers return focused source evidence; the root does not repeat their whole
-investigation. Resume the same logical implementer for accepted fixes and the
-same independent reviewer for meaningful deltas. Never forward the full chat
-or convert an implementer session into its reviewer.
+investigation. Each fix round is a fresh implementer session and each delta
+review a fresh reviewer. Never forward the full chat or convert an implementer
+session into its reviewer.
 
 For this preset, the implementer writes or updates tests and runs useful
 development checks. The runtime verifier owns the terminal required tests,
@@ -1374,7 +1377,10 @@ acceptance, a finding disposition, replanning or a persist:
 - `persist`: canonical versioned human-readable product documentation goes
   through the current implementation owner, only for a confirmed
   `descriptive` claim at an exact path listed in `Context maintenance paths` (else `replan` within authority, or report the
-  follow-up). Normative `.agent/` conventions stay root-owned; descriptive
+  follow-up). Documentation states current behavior, commands and limits;
+  verification evidence (dates, revisions, hashes, counts, runtime
+  observations) stays in task artifacts and the handoff, so a code change never
+  forces a documentation-only refresh. Normative `.agent/` conventions stay root-owned; descriptive
   recipes follow "Project verification". A `normative` or `uncertain`
   conflict is never rewritten to match code automatically; executable
   configuration, databases, generated and operational data remain normal
@@ -1497,10 +1503,12 @@ presets"; acceptance, independent review, source-read-only verification and
 delivery gates still apply.
 
 1. The root selects one `orchestra_implementation_worker` with
-   `general_implementation` or `frontend_implementation` and keeps it for the
-   whole phase, including preview absorption; a replacement is spawned only
-   after the original is confirmed closed or unavailable and keeps the logical
-   owner, exact artifacts and accepted finding IDs. The packet holds edit
+   `general_implementation` or `frontend_implementation` as the phase's
+   logical owner. One session covers the first handoff and preview
+   absorption; every fix round is a fresh session of that owner whose packet
+   carries the current revision and diff and the accepted findings with their
+   evidence, started only after the previous session is confirmed closed, so
+   there is never a second writer. The packet holds edit
    authority, worktree, `plan.md` path, exact overview and phase IDs,
    revision, accepted finding IDs, stop conditions and only new context. The
    worker reads scope, acceptance, verification and dependencies from those
@@ -1550,8 +1558,18 @@ delivery gates still apply.
    `none` it creates no verifier; otherwise at most one verifier per
    applicable capability, passing the gate reason, overview, phase,
    implementation report, authority and revision. Each publishes a complete
-   `verification-report`. A failure returns its report and accepted finding
-   IDs to the same owner without root-authored replay, followed by affected reverification before review.
+   `verification-report`. The gate runs on the first stable handoff, in
+   parallel with the first review, and once more on the final revision before
+   commit when a fix changed its inputs; fix rounds in between rely on the
+   owner's handoff checks and delta review. A failure goes to a fix round with
+   its report and accepted finding IDs, without root-authored replay. The
+   verifier receives the revision as a commit SHA: `HEAD` when committed,
+   otherwise a commit of the working tree that leaves branch and index
+   untouched (`t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD &&
+   GIT_INDEX_FILE=$t git add -A && git commit-tree $(GIT_INDEX_FILE=$t git
+   write-tree) -p HEAD -m verify`). Verification copies are `git worktree add
+   --detach` checkouts of that SHA; equal SHAs prove equal trees, so no file
+   manifests or hash inventories.
    On `blocked`, the root decides whether review proceeds on source alone and
    records the blocked reason in the review evidence. While a stable revision is under verification the root does
    no speculative source review; it interrupts only for a changed revision or
@@ -2159,7 +2177,7 @@ The unchanged public PR skills preserve the proven behavioral chain:
    cannot become clean without the terminal review "Review policy" requires.
    The root keeps revision-scoped dispositions in memory for the current
    observation and never persists a feedback ledger.
-5. The same implementation owner applies accepted fixes, reruns the checks
+5. A fresh session of the implementation owner applies accepted fixes, reruns the checks
    they affect, and publishes a replacement `implementation-report`; only an
    affected independent gate reruns, with the same verifier. The pushed
    head's PR checks and the merge helper's configured checks remain the full

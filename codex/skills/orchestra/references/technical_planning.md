@@ -105,10 +105,13 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   only the mechanism justifies is not acceptance. Write `none beyond
   acceptance` with a reason when acceptance states the whole outcome. A stop
   condition names a conflict with an invariant or the required outcome.
-- Start from the smallest correction of the operation that fails. Add new
-  infrastructure (file formats, markers, envelopes, migrations, registries or
-  layers) only when that correction cannot satisfy the outcome invariants; the
-  overview names the minimal correction considered and why it is not enough.
+- Start from the smallest design that meets the complete outcome and keeps
+  existing behavior working, and name it in the overview. Add new
+  infrastructure (locks, leases, file formats, markers, envelopes, migrations,
+  registries or layers) only when that design cannot satisfy an outcome
+  invariant, and name the invariant or reachable failure each addition
+  serves; a hypothesized dependency misreport or hostile race is not one
+  unless the outcome names it.
 - `State writers` lists, for each persisted or shared value an outcome
   invariant constrains, the existing operations that write it, including
   other entry points, earlier steps and sequences that reach the changed
@@ -118,7 +121,9 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   states it produces. Write `none` with a reason when no existing operation
   writes state an invariant depends on.
 - Each phase names the exact review-context evidence it consumes and contains
-  `Context maintenance paths`. Use `none` unless an exact versioned
+  `Context maintenance paths`. Maintained documentation describes behavior,
+  commands and limits, never task evidence such as dates, revisions, hashes
+  or test counts. Use `none` unless an exact versioned
   human-readable documentation path is already a named current-phase or
   identified later-phase consumer; list only exact repository-relative paths
   and never use glob metacharacters or directory-wide authority. A listed path

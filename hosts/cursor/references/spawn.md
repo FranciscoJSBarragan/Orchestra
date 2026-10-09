@@ -42,10 +42,10 @@ Cursor `Task.subagent_type` is a closed enum. Do not dispatch through custom
    `orchestra_implementation_worker` → `orchestra-role-implementer`;
    `orchestra_reviewer` → `orchestra-role-reviewer`;
    `orchestra_verifier` → `orchestra-role-verifier`.
-4. Resume only the same phase-cohort agent id (`resume`). Never `resume: self`
-   for a reviewer or any independent gate. A reviewer's first review of a
-   phase is a fresh Task; delta reviews within the same phase resume that same
-   reviewer.
+4. Resume a phase-cohort agent id (`resume`) only for preview absorption or an
+   unfinished turn. Never `resume: self` for a reviewer or any independent
+   gate. Every fix round is a fresh Task with the fix packet, and every review,
+   including a delta review, is a fresh Task under WORKFLOW "Review policy".
 
 Apply the phase verification contract before launching a Task. When the
 `Independent verification gate` is `none`, do not create a verifier Task;

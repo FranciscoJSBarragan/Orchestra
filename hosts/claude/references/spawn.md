@@ -78,8 +78,10 @@ For each capability:
    `orchestra_verifier` → `orchestra-role-verifier`. When the packet supplies
    no explicit `role_skill` path, use
    `~/.claude/skills/orchestra-role-<role>/SKILL.md`.
-6. Resume only the same phase-cohort agent with `SendMessage` to its agent ID
-   after it has returned; a resume keeps its original model. Every review,
+6. Resume a phase-cohort agent with `SendMessage` to its agent ID only for
+   preview absorption or an unfinished turn, after it has returned; a resume
+   keeps its original model. Every fix round is a fresh `Agent` with the fix
+   packet, and every review,
    including a delta review, is a fresh `Agent` under WORKFLOW "Review
    policy".
 

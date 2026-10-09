@@ -417,13 +417,13 @@ matrix, conversation identity, permissions, and `browser_route`.
 The root detects the host and resolves its native transport as specified in
 WORKFLOW "Host adapters" and the host spawn reference. An explicit
 CLI executor does not change the owning host. Codex keeps
-`fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` the same
-phase-cohort agent, and never uses `resume: self` for a reviewer. Cursor Task
+`fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` a
+phase-cohort agent for preview absorption or an unfinished turn, and never uses `resume: self` for a reviewer. Cursor Task
 `subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
 dispatch API. Grok uses a fresh native subagent per dispatch, `isolation:
-none`, `cwd` equal to the task checkout, may `resume_from` the same
-phase-cohort agent after completion, except a reviewer; every review is a
-fresh spawn. Devin uses a fresh `run_subagent`
+none`, `cwd` equal to the task checkout, may `resume_from` a phase-cohort
+agent after completion for preview absorption or an unfinished turn; every
+fix round and review is a fresh spawn. Devin uses a fresh `run_subagent`
 per dispatch in foreground by default; its `subagent_type` is the installed
 custom Devin profile name, namespaced `orchestra:<name>` under a plugin
 bundle. Every review is a fresh subagent, and
@@ -433,8 +433,8 @@ dispatch with the row's explicit model alias and a registered
 `<profile>_<effort>` agent, because effort is fixed by agent frontmatter rather
 than the dispatch call. Those agents are the four behavior profiles at each
 assigned effort, not new responsibilities; each denies `Agent` to its child. A
-plugin bundle namespaces them `orchestra:<name>`. It resumes only the same
-phase-cohort agent with `SendMessage`, and the returned result is the
+plugin bundle namespaces them `orchestra:<name>`. It resumes a phase-cohort
+agent with `SendMessage` only for preview absorption or an unfinished turn, and the returned result is the
 completed-state evidence because Claude Code has no `close_agent`.
 
 T3 Code is an app layer, not a host: inside it the provider keeps its matrix,

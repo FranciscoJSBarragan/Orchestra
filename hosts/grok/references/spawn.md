@@ -73,8 +73,9 @@ For each capability:
    `orchestra_implementation_worker` → `orchestra-role-implementer`;
    `orchestra_reviewer` → `orchestra-role-reviewer`;
    `orchestra_verifier` → `orchestra-role-verifier`.
-5. Resume only the same phase-cohort agent with `resume_from` after that
-   agent has completed. Every review, including a delta review, is a fresh
+5. Resume a phase-cohort agent with `resume_from` only for preview absorption
+   or an unfinished turn, after that agent has completed. Every fix round is a
+   fresh spawn with the fix packet, and every review, including a delta review, is a fresh
    spawn under WORKFLOW "Review policy".
 
 An explicit rejection before a child starts permits one corrected dispatch

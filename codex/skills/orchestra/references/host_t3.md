@@ -56,10 +56,12 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   or spawn agents.
 - Prefer `mode: async`; the completion notification wakes the root. End the
   turn instead of polling, then read the result once with `task_status`.
-- Resume the same phase-cohort implementer with `t3_thread_send` to its
-  `childThreadId`. That message does not reopen the delegated task, so no
-  completion notification follows: keep the turn and wait on that thread with
-  `t3_thread_wait`, then read only the new turn with `t3_thread_read`.
+- Every fix round is a fresh `delegate_task` with the fix packet, so its
+  completion wakes the root. Continue an implementer's thread with
+  `t3_thread_send` only for preview absorption or an unfinished turn; that
+  message does not reopen the delegated task, so wait on the thread with one
+  long `t3_thread_wait` instead of status messages, then read only the new
+  turn with `t3_thread_read`.
 - Every review round is a fresh `delegate_task` with a new `clientRequestId`:
   the first carries the full bounded review context, a delta round the
   full-review base, prior dispositions and only the delta.
