@@ -66,8 +66,9 @@ Compose one behavior-only profile with one capability. Each role skill is
 self-contained (with its playbook); [shared conduct](references/shared_conduct.md)
 holds only the cleanup and publication details roles name. The packet carries
 the explicit capability, authority, worktree, revision, exact artifact IDs, new
-context, accepted finding IDs, and stop conditions; it neither replays the
-workflow nor sends roles to WORKFLOW sections.
+context, accepted finding IDs, stop conditions, and the
+[model notes](references/model_notes.md) lines for the target's family; it
+neither replays the workflow nor sends roles to WORKFLOW sections.
 
 | Capability | Profile | Read |
 | --- | --- | --- |

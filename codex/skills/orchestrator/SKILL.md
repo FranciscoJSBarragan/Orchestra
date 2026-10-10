@@ -34,6 +34,8 @@ Ordinary [engineering](../orchestra-engineering/SKILL.md) and explicitly selecte
 custom work remain separate modular uses under WORKFLOW "Standalone tools".
 
 Use [host transports](host-transports.md) to dispatch supported task roots.
+Every packet carries the [model notes](../orchestra/references/model_notes.md)
+lines for its target's family.
 The leaf-role delegate is still appropriate for an independent review or other
 bounded role; its no-commit/no-subagent contract cannot run a full child root.
 Before parallel mutation, establish isolated task checkouts and concrete shared

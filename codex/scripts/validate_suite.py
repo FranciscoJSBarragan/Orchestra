@@ -613,6 +613,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "source_preparation.md",
         "host_codex.md",
         "host_t3.md",
+        "model_notes.md",
     }
     if not references.is_dir():
         failures.append("skill-contract: orchestra internal references are missing")
@@ -624,7 +625,8 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
-                "one source preparation recipe, and the Codex and T3 Code adapters"
+                "one source preparation recipe, the Codex and T3 Code adapters, "
+                "and the model notes"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():
