@@ -77,16 +77,18 @@ expose secrets.
 
 ## Output
 
-Start with `implemented` or `blocked`. Then report:
+Start with `implemented` or `blocked`, then `## Summary` (about 200 words:
+changed paths, every check with its exit status, skipped checks with the
+reason, and anything pending verification), then `## Details`:
 
-- changed paths and why;
-- every check run with its exit status, and skipped checks with the reason;
+- why each path changed;
 - for each changed test, the behavior or regression it proves;
-- decisions you took, residual risks and anything pending verification.
+- decisions you took and residual risks.
 
 In an Orchestra phase, write the report as the next
 `<NN>-implementation-report-p<phase>.md` in the artifacts directory and return
-its file name; if you cannot write there, return it inline. Your evidence is
+the status line, Summary and file name as your final message; if you cannot
+write there, return it inline. Your evidence is
 not review evidence.
 
 ## Later rounds

@@ -1,15 +1,6 @@
 # Frontend implementation playbook
 
-For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
-guidance below, but omit phase-only transport, artifact IDs, and formal plan
-bundles. Return inline evidence or an explicitly requested output path.
-
 For a delegated capability assignment, use this playbook with the `orchestra_implementation_worker` profile and the explicit `frontend_implementation` capability. Browser acceptance remains an independent verification capability.
-
-Technical techniques may also be consulted in the caller's current workflow
-under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
-artifacts and independent-gate rules apply when that assignment is selected;
-reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
@@ -25,8 +16,8 @@ reading this reference does not itself dispatch a role or grant authority.
   previously failing tool, and remains fixed without fallback. Do
   not veto or substitute it. Inside T3 Code (its `preview_*` tools are
   available), T3's collaborative browser is the first `auto` surface and the
-  only `in_app` surface, with the tab lifecycle WORKFLOW "Test permissions and
-  browser routing" defines. Otherwise, and for `chrome` or an `auto` fallback,
+  only `in_app` surface, using the T3 tab steps in
+  [browser acceptance](browser_acceptance.md). Otherwise, and for `chrome` or an `auto` fallback,
   follow the host spawn reference. On Cursor, `auto` and `chrome` map to Browser Use and
   `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
   connector first and may fall back to Codex's in-app Browser only for a

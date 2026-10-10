@@ -5,19 +5,10 @@ for the assigned journey. A hidden control does not establish server-side
 authorization; report missing boundary evidence to the owner. Screenshots support
 the visible observations and do not replace checks of the requested effects.
 
-For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
-guidance below, but omit phase-only transport, artifact IDs, and formal plan
-bundles. Return inline evidence or an explicitly requested output path.
-
 For a delegated capability assignment, use this playbook with the `orchestra_verifier` profile and the
 explicit `browser_acceptance` capability. In Orchestra phase mode this is a
 dedicated independent gate, never an `Implementation handoff check`, and uses
 the active user-selected tier. Direct role use follows the standalone contract.
-
-Technical techniques may also be consulted in the caller's current workflow
-under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
-artifacts and independent-gate rules apply when that assignment is selected;
-reading this reference does not itself dispatch a role or grant authority.
 
 ## Contract
 
@@ -32,7 +23,7 @@ reading this reference does not itself dispatch a role or grant authority.
   and remains fixed without fallback. Do not
   veto or substitute a user-selected route; return its concrete technical
   blocker when it cannot run.
-- Inside T3 Code (its `preview_*` tools are available), T3's collaborative browser is the first `auto` surface and the only `in_app` surface on every provider, with the tab lifecycle WORKFLOW "Test permissions and browser routing" defines; the host mappings below apply to `chrome` and to an `auto` fallback when T3's browser is unavailable.
+- Inside T3 Code (its `preview_*` tools are available), T3's collaborative browser is the first `auto` surface and the only `in_app` surface on every provider; the host mappings below apply to `chrome` and to an `auto` fallback when T3's browser is unavailable, including a `preview_open` sandbox or setup error. T3 tab steps: open with `preview_open` (`reuseExistingTab: false`, `open: false`, `profileId: incognito` unless the recipe needs a signed-in profile) and pass its `tabId` on every call; read page state from one snapshot and save the screenshot with another (`save: true` returns only its path), copying the file to the PNG evidence path; after every open attempt, including a failed one, close each task-owned tab with `t3_preview_close` and confirm with `t3_preview_list` that none remains, reporting a tab that cannot be closed as retained.
 - For `auto`, follow the host spawn reference: on Codex, explicitly select the dedicated Chrome connector first and fall back to Codex's in-app Browser only when Chrome is unavailable or has a technical capability gap that the in-app Browser can satisfy; on Cursor, `auto` and `chrome` map to Browser Use; Grok Build maps `auto` to Playwright; on Claude Code, `auto` and `chrome` map to Claude in Chrome; on Devin, native `auto` is `blocked`.
 - Outside T3, for `in_app`, use only Codex's in-app Browser; on Cursor, Grok, Devin, or Claude Code return `blocked`. For `chrome`, use only the dedicated Chrome connector on Codex, Browser Use on Cursor, Claude in Chrome on Claude Code, and on Grok or native Devin return `blocked`. Do not substitute Computer Use or standalone browser automation. Cursor `auto` and `chrome` use Browser Use as the host-mapped surface. Grok `auto` may use Playwright as the host-mapped surface. Devin has no native browser surface; an explicit CLI handoff is resolved separately below. Do not substitute the Cursor IDE browser or the Browser Use CLI.
 - For `codex-cu`, use only the codex-cu MCP server on any host, as WORKFLOW "Test permissions and browser routing" defines; when it is unavailable return `blocked`.

@@ -11,6 +11,7 @@ including authorized helper scripts. This does not grant new write authority.
 Read [runtime resources](../orchestra/runtime.md) once. Use the relevant parts
 of [shared engineering guidance](../orchestra/references/architecture_guidance.md).
 WORKFLOW "Modular engineering" owns activation, composition, and authority.
+Reading a playbook for its techniques dispatches no role and grants no authority.
 
 Keep the user's requested outcome and execution route. An explanation stays
 read-only; an authorized implementation may investigate, experiment, implement,

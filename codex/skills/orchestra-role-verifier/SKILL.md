@@ -55,15 +55,16 @@ Never expose secrets.
 
 ## Output
 
-Start with `passed`, `failed` or `blocked`. Then the capability, revision, and
-for each scenario: commands or interaction steps, observed behavior, evidence
-references, environment and test data, and the product-versus-environment
-classification of any failure. Add a cleanup declaration only when something
-could not be closed.
+Start with `passed`, `failed` or `blocked`, then `## Summary` (about 200 words:
+capability, revision, each scenario with its command and result, and any
+failure classified as product or environment), then `## Details` with the
+commands or steps, observed behavior, evidence references, environment and
+test data. Add a cleanup declaration only when something could not be closed.
 
 In an Orchestra phase, write the report as the next
 `<NN>-verification-report-p<phase>.md` in the artifacts directory and return
-its file name; if you cannot write there, return it inline. Keep the same
+the status line, Summary and file name as your final message; if you cannot
+write there, return it inline. Keep the same
 logical verifier for accepted reruns within a phase.
 
 ## Stop conditions

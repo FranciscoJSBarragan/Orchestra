@@ -12,7 +12,8 @@ set `ORCHESTRA_RUNTIME_ROOT` to that parent. Otherwise this is a
 direct-sync installation: use `${ORCHESTRA_HOME:-$HOME/.orchestra}`, unless
 explicit source mode was selected. In source mode bind `source_root` to the
 prepared checkout, runtime to `<source>/codex` and skills to `<source>/codex/skills`;
-use the source map below instead of installed copies.
+use the source map in [source preparation](references/source_preparation.md)
+instead of installed copies.
 
 These are task-local path bindings, not variables guaranteed by the host.
 Substitute their absolute values in tool calls or set them in each shell call;
@@ -31,30 +32,6 @@ do not silently fall back to another installed version.
 | Claude Code agent profiles | `<runtime>/agents/<subagent_type>.md` | `~/.claude/agents/<subagent_type>.md` |
 | Cursor/Grok/Devin/Claude Code matrix and spawn reference | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` | `<runtime>/hosts/<host>/{roles.toml,spawn.md}` |
 | Role skills and shared references | `<skills-root>/<skill>/` | `<skills-root>/<skill>/` |
-
-## Explicit source layout
-
-`prepare_source.py` returns the selected source/runtime/skills roots and workflow.
-Resolve remaining resources from that same source, not `<runtime>/hosts`:
-
-| Resource | Prepared/source checkout |
-| --- | --- |
-| Workflow | `<source>/docs/WORKFLOW.md` |
-| Helpers | `<source>/codex/scripts/` |
-| Execution presets | `<source>/codex/config/execution-presets.toml` |
-| Codex matrix and profiles | `<source>/codex/config/roles.native.toml`, `<source>/codex/agents/<profile>.toml` |
-| Codex spawn reference | `<source>/codex/skills/orchestra/references/host_codex.md` |
-| Cursor/Grok/Devin/Claude Code matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
-| Cursor/Grok/Devin/Claude Code spawn reference | `<source>/hosts/<host>/references/spawn.md` |
-| Devin and Claude Code profile sources | `<source>/hosts/<host>/agents/<name>.md` |
-| Skills | `<source>/codex/skills/<skill>/` |
-
-Pass the absolute selected matrix and adapter paths when dispatch needs them.
-Profile source availability alone does not register a native host profile; follow
-its adapter's actual loading requirements. Missing source resources block that
-route rather than falling back to an installed version. Source instructions stay
-read-only even when the task's product repository is Orchestra itself; prepare a
-separate pinned copy before editing that product checkout.
 
 Under a Devin direct-sync installation the skills root is
 `~/.config/devin/skills`; under Claude Code direct sync it is
@@ -82,14 +59,3 @@ WORKFLOW for follow-ups, worker progress and interruption recovery. It applies
 to ordinary skill use as well as the full workflow, without activating it or
 creating task state. Reuse that loaded guidance when a casual message arrives;
 the message alone does not require resolving or rereading the runtime.
-
-## Prepared remote source
-
-An external coordinator or environment setup may use the shipped
-`scripts/prepare_source.py` (source: `codex/scripts/prepare_source.py`) to prepare
-or verify a source checkout at an approved full commit SHA. Use the shared
-[source preparation recipe](references/source_preparation.md), included with
-the skills in every installation mode. Its returned roots select source mode
-above; the `workflow` path is explicit because it lives
-outside `codex/`. Task workers consume those roots without installing another
-runtime. A cache mismatch requires reconciliation, not fallback to a moving ref.

@@ -80,8 +80,8 @@ for an initiative follow the T3 section of
 ## Browser
 
 T3's collaborative browser is the first `auto` surface and the only `in_app`
-surface on every provider, with the tab lifecycle WORKFLOW "Test permissions
-and browser routing" defines; `delegate_task` children receive its `preview_*`
+surface on every provider, with the tab steps the browser acceptance playbook
+defines; `delegate_task` children receive its `preview_*`
 tools, and each child sees only its own tabs. When it is unavailable, `auto`
 falls back to the host mapping. On a Linux host T3's browser needs a one-time
 `sudo env "PATH=$PATH" t3 browser setup` (AppArmor); until then `preview_open`

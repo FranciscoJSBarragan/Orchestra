@@ -54,3 +54,37 @@ not proof that a host loaded its instructions: runtime resources route the
 continuity rules when a skill is selected, while ordinary work without a loaded
 skill needs the host's applicable persistent instructions. Plugin installation
 does not silently rewrite those global instructions.
+
+## Source layout
+
+`prepare_source.py` returns the selected source/runtime/skills roots and workflow.
+Resolve remaining resources from that same source, not `<runtime>/hosts`:
+
+| Resource | Prepared/source checkout |
+| --- | --- |
+| Workflow | `<source>/docs/WORKFLOW.md` |
+| Helpers | `<source>/codex/scripts/` |
+| Execution presets | `<source>/codex/config/execution-presets.toml` |
+| Codex matrix and profiles | `<source>/codex/config/roles.native.toml`, `<source>/codex/agents/<profile>.toml` |
+| Codex spawn reference | `<source>/codex/skills/orchestra/references/host_codex.md` |
+| Cursor/Grok/Devin/Claude Code matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
+| Cursor/Grok/Devin/Claude Code spawn reference | `<source>/hosts/<host>/references/spawn.md` |
+| Devin and Claude Code profile sources | `<source>/hosts/<host>/agents/<name>.md` |
+| Skills | `<source>/codex/skills/<skill>/` |
+
+Pass the absolute selected matrix and adapter paths when dispatch needs them.
+Profile source availability alone does not register a native host profile; follow
+its adapter's actual loading requirements. Missing source resources block that
+route rather than falling back to an installed version. Source instructions stay
+read-only even when the task's product repository is Orchestra itself; prepare a
+separate pinned copy before editing that product checkout.
+
+## Prepared remote source
+
+An external coordinator or environment setup may use the shipped
+`scripts/prepare_source.py` (source: `codex/scripts/prepare_source.py`) to prepare
+or verify a source checkout at an approved full commit SHA. Use the shared
+recipe above, included with the skills in every installation mode. Its returned roots select source mode in
+[runtime resources](../runtime.md); the `workflow` path is explicit because it lives
+outside `codex/`. Task workers consume those roots without installing another
+runtime. A cache mismatch requires reconciliation, not fallback to a moving ref.

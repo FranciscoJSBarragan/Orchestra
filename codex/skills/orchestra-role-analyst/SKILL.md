@@ -65,13 +65,15 @@ bounded reads; close anything you start. Never expose secrets.
 
 ## Output
 
-Start with `evidence`, `planned`, `diagnosed` or `blocked`. Then the
-capability, revision, the answer to each question, `State writers`,
-unresolved facts, open decisions with recommendations, and risks. Make the
-report self-contained so a later reader needs nothing else.
+Start with `evidence`, `planned`, `diagnosed` or `blocked`, then `## Summary`
+(about 200 words: the answer to each question, open decisions with
+recommendations, and blockers), then `## Details` with the capability,
+revision, `State writers`, unresolved facts and risks. Make the report
+self-contained so a later reader needs nothing else.
 
 In an Orchestra phase, write it as the next `<NN>-<kind>.md` in the artifacts
-directory and return the file name; before the task checkout exists, return
+directory and return the status line, Summary and file name as your final
+message; before the task checkout exists, return
 the complete report inline with a stable label. A later pass answers only new
 questions as a targeted `context-delta`. A plan stays a candidate until the
 user accepts it; only the root writes the active plan.

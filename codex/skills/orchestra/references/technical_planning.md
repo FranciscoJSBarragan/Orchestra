@@ -1,9 +1,5 @@
 # Technical planning playbook
 
-For direct role use, apply WORKFLOW "Standalone tools": keep the engineering
-guidance below, but omit phase-only transport, artifact IDs, and formal plan
-bundles. Return inline evidence or an explicitly requested output path.
-
 For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the
 explicit `technical_planning` capability. A root that authors the plan under
 WORKFLOW "Context and planning" step 9 applies the same plan-document rules in
@@ -11,11 +7,6 @@ WORKFLOW "Context and planning" step 9 applies the same plan-document rules in
 transport do not apply to it. Use the relevant sections of
 [shared engineering guidance](architecture_guidance.md) to identify design
 risks, consequential assumptions, and proportionate evidence in either mode.
-
-Technical techniques may also be consulted in the caller's current workflow
-under WORKFLOW "Modular engineering". Assignment-specific role limits, phase
-artifacts and independent-gate rules apply when that assignment is selected;
-reading this reference does not itself dispatch a role or grant authority.
 
 Use [decision evidence](architecture_guidance.md#decision-evidence) to connect
 consequential decisions and exceptions to the original scope. Reuse the context

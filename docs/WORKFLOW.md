@@ -710,7 +710,7 @@ investigation. Each fix round is a fresh implementer session and each delta
 review a fresh reviewer. Never forward the full chat or convert an implementer
 session into its reviewer.
 
-For this preset, the implementer writes or updates tests and runs useful
+For `standard-delegate`, the implementer writes or updates tests and runs useful
 development checks. The runtime verifier owns the terminal required tests,
 lint, types, build, and canonical suite in a separate source-read-only session.
 Put their exact argv and cwd in the phase's `Independent verification gate`,
@@ -1337,7 +1337,13 @@ reopen source only for a named question or independent judgment, not to watch
 progress. Reports keep enough evidence to establish their outcome and cite
 prior evidence for unchanged facts; a delta report
 names its prior report, revision, affected findings and new verification. Raw
-logs and large tables stay in the evidence location.
+logs and large tables stay in the evidence location. Every role report starts with
+its status line and a `## Summary` of about 200 words, followed by
+`## Details` with one `### <ID>` section per finding; the role returns the
+status line, Summary and file name as its final message. The root consumes
+that message and opens only the `### <ID>` sections a triage or decision
+needs; a fix packet names the accepted IDs, whose sections the owner reads in
+full.
 
 Kinds are `repository-context`, `context-delta`, `plan-overview`,
 `plan-phase`, `plan-review`, `implementation-report`, `verification-report`,
@@ -1431,71 +1437,6 @@ Use shared "Behavioral verification" to select and assess tests. Each handoff
 states the behavior or regression risk its changed tests demonstrate and any
 concrete benefit of overlapping coverage. Changing test selection never
 waives a repository gate.
-
-### User preview
-
-User preview is an optional user inspection of a user-visible surface after a
-phase's implementation handoff and before its independent verification and
-review. It is not a tier, matrix row, profile, plan status or artifact kind.
-
-Offer it in the initial tier message, without extra research, when all three
-hold: the result is a surface the user operates or looks at; the change is
-material (a new or substantially changed screen or flow, not a string or
-minor CSS tweak); and a local run recipe is known or trivially inferable. A
-bare tier choice or silence is `none`. A conversational `interactive` /
-`interactivo` (or an equivalent in the chat language) that clearly means this
-pause is `required`; if it might mean
-the product is interactive, disambiguate once in that message. Never offer it
-for API, schema, worker, CI, migration or library-only work, and do not
-re-ask.
-
-Record the task-level choice as a Decision before planning; plan approval
-confirms the per-phase mapping. Each `plan-phase` carries `User preview:
-required | none`, `required` only when the task Decision is `required`, the
-phase has a user-visible surface and it names an executable local recipe.
-Preview does not force a phase split. Changing preview on an unstarted phase
-uses a replacement phase artifact; during any pause the user may skip the
-remaining previews, and unstarted `required` phases become `none` the same
-way.
-
-After an `implemented` handoff with green required checks on a `required`
-phase:
-
-1. Keep only resources needed to show the result. The owning chat may start
-   or retain a task-owned local preview process when the packet permits; the root
-   records it and cleans it at completion or cancellation. Browser tabs follow
-   the selected route and cleanup contract.
-2. Set `plan.md` to `blocked` with blocker `user_preview` and next action user
-   inspection.
-3. Give the owning chat a preview pack: worktree, task branch, how to run or
-   show the surface, allowed paths, a short visible-result summary and cited
-   screenshots. The user may iterate the approved scope in this conversation; no new chat
-   or manual process start is required.
-   Git and the `implementation-report` remain truth; no preview artifact.
-4. Wait with `request_user_input` for iterate, freeze as-is, or skip. Iteration
-   stays uncommitted on the task branch unless the user authorized a commit;
-   out-of-scope paths or new behavior block or replan.
-
-Never auto-continue if the user does not return; mention that hybrid preview
-can occupy the primary checkout for a long time when recommending it.
-
-After freeze or skip, resume in the owning chat or reclaim (which abandons the
-previous chat). Keep the logical owner and exact artifacts; spawn a
-replacement with the same packet only after confirmed closure or
-unavailability. In-scope uncommitted and untracked edits are the delta;
-recommend against user commits, and record any new branch commits as
-authorized preexisting changes for absorption. The absorbing owner reruns
-handoff checks and publishes a replacement `implementation-report`, then the
-pause repeats until the user explicitly confirms, freezes or skips; the root
-never infers that exit. Dispatch the independent gate and review once,
-against the frozen post-absorption revision with green checks.
-
-The review packet states that the user accepted the visible result at that
-revision: taste findings are out of scope; bugs, accessibility, regressions
-and defect-prone complexity remain in scope, and a defect forcing a visual
-change enables a short re-inspection. Preview never replaces
-`browser_acceptance`, lowers the tier or waives hard gates. After `completed`,
-further taste work is a PR-fix inside approved intent or a new task.
 
 The loop below is the default assignment. A selected execution preset applies
 its check-ownership and bounded-recovery exceptions from "Delegated execution
@@ -1630,6 +1571,71 @@ legitimate findings are not a trigger. An isolated Git failure stays with the
 root: inspect status and the latest commit once, apply an obvious safe fix,
 and never dispatch an agent merely to operate Git.
 
+### User preview
+
+User preview is an optional user inspection of a user-visible surface after a
+phase's implementation handoff and before its independent verification and
+review. It is not a tier, matrix row, profile, plan status or artifact kind.
+
+Offer it in the initial tier message, without extra research, when all three
+hold: the result is a surface the user operates or looks at; the change is
+material (a new or substantially changed screen or flow, not a string or
+minor CSS tweak); and a local run recipe is known or trivially inferable. A
+bare tier choice or silence is `none`. A conversational `interactive` /
+`interactivo` (or an equivalent in the chat language) that clearly means this
+pause is `required`; if it might mean
+the product is interactive, disambiguate once in that message. Never offer it
+for API, schema, worker, CI, migration or library-only work, and do not
+re-ask.
+
+Record the task-level choice as a Decision before planning; plan approval
+confirms the per-phase mapping. Each `plan-phase` carries `User preview:
+required | none`, `required` only when the task Decision is `required`, the
+phase has a user-visible surface and it names an executable local recipe.
+Preview does not force a phase split. Changing preview on an unstarted phase
+uses a replacement phase artifact; during any pause the user may skip the
+remaining previews, and unstarted `required` phases become `none` the same
+way.
+
+After an `implemented` handoff with green required checks on a `required`
+phase:
+
+1. Keep only resources needed to show the result. The owning chat may start
+   or retain a task-owned local preview process when the packet permits; the root
+   records it and cleans it at completion or cancellation. Browser tabs follow
+   the selected route and cleanup contract.
+2. Set `plan.md` to `blocked` with blocker `user_preview` and next action user
+   inspection.
+3. Give the owning chat a preview pack: worktree, task branch, how to run or
+   show the surface, allowed paths, a short visible-result summary and cited
+   screenshots. The user may iterate the approved scope in this conversation; no new chat
+   or manual process start is required.
+   Git and the `implementation-report` remain truth; no preview artifact.
+4. Wait with `request_user_input` for iterate, freeze as-is, or skip. Iteration
+   stays uncommitted on the task branch unless the user authorized a commit;
+   out-of-scope paths or new behavior block or replan.
+
+Never auto-continue if the user does not return; mention that hybrid preview
+can occupy the primary checkout for a long time when recommending it.
+
+After freeze or skip, resume in the owning chat or reclaim (which abandons the
+previous chat). Keep the logical owner and exact artifacts; spawn a
+replacement with the same packet only after confirmed closure or
+unavailability. In-scope uncommitted and untracked edits are the delta;
+recommend against user commits, and record any new branch commits as
+authorized preexisting changes for absorption. The absorbing owner reruns
+handoff checks and publishes a replacement `implementation-report`, then the
+pause repeats until the user explicitly confirms, freezes or skips; the root
+never infers that exit. Dispatch the independent gate and review once,
+against the frozen post-absorption revision with green checks.
+
+The review packet states that the user accepted the visible result at that
+revision: taste findings are out of scope; bugs, accessibility, regressions
+and defect-prone complexity remain in scope, and a defect forcing a visual
+change enables a short re-inspection. Preview never replaces
+`browser_acceptance`, lowers the tier or waives hard gates. After `completed`,
+further taste work is a PR-fix inside approved intent or a new task.
+
 ### Tier transition
 
 The active tier changes among the host's assigned tiers only on explicit user
@@ -1711,17 +1717,9 @@ gate stays `blocked`, and User preview never replaces it.
 
 Inside T3 Code (its `t3-code` MCP `preview_*` tools are available), T3's
 collaborative browser precedes the table on every provider: `auto` uses it
-first and falls back to the host column only when it is unavailable, and
-`in_app` means T3's browser only. Open each run with `preview_open`
-(`reuseExistingTab: false`, `open: false`, `profileId: incognito` unless the
-recipe needs a signed-in profile) and pass its `tabId` on every call. A
-snapshot with `save: true` returns only the screenshot path, so read page
-state from a separate snapshot and copy the saved file to the PNG evidence
-path. After every open attempt, including a failed one, which can still
-create a tab, close each task-owned tab with `t3_preview_close` and confirm
-through `t3_preview_list` that none remains; a tab that cannot be closed is
-reported as retained, never as clean. An `auto` run treats a `preview_open`
-sandbox or setup error as T3's browser being unavailable.
+first and falls back to the host column only when it is unavailable,
+including a `preview_open` sandbox or setup error, and `in_app` means T3's
+browser only. The browser acceptance playbook defines its tab steps.
 
 An explicit user route, relayed or given directly, must be attempted even as
 a canary for a previously failing tool, and stays fixed without fallback. An
