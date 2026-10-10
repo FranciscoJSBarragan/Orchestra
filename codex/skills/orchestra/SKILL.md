@@ -48,7 +48,7 @@ Context is your scarcest resource; protect it for the user's problem.
 
 | Trigger | Read |
 | --- | --- |
-| Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestra-coordinate](../orchestra-coordinate/SKILL.md) |
+| Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestrator](../orchestrator/SKILL.md) |
 | Adopting a prepared card or explicit task tracking | `Attached Tasks companion` |
 | The user selects an execution preset or a CLI executor | `Delegated execution presets`, `CLI delegation`, [orchestra-delegate](../orchestra-delegate/SKILL.md) |
 | A phase declares `User preview: required` | `User preview` |

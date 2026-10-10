@@ -12,7 +12,7 @@ planning, review policy, commits, and delivery are unchanged.
 An agent outside T3 with an MCP connection to a T3 Code server (the
 deployment documents its endpoint) starts Orchestra work there only when the
 user asks. It launches each task root as a top-level thread through the T3
-section of [host transports](../../orchestra-coordinate/host-transports.md),
+section of [host transports](../../orchestrator/host-transports.md),
 and the launched root runs under this reference. `delegate_task` and
 `create_threads` need a caller inside a T3 thread.
 
@@ -75,7 +75,7 @@ assignment may use `delegate_task` with the same provider, model, and effort.
 
 Native host spawn stays valid; use one transport per phase cohort. Task roots
 for an initiative follow the T3 section of
-[host transports](../../orchestra-coordinate/host-transports.md).
+[host transports](../../orchestrator/host-transports.md).
 
 ## Browser
 

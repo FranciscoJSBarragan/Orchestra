@@ -39,7 +39,7 @@ at a new clean revision. That test does not claim a live parent/child agent run.
 
 For a live coordination trial, explicitly authorize bounded local fixture edits
 and commits, select supported child routes/resources, and use
-`orchestra-coordinate`. Supply only the brief and normal skill resources. Let
+`orchestrator`. Supply only the brief and normal skill resources. Let
 the parent dispatch genuinely independent tasks where justified; it may decide
 the actual repair needs just the affected child. Observe the dependency/revision
 handoff and joint check. No push or remote service is needed. Then interrupt a

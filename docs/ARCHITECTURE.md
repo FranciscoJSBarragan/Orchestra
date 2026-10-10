@@ -395,7 +395,7 @@ reuse the existing four roles and seven playbooks; no additional persona or
 model matrix is introduced. Operational authority and lifecycle live in
 WORKFLOW "Modular engineering", "Project verification" and "Repository conventions".
 
-`orchestra-coordinate` owns an explicitly selected parent responsibility across
+`orchestrator` owns an explicitly selected parent responsibility across
 independent task roots. Its native host tasks or supported CLI root sessions
 retain child context. The existing leaf delegate remains deliberately narrower.
 One persistent Markdown project register links handles, plans, accepted revisions

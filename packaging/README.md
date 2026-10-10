@@ -250,7 +250,7 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 ## Modular entries
 
 All targets and direct sync include `orchestra-engineering`,
-`orchestra-project-verification`, `orchestra-coordinate` and
+`orchestra-project-verification`, `orchestrator` and
 `orchestra-repo-readiness` from canonical sources. References relocate with the bundle.
 Engineering and verification entries allow host discovery; the initiative
 coordinator and repository readiness require an explicit request. Distribution makes resources

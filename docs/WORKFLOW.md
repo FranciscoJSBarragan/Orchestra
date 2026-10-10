@@ -298,7 +298,7 @@ The normal review/check loop assesses meaningful recipe changes with the code.
 
 ## Initiative coordination
 
-`orchestra-coordinate` is an explicit route for an initiative with genuinely
+`orchestrator` is an explicit route for an initiative with genuinely
 independent project, repository, acceptance or task-root boundaries; it never
 activates from a multi-file edit and needs no Task Control, Hub or Bridge.
 Ordinary work stays one task with proportional phases. An initiative may span
@@ -398,7 +398,7 @@ Dispatch only through a host surface that supports the responsibility: native
 user-owned tasks when the user asked for separate tasks and the app supports
 them; native agents for internal roles, never as a claim of persistent
 task-root capabilities they lack; or an explicitly selected supported CLI
-running a root session. Consult `orchestra-coordinate/host-transports.md`
+running a root session. Consult `orchestrator/host-transports.md`
 under the resolved skills root for concrete host primitives and model
 selections. Check availability before
 launch, preserve exact session identities and use argument APIs or safe
@@ -537,7 +537,7 @@ suffices; otherwise commission the missing proof at the exact child full SHA, be
 delivery, in an owned independent checkout naming checks, environment,
 permissions and cleanup. A verifier executes runtime or browser checks; a
 reviewer assesses source and uses only the diagnostic execution "Review
-policy" allows. `orchestra-coordinate/acceptance-packet.md` under the
+policy" allows. `orchestrator/acceptance-packet.md` under the
 resolved skills root illustrates this handoff without a result schema or a
 mandatory second review. A shared VM does not remove reasoning independence;
 a different environment establishes a separate property.

@@ -165,33 +165,33 @@ class ValidateSuiteTests(unittest.TestCase):
                             for item in failures), failures)
 
     def test_parent_requires_root_transport_resource(self) -> None:
-        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        skill = self.root / "codex/skills/orchestrator/SKILL.md"
         skill.write_text(skill.read_text().replace("(host-transports.md)", "(packet-example.md)"))
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("modular-routing: orchestra-coordinate must link host-transports.md", result.stdout)
+        self.assertIn("modular-routing: orchestrator must link host-transports.md", result.stdout)
 
     def test_parent_cannot_be_made_implicitly_selected(self) -> None:
-        metadata = self.root / "codex/skills/orchestra-coordinate/agents/openai.yaml"
+        metadata = self.root / "codex/skills/orchestrator/agents/openai.yaml"
         metadata.write_text(metadata.read_text().replace("false", "true"))
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("orchestra-coordinate must remain explicit-only", result.stdout)
+        self.assertIn("orchestrator must remain explicit-only", result.stdout)
 
     def test_parent_requires_persistent_workspace_reference(self) -> None:
-        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        skill = self.root / "codex/skills/orchestrator/SKILL.md"
         skill.write_text(skill.read_text().replace("(project-workspace.md)", "(packet-example.md)"))
         failures = validator.check_modular_routing(self.root)
-        self.assertIn("modular-routing: orchestra-coordinate must link project-workspace.md", failures)
+        self.assertIn("modular-routing: orchestrator must link project-workspace.md", failures)
 
     def test_parent_requires_full_workflow_and_acceptance_routes(self) -> None:
-        skill = self.root / "codex/skills/orchestra-coordinate/SKILL.md"
+        skill = self.root / "codex/skills/orchestrator/SKILL.md"
         original = skill.read_text()
         for target in ("../orchestra/SKILL.md", "acceptance-packet.md"):
             with self.subTest(target=target):
                 skill.write_text(original.replace(f"({target})", "(packet-example.md)"))
                 failures = validator.check_modular_routing(self.root)
-                self.assertIn(f"modular-routing: orchestra-coordinate must link {target}", failures)
+                self.assertIn(f"modular-routing: orchestrator must link {target}", failures)
         skill.write_text(original)
 
     def test_repository_conventions_contract_requires_agent_hard_gate(self) -> None:
@@ -648,7 +648,7 @@ class FullModeFixtureTest(unittest.TestCase):
             f"codex/skills/orchestra/references/{name}.md"
             for name in ("repository_context", "technical_planning", "runtime_verification")
         ]
-        relatives.append("codex/skills/orchestra-coordinate/acceptance-packet.md")
+        relatives.append("codex/skills/orchestrator/acceptance-packet.md")
         for relative in relatives:
             with self.subTest(consumer=relative):
                 path = self.root / relative

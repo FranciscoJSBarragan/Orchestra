@@ -55,7 +55,7 @@ Keep Project preferences as a pointer to the prepared source, not a copy of its
 workflow. For example:
 
 ```text
-Use orchestra-coordinate from Orchestra revision <full approved SHA>.
+Use orchestrator from Orchestra revision <full approved SHA>.
 Resolve that source's runtime and read its coordination entry and host transport.
 Project context: <accessible PROJECT.md and BOARD.md>.
 Task authority: <the grants from this conversation; backlog is not approval>.

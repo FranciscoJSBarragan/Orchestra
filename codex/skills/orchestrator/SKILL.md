@@ -1,6 +1,6 @@
 ---
-name: orchestra-coordinate
-description: Coordinate an explicitly requested initiative across concurrent tasks in one or several repositories. Delegate full Orchestra task roots, including investigation before implementation approval, while keeping shared decisions and combined acceptance in the parent. Does not activate from an ordinary multi-file change.
+name: orchestrator
+description: Coordinate an explicitly requested initiative across concurrent tasks in one or several repositories; a single task uses `$orchestra` instead. Delegate full Orchestra task roots, including investigation before implementation approval, while keeping shared decisions and combined acceptance in the parent. Does not activate from an ordinary multi-file change.
 ---
 
 # Coordinate independent task roots

@@ -63,13 +63,13 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-engineering/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/SKILL.md",
     "codex/skills/orchestra-project-verification/agents/openai.yaml",
-    "codex/skills/orchestra-coordinate/SKILL.md",
-    "codex/skills/orchestra-coordinate/agents/openai.yaml",
+    "codex/skills/orchestrator/SKILL.md",
+    "codex/skills/orchestrator/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/feature-example.md",
-    "codex/skills/orchestra-coordinate/packet-example.md",
-    "codex/skills/orchestra-coordinate/acceptance-packet.md",
-    "codex/skills/orchestra-coordinate/host-transports.md",
-    "codex/skills/orchestra-coordinate/project-workspace.md",
+    "codex/skills/orchestrator/packet-example.md",
+    "codex/skills/orchestrator/acceptance-packet.md",
+    "codex/skills/orchestrator/host-transports.md",
+    "codex/skills/orchestrator/project-workspace.md",
     "docs/evaluation/MODULAR_ACCEPTANCE.md",
     "codex/tests/fixtures/modular_engineering/make_fixture.py",
     "codex/tests/test_modular_fixture.py",
@@ -240,7 +240,7 @@ SKILL_NAMES = (
     "orchestra-delegate",
     "orchestra-engineering",
     "orchestra-project-verification",
-    "orchestra-coordinate",
+    "orchestrator",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -729,7 +729,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append("runtime-contract: managed block must route to $orchestra")
     orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
     exempt = {"orchestra-project-start", "orchestra-engineering",
-              "orchestra-project-verification", "orchestra-coordinate", "orchestra-repo-readiness",
+              "orchestra-project-verification", "orchestrator", "orchestra-repo-readiness",
               *ROLE_SKILL_BY_PROFILE.values()}
     for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
@@ -745,7 +745,7 @@ def check_modular_routing(root: Path) -> list[str]:
         "orchestra-repo-readiness": ("Repository readiness", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
-        "orchestra-coordinate": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
+        "orchestrator": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
     }
     workflow = root / "docs/WORKFLOW.md"
     policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
@@ -760,7 +760,7 @@ def check_modular_routing(root: Path) -> list[str]:
         for target in ("../orchestra/runtime.md", *resources):
             if target not in links:
                 failures.append(f"modular-routing: {name} must link {target}")
-    for name in ("orchestra-coordinate", "orchestra-repo-readiness"):
+    for name in ("orchestrator", "orchestra-repo-readiness"):
         metadata = root / f"codex/skills/{name}/agents/openai.yaml"
         if metadata.is_file() and "allow_implicit_invocation: false" not in metadata.read_text(encoding="utf-8"):
             failures.append(f"modular-routing: {name} must remain explicit-only")
@@ -773,7 +773,7 @@ def check_modular_routing(root: Path) -> list[str]:
                      "orchestra-delegate")
     ]
     consumers.append(root / "codex/skills/orchestra/references/shared_conduct.md")
-    consumers.append(root / "codex/skills/orchestra-coordinate/packet-example.md")
+    consumers.append(root / "codex/skills/orchestrator/packet-example.md")
     for consumer in consumers:
         if not consumer.is_file():
             continue
@@ -793,7 +793,7 @@ def check_modular_routing(root: Path) -> list[str]:
         root / f"codex/skills/orchestra/references/{name}.md"
         for name in ("repository_context", "technical_planning", "runtime_verification")
     )
-    evidence_consumers.append(root / "codex/skills/orchestra-coordinate/acceptance-packet.md")
+    evidence_consumers.append(root / "codex/skills/orchestrator/acceptance-packet.md")
     testing_consumers = [
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-analyst", "orchestra-role-implementer",

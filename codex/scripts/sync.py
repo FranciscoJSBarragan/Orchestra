@@ -26,7 +26,7 @@ SKILLS = (
     "orchestra-delegate",
     "orchestra-engineering",
     "orchestra-project-verification",
-    "orchestra-coordinate",
+    "orchestrator",
     "orchestra-phase-commit",
     "orchestra-delivery-policy",
     "orchestra-pr-open",
@@ -77,6 +77,7 @@ RETIRED_SKILLS = (
     "orchestra-lite",
     "orchestra-repo-onboard",
     "orchestra-repo-maintenance",
+    "orchestra-coordinate",
 )
 MODELCONFIGS = ("native",)
 # Accepted only as ownership metadata for migration and uninstall.

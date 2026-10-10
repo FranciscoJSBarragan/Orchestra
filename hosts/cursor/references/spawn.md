@@ -96,7 +96,7 @@ assigned family, report the missing capability instead of using an inherited
 model of another family. Do not copy a specialized worker's `inherit` into a
 generic worker under a different parent model. Role behavior, permitted type and
 model slug are separate choices. Use only actual schema fields, not an invented
-effort argument. Task-root selection belongs to `orchestra-coordinate/host-transports.md`,
+effort argument. Task-root selection belongs to `orchestrator/host-transports.md`,
 not this leaf-role matrix.
 
 ## Wait and cleanup

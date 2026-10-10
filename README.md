@@ -121,12 +121,12 @@ consumers and useful knowledge; folder reorganization is excluded. Source-writin
 entries apply the shared zero explanatory comments policy, with legal and
 functional exceptions. Personal global adoption is separate from plugin loading.
 
-Use `$orchestra-coordinate` when the outcome requires independent projects or
+Use `$orchestrator` when the outcome requires independent projects or
 task roots. The parent sets shared contracts and checks the combined result;
 each child runs full Orchestra with proportional phases. Exploratory children
 return evidence and a proposal before implementation approval, then continue in
 the same task root when supported. Available host tools determine the transport.
-Explicit custom and standalone work remain available outside that route. See [the coordination packet](codex/skills/orchestra-coordinate/packet-example.md)
+Explicit custom and standalone work remain available outside that route. See [the coordination packet](codex/skills/orchestrator/packet-example.md)
 and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 
 ## Companion skills

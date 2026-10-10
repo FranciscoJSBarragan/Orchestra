@@ -198,7 +198,7 @@ class SyncTests(unittest.TestCase):
         )
         for relative in ("SKILL.md", "packet-example.md", "acceptance-packet.md"):
             self.assertTrue(
-                self.home.joinpath(f".agents/skills/orchestra-coordinate/{relative}").is_file(),
+                self.home.joinpath(f".agents/skills/orchestrator/{relative}").is_file(),
                 relative,
             )
         self.assertFalse(self.home.joinpath(".agents/skills/orchestra-lite").exists())
@@ -2231,7 +2231,7 @@ class SyncTests(unittest.TestCase):
             self.home.joinpath(".config/devin/skills/orchestra/SKILL.md").is_file()
         )
         self.assertTrue(
-            self.home.joinpath(".config/devin/skills/orchestra-coordinate/acceptance-packet.md").is_file()
+            self.home.joinpath(".config/devin/skills/orchestrator/acceptance-packet.md").is_file()
         )
         self.assertTrue(self.home.joinpath(".agents/skills/orchestra/SKILL.md").is_file())
         for name in sync.AGENTS:
