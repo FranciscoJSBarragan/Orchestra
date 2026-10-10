@@ -394,6 +394,17 @@ assignments keep the chosen tier or preset. Actual concurrency, nesting and
 tool access must support the assignment; a model-family label is no evidence
 of effort.
 
+The parent's own research before dispatch (repositories, entry points, shared
+contracts) never inherits the parent's model: it uses the `mixed-models`
+`repository_context` assignment from `delegate.py --resolve-only` unless the
+user selects other resources, on the host's source-read-only transport. Start
+one analyst per repository or independent area in the same turn, each with
+only its framing questions; a contract question spanning areas goes in exactly
+one packet. Each answers inline, Summary first, with Details limited to the
+evidence behind each answer. Facts the children must share go into the brief,
+register or a child packet, not a research file. A problem needing a cause,
+specification or plan candidate goes to an investigation-only child root.
+
 Dispatch only through a host surface that supports the responsibility: native
 user-owned tasks when the user asked for separate tasks and the app supports
 them; native agents for internal roles, never as a claim of persistent
