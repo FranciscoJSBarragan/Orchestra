@@ -670,8 +670,8 @@ requires an explicit choice to leave the preset or select a compatible one.
 only independent review to another model family, because a reviewer from
 the implementer's family tends to share its blind spots.
 `mixed-models` gives each capability the model family chosen for it from
-measured role runs and reuses a matching root for planning; inside T3 Code its
-assignments run through `delegate_task`.
+measured role runs; inside T3 Code its assignments run through
+`delegate_task`.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex

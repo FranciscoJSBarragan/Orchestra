@@ -127,7 +127,7 @@ model = "gpt-6.1-sol"
 reasoning_effort = "high"
 
 # Each capability on the model family chosen for it from measured role runs;
-# planning reuses a matching (Opus) root. Inside T3 Code these run through delegate_task.
+# a dedicated Opus xhigh planner. Inside T3 Code these run through delegate_task.
 [presets.mixed-models]
 tier = "standard"
 
@@ -144,8 +144,7 @@ reasoning_effort = "high"
 [presets.mixed-models.capabilities.technical_planning]
 executor = "claude"
 model = "claude-opus-5-5"
-reasoning_effort = "medium"
-reuse_root = true
+reasoning_effort = "xhigh"
 
 [presets.mixed-models.capabilities.architecture_analysis]
 executor = "claude"
