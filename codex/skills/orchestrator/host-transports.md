@@ -70,9 +70,16 @@ root setup" and never runs `git worktree add` itself. Pass explicit
 `modelSelection` and `runtimeMode`: an omitted runtime mode inherits the
 caller's, which may be `full-access`. Record the returned `threadId`.
 
-Wait with `t3_thread_wait` on that `threadId`; it returns on terminal state.
-Read the result with `t3_thread_read` from the last known position rather than
-rereading the whole timeline. `t3_thread_send` continues the same provider
+The packet names the parent's `threadId`. At handoff, or at a blocker that
+needs the parent, the child sends a compact report naming its own `threadId`
+through `t3_thread_send` in `queue` mode, which starts an idle parent and waits
+behind an active turn. The parent therefore ends its turn after dispatch and
+stays available to the user, using `t3_thread_wait` only when the current turn
+cannot proceed without that child. A parent outside T3 has no thread to wake
+and waits instead. A child that stops without reporting is found through
+`t3_thread_list` when the parent next resumes, not by a watcher. Read details
+with `t3_thread_read` from the last known position rather than rereading the
+whole timeline. `t3_thread_send` continues the same provider
 session with its context intact, so it carries accepted fixes and deltas; use a
 stable `clientRequestId`. A task root links and watches only its own PR, with
 `link_pull_request`; a parent never links or watches a child's PR, which
