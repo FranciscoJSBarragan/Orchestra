@@ -97,7 +97,11 @@ through WORKFLOW "Engineering guidance and evidence" before dependent implementa
   state, derived from the quoted user outcome, the specification's prior-state
   expectations and binding contracts, never from the chosen mechanism (for
   example: a total never exceeds its source, an operation is idempotent, a
-  permission is never widened). An invariant that must hold under failures
+  permission is never widened). Each invariant, and each decision that
+  constrains behavior, cites its origin: the quoted user words, a confirmed
+  acceptance point, a binding contract, or existing behavior (file and line)
+  the change must keep. One without an origin is not a requirement; drop it.
+  An invariant that must hold under failures
   names the failures it covers; "under any failure" without that set is a
   plan-review finding. Each invariant maps
   to an existing or planned check: deterministic, verifier, or preview.

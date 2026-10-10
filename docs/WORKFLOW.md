@@ -1806,7 +1806,9 @@ normative intent is never rewritten to match current implementation.
 The root triages every finding, from its reviewers and PR feedback alike,
 before any fix; a finding is not fixed because it was reported. In order:
 reject one that conflicts with approved intent, an invariant or an earlier
-accepted fix; resolve without code one the current HEAD disproves; take a
+accepted fix; resolve one that breaks only machinery no cited invariant needs
+by removing or narrowing that machinery, never by adding to it; resolve
+without code one the current HEAD disproves; take a
 genuine product, contract or authority choice, or a fix that would change
 user-visible appearance or behavior beyond the request, to the user in one
 grouped question; reject what the reviewer role skill lists under "Not

@@ -56,6 +56,8 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   or spawn agents.
 - Prefer `mode: async`; the completion notification wakes the root. End the
   turn instead of polling, then read the result once with `task_status`.
+- When a phase has an independent gate, start its verifier and the review
+  (both of the pair) in the same turn, on the same SHA.
 - Every fix round is a fresh `delegate_task` with the fix packet, so its
   completion wakes the root. Continue an implementer's thread with
   `t3_thread_send` only for preview absorption or an unfinished turn; that

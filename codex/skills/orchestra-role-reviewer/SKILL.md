@@ -31,7 +31,12 @@ guide attention; they are not evidence and never narrow what you examine.
    the repository relies on (its instructions, documented recipes and
    supported environments) keeps working; a narrowed scope or failure model
    never removes it. A change that makes such behavior fail, hang or lose
-   diagnostics where it previously worked is a finding.
+   diagnostics where it previously worked is a finding. A plan invariant or
+   decision with no origin in the user's words, the confirmed acceptance, a
+   binding contract or existing behavior is not a requirement: in a plan
+   review that is a finding (cite it or drop it); in an implementation review,
+   report a counterexample that breaks only such an addition as plan-only, not
+   as a defect.
 
 2. **Hunt counterexamples.** For each value the change reads or adjusts, list
    the existing operations that write it: other entry points, earlier steps,
