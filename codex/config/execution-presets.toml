@@ -149,7 +149,7 @@ reasoning_effort = "high"
 [presets.mixed-models.capabilities.architecture_analysis]
 executor = "claude"
 model = "claude-opus-5-5"
-reasoning_effort = "medium"
+reasoning_effort = "high"
 reuse_root = true
 
 [presets.mixed-models.capabilities.difficult_debugging]
@@ -160,12 +160,12 @@ reasoning_effort = "high"
 [presets.mixed-models.capabilities.general_implementation]
 executor = "claude"
 model = "claude-opus-5-5"
-reasoning_effort = "medium"
+reasoning_effort = "high"
 
 [presets.mixed-models.capabilities.frontend_implementation]
 executor = "claude"
 model = "claude-opus-5-5"
-reasoning_effort = "medium"
+reasoning_effort = "high"
 
 [presets.mixed-models.capabilities.independent_review]
 executor = "codex"
@@ -180,7 +180,10 @@ reasoning_effort = "high"
 [presets.mixed-models.capabilities.browser_acceptance]
 executor = "host"
 
-[presets.mixed-models.hosts]
+[presets.mixed-models.hosts.claude.browser_acceptance]
+executor = "native"
+model = "claude-haiku-5-5"
+reasoning_effort = "high"
 
 [presets.mixed-models.escalation]
 capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]
@@ -188,7 +191,7 @@ capabilities = ["general_implementation", "frontend_implementation", "difficult_
 [[presets.mixed-models.escalation.attempts]]
 executor = "claude"
 model = "claude-opus-5-5"
-reasoning_effort = "high"
+reasoning_effort = "xhigh"
 
 [[presets.mixed-models.escalation.attempts]]
 executor = "codex"

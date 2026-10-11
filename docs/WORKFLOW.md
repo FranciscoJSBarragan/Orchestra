@@ -688,11 +688,12 @@ The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
 compatibility mirror. Its consumer is `delegate.py --resolve-only`: resolve
 the selected preset, owning host, capability, tier, and root-selected attempt
-before dispatch. It returns an exact CLI assignment, a native Codex assignment,
-root reuse, or the owning host's browser matrix. Check actual model/tool
+before dispatch. It returns an exact CLI assignment, a native Codex or Claude
+Code assignment, root reuse, or the owning host's browser matrix. Check actual model/tool
 availability before use; unavailable assignments block rather than invoking a
-different account, model, host, or billing path. Native Codex assignments must
-be supported by the active host runtime. Other hosts use Codex CLI for Codex assignments and keep their own
+different account, model, host, or billing path. Native assignments must be
+supported by the active host runtime; a Claude Code native effort without a
+matching profile needs per-dispatch effort, such as T3 `delegate_task`. Other hosts use Codex CLI for Codex assignments and keep their own
 browser route. The preset's Codex browser assignment stays native. An explicit
 CLI Chrome handoff is a separate bounded assignment under "CLI delegation";
 it does not silently override the preset or another host's matrix.

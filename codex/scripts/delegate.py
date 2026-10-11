@@ -171,8 +171,8 @@ def load_presets(path: Path) -> dict[str, Any]:
                 raise DelegateInputError(f"invalid capability overrides for {host}")
             for capability, row in overrides.items():
                 _validate_preset_row(row, capability)
-                if row["executor"] == "native" and host != "codex":
-                    raise DelegateInputError("explicit native model overrides currently require Codex")
+                if row["executor"] == "native" and host not in {"codex", "claude"}:
+                    raise DelegateInputError("explicit native model overrides require Codex or Claude Code")
         ladder = preset["escalation"]
         eligible = IMPLEMENTATION_CAPABILITIES | {"difficult_debugging"}
         if not isinstance(ladder, dict) or set(ladder) != {"capabilities", "attempts"}:
