@@ -128,6 +128,7 @@ class PlannedFlowInvariantTests(unittest.TestCase):
             "host_codex.md",
             "host_t3.md",
             "model_notes.md",
+            "finding_triage.md",
         }
         self.assertEqual({path.name for path in self.references.iterdir()}, expected)
         for name in PLAYBOOK_NAMES:

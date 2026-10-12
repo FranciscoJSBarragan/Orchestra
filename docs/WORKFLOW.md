@@ -1821,29 +1821,8 @@ documentation correction only after decision-changing independent validation;
 normative intent is never rewritten to match current implementation.
 
 The root triages every finding, from its reviewers and PR feedback alike,
-before any fix; a finding is not fixed because it was reported. In order:
-reject one that conflicts with approved intent, an invariant or an earlier
-accepted fix; resolve one that breaks only machinery no cited invariant needs
-by removing or narrowing that machinery, never by adding to it; resolve
-without code one the current HEAD disproves; take a
-genuine product, contract or authority choice, or a fix that would change
-user-visible appearance or behavior beyond the request, to the user in one
-grouped question; reject what the reviewer role skill lists under "Not
-findings" or what matters only in a deployment or exposure the system does not
-have; and confirm a plausible defect that lacks a concrete reachable scenario
-in a supported environment with one cheap deterministic check, or reject it.
-Fix the rest, grouped per owner, when it shows incorrect behavior or unmet
-acceptance; security, privacy or data-integrity risk; a regression of existing
-behavior; unsafe error handling or concurrency; missing verification of
-important behavior; a mechanism materially larger than a named smaller design
-that meets the same outcome; or scope, duplication or fragile tests with a
-demonstrated maintenance cost ("Change quality", "Behavioral verification").
-Judge impact, not label or editing cost; a false authorization claim in
-documentation is not cosmetic. A fix packet states each accepted defect, its
-evidence and the outcome or invariant it breaks; the owner designs the
-correction. The root prescribes a mechanism only when the user chose it or an
-alternative must stay excluded. Changed tests or instructions also need affected checks and delta
-review. Do not reopen unaffected evidence or loop on pure preference.
+before any fix, as the root skill's `finding triage` reference defines,
+re-reading it at each triage; a finding is not fixed because it was reported.
 
 The root alone sees every round, so it stops patching when the third review
 round of a phase or a PR still has findings or a finding lands in machinery an

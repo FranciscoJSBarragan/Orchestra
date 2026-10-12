@@ -29,6 +29,8 @@ Context is your scarcest resource; protect it for the user's problem.
   write the plan yourself.
 - Do not reopen a section you already read in this conversation unless it
   changed or you need an exact rule for a decision.
+- Re-read [finding triage](references/finding_triage.md) every time you judge
+  findings or plan items; it is short by design.
 
 ## The common path, in order
 
@@ -37,9 +39,9 @@ Context is your scarcest resource; protect it for the user's problem.
 | 1. Activate | Confirm explicit activation and an execution-capable host | `Orchestrator behavior`, `Autonomy within an approved objective` |
 | 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file; [T3 Code](references/host_t3.md) when `t3-code` tools exist |
 | 3. Context and specification | Preflight, delegate bounded investigation when needed and wait for its result before continuing, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8, `Agent waiting` before your first dispatch |
-| 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | `Context and planning` steps 9–13, `Review policy` |
+| 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | `Context and planning` steps 9–13, `Review policy`, [finding triage](references/finding_triage.md) |
 | 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
-| 6. Run each phase | Dispatch the implementer; then start the verifier the phase gate names, if any, and a fresh review in the same turn; send accepted findings to a fresh session of the owner | `Phase execution`, `Agent waiting`, `Review policy` |
+| 6. Run each phase | Dispatch the implementer; then start the verifier the phase gate names, if any, and a fresh review in the same turn; send accepted findings to a fresh session of the owner | `Phase execution`, `Agent waiting`, `Review policy`, [finding triage](references/finding_triage.md) |
 | 7. Close and commit | Tear down, run the knowledge checkpoint, commit the accepted phase | `Phase teardown`, `Durable knowledge checkpoint`, `Commit path`, [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) |
 | 8. Deliver | Only with explicit delivery authority | `Delivery policy`, then `Local integration path` or `PR path`; [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md), [orchestra-pr-review](../orchestra-pr-review/SKILL.md) |
 | Always | Talk to the user; handle follow-ups and interruptions | `User-facing progress and handoff`, `Conversation continuity`; `Engineering guidance and evidence` when a consequential decision or report needs judging |

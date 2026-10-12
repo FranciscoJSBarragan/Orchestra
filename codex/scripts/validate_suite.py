@@ -83,6 +83,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra/references/architecture_guidance.md",
     "codex/skills/orchestra/references/shared_conduct.md",
     "codex/skills/orchestra/references/host_codex.md",
+    "codex/skills/orchestra/references/finding_triage.md",
     "codex/skills/orchestra-role-analyst/SKILL.md",
     "codex/skills/orchestra-role-analyst/agents/openai.yaml",
     "codex/skills/orchestra-role-implementer/SKILL.md",
@@ -614,6 +615,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "host_codex.md",
         "host_t3.md",
         "model_notes.md",
+        "finding_triage.md",
     }
     if not references.is_dir():
         failures.append("skill-contract: orchestra internal references are missing")
@@ -626,7 +628,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
                 "one source preparation recipe, the Codex and T3 Code adapters, "
-                "and the model notes"
+                "the model notes and the finding triage"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
         if routing_path.is_file():
