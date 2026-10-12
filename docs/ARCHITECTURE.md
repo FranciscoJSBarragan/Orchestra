@@ -373,9 +373,9 @@ fresh reviewer evaluates the meaningful delta before commit.
 
 The root keeps a compact manifest of current IDs, revision, accepted findings,
 risks, and decisions. It opens complete documents for specification and
-approval, authority or risk judgment, and failed convergence. WORKFLOW
-"Context and planning" step 12 owns finding disposition and convergence. No
-review counter or limit persists.
+approval, authority or risk judgment, and failed convergence. The root
+skill's planning stage and finding triage references own finding disposition
+and convergence. No review counter or limit persists.
 
 Optional Tasks cards are not a core workflow authority. Do not
 introduce a global workflow event ledger, authority-bundle chain, duplicate Git

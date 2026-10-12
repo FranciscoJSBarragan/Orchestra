@@ -1145,11 +1145,11 @@ After explicit activation in an execution-capable mode:
    alone. Include the missing-conventions checkpoint in the same request when
    the worktree has no normative conventions.
 7. A single-phase, non-critical task may combine specification and candidate
-   plan in one message, visibly separated, only when step 11 permits skipping
-   plan and decision review; one approval covers both and a specification
-   correction invalidates the plan. Otherwise confirm the specification,
-   plan, complete required review, then request plan approval. Later in-scope
-   corrections follow "Autonomy within an approved objective".
+   plan in one message, visibly separated, only when the planning stage
+   permits skipping plan and decision review; one approval covers both and a
+   specification correction invalidates the plan. Otherwise confirm the
+   specification, plan, complete required review, then request plan approval.
+   Later in-scope corrections follow "Autonomy within an approved objective".
 8. Immediately after confirmation, create the task checkout under "Task
    checkout and branch" (fresh canonical-base tasks fetch the configured
    upstream; a failed fetch blocks; never `git pull`, implicit merge or base
@@ -1161,80 +1161,10 @@ After explicit activation in an execution-capable mode:
    --worktree <task-worktree>` and pass the returned artifacts path to every
    producer; no global registration is required. Apply "Attached Tasks
    companion" only for an attached card or explicit tracking.
-9. Confirmation starts formal planning; a selected execution preset's
-   root-reuse rule, when present, replaces the planner criteria here. The root authors the
-   plan when the work fits one phase and its material design decisions are
-   resolved; otherwise, or for critical risk or unresolved boundary decisions
-   (version compatibility, migration order, recovery semantics, ownership
-   handoffs), it dispatches `technical_planning`. Work fits one phase when one
-   owner of one implementation capability covers it, its risk order is
-   uniform and no result must be committed before another begins; item, file
-   or screen counts and crossing a runtime boundary are not criteria. Record
-   unresolved boundaries in risks or open questions; a short diff settles
-   none, and this routing waives no gate.
-   Either author reads the exact context evidence and returns one complete
-   `plan-overview` plus one `plan-phase` per phase as an explicit bundle. Each
-   phase's core is: outcome, exact allowed scope, `Outcome invariants`,
-   `State writers`, acceptance, `Implementation handoff checks` versus
-   `Independent verification gate`, and stop conditions, as the
-   `technical_planning` playbook defines; other sections only with material
-   content. Every overview carries quoted human authority ("Local task plan")
-   and a `Review context` index of exact context artifact IDs and revisions
-   (or inline labels), canonical source paths and material facts, each with
-   its `Review use`. Every phase names its context dependencies, `Context
-   maintenance paths` (`none` unless an exact versioned documentation path is
-   a named consumer; no globs or directories) and `User preview: required | none`, already
-   decided at tier selection.
-10. Default to one phase; a large task may need two or three. Each extra phase
-    is a full serial cycle (fresh owner with no carried context, handoff checks, any verifier, one
-    review, teardown, commit), so it must name the boundary it buys: the next
-    work depends on a reviewed commit; one owner cannot safely cover the
-    whole; required preview needs a reviewed commit before inspectable work
-    (preview alone is no boundary); or risk order differs materially (a
-    migration versus its UI). Distinct areas, files, cleaner commits or
-    separate reviewability are not boundaries; the limit is a diff reviewable
-    in one pass. Separately shippable changes are Kanban decomposition. A
-    non-feasibility assumption may be checked at the start of its consuming
-    phase; feasibility facts need direct evidence.
-11. With the complete bundle, read the overview, phase index, risks and only
-    the detail judgment needs, and complete any required review before
-    requesting approval. Skip independent plan review only when current
-    evidence settles the material design choices, every `State writers` entry
-    (including `none`) cites source evidence, and "Engineering guidance and
-    evidence" requires no decision review. Dispatch it for an unresolved
-    architectural alternative, consequential contract, migration or recovery
-    assumption, unfamiliar dependency or costly-to-reverse decision; counts
-    never create the gate. Prefer a bounded authorized experiment for an
-    empirical question. A critical plan always gets a focused review naming
-    its measurable risk, evidence, area and defect class. Reviews follow the
-    reviewer role skill: counterexamples first, then whether fewer phases or
-    a smaller mechanism preserves the result. Phases naming no step 10
-    boundary are collapsed by the root directly, without a review cycle.
-12. A dispatched reviewer publishes `plan-review` with stable finding IDs. The
-    root judges each defect and its proposed correction separately; accepting
-    a defect requires its cited basis and does not approve its correction. A correction that narrows,
-    excludes or excepts the confirmed outcome is replaced by an in-scope one.
-    Only a genuine new product choice, or infeasibility crossing an authority
-    boundary, goes to the user with options and consequences. Accepted IDs,
-    correction direction and the review return to the same author, which republishes only affected
-    members and names the full current bundle. After a second material review,
-    and immediately for marginal, contradictory or out-of-scope findings, the
-    root reads the exact bundle and reviews and corrects direction by finding
-    ID. No review counter or mechanical limit.
-13. Request implementation approval for the exact accepted bundle at the
-    user's altitude (or in the step 7 message), separating required outcomes
-    and binding constraints from the technical approach. The approval shows
-    the plan and every material change to the requested outcome (narrowing,
-    exclusion, exception, changed user-visible amount or behavior, new
-    user-facing consequence, including effects on indirect consumers), each
-    with its consequence and recorded in Decisions or Risks. Each `Dismissed
-    counterexamples` entry that changes a user-visible result is asked with
-    its recommended reading unless an earlier answer settles it;
-    technical-only entries stay root decisions. Ordinary technical conditions
-    are not outcome exceptions, unchanged requirements and reversible
-    technical decisions are not reconfirmed, and the disclosure adds no gate. A
-    multi-phase bundle names, one line per extra phase, the step 10 boundary
-    it buys.
+9. Confirmation starts formal planning, which the root runs as the root
+   skill's `planning stage` reference defines: who authors the plan, review,
+   finding judgment and approval. Plan documents, including phase boundaries,
+   follow the `technical_planning` playbook.
 
 All planning, implementation, review, verification and commit work uses the
 exact selected task checkout. Managed mode leaves the base checkout read-only;
@@ -1800,7 +1730,7 @@ reviewer role skill, which no packet can omit or narrow. A review packet names
 the target, revision, producer evidence to read in full, quoted user outcome,
 artifacts directory, accepted finding IDs and any exclusions. Author concerns in a packet are
 non-exhaustive prompts, never the agenda or a narrower scope. The root uses
-`Dismissed counterexamples` at approval under "Context and planning" step 13.
+`Dismissed counterexamples` at approval under the planning stage.
 
 The root may add a second plan or decision reviewer (`independent_review`)
 only for a named measurable risk whose defect class it detects independently,
