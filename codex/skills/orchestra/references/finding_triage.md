@@ -22,8 +22,10 @@ the current code, and stop at the first rule that applies:
 4. **Not reachable.** It needs a deployment, exposure, environment or
    dependency misbehavior the system does not have, or a sequence the
    product's own operations cannot produce: reject it. When reachability is
-   plausible but unshown, run one cheap deterministic check and reject it if
-   it does not reproduce.
+   plausible but unshown, run one cheap deterministic check that builds the
+   claimed state or input, and reject it only if that check disproves it. A
+   check that never creates the claimed condition, such as observing a host
+   that lacks it, proves nothing.
 5. **User choice.** A product, contract or authority decision, or a
    correction that would change user-visible appearance or behavior beyond
    the request: ask once, grouped, with your recommendation.
