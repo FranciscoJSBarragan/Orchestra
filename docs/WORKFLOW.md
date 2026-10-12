@@ -62,6 +62,13 @@ to an execution-capable mode, then continue without a second invocation.
 Orchestra observes the host mode; it never changes the host into a
 planning-only mode.
 
+Every agent writes in the user's language: messages to the user, packets,
+reports, plans, overviews and task-private artifacts, so no artifact mixes
+languages. The user's language is the one their instructions set, otherwise
+the language they write in. Literal keys, status values, markers and
+identifiers Orchestra names stay verbatim. Tracked repository artifacts
+(code, comments, commits, PRs and docs) follow the repository's convention.
+
 Every dispatch starts from a clean context: the packet and named artifacts
 carry the assignment. The root identifies the execution host from available
 tools and follows its native protocol under "Host adapters" and that host's
@@ -1270,9 +1277,9 @@ companion".
 
 Material human authority is quoted, not paraphrased: the user's outcome
 statement and each answer that settles a material product question, with that
-question, once, in Constraints or Decisions, in the original language and
-attributed to the actual speaker, while the author's surrounding text stays
-English; the question is context, not user authorization. A labeled gloss may
+question, once, in Constraints or Decisions, in the original wording and
+attributed to the actual speaker; the question is context, not user
+authorization. A labeled gloss may
 follow but never replaces or extends a quote; the Objective remains the
 root's labeled synthesis. A dispatched planner receives these quotes, and
 replacement overviews carry them unchanged; a later correction adds a new

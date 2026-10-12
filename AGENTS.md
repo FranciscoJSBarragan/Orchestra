@@ -14,9 +14,9 @@ exactly one home; other documents reference it instead of restating it.
 
 ## Language
 
-- User-facing communication is concise, practical Spanish.
-- Code, comments, commits, plans, prompts, profiles, schemas, and internal docs
-  are English.
+Agent communication and task artifacts use the user's language, per WORKFLOW
+"Orchestrator behavior". This repository's tracked files (code, comments,
+commits, skills, prompts, profiles, schemas and docs) are English.
 
 Source-writing work follows [Source comments](codex/skills/orchestra/references/architecture_guidance.md#source-comments).
 Test design and review follow [Behavioral verification](codex/skills/orchestra/references/architecture_guidance.md#behavioral-verification):
