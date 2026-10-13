@@ -49,6 +49,11 @@ Check each item by running something, not by reading alone.
    self-merging tasks cannot land a combination nobody tested. Check it with
    the host's branch-protection API and set it only after the user confirms;
    without CI on pull requests the item fails on that missing CI.
+10. **Dependency advisories.** The host's security alerts or a scheduled audit
+    job cover every package ecosystem in the repository, and runtime
+    dependencies have no open critical or high advisory at baseline. Keep it
+    out of the hard gates: a new advisory turns red without any change. Enable
+    alerts through the host's API only after the user confirms.
 
 ## Diagnose
 
