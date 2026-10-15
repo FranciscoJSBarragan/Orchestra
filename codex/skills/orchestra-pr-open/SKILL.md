@@ -13,7 +13,7 @@ The root owns PR intent synthesis and directly invokes the PR helper; PR opening
 
 1. Confirm [orchestra-delivery-policy](../orchestra-delivery-policy/SKILL.md) authorized the PR lane and the user requested `open PR` or equivalent.
 2. Inspect the full `base..HEAD` commit range and diff. Stop if base, head, or range is missing or ambiguous.
-3. Write the human body and compact intent to temporary files outside the repository and arrange cleanup.
+3. Write the human body, following [writing for readers](../orchestra/references/architecture_guidance.md#writing-for-readers), and compact intent to temporary files outside the repository and arrange cleanup.
 4. Resolve the terminal phase commit from the completed manifest and publish the
    intended branch at that exact revision. Have the root directly run `python3
    "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/pr.py" open --repo <root>

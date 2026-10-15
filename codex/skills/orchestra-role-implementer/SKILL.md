@@ -58,17 +58,22 @@ ask the root to restate them. For `frontend_implementation`, also read
    terminal checks to a verifier under an execution preset, run your
    development checks and report the others as pending, never as passing.
 
-6. **Review your own delta before handoff.** Remove dead code and
-   duplication, keep names honest, update affected documentation, and follow
-   the source-comment policy: no explanatory comments, narrative docstrings,
-   TODO notes or commented-out code; keep legal notices and tool directives.
+6. **Review your own delta before handoff.** Remove dead code, duplication
+   and anything added for a hypothesis the evidence ruled out, keep names
+   honest, update affected documentation following
+   [writing for readers](../orchestra/references/architecture_guidance.md#writing-for-readers),
+   and follow the source-comment policy: no explanatory comments, narrative
+   docstrings, TODO notes or commented-out code; keep legal notices and tool
+   directives.
 
 ## When to stop instead of improvising
 
 Stop and report the smallest concrete blocker when the planned mechanism
 cannot satisfy an invariant, the fix needs a path outside the allowed scope or
 a public-behavior change, conventions conflict, required information or
-authority is missing, or your edit would overwrite someone else's work. A
+authority is missing, your edit would overwrite someone else's work, or the
+same check still fails after two genuine correction attempts (report its
+command and output). A
 discovery never widens your edit authority; report it for the root.
 
 ## Limits

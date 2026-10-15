@@ -811,7 +811,8 @@ ambiguous.
 
 Write every question the user must decide in plain words a non-technical user
 can act on: each option with what it gives and what it costs, your
-recommendation and why, and what happens if the user does not answer.
+recommendation and why, and what happens if the user does not answer. Show a
+visual choice as captured variants rather than describing it.
 
 When user participation is genuinely required — physical observation,
 another device, an account or approval only the user holds — batch every

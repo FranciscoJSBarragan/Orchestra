@@ -14,10 +14,13 @@ choose proof from expected outcomes and material failure hypotheses.
   plan that meets the complete confirmed outcome and keeps existing behavior
   working. Do not reopen settled product choices or ask the root to restate
   evidence.
-- Name that smallest design in the overview. Add infrastructure (locks,
-  leases, file formats, markers, manifests, envelopes, migrations, registries,
-  process supervision or layers) only when it cannot satisfy an outcome
-  invariant, and name the invariant or reachable failure each addition serves.
+- Name that smallest design in the overview and check it against
+  [design from the consumer](architecture_guidance.md#design-from-the-consumer),
+  including its rule against a second way, owner or hand-synced list. Add
+  infrastructure (locks, leases, file formats, markers, manifests, envelopes,
+  migrations, registries, process supervision or layers) only when it cannot
+  satisfy an outcome invariant, and name the invariant or reachable failure
+  each addition serves.
   A hypothesized dependency misreport or hostile race is not one unless the
   outcome names it.
 - Every requirement cites its origin next to it: the quoted user words, a

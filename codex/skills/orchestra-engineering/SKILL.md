@@ -29,10 +29,13 @@ Select only the material question:
 | Need | Resource and result |
 | --- | --- |
 | Understand behavior or rationale | Shared guidance, "Understand the system": trace the relevant path and distinguish recorded intent from inference. |
+| Explain a system or a delivered change to a person | Shared guidance, "Understand the system": the smallest complete answer first in plain words, depth on request, diagrams built up one part at a time. |
 | Choose an interface or uncertain approach | Shared guidance, "Design from the consumer" and "Resolve uncertainty experimentally": a caller example or bounded experiment that informs the decision. |
 | Fix a defect | Shared guidance, "Evidence for consequential changes"; use [difficult debugging](../orchestra/references/difficult_debugging.md) for competing hypotheses or repeated failed corrections. |
 | Select or assess tests | [Behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification): expected outcomes, relevant failures and the smallest reliable proof. |
 | Check scope and maintainability | [Change quality](../orchestra/references/architecture_guidance.md#change-quality): necessary paths, suitable reuse and affected documentation. |
+| Restructure without changing behavior | [Restructuring](../orchestra/references/architecture_guidance.md#restructuring-without-behavior-change): a pin on current behavior, subtraction first, callers moved and the old path deleted. |
+| Write documentation, PR text or a report | [Writing for readers](../orchestra/references/architecture_guidance.md#writing-for-readers). |
 | Maintain a harmful pattern or instruction | Shared guidance, "Prevent recurring failures" and "Maintain patterns and knowledge"; use [repository readiness](../orchestra-repo-readiness/SKILL.md) for an explicitly requested audit or repair batch. |
 | Improve performance | Shared guidance, "Performance evidence": comparable measurement and, where useful, a runtime profile or trace. |
 | Exercise the product | Reuse the repository's verification entry; use [project verification](../orchestra-project-verification/SKILL.md) when creating, running, refreshing, or auditing that knowledge is the requested work. |

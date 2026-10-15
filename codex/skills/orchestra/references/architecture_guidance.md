@@ -126,6 +126,11 @@ fail-soft, and separate from authority and Git truth.
   to explain behavior. Simplify pass-through wrappers or scattered decisions
   when their cost is concrete. Line counts, stylistic taste, and abstraction
   counts alone are not findings.
+- Later agents see only the files they open, copy the nearest example and take
+  the shortest path that compiles. Design so a change that looks right from
+  one file is right for the repository: no second way to do an existing task,
+  no second owner of a piece of state and no list kept in sync by hand. A
+  design that needs one names why.
 
 ## Understand the system
 
@@ -138,6 +143,13 @@ only when they can settle that rationale. An absent rationale stays an
 inference; a historical comment is not proof of current behavior. Ask for
 clarification only when the unresolved meaning changes the requested result.
 
+When the reader is a person, give the smallest complete answer first in plain
+words, then stop and add depth when asked. Name a concept in general terms
+before tying it to this code, and explain the problem each part solves rather
+than listing functions. For three or more moving parts, draw a short series of
+diagrams that each add one part instead of one diagram with everything. Show
+the diff, screen or output when that lands faster than prose.
+
 ## Resolve uncertainty experimentally
 
 When an implementation choice rests on uncertain library behavior, integration
@@ -146,6 +158,12 @@ elaborate speculative plan. State the question, expected observations and
 decision it will inform. Reuse a fixture, scratch checkout or existing test
 tool and preserve the result, actual versions and limitations. A prototype's
 success proves only the behavior it exercised, not production readiness.
+
+An undecided visual direction is a user choice settled by sight. Build two or
+three throwaway variants outside production source with the lightest stack that
+renders them, capture each in the same state and present the captures with
+their trade-offs. Discard the variants; the chosen direction is then built
+normally.
 
 Experiments obey the caller's mutation, data and cost authority. A read-only
 analyst may propose a probe or inspect existing results; it cannot install,
@@ -276,6 +294,36 @@ An independent review assesses necessity and maintainability as well as
 correctness. An unnecessary changed path, duplicate helper or fragile test is
 a finding when its concrete scope or maintenance cost is demonstrated, even if
 current checks pass. Pure style preferences and hypothetical redesigns are not.
+
+## Restructuring without behavior change
+
+- Pin current behavior before moving structure: an existing test of the path, a
+  characterization test, or a comparison that runs the same inputs through the
+  base revision and the change. Type checks and lint are not a pin.
+- Delete dead code, one-caller wrappers and redundant validation before
+  building the new shape.
+- Move every caller to the new interface and delete the old one in the same
+  change; keep a compatibility path only for a consumer outside the repository.
+- Keep the pin green at each step and report what it compared. Keep the result
+  only if a reader follows fewer layers or less hidden state; otherwise revert.
+- A defect or missing feature found while restructuring is separate work, not
+  part of the move.
+
+## Writing for readers
+
+Documentation, PR bodies, commit messages and reports are read by someone with
+less context than the author.
+
+- Lead with the result or decision; context follows.
+- Give one document one purpose: steps to do something, reference to look up,
+  or an explanation of why.
+- Use the real names from the code: symbols, files, commands and flags.
+- Cut words that do no work and prefer the plain word, but write whole
+  sentences with their articles and verbs, without arrows or symbol shorthand.
+- State the mechanism or the number, not how something feels, and name the
+  source of a claim.
+- Leave out the history of how the work was done, filler and sign-offs unless
+  the reader needs them.
 
 ## Behavioral verification
 
@@ -430,13 +478,16 @@ Use a runtime profile, query plan or trace when it can distinguish the proposed
 bottleneck from competing explanations. Report what was measured, including
 correctness and resource tradeoffs; less code or a plausible optimization is
 not measured speed. Avoid changing several independent mechanisms at once.
+Look for the cheapest correction first: skip work nothing uses, avoid repeating
+it, do less of it, defer it, run it concurrently, and only then make it cheaper.
 
 ## Verification recipes
 
 Use the repository's existing commands, fixtures, and documentation first. When
 they do not already establish the named acceptance, supply only the missing
 recipe: prerequisites and safe data/reset; exact startup or check commands and
-cwd; an observable readiness condition when a service is needed; the
+cwd; an observable readiness condition when a service is needed, showing the
+application can serve the journey rather than only that a port answers; the
 representative user journey or runtime scenario and expected results; evidence
 to capture; and cleanup of owned resources or data. Omit inapplicable parts and
 reference maintained instructions instead of copying them.
@@ -457,6 +508,10 @@ not proof of functional correctness or parity. Use the existing design system
 and user-approved visual intent rather than inventing taste-based gates.
 
 Distinguish a recipe established from source from a run actually observed at a
-named revision. A command exit or reachable page is sufficient only when it
-proves the requested behavior. The assigned executor records results and
-limitations; missing access or unsafe data never grants execution authority.
+named revision. A run in a stand-in for the real target (a container for a
+machine, a local stack for a remote one, another operating system) lists the
+setup the stand-in provided that the target will not; that setup stays
+unverified until the target runs it. A command exit or reachable page is
+sufficient only when it proves the requested behavior. The assigned executor
+records results and limitations; missing access or unsafe data never grants
+execution authority.
