@@ -50,10 +50,13 @@ ask the root to restate them. For `frontend_implementation`, also read
 
 5. **Run every required check.** Affected tests, lint, type checks, builds,
    validation commands, the canonical full suite and each repository hard
-   gate. Fix failures inside scope and rerun. A skipped, weaker, stale or
-   invented pass is not `implemented`. If the packet assigns terminal checks
-   to a verifier under an execution preset, run your development checks and
-   report the others as pending, never as passing.
+   gate. Fix failures inside scope and rerun. A test that passed before your
+   change and now fails is evidence against the change: fix the code, not
+   the test, unless the approved phase changes the behavior it checks; if
+   the code cannot satisfy it inside scope, stop and report. A skipped,
+   weaker, stale or invented pass is not `implemented`. If the packet assigns
+   terminal checks to a verifier under an execution preset, run your
+   development checks and report the others as pending, never as passing.
 
 6. **Review your own delta before handoff.** Remove dead code and
    duplication, keep names honest, update affected documentation, and follow

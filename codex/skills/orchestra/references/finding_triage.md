@@ -28,7 +28,9 @@ the current code, and stop at the first rule that applies:
    that lacks it, proves nothing.
 5. **User choice.** A product, contract or authority decision, or a
    correction that would change user-visible appearance or behavior beyond
-   the request: ask once, grouped, with your recommendation.
+   the request: ask once, grouped, with your recommendation, in the
+   plain-language form WORKFLOW "Autonomy within an approved objective"
+   defines.
 6. **Accept** the rest: incorrect behavior or unmet acceptance, a regression
    of existing behavior, a security, privacy or data risk, unsafe error
    handling or concurrency, missing verification of important behavior, a
@@ -42,9 +44,11 @@ Before sending accepted findings:
 - **Proportional correction.** When the smallest correction needs a new
   mechanism larger than the defect (process control, protocol, state, lock,
   retry or supervision layer), question the requirement before building it:
-  narrow the plan item or ask the user. A finding inside machinery an earlier
-  correction added means that correction was wrong: remove it instead of
-  patching it.
+  narrow the plan item or ask the user. Prefer, in order, a correction that
+  removes what makes the defect possible, a check that stops it from
+  returning, then a local fix; new state, flags or layers come last. A
+  finding inside machinery an earlier correction added means that correction
+  was wrong: remove it instead of patching it.
 - **Rounds.** Only an accepted finding that breaks the outcome, regresses
   existing behavior or risks security, privacy or data opens a fix round with
   a fresh delta review. Minor accepted findings (wording, docs, messages,

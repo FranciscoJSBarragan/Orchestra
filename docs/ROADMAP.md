@@ -107,6 +107,25 @@ reliability, latency, and token use. The benchmark informs a later explicit
 product decision; it does not silently rewrite assignments, add a benchmarking
 profile, persist workflow telemetry, or require a benchmark control plane.
 
+### Candidates from gentle-ai awaiting a measured case
+
+Reviewed on 2026-10-15 against gentle-ai `4acaf42`, whose project reports
+measuring both in its own bench. Neither is adopted until an Orchestra
+evaluation shows a gain:
+
+- **Differential check.** Before handoff, the implementer runs existing
+  commands or endpoints that share the changed code with the new input against
+  a scratch copy of the base revision and against the change; an unrequested
+  difference is a regression to fix and pin with a test. It needs an
+  evaluation case with a known regression of existing behavior that review
+  missed; none is recorded yet.
+- **Risk-gated review pair.** Run the review pair only when the change touches
+  a named high-risk item (stored data or irreversible effects, security,
+  consumed contracts, concurrency, delivery or environment, or no test that
+  would catch a regression) and one reviewer otherwise. Every recorded pair
+  gain came from such tasks; single-reviewer recall on ordinary changes is
+  unmeasured.
+
 ## Modular workflow acceptance
 
 Reusable engineering and project-verification entries plus an explicit parent
