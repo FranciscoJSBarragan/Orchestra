@@ -1449,38 +1449,41 @@ delivery gates still apply.
    second failure blocks the phase.
    A `required` preview completes, with absorption, before the next step;
    never verify or review the pre-pause revision.
-3. The root first validates the owner's evidence inventory. For a gate of
+3. The root first validates the owner's evidence inventory, then starts the
+   review in step 4. For a gate of
    `none` it creates no verifier; otherwise at most one verifier per
    applicable capability, passing the gate reason, overview, phase,
    implementation report, authority and revision. Each publishes a complete
-   `verification-report`. The gate runs on the first stable handoff, in
-   parallel with the first review, and once more on the final revision before
-   commit when a fix changed its inputs; fix rounds in between rely on the
-   owner's handoff checks and delta review. A failure goes to a fix round with
-   its report and accepted finding IDs, without root-authored replay. The
+   `verification-report`. The gate runs once, on the first revision whose
+   review leaves no accepted open finding, because a run before review
+   converges is repeated on the fixed revision; fix rounds before it rely on
+   the owner's handoff checks and delta review. An execution-preset terminal
+   gate instead precedes review, as "Delegated execution presets" defines. A
+   failure goes to a fix round with its report and accepted finding IDs,
+   without root-authored replay; after the fix's delta review the verifier
+   reruns only the failed scenarios and those the fix affects. The
    verifier receives the revision as a commit SHA: `HEAD` when committed,
    otherwise a commit of the working tree that leaves branch and index
    untouched (`t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD &&
    GIT_INDEX_FILE=$t git add -A && git commit-tree $(GIT_INDEX_FILE=$t git
    write-tree) -p HEAD -m verify`). Verification copies are `git worktree add
-   --detach` checkouts of that SHA; equal SHAs prove equal trees, so no file
-   manifests or hash inventories.
-   On `blocked`, the root decides whether review proceeds on source alone and
-   records the blocked reason in the review evidence. While a stable revision is under verification the root does
+   --detach` checkouts of that SHA; equal SHAs prove equal trees, so the
+   packet names that SHA and the scenarios to run, with no file manifests or
+   hash inventories.
+   On `blocked`, the root decides whether the phase proceeds without that
+   evidence and records the blocked reason in the phase evidence. While a stable revision is under verification the root does
    no speculative source review; it interrupts only for a changed revision or
    a finding confirmed against the exact current source and diff that
    invalidates that packet. Verifier
    discoveries stay in the verification report and get a disposition before
    use.
 4. One reviewer receives the plan path with the relevant user and root
-   decisions as authority, exact overview, phase, implementation and
+   decisions as authority, exact overview, phase, implementation and any
    verification IDs, every context artifact the overview and phase require,
    the cited screenshots for a visible change, and the exact `.agent/` seed
    paths when the commit will include root-authored `.agent/` files (that
-   commit cannot close without their inspection). With an independent gate,
-   review may run in parallel with verification; the reviewer then consumes
-   each `verification-report` (or explicitly accepted blocker), and any replacement
-   evidence after a failed verification, as a delta before publishing.
+   commit cannot close without their inspection). The delta review of a fix
+   for a failed verification receives that `verification-report`.
    The reviewer inspects source and diff independently, judges approved
    intent before project guardrails and implementation evidence, and
    publishes a complete initial `implementation-review` with `Context basis`
@@ -1760,11 +1763,14 @@ before any fix, as the root skill's `finding triage` reference defines,
 re-reading it at each triage; a finding is not fixed because it was reported.
 
 The root alone sees every round, so it stops patching when the third review
-round of a phase or a PR still has findings or a finding lands in machinery an
-earlier correction added. It compares the change's size with the problem and
-seeks a simpler design that removes the failure class; when the outcome admits
-unbounded failures, it narrows the failure model with the parent or user before
-another round.
+round of a phase or a PR still has findings, the second independent
+verification of a phase fails, a run in a scarce environment (hardware, a
+limited or costly session) fails, or a finding lands in machinery an earlier
+correction added. Replanning a phase does not reset these counts. It compares
+the change's size with the problem and seeks a simpler design that removes the
+failure class; when the outcome admits unbounded failures, such as timing,
+availability or hardware behavior only a run can show, it narrows the failure
+model or acceptance with the parent or user before another round or run.
 
 ### Mechanical release metadata
 

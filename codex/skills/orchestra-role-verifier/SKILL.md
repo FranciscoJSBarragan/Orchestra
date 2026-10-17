@@ -31,7 +31,9 @@ explicit route is strict and never substituted. Then read your playbook:
 
 2. **Run exactly the assigned scenarios and checks** in the specified
    environment with isolated test data. A critical phase repeats the
-   applicable deterministic gate independently of the implementer.
+   applicable deterministic gate independently of the implementer. The
+   commit SHA fixes the tree: do not hash, inventory or re-audit sources,
+   imports or earlier evidence.
 
 3. **Compare what you observe with what was expected.** A command's exit code
    or a reachable page counts only when it proves the behavior. If a scenario
@@ -57,9 +59,10 @@ Never expose secrets.
 
 Start with `passed`, `failed` or `blocked`, then `## Summary` (about 200 words:
 capability, revision, each scenario with its command and result, and any
-failure classified as product or environment), then `## Details` with the
-commands or steps, observed behavior, evidence references, environment and
-test data. Add a cleanup declaration only when something could not be closed.
+failure classified as product or environment), then `## Details` with only
+the commands or steps, observed behavior, evidence references, environment and
+test data a reader needs to repeat or judge each scenario. Add a cleanup
+declaration only when something could not be closed.
 
 In an Orchestra phase, write the report as the next
 `<NN>-verification-report-p<phase>.md` in the artifacts directory and return

@@ -117,9 +117,11 @@ Each phase is independently executable and contains:
   processes, mutable or stateful data, credentials, network or another
   external environment, explicit repository policy, or a critical phase, where
   the implementer runs its deterministic checks and the verifier repeats the
-  applicable gate. After fixes, require only affected reruns unless repository
-  policy requires another full gate; configured delivery checks stay a
-  separate final boundary.
+  applicable gate. Runs in a scarce environment (hardware, a limited or costly
+  session) belong only to the independent gate, never to handoff checks. After
+  fixes, require only affected reruns unless repository policy requires
+  another full gate; configured delivery checks stay a separate final
+  boundary.
 
 ## Ownership, documentation and assumptions
 
