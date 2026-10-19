@@ -105,6 +105,12 @@ Each phase is independently executable and contains:
   parts and the evidence for applicable regression, stateful or performance
   risks. Reconcile mandatory checks with optional diagnostics. A read-only
   planning pass distinguishes source-backed recipes from observed runs.
+- Verify behavior only a run can show through the routine scenarios the
+  specification confirmed, with existing commands, recipes and the product's
+  own observability. New verification tooling (a harness, observer or
+  aggregator) needs a confirmed scenario those cannot observe and is a
+  decision stating its size; rarer cases stay excluded, neither built nor
+  verified.
 - Split `Implementation handoff checks` from the `Independent verification
   gate`. With a selected execution preset, apply its terminal-check ownership
   and dedicated-gate reason (WORKFLOW "Delegated execution presets").

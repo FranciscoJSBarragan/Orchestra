@@ -36,13 +36,14 @@ Read this once the specification is confirmed. Re-read
    affected members and names the full current bundle. After a second material
    review, and at once for marginal, contradictory or out-of-scope findings,
    read the exact bundle and reviews yourself and correct direction by finding
-   ID. There is no review counter.
+   ID.
 5. **Approval.** Request approval of the exact accepted bundle at the user's
    altitude, separating required outcomes and binding constraints from the
-   technical approach. Show every material change to the requested outcome
-   (narrowing, exclusion, exception, changed user-visible amount or behavior,
-   new user-facing consequence, including effects on indirect consumers) with
-   its consequence, recorded in Decisions or Risks. Ask each `Dismissed
+   technical approach, including any new verification tooling and its size.
+   Show every material change to the requested outcome (narrowing, exclusion,
+   exception, changed user-visible amount or behavior, new user-facing
+   consequence, including effects on indirect consumers) with its
+   consequence, recorded in Decisions or Risks. Ask each `Dismissed
    counterexamples` entry that changes a user-visible result with its
    recommended reading unless an earlier answer settles it; technical-only
    entries stay your decisions. Do not reconfirm unchanged requirements,

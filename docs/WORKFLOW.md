@@ -1147,8 +1147,12 @@ After explicit activation in an execution-capable mode:
    user's words or a binding contract settle it; when plausible readings
    change a user-visible result, ask it as a material question with a
    recommended reading, never settled by literal wording or current behavior
-   alone. Include the missing-conventions checkpoint in the same request when
-   the worktree has no normative conventions.
+   alone. When acceptance depends on behavior only a run can show (hardware,
+   timing, availability, long-running use), confirm the routine-use scenarios
+   that prove it; rarer cases go to Exclusions as deferred, neither built nor
+   verified, unless the user asks for them. Include the missing-conventions
+   checkpoint in the same request when the worktree has no normative
+   conventions.
 7. A single-phase, non-critical task may combine specification and candidate
    plan in one message, visibly separated, only when the planning stage
    permits skipping plan and decision review; one approval covers both and a
@@ -1763,7 +1767,7 @@ before any fix, as the root skill's `finding triage` reference defines,
 re-reading it at each triage; a finding is not fixed because it was reported.
 
 The root alone sees every round, so it stops patching when the third review
-round of a phase or a PR still has findings, the second independent
+round of a plan, a phase or a PR still has findings, the second independent
 verification of a phase fails, a run in a scarce environment (hardware, a
 limited or costly session) fails, or a finding lands in machinery an earlier
 correction added. Replanning a phase does not reset these counts. It compares
