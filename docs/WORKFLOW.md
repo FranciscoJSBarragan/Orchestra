@@ -109,13 +109,15 @@ browser route: acceptance uses `codex-cu` or an explicitly selected Codex CLI
 Chrome handoff under "CLI delegation", otherwise `blocked`.
 
 Inside T3 Code (its `t3-code` MCP tools are available) the provider remains
-the host with its matrix, except that on `standard` and `critical` the review
-pair under "Review policy" is `gpt-6.1-sol` and `claude-haiku-5-5`, both at
-`high`. T3 creates a `managed` checkout through
-`t3_worktree_handoff` and carries roles through `delegate_task` with the
-row's explicit provider, model and effort, as `host_t3.md` defines; the root
-still checks Git after every child and delivers with preserved T3-owned
-resources.
+the host, but roles follow the `mixed-models` execution preset whatever that
+provider, unless the user asks for a host tier or another preset; changing the
+root's model or provider mid-task keeps the preset recorded in the plan. On
+`standard` and `critical` the review pair under "Review policy" is
+`gpt-6.1-sol` and `claude-haiku-5-5`, both at `high`. T3 creates a `managed`
+checkout through `t3_worktree_handoff` and carries every role through
+`delegate_task` with the row's explicit provider, model and effort, as
+`host_t3.md` defines; the root still checks Git after every child and
+delivers with preserved T3-owned resources.
 
 Resolve executable resources through `orchestra/runtime.md`. A plugin keeps
 skills, helpers, profiles, host matrices and presets in one relocatable
@@ -681,15 +683,16 @@ substitute for it.
 available from Codex, Cursor, Grok, Devin, and Claude Code. Selecting it explicitly authorizes its
 assignments and bounded recovery ladder within the task's existing scope and
 permissions; it never activates Orchestra by itself, changes the root model
-or effort, or grants delivery authority. Ordinary native assignments remain
-the default. Do not combine it with another tier silently: a tier change
-requires an explicit choice to leave the preset or select a compatible one.
+or effort, or grants delivery authority. Outside T3 Code, ordinary native
+assignments remain the default. Do not combine it with another tier silently:
+a tier change requires an explicit choice to leave the preset or select a
+compatible one.
 `cross-review` keeps every assignment on the owning host's matrix and sends
 only independent review to another model family, because a reviewer from
 the implementer's family tends to share its blind spots.
 `mixed-models` gives each capability the model family chosen for it from
-measured role runs; inside T3 Code its assignments run through
-`delegate_task`.
+measured role runs; it is the default inside T3 Code ("Host adapters"), where
+its assignments run through `delegate_task`.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
@@ -1009,8 +1012,10 @@ Opus 5.5 on `critical`), because the root owns the approval gates; the user's
 For every spawned dispatch, select a capability, profile, and explicit model
 and effort from the owning host's matrix, unless an explicit CLI assignment or
 execution preset overrides it. An unavailable assignment blocks that dispatch
-until the user selects a supported option. Never silently substitute a bridge
-alias, another provider, or an account with different billing.
+until it is available again or the user selects a supported option. A quota or
+credit failure never changes the tier or preset; the next dispatch tries that
+assignment again before reporting it unavailable. Never silently substitute a
+bridge alias, another provider, or an account with different billing.
 
 The current workflow does not resume a former Codex external-mode task under
 native assignments automatically. If an existing plan records external or dual
@@ -1237,7 +1242,8 @@ HEAD and commits with Git, then each phase by exact ID or path. Do not require
 a clean worktree or a phase commit; preserve uncommitted unique work and
 report Git and plan status. After reclaim on another host, skip the previous
 host's wait and close contract, spawn fresh workers, re-read this
-host's matrix and recommend an assigned tier; permissions stay those of the
+host's matrix and recommend an assigned tier, or inside T3 Code keep the
+plan's recorded preset; permissions stay those of the
 current chat. Git is authoritative for code and history; the plan only for
 approved intent, bundle and progress. A missing or unreadable plan blocks
 automatic continuation until reconstructed and realigned with the user.

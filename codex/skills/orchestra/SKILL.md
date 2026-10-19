@@ -98,8 +98,9 @@ spawn protocol: Codex `spawn_agent` and `wait_agent`; Cursor its Task adapter;
 Grok Build `spawn_subagent`; Devin `run_subagent`; Claude Code `Agent` and
 `SendMessage`. Each host reads its own
 installed matrix. When the `t3-code` MCP tools are available, the session runs
-inside T3 Code: keep the provider's host and matrix, and create the checkout
-and dispatch roles as [T3 Code](references/host_t3.md) defines. Explicit CLI delegation is a separate executor contract and
+inside T3 Code: roles follow the `mixed-models` preset unless the user asks
+otherwise, and the checkout and every dispatch follow
+[T3 Code](references/host_t3.md). Explicit CLI delegation is a separate executor contract and
 never changes the owning host.
 
 ## Hard limits

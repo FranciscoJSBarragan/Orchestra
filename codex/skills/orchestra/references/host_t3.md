@@ -2,10 +2,13 @@
 
 Use this reference when the `t3-code` MCP tools (`delegate_task`,
 `t3_worktree_handoff`, `orchestrator_capabilities`) are available. T3 Code
-hosts the provider session; the provider remains the Orchestra host and its
-matrix assigns every capability except the review pair WORKFLOW defines for
-T3. T3 replaces only checkout creation and role transport. Specification,
-planning, review policy, commits, and delivery are unchanged.
+hosts the provider session; the provider remains the Orchestra host, and the
+`mixed-models` execution preset assigns every capability, with the review pair
+WORKFLOW "Host adapters" defines for T3, unless the user asks for a host tier
+or another preset. Record the selection in the plan Decisions; a later root on
+another model or provider keeps it. T3 also replaces checkout creation and
+role transport. Specification, planning, review policy, commits, and delivery
+are unchanged.
 
 ## Outside T3
 
@@ -42,14 +45,13 @@ remove its worktree.
 ## Role transport
 
 Dispatch each role with `delegate_task`; its child runs in the root's bound
-checkout. Map the matrix row onto `target`: the host's `providerInstanceId`,
-the row's exact `model` from the live `orchestrator_capabilities` catalog, and
-the row's effort in that model's advertised option (`effort` on Claude,
-`reasoningEffort` on Codex and Grok). A pair reviewer uses the provider
-instance that serves its model, and both start in the same turn. A missing
-model or effort blocks; never substitute. On Claude Code this sets effort per dispatch, so the
-`<profile>_<effort>` agents are not needed. A selected execution preset's CLI
-assignment may use `delegate_task` with the same provider, model, and effort.
+checkout. Map the resolved row onto `target`: the `providerInstanceId` that
+serves the row's model, its exact `model` from the live
+`orchestrator_capabilities` catalog, and its effort in that model's advertised
+option (`effort` on Claude, `reasoningEffort` on Codex and Grok). Both pair
+reviewers start in the same turn. A missing model or effort blocks; never
+substitute. This sets effort per dispatch, so the Claude Code
+`<profile>_<effort>` agents are not needed.
 
 - Use `runtimeMode: inherit`; T3 permissions are observed, never raised.
 - The packet is the normal role packet plus: do not delegate, launch threads,
@@ -71,8 +73,7 @@ assignment may use `delegate_task` with the same provider, model, and effort.
   anything other than its declared report blocks, as under WORKFLOW "CLI
   delegation".
 
-Native host spawn stays valid; use one transport per phase cohort. Task roots
-for an initiative follow the T3 section of
+Task roots for an initiative follow the T3 section of
 [host transports](../../orchestrator/host-transports.md).
 
 ## Browser

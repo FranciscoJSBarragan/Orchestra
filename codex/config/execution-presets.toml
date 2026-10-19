@@ -173,17 +173,22 @@ model = "gpt-6.1-sol"
 reasoning_effort = "high"
 
 [presets.mixed-models.capabilities.runtime_verification]
-executor = "claude"
-model = "claude-haiku-5-5"
-reasoning_effort = "high"
+executor = "codex"
+model = "gpt-6.1-sol"
+reasoning_effort = "medium"
 
 [presets.mixed-models.capabilities.browser_acceptance]
 executor = "host"
 
+[presets.mixed-models.hosts.codex.browser_acceptance]
+executor = "native"
+model = "gpt-6.1-sol"
+reasoning_effort = "medium"
+
 [presets.mixed-models.hosts.claude.browser_acceptance]
 executor = "native"
-model = "claude-haiku-5-5"
-reasoning_effort = "high"
+model = "gpt-6.1-sol"
+reasoning_effort = "medium"
 
 [presets.mixed-models.escalation]
 capabilities = ["general_implementation", "frontend_implementation", "difficult_debugging"]

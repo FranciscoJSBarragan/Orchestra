@@ -1195,14 +1195,15 @@ class ExecutionPresetTests(unittest.TestCase):
             self.assertEqual(route["executor"], "host")
             self.assertIsNone(route["model"])
 
-    def test_claude_host_browser_override_resolves_native(self):
-        args = delegate.build_parser().parse_args([
-            "--preset", "mixed-models", "--host", "claude",
-            "--capability", "browser_acceptance", "--resolve-only",
-        ])
-        route = delegate.resolve_preset(args)
-        self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
-                         ("native", "claude-haiku-5-5", "high"))
+    def test_mixed_models_browser_override_resolves_native(self):
+        for host in ("codex", "claude"):
+            args = delegate.build_parser().parse_args([
+                "--preset", "mixed-models", "--host", host,
+                "--capability", "browser_acceptance", "--resolve-only",
+            ])
+            route = delegate.resolve_preset(args)
+            self.assertEqual((route["executor"], route["model"], route["reasoning_effort"]),
+                             ("native", "gpt-6.1-sol", "medium"))
 
     def test_bounded_recovery_keeps_role_and_selects_codex_transport_by_host(self):
         for host in ("codex", "cursor", "grok", "devin"):
