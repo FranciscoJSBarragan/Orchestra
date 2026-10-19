@@ -2192,6 +2192,21 @@ to the root for resolution.
 
 It does not authorize release, deployment, or production mutation.
 
+## Migrations at delivery
+
+Migrations change databases outside Git, so delivery checks them. Before
+delivery they run only on databases the task owns or can discard. Before merge
+or local integration, confirm the task's migrations still apply in order on the
+current base: no migration merged since the task started reuses their version
+or opens a second head. After verified delivery of a range that adds
+migrations, run the repository's migration status command for each environment
+its conventions name, and apply pending migrations only where those conventions
+let an agent apply them. Everywhere else, including interactive confirmations
+and production, the completion handoff lists each environment's pending
+migrations with the exact command as the next step needing authority. When
+conventions name no status command or environment, it lists the delivered
+migration files and asks where they apply.
+
 ## Maturity
 
 Automated checks and representative canaries provide evidence. Codex, Cursor,
