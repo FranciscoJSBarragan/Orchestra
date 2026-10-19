@@ -39,7 +39,8 @@ Read this once the specification is confirmed. Re-read
    ID.
 5. **Approval.** Request approval of the exact accepted bundle at the user's
    altitude, separating required outcomes and binding constraints from the
-   technical approach, including any new verification tooling and its size.
+   technical approach, including any new verification tooling and its size
+   and any step the user must perform.
    Show every material change to the requested outcome (narrowing, exclusion,
    exception, changed user-visible amount or behavior, new user-facing
    consequence, including effects on indirect consumers) with its

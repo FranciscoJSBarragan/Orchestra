@@ -60,6 +60,11 @@ Before sending accepted findings:
   defect, its evidence and the outcome or invariant it breaks. The owner
   designs the correction; prescribe a mechanism only when the user chose it
   or an alternative must stay excluded.
+- **Root correction.** When an accepted finding names one local change (a
+  wrong value, a missing call or condition) that adds no mechanism, state or
+  test, you may apply it yourself instead of a fix packet, rerun the checks it
+  affects and give their result to the round's fresh delta review. A finding
+  on your correction returns to the owner; never correct your own correction.
 
 At plan approval, apply rules 2 and 4 and the proportional-correction check to
 the plan's own invariants, decisions and mechanisms, not only to reviewer

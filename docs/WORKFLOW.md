@@ -725,7 +725,7 @@ itself. Independent plan and code reviews still follow Review policy.
 
 Delegate coherent assignments, not individual searches or commands. Context
 workers return focused source evidence; the root does not repeat their whole
-investigation. Each fix round is a fresh implementer session and each delta
+investigation. Each implementer fix round is a fresh session and each delta
 review a fresh reviewer. Never forward the full chat or convert an implementer
 session into its reviewer.
 
@@ -814,10 +814,12 @@ can act on: each option with what it gives and what it costs, your
 recommendation and why, and what happens if the user does not answer. Show a
 visual choice as captured variants rather than describing it.
 
-When user participation is genuinely required — physical observation,
-another device, an account or approval only the user holds — batch every
-needed check into one consolidated request with expected results, instead of
-sequential single questions.
+When user participation is genuinely required — a physical action or
+observation (unplugging a monitor, another device), how the result feels or
+looks in use, an account or approval only the user holds — batch every needed
+check into one consolidated request with expected results, instead of
+sequential single questions. A verifier or a command keeps everything it can
+run or observe, and the product's own logs or output judge a physical step.
 
 ## Conversation continuity
 
@@ -1503,8 +1505,9 @@ delivery gates still apply.
    on it, and returns
    `blocked` for missing or stale context only when that exact material
    judgment is named, after reporting independently resolvable findings.
-5. The review and accepted finding IDs return to the same logical owner; the
-   root does not restate findings.
+5. The review and accepted finding IDs return to the same logical owner,
+   except a root correction under finding triage; the root does not restate
+   findings.
    Context discoveries follow "Material context discovery and promotion":
    confirm only when a result could change acceptance, a disposition,
    replanning or a needed persist; product documentation returns to the owner;
@@ -2120,7 +2123,8 @@ The unchanged public PR skills preserve the proven behavioral chain:
    cannot become clean without the terminal review "Review policy" requires.
    The root keeps revision-scoped dispositions in memory for the current
    observation and never persists a feedback ledger.
-5. A fresh session of the implementation owner applies accepted fixes, reruns the checks
+5. A fresh session of the implementation owner, or the root for a root
+   correction under finding triage, applies accepted fixes, reruns the checks
    they affect, and publishes a replacement `implementation-report`; only an
    affected independent gate reruns, with the same verifier. The pushed
    head's PR checks and the merge helper's configured checks remain the full
