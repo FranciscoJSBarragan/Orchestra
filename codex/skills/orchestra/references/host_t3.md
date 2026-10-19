@@ -50,7 +50,7 @@ serves the row's model, its exact `model` from the live
 `orchestrator_capabilities` catalog, and its effort in that model's advertised
 option (`effort` on Claude, `reasoningEffort` on Codex and Grok). Both pair
 reviewers start in the same turn. A missing model or effort blocks; never
-substitute. This sets effort per dispatch, so the Claude Code
+substitute silently. This sets effort per dispatch, so the Claude Code
 `<profile>_<effort>` agents are not needed.
 
 - Use `runtimeMode: inherit`; T3 permissions are observed, never raised.

@@ -1011,11 +1011,15 @@ Opus 5.5 on `critical`), because the root owns the approval gates; the user's
 
 For every spawned dispatch, select a capability, profile, and explicit model
 and effort from the owning host's matrix, unless an explicit CLI assignment or
-execution preset overrides it. An unavailable assignment blocks that dispatch
-until it is available again or the user selects a supported option. A quota or
-credit failure never changes the tier or preset; the next dispatch tries that
-assignment again before reporting it unavailable. Never silently substitute a
-bridge alias, another provider, or an account with different billing.
+execution preset overrides it. An unavailable assignment blocks only that
+dispatch until the user selects a supported option. When quota or credits are
+the cause, continue work that does not need it and ask once: a recommended
+substitute for the affected roles, keeping a reviewer outside the
+implementer's model family, or waiting until the user reports the quota is
+back, after which the original assignment runs again. A chosen substitute is
+recorded in the plan Decisions for those roles until the user changes it and
+never changes the tier or preset. Never silently substitute a bridge alias,
+another provider, or an account with different billing.
 
 The current workflow does not resume a former Codex external-mode task under
 native assignments automatically. If an existing plan records external or dual
