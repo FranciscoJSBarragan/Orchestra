@@ -192,6 +192,25 @@ From mattpocock/skills `5beb35b`, reviewed on 2026-10-20:
 - **Handoff document** (`handoff`): the local plan, conversation continuity
   and host compaction already carry the work forward.
 
+From pstack `13f7ad1`, reviewed on 2026-10-21 and measured on 2026-10-22:
+
+- **Formal verification skills** (`create-formal-verification-skill`,
+  `maintain-formal-verification-skill`): on NeniTPV before its cash-drawer
+  race fix, one blind run of each with the same model, a TLA+ model with
+  real-code reproduction and a plain investigation reproducing with ordered
+  threads, found the same two of three known defects and missed the same
+  PostgreSQL-only one. The plain run found more, scoped them by entry route
+  and took 11 instead of 19 minutes. Revisit for a protocol designed before
+  runnable code exists or for interleavings that real-code reproduction
+  cannot reach.
+- **Prompt sharpening** (`/sharpen`): asking what an expert would add that the
+  user did not request widens scope, as an exhaustive specification did before
+  the owner narrowed it to routine use; primary sources and an outside check
+  already belong to research and verification.
+- **Brand from a type guard instead of `as`** (TypeScript): the compiler checks
+  a type predicate no more than the cast it replaces; creating brands only in
+  a parse function already gives the guarantee.
+
 ## Modular workflow acceptance
 
 Reusable engineering and project-verification entries plus an explicit parent
