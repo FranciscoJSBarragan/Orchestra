@@ -47,15 +47,17 @@ remove its worktree.
 Dispatch each role with `delegate_task`; its child runs in the root's bound
 checkout. Map the resolved row onto `target`: the `providerInstanceId` of the
 row's `executor` (`claude` → `claudeAgent`, `codex` → `codex`, `cursor` →
-`cursor`, `grok` → `grok`; a `native` row and each review-pair model use their
-model family's instance, `codex` for `gpt-*` and `claudeAgent` for `claude-*`),
+`cursor`, `grok` → `grok`; a `host` row uses the root's own instance; a
+`native` row and each review-pair model use their model family's instance,
+`codex` for `gpt-*` and `claudeAgent` for `claude-*`),
 never another instance that serves the same model id, such as an ACP registry
 instance or `cursor` for a `claude` row; its exact
 `model` from the live `orchestrator_capabilities` catalog; and its effort in
 the effort option that model advertises there. A Cursor alias that encodes
-effort maps to the catalog model with that effort option and `fastMode` set by
-a `-fast` suffix: `grok-4.7-xhigh` is `grok-4.7` at `xhigh` with `fastMode`
-off. Both pair reviewers start in the same turn. A missing model or effort blocks; never
+effort maps to the catalog model with that effort option and an explicit
+`fastMode`, `true` only for a `-fast` suffix, since the instance default may be
+on: `grok-4.7-xhigh` is `grok-4.7` at `xhigh` with `fastMode: false`. Both pair
+reviewers start in the same turn. A missing model or effort blocks; never
 substitute silently. This sets effort per dispatch, so the Claude Code
 `<profile>_<effort>` agents are not needed.
 
