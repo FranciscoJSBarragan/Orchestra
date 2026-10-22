@@ -137,9 +137,8 @@ model = "gpt-6.1-sol"
 reasoning_effort = "high"
 
 [presets.mixed-models.capabilities.web_research]
-executor = "grok"
-model = "grok-4.7-build-fast"
-reasoning_effort = "high"
+executor = "cursor"
+model = "grok-4.7-xhigh"
 
 [presets.mixed-models.capabilities.technical_planning]
 executor = "claude"
