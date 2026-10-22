@@ -213,12 +213,12 @@ def open_pr(
     commit_lines = [line for line in commits.stdout.splitlines() if line]
     if not commit_lines:
         return blocked("base..HEAD contains no commits")
-    changed = _git(repo, "diff", "--no-renames", "--name-only", f"{base}..{head}")
+    changed = _git(repo, "diff", "--no-renames", "--name-only", f"{base}...{head}")
     if changed.returncode:
-        return _command_error("git diff base..HEAD", changed)
+        return _command_error("git diff base...HEAD", changed)
     changed_paths = [path for path in changed.stdout.splitlines() if path]
     if not changed_paths:
-        return blocked("base..HEAD contains no changed paths")
+        return blocked("base...HEAD contains no changed paths")
 
     try:
         human_body = body_file.read_text(encoding="utf-8")

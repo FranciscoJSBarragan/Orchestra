@@ -388,6 +388,22 @@ else:
         self.assertIn("first.txt", body)
         self.assertIn("second.txt", body)
 
+    def test_open_lists_only_branch_paths_after_the_base_moves(self) -> None:
+        task = self.repo
+        self.repo = self.base
+        self.write("main-only.txt", "main\n")
+        self.git("add", "main-only.txt")
+        self.git("commit", "-q", "-m", "main moves on")
+        self.repo = task
+
+        result, payload = self.run_pr(*self.open_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        create = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "create"])
+        body = create[create.index("--body") + 1]
+        self.assertIn("Changed paths (2)", body)
+        self.assertNotIn("main-only.txt", body)
+
     def test_open_blocks_missing_authority_before_gh(self) -> None:
         args = self.open_args()
         args.remove("--authorized")
