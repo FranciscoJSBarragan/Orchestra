@@ -52,7 +52,8 @@ design; then mechanical detection through types, compiler/lint/CI, a regression
 test or reliable tool; then concise guidance where judgment is necessary.
 Choose the strongest proportionate correction within scope, not an expensive
 rewrite or another prohibition by default. Existing review evidence can inform
-the choice; do not create a transcript-mining or reflection service.
+the choice; do not create a transcript-mining or reflection service beyond
+the initiative parent's retrospective in WORKFLOW "Initiative coordination".
 
 When old debt cannot be removed safely at once, use an existing linter baseline
 or Git comparison to prevent new instances while reducing the old set. A retained

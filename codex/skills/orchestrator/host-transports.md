@@ -52,9 +52,11 @@ sidebar tasks merely to emulate leaf subagents.
 ## T3 Code
 
 T3 Code hosts Codex, Cursor, Grok and Claude sessions behind one UI and exposes
-app-owned orchestration through its `t3-code` MCP tools. The parent and each
-task root still run on a supported Orchestra host provider; a thread on an
-unsupported provider can launch children but is not itself an Orchestra root.
+app-owned orchestration through its `t3-code` MCP tools. Each task root, and
+any parent other than a Hermes parent under WORKFLOW "Initiative
+coordination", still runs on a supported Orchestra host provider; another
+thread on an unsupported provider can launch children but is not itself an
+Orchestra root.
 Read `orchestrator_capabilities` before launch for the live provider, model and
 option catalog. A parent outside T3 uses the same tools through an MCP
 connection to the server: it passes `projectId`, since it has no project to
@@ -70,14 +72,21 @@ root setup" and never runs `git worktree add` itself. Pass explicit
 `modelSelection` and `runtimeMode`: an omitted runtime mode inherits the
 caller's, which may be `full-access`. Record the returned `threadId`.
 
-The packet names the parent's `threadId`. At handoff, or at a blocker that
-needs the parent, the child sends a compact report naming its own `threadId`
-through `t3_thread_send` in `queue` mode, which starts an idle parent and waits
-behind an active turn. The parent therefore ends its turn after dispatch and
+The packet names the parent's `threadId`, and its server when it differs. At
+handoff, or at a blocker that needs the parent, the child sends a compact
+report naming its own `threadId` through `t3_thread_send` in `queue` mode,
+which starts an idle parent and waits behind an active turn. The parent therefore ends its turn after dispatch and
 stays available to the user, using `t3_thread_wait` only when the current turn
 cannot proceed without that child. A parent outside T3 has no thread to wake
-and waits instead. A child that stops without reporting is found through
-`t3_thread_list` when the parent next resumes, not by a watcher. Read details
+and waits instead. A root on another T3 server sends that report through an
+MCP connection to the parent's server whose token comes from an OAuth
+`full-access` approval: a `t3 auth session issue` token stays
+`approval-required`, and T3 rejects its write to a `full-access` thread with
+`runtime_mode_escalation_denied`. A child that stops without reporting is
+found through `t3_thread_list` when the parent next resumes, not by a watcher;
+the one exception is a root on another server without that connection, whose
+status alone, never its transcript, the parent may also check at low
+frequency as a safety net. Read details
 with `t3_thread_read` from the last known position rather than rereading the
 whole timeline. `t3_thread_send` continues the same provider
 session with its context intact, so it carries accepted fixes and deltas; use a

@@ -414,6 +414,15 @@ evidence behind each answer. Facts the children must share go into the brief,
 register or a child packet, not a research file. A problem needing a cause,
 specification or plan candidate goes to an investigation-only child root.
 
+Inside T3 Code a Hermes thread may be an initiative's parent. It is no
+Orchestra or task-root host and has no plugin or sync: it reads the pinned
+instructions by absolute path and never implements. Since `delegate.py`
+admits no Hermes host, it runs that research through T3 `delegate_task` with
+the `mixed-models` `repository_context` row read from the pinned presets file.
+It is always a parent without the repository's execution environment, so it
+commissions hard gates and joint acceptance to a verifier as described below.
+Task roots stay on approved hosts.
+
 Dispatch only through a host surface that supports the responsibility: native
 user-owned tasks when the user asked for separate tasks and the app supports
 them; native agents for internal roles, never as a claim of persistent
@@ -513,6 +522,16 @@ old plan and delivery evidence. The parent reviews contract and integration
 consequences rather than repeating unchanged local code reviews. Completion requires joint acceptance
 and honest delivery state, not a list of successful child messages; merge,
 push, release and deployment stay separately scoped under delivery policy.
+
+An initiative parent may keep a periodic read-only retrospective: a cheap
+periodic run only counts closed initiatives from the register and Git or host
+state and, once three more have closed since the last retrospective thread,
+launches a read-only thread (Claude Code `claude-opus-5-5` at `xhigh`) that
+analyzes finished threads, reports, PRs and Git and returns only
+evidence-backed proposals, consumed under "Engineering guidance and evidence".
+An approved proposal enters through a normal root and PR; agents never rewrite
+their own skills or policies. Beyond that periodic run it adds no artifact,
+persistent counter or watcher.
 
 ### Child root setup
 
@@ -696,7 +715,9 @@ its assignments run through `delegate_task`.
 
 The sole assignment source is `codex/config/execution-presets.toml`, installed
 as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
-compatibility mirror. Its consumer is `delegate.py --resolve-only`: resolve
+compatibility mirror. Its consumer is `delegate.py --resolve-only`, except
+that a Hermes initiative parent reads its row directly ("Initiative
+coordination"): resolve
 the selected preset, owning host, capability, tier, and root-selected attempt
 before dispatch. It returns an exact CLI assignment, a native Codex or Claude
 Code assignment, root reuse, or the owning host's browser matrix. Check actual model/tool
@@ -2068,7 +2089,8 @@ For a recurring failure already evidenced by the task, apply shared engineering
 guidance "Prevent recurring failures" to choose a proportionate prevention
 mechanism from the verified cause. The same criterion is available to ordinary,
 maintenance work without this final-phase checkpoint. This judgment adds
-no reflection stage or transcript-mining job. The checkpoint's writes remain
+no reflection stage or transcript-mining job; the only retrospective is the
+initiative parent's under "Initiative coordination". The checkpoint's writes remain
 limited to the repository knowledge below; code, routing, or Orchestra-policy
 changes use normal implementation scope and review when already authorized,
 otherwise become bounded follow-up proposals without delaying delivery. Agents
@@ -2210,8 +2232,9 @@ migration files and asks where they apply.
 ## Maturity
 
 Automated checks and representative canaries provide evidence. Codex, Cursor,
-Grok Build, Devin, and Claude Code are approved execution hosts. Hermes and any further
-harness remain deferred.
+Grok Build, Devin, and Claude Code are approved execution hosts. Hermes is not;
+its only role is the T3 initiative parent under "Initiative coordination". Any
+further harness remains deferred.
 
 ## User-facing progress and handoff
 
