@@ -814,7 +814,10 @@ ambiguous.
 
 Write every question the user must decide in plain words a non-technical user
 can act on: each option with what it gives and what it costs, your
-recommendation and why, and what happens if the user does not answer. Show a
+recommendation and why, and what waiting costs when that is more than a delay
+(a deadline, lost data). When one call covers several items, such as PRs
+awaiting merge, list each with its number or link, what it changes for users,
+the evidence and its risk, even a low one; never fold them into a count. Show a
 visual choice as captured variants rather than describing it. Number the
 questions and word each so a plain yes accepts your recommendation, letting
 the user answer "yes to all but 2". Ask together only questions that do not
