@@ -297,6 +297,8 @@ current checks pass. Pure style preferences and hypothetical redesigns are not.
 
 ## Restructuring without behavior change
 
+- Without a named target, start from the files that recent history changes
+  most; code that rarely changes seldom repays a move.
 - Pin current behavior before moving structure: an existing test of the path, a
   characterization test, or a comparison that runs the same inputs through the
   base revision and the change. Type checks and lint are not a pin.

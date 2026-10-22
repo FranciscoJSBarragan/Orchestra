@@ -30,6 +30,7 @@ Select only the material question:
 | --- | --- |
 | Understand behavior or rationale | Shared guidance, "Understand the system": trace the relevant path and distinguish recorded intent from inference. |
 | Explain a system or a delivered change to a person | Shared guidance, "Understand the system": the smallest complete answer first in plain words, depth on request, diagrams built up one part at a time. |
+| Answer from current external facts: a library, service, API, version, price or platform rule | [Web research](../orchestra/references/web_research.md): primary sources matched to the named version and date and cited beside each claim; compare viable options against the stated constraints when choosing one; an unsettled gap stays a stated uncertainty. |
 | Choose an interface or uncertain approach | Shared guidance, "Design from the consumer" and "Resolve uncertainty experimentally": a caller example or bounded experiment that informs the decision. |
 | Fix a defect | Shared guidance, "Evidence for consequential changes"; use [difficult debugging](../orchestra/references/difficult_debugging.md) for competing hypotheses or repeated failed corrections. |
 | Select or assess tests | [Behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification): expected outcomes, relevant failures and the smallest reliable proof. |

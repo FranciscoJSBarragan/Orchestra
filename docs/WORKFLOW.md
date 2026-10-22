@@ -815,7 +815,13 @@ ambiguous.
 Write every question the user must decide in plain words a non-technical user
 can act on: each option with what it gives and what it costs, your
 recommendation and why, and what happens if the user does not answer. Show a
-visual choice as captured variants rather than describing it.
+visual choice as captured variants rather than describing it. Number the
+questions and word each so a plain yes accepts your recommendation, letting
+the user answer "yes to all but 2". Ask together only questions that do not
+depend on one still open, and ask a decision no running investigation can
+change while that work runs. When an answer belongs to someone the user must
+consult (an accountant, a client, a provider), offer a short questionnaire the
+user can forward, most important question first.
 
 When user participation is genuinely required — a physical action or
 observation (unplugging a monitor, another device), how the result feels or
@@ -1158,8 +1164,11 @@ After explicit activation in an execution-capable mode:
    user's words or a binding contract settle it; when plausible readings
    change a user-visible result, ask it as a material question with a
    recommended reading, never settled by literal wording or current behavior
-   alone. When acceptance depends on behavior only a run can show (hardware,
-   timing, availability, long-running use), confirm the routine-use scenarios
+   alone. Check the user's statements about current behavior against the
+   source; when they disagree, show both in the user's terms ("you describe
+   partial cancellation; the code cancels the whole order") and ask which one
+   the result follows. When acceptance depends on behavior only a run can show
+   (hardware, timing, availability, long-running use), confirm the routine-use scenarios
    that prove it; rarer cases go to Exclusions as deferred, neither built nor
    verified, unless the user asks for them. Include the missing-conventions
    checkpoint in the same request when the worktree has no normative
