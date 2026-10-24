@@ -126,6 +126,91 @@ evaluation shows a gain:
   gain came from such tasks; single-reviewer recall on ordinary changes is
   unmeasured.
 
+### Rejected ideas
+
+Reviewed and not adopted, with the reason, so a later review starts from this
+evidence instead of reopening the question. Evidence that removes the reason
+reopens the idea.
+
+From gentle-ai `4acaf42` and pstack `99743e9`, reviewed on 2026-10-15:
+
+- **Comment-removal agent** (pstack `/no-comments`): Orchestra-produced
+  NeniTPV merges since 2026-10-05, about 3,000 added lines, contained no
+  explanatory comments or suppressions; the source-comment policy holds
+  without another agent.
+- **Inline work by default** (gentle): the root is the expensive model in the
+  hybrid design, and delegating volume to cheaper models is the point.
+- **Reviewer-side severity floor or narrowed counterexamples**: the root's
+  triage already owns the floor, and adding reviewer instructions lowered
+  cheap-model recall in Orchestra evaluations while cutting them raised it.
+- **Fixed diff-size reference in plans** (about 400 lines): it invites
+  compressed code or dropped tests to meet the number, and the owner rejected
+  it as complicating the plan.
+- **RDD runtime** (gentle): a binary with transactions and authority lineage,
+  enabled by default, that supports two of Orchestra's five hosts. Its useful
+  rules (risk-based review, one correction, blocking only on serious findings
+  caused by the change) already live in root triage.
+- **Engram memory** (gentle): agent-written memory behind MCP whose tracker
+  reports unpruned growth past 98k tokens per request. Orchestra promotes
+  verified, non-obvious repository knowledge to tracked `.agent/` files or docs
+  at the durable knowledge checkpoint.
+- **Chained PRs** (gentle): worthwhile only when tasks routinely produce
+  oversized PRs; the largest recent pilot task was rescoped to 1,175 lines.
+
+From Orchestra evaluations between 2026-10-08 and 2026-10-12:
+
+- **Adversarial third review round**: it helped one case, but anchored on
+  earlier dismissals and missed both remaining defects of another.
+- **Third parallel reviewer**: it found nothing beyond the two-reviewer pair.
+- **Origin and visibility fields plus a context block in the review packet**:
+  no fewer review loops and fewer real defects found.
+- **Triage rule "reject a finding that was not reproduced"**: it lost two
+  real defects in four of four runs; a constructive check replaced it.
+
+From mattpocock/skills `5beb35b`, reviewed on 2026-10-20:
+
+- **Issue tracker as workflow state** (`to-spec`, `to-tickets`, `triage`,
+  `wayfinder`): a second state store beside the local plan and Git; the Tasks
+  companion owns cards.
+- **Parallel implementers over a ready frontier** (`implement-spec`): its
+  users report file and naming collisions and a four-hour review-fix loop;
+  Orchestra keeps one writer per checkout.
+- **Code-smell catalogue in the reviewer** (`code-review`): it contradicts the
+  reviewer-instruction result above and feeds the non-converging reviews its
+  users report.
+- **Git command blocking hook** (`git-guardrails-claude-code`): it blocks
+  every push, including authorized delivery; protection from destructive
+  commands belongs to host permissions, which Orchestra does not change.
+- **Fixed pre-commit stack** (`setup-pre-commit`, Husky and Prettier):
+  repository readiness sets gates that fit the project's stack.
+- **Mandatory domain glossary and deep-module vocabulary** (`domain-modeling`,
+  `codebase-design`): no recorded failure comes from vocabulary, and the design
+  substance is already in shared guidance. Revisit if reviews keep finding two
+  names for one concept.
+- **Learning workspace** (`teach`): a multi-session course of lessons and
+  quizzes rather than development; explaining to a person is already covered.
+- **Handoff document** (`handoff`): the local plan, conversation continuity
+  and host compaction already carry the work forward.
+
+From pstack `13f7ad1`, reviewed on 2026-10-21 and measured on 2026-10-22:
+
+- **Formal verification skills** (`create-formal-verification-skill`,
+  `maintain-formal-verification-skill`): on NeniTPV before its cash-drawer
+  race fix, one blind run of each with the same model, a TLA+ model with
+  real-code reproduction and a plain investigation reproducing with ordered
+  threads, found the same two of three known defects and missed the same
+  PostgreSQL-only one. The plain run found more, scoped them by entry route
+  and took 11 instead of 19 minutes. Revisit for a protocol designed before
+  runnable code exists or for interleavings that real-code reproduction
+  cannot reach.
+- **Prompt sharpening** (`/sharpen`): asking what an expert would add that the
+  user did not request widens scope, as an exhaustive specification did before
+  the owner narrowed it to routine use; primary sources and an outside check
+  already belong to research and verification.
+- **Brand from a type guard instead of `as`** (TypeScript): the compiler checks
+  a type predicate no more than the cast it replaces; creating brands only in
+  a parse function already gives the guarantee.
+
 ## Modular workflow acceptance
 
 Reusable engineering and project-verification entries plus an explicit parent
