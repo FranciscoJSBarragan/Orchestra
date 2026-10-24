@@ -369,7 +369,9 @@ Orchestra succeeds when:
   semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
 - Porting to Hermes or any harness beyond the approved Codex, Cursor, Grok
-  Build, Devin, and Claude Code hosts.
+  Build, Devin, and Claude Code hosts; a Hermes initiative parent inside T3
+  Code reads Orchestra by path and is no port (WORKFLOW "Initiative
+  coordination").
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
 
