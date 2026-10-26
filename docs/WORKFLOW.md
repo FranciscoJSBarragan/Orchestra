@@ -329,7 +329,9 @@ children create no further hierarchy or sibling tasks.
 
 Before dispatch, the approved initiative identifies each child's outcome,
 repository and scope, exclusions, acceptance, supported tier or route, shared
-contract and dependency conditions. Authority is inherited only within those
+contract and dependency conditions. Children are cut as cases under shared
+guidance "Staged outcomes", each ending in a result the user can try, not by
+component or layer. Authority is inherited only within those
 bounds; implementation, phase commits and each delivery action are separate
 grants. The parent may accept derived child plans within the already approved
 implementation scope,
@@ -1141,7 +1143,8 @@ After explicit activation in an execution-capable mode:
    compatibility mode.
 3. Recommend one available assigned tier, following the host defaults in
    "Tier flows and models", with its risk, scrutiny and cost; the user
-   explicitly chooses. Offer [User preview](#user-preview) in the same message when its
+   explicitly chooses. Weigh risk by what the current case touches and who can
+   reach it, not by a later stage. Offer [User preview](#user-preview) in the same message when its
    detection rule matches; a bare tier choice is preview `none`. No tier waives
    authority gates for production, migrations, data, security, payments,
    destructive actions or delivery.
@@ -1180,7 +1183,13 @@ After explicit activation in an execution-capable mode:
    decides, and the plan inherits the Decision with its pinned version.
 6. Confirm the final specification (Objective, User-visible behavior,
    Constraints, Acceptance, Exclusions, Decisions, Open questions), visibly on
-   first confirmation, and recommend any justified tier change. Resolve
+   first confirmation, and recommend any justified tier change. When the
+   objective holds several user-visible capabilities, an end state or users
+   who do not exist yet, apply shared guidance "Staged outcomes" first: the
+   specification covers only the confirmed current case, and the vision and
+   later cases go to Exclusions with a link to the case list. When security,
+   privacy or money is involved, Constraints state the exposure of what the
+   change touches: who can reach it and what is at stake. Resolve
    material product questions here; technical review never substitutes for
    the user's authority. Before confirming, ask what the outcome means from
    each reachable prior state in the context's `State writers` (already partly done, refunded,
@@ -2260,7 +2269,9 @@ decision, block progress, or another rule requires their disclosure
 partial cleanup). At completion, distinguish implementation-complete
 from delivered and state the result location, how to run or demonstrate it,
 verification performed, safe test data, limitations, exact delivery state and
-the next authority needed. An attached card uses its canonical identity from
+the next authority needed. A task that delivers a case marks its case-list
+line ready to try with the delivery link and asks the user to try it; only the
+user's confirmation marks it done. An attached card uses its canonical identity from
 the Tasks companion; a direct task uses its repository and human title without
 inventing a card ID.
 

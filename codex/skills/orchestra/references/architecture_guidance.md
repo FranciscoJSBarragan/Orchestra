@@ -106,6 +106,57 @@ unsupported mechanism unless new evidence satisfies every gate above. A bounded
 coordination snapshot is acceptable only while it remains observational,
 fail-soft, and separate from authority and Git truth.
 
+## Staged outcomes
+
+Apply this when a request holds several user-visible capabilities, names an
+end state (selling to other businesses, serving many customers) or serves
+users who do not exist yet. Users describe where they want to arrive; turning
+that into stages is the agent's job.
+
+- Keep the vision as the horizon, in the user's words. It informs only
+  decisions that are costly to reverse (how money and records are stored,
+  identifiers, persisted formats, contracts others consume) and adds no work
+  to the current stage. For each part the user asks to prepare from the start
+  (other customers, licensing, selling), name the cheap decision that keeps it
+  open now and how much the rest would delay the first try; recommend
+  deferring it and let the user decide.
+- Cut the work into cases in the user's words: what an existing user will be
+  able to do and how they will try it, crossing every layer the case needs,
+  never one layer or component at a time. The first case is what the user
+  wants to see first, at its simplest useful version, and its first phase
+  ends in something the user tries in the real environment. Validating a
+  component (an engine, a library) happens inside that phase and covers only
+  what the case uses. A list of steps from the user is several cases:
+  propose its smallest triable piece first, the rest as later cases, and ask.
+  Every item in the first case must be needed for the user to try it; an item
+  it does not need, whether from an existing document, a convention or the
+  vision, goes to a later case or to a question. Requirements in documents
+  the user did not confirm are proposals. Later cases stay one line each; only
+  the current case is specified and planned.
+- Before specifying a case, restate it in one plain sentence: what the user
+  will be able to do, how they will try it, how soon and what it leaves for
+  later.
+- When the real environment is missing (hardware, an account, real data), say
+  that the result cannot be tried until it exists and let the user choose
+  between waiting, a stand-in they can see, or building untried.
+- Offer each upgrade beyond the simplest version as a choice with its
+  consequence and cost (a daily backup can lose a day of sales). A "not yet"
+  goes under later on the case list and is not offered again.
+- Size protection to the case's exposure: who can reach what it changes (this
+  computer, a local network, the internet) and what is at stake. Baseline
+  hygiene always applies: no credentials in source or logs, hashed passwords,
+  permission checks on money operations, recoverable records. Protection
+  against an exposure the system does not have arrives with the case that
+  opens it.
+- A good base is easy to change, not prepared for every future
+  ([design from the consumer](#design-from-the-consumer)); restructure when a
+  case needs it.
+- A case is done when the user has tried it or it ran in the real environment,
+  not when it merged; the user then picks, reorders or drops the next cases.
+- Keep the case list where the user's or repository's conventions say, or
+  propose one place. It holds cases, their order and links to delivered work,
+  never execution state; edit one line at a time and re-read it after writing.
+
 ## Design from the consumer
 
 - For a meaningful contract or component change, describe a concrete caller's

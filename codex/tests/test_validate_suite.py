@@ -156,6 +156,14 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertTrue(any("orchestra-repo-readiness/SKILL.md" in item and "#test-maintenance" in item
                             for item in failures), failures)
 
+    def test_root_requires_staged_outcomes_guidance(self) -> None:
+        skill = self.root / "codex/skills/orchestra/SKILL.md"
+        skill.write_text(skill.read_text().replace("architecture_guidance.md#staged-outcomes",
+                                                  "architecture_guidance.md"))
+        failures = validator.check_modular_routing(self.root)
+        self.assertTrue(any("orchestra/SKILL.md" in item and "#staged-outcomes" in item
+                            for item in failures), failures)
+
     def test_reviewer_requires_change_quality_guidance(self) -> None:
         skill = self.root / "codex/skills/orchestra-role-reviewer/SKILL.md"
         skill.write_text(skill.read_text().replace("architecture_guidance.md#change-quality",

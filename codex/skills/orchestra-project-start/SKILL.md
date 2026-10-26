@@ -29,7 +29,10 @@ cost, privacy, or acceptance.
 ## Shape the foundation
 
 1. State the objective, primary audience, visible result, constraints, and
-   exclusions in the user's language.
+   exclusions in the user's language. When the idea holds several
+   capabilities or an end state, apply
+   [staged outcomes](../orchestra/references/architecture_guidance.md#staged-outcomes):
+   the foundation delivers the first case.
 2. Propose one to three observable journeys: the main success path and any
    material empty, error, or failure behavior.
 3. Recommend the smallest MVP and a proportional stack from actual constraints:

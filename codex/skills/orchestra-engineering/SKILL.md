@@ -28,6 +28,7 @@ Select only the material question:
 
 | Need | Resource and result |
 | --- | --- |
+| Scope a product, a feature set or an end state | [Staged outcomes](../orchestra/references/architecture_guidance.md#staged-outcomes): the vision kept as the horizon, a first case the user can try soon, later cases one line each. |
 | Understand behavior or rationale | Shared guidance, "Understand the system": trace the relevant path and distinguish recorded intent from inference. |
 | Explain a system or a delivered change to a person | Shared guidance, "Understand the system": the smallest complete answer first in plain words, depth on request, diagrams built up one part at a time. |
 | Answer from current external facts: a library, service, API, version, price or platform rule | [Web research](../orchestra/references/web_research.md): primary sources matched to the named version and date and cited beside each claim; compare viable options against the stated constraints when choosing one; an unsettled gap stays a stated uncertainty. |

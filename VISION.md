@@ -73,7 +73,10 @@ The approved objective, constraints, acceptance, and authority remain fixed
 unless the user explicitly changes them. A proposed mechanism or causal
 explanation is a hypothesis rather than part of the desired outcome: the root
 challenges weak assumptions against current evidence and chooses the smallest
-supported mechanism that preserves the approved user-visible result.
+supported mechanism that preserves the approved user-visible result. Users
+often describe where they want to arrive rather than the first step; the root
+keeps that end state as the horizon and delivers it in cases the user can try,
+the first one soon, so a misread or an unneeded part surfaces at the first try.
 
 The root owns the task plan and composes focused capabilities with four stable
 agent responsibilities: analysis, implementation, independent review, and

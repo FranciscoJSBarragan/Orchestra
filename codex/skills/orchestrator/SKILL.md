@@ -13,7 +13,9 @@ several folders is not. Use one task when ordinary phases address the work.
 
 Keep the parent focused on the shared result. Identify the participating
 repositories and their actual checkouts, applicable instructions, shared
-contracts, ordering, and observable joint acceptance. Reuse the conversation's
+contracts, ordering, and observable joint acceptance. Cut child roots as cases
+under [staged outcomes](../orchestra/references/architecture_guidance.md#staged-outcomes),
+each ending in a result the user can try. Reuse the conversation's
 approved scope and authority. Name only unresolved material choices to the user.
 Do not collect implementation details from every repository into this context.
 

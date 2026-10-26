@@ -818,6 +818,9 @@ def check_modular_routing(root: Path) -> list[str]:
                            ("orchestra-role-implementer", "orchestra-role-reviewer",
                             "orchestra-engineering")],
         "test-maintenance": [root / "codex/skills/orchestra-repo-readiness/SKILL.md"],
+        "staged-outcomes": [root / f"codex/skills/{name}/SKILL.md" for name in
+                            ("orchestra", "orchestrator", "orchestra-engineering",
+                             "orchestra-project-start")],
     }
     for anchor, consumers in guidance_routes.items():
         for consumer in consumers:
