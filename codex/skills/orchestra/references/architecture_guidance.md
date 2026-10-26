@@ -134,8 +134,8 @@ that into stages is the agent's job.
   the user did not confirm are proposals. Later cases stay one line each; only
   the current case is specified and planned.
 - Before specifying a case, restate it in one plain sentence: what the user
-  will be able to do, how they will try it, how soon and what it leaves for
-  later.
+  will be able to do, what they will try when its first phase ends and how,
+  and what it leaves for later.
 - When the real environment is missing (hardware, an account, real data), say
   that the result cannot be tried until it exists and let the user choose
   between waiting, a stand-in they can see, or building untried.
