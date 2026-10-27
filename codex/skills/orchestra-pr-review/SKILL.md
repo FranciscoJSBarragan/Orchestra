@@ -14,7 +14,7 @@ skill never merges, releases, deploys, publishes, or persists PR state.
 
 ## Observe and review
 
-1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/pr.py" observe
+1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" observe
    --repo <root> --repository <OWNER/REPO> --pr <number>`. Include repeatable
    `--acknowledged-feedback <fingerprint>` only after triage of supplemental
    review bodies and issue comments. Tokens bind repository,
@@ -24,14 +24,12 @@ skill never merges, releases, deploys, publishes, or persists PR state.
    non-outdated feedback, pagination completeness, and clean-observation
    fields as external facts. Malformed or incomplete evidence is `partial` or
    `blocked`, never clean.
-3. Resolve `independent_review` through the owning host adapter's native
-   matrix or the explicitly selected execution preset. Match the approved
-   host, tier, and recorded assignments before dispatch, including WORKFLOW's
-   transition boundary for a plan from the retired external integration.
-   Pass the exact model and effort fields supported by that host.
+3. Resolve `independent_review` and the review pair through WORKFLOW
+   "Flow assignment" and match the assignment recorded in the plan before
+   dispatch.
 4. Require the terminal review WORKFLOW `Review policy` defines before
    declaring a PR clean, and reuse it for unchanged code. Triage GitHub
-   feedback under that policy; dispatch `orchestra_reviewer` only for
+   feedback under that policy; dispatch the reviewer role only for
    feedback whose validity needs investigation. Supply review authority, task
    and worktree identity, observation, exact head, PR-CONTEXT, complete current
    base..HEAD diff, approved overview and phase IDs, current

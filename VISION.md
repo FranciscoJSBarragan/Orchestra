@@ -80,7 +80,7 @@ the first one soon, so a misread or an unneeded part surfaces at the first try.
 The root owns the task plan and composes focused capabilities with four stable
 agent responsibilities: analysis, implementation, independent review, and
 verification. That separation protects context and independence without
-creating a new profile for every domain or removing technical responsibility
+creating a new role for every domain or removing technical responsibility
 from the root.
 
 User-facing explanations stay concise and distinguish verified facts,
@@ -144,7 +144,7 @@ substantially, or be difficult to reverse.
 
 When the approved work has a user-visible surface whose look or operable feel
 the user should judge, Orchestra may pause after that phase's implementation
-handoff for an optional user preview. Preview is not a tier, profile, or plan
+handoff for an optional user preview. Preview is not a flow row, role, or plan
 status. Taste belongs there, not in independent review.
 
 ### Evidence before claims
@@ -196,17 +196,16 @@ verification-ordering rules live in `docs/WORKFLOW.md`.
 
 ### Composable agents
 
-Orchestra keeps four namespaced behavior-only base profiles:
-`orchestra_analyst`, `orchestra_implementation_worker`,
-`orchestra_reviewer`, and `orchestra_verifier`. The root explicitly adds the
-capability needed for a dispatch, such as technical planning, frontend
-implementation, difficult debugging, or browser acceptance. Applicable
-internal playbooks provide domain instructions without becoming public skills
-or additional personas; some assignment keys use only base-profile behavior.
+Orchestra keeps four roles, each a self-contained role skill: analyst,
+implementer, reviewer and verifier. The root explicitly adds the capability
+needed for a dispatch, such as technical planning, frontend implementation,
+difficult debugging, or browser acceptance. Applicable internal playbooks
+provide domain instructions without becoming public skills or additional
+personas; some assignment keys use only the role skill.
 
-The profile boundary follows responsibility and independence, while the
+The role boundary follows responsibility and independence, while the
 capability boundary follows the work being performed. New recurring knowledge
-should normally become a playbook, not a profile.
+should normally become a playbook, not a role.
 
 Repository context is an early, focused conversation aid rather than a late
 planning formality. Orchestra never dispatches it without a minimum objective
@@ -285,7 +284,7 @@ worktree or the opt-in hybrid clean primary checkout. Orchestra never pulls, imp
 rebases setup work; existing work is never cleaned, stashed, or rewritten
 implicitly; and completed resources are removed only when exact Git and
 integration evidence make cleanup safe. The complete checkout mechanics live in `docs/WORKFLOW.md` ("Task checkout and
-branch"), provider and permission mechanics in "Host adapters", and the installation boundary in `docs/ARCHITECTURE.md`.
+branch"), provider and permission mechanics in "T3 Code host", and the installation boundary in `docs/ARCHITECTURE.md`.
 
 Completion freezes the approved objective, acceptance, and artifact selection.
 The terminal phase commit may advance for the reviewed corrections before delivery
@@ -340,8 +339,8 @@ Orchestra succeeds when:
 - Re-reviewing cosmetic preferences until a budget is exhausted.
 - Host adapters outside T3 Code. Other harnesses use the standalone skills;
   a provider runs Orchestra roles only through T3.
-- Building extra profiles for capabilities that compose with the four
-  base responsibilities.
+- Building extra roles for capabilities that compose with the four base
+  responsibilities.
 
 ## Distribution
 

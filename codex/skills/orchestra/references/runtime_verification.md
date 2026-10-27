@@ -1,10 +1,8 @@
 # Runtime verification playbook
 
-For a delegated capability assignment, use this playbook with the `orchestra_verifier` profile and the
-explicit `runtime_verification` capability. Do not dispatch it for routine
-local deterministic checks in a non-critical phase; those belong to the
-implementation owner unless the selected execution preset assigns its terminal
-gate here (WORKFLOW "Delegated execution presets").
+For a delegated capability assignment, use this playbook with the verifier role
+and the explicit `runtime_verification` capability. Do not dispatch it for
+routine local deterministic checks; those belong to the implementation owner.
 
 Use [decision evidence](architecture_guidance.md#decision-evidence) for the
 assigned paths and distinguish a regression reproduction from a preservation test.
@@ -26,19 +24,13 @@ assess the check; report required checks that could not run as blockers.
   static checks, or log inspections against the exact revision. The packet must
   identify at least one dedicated-gate reason: owned services or processes,
   mutable or stateful data, credentials, network or an external environment,
-  explicit repository policy, a selected execution-preset gate, or a critical-tier phase. In a critical phase,
-  independently repeat the applicable deterministic gate already evidenced by
-  the implementation owner.
+  or explicit repository policy.
 - Confirm command arguments and working directory before execution. Commands must not pass through an unrequested shell wrapper or mutate source.
-- Orchestra synchronizes Guardian (`:workspace`, `on-request`, and Auto-review)
-  as the default. The active permission choice for the task, host, or launcher
-  remains authoritative: Orchestra never changes it or blocks execution solely
-  because it differs.
-- When Guardian is active, commands inside the workspace run directly and one
-  exact command that crosses a protected boundary requests one narrow
-  escalation for automatic review. With manual approvals, that escalation may
-  prompt the user; with Full Access, it runs without the workspace sandbox
-  boundary. Never retry a denial through a workaround or broaden permissions.
+- T3's runtime mode and the provider's permission choice remain
+  authoritative: Orchestra never changes them or blocks execution solely
+  because they differ. A command that crosses a protected boundary is issued
+  once and its prompt or denial is respected. Never retry a denial through a
+  workaround or broaden permissions.
   Deterministic syntax, type, compile, lint, import, assertion,
   validation-contract, and CLI-usage failures remain real failures. A missing
   external service, credential, or dependency may return `blocked`, but never

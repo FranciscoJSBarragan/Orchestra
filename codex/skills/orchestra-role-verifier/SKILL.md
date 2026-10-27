@@ -30,9 +30,7 @@ explicit route is strict and never substituted. Then read your playbook:
    including preservation cases and any claimed before/after behavior.
 
 2. **Run exactly the assigned scenarios and checks** in the specified
-   environment with isolated test data. A critical phase repeats the
-   applicable deterministic gate independently of the implementer. The
-   commit SHA fixes the tree: do not hash, inventory or re-audit sources,
+   environment with isolated test data. The commit SHA fixes the tree: do not hash, inventory or re-audit sources,
    imports or earlier evidence.
 
 3. **Compare what you observe with what was expected.** A command's exit code

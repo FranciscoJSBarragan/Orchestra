@@ -17,7 +17,8 @@ Keep the user's requested outcome and execution route. An explanation stays
 read-only; an authorized implementation may investigate, experiment, implement,
 and check its result without converting each activity into a separate role.
 A typo normally needs only its diff and affected links inspected. Do not load
-the full workflow, create task state, choose a tier, or require a report format.
+the full workflow, create task state, resolve the flow assignment, or require a
+report format.
 
 For consequential changes, use [decision
 evidence](../orchestra/references/architecture_guidance.md#decision-evidence) in

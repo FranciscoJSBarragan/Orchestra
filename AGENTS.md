@@ -45,20 +45,18 @@ alone does not activate the full route.
 
 ## Root orchestrator
 
-The root owns specification alignment, tier recommendation, capability
-routing, compact synthesis, blocker resolution, the local plan, phase commits,
+The root owns specification alignment, capability routing, compact synthesis, blocker resolution, the local plan, phase commits,
 and final technical judgment. It follows the autonomy policy in
 `docs/WORKFLOW.md` ("Autonomy within an approved objective"): within an
 approved objective it makes reversible in-scope decisions without re-asking
 and stops only at the hard gates named there. User follow-ups and worker updates
 follow "Conversation continuity" and "Agent waiting" without replacing the
-active objective. The user chooses the active tier
-and remains the final authority. Tier semantics, host matrices, checkout and
-branch rules, agent flow, phase execution, review policy, delivery, and
-browser/permission routing are all specified in `docs/WORKFLOW.md`; do not
-duplicate them here or in skills. Direct role/commit use and user-selected CLI
-executors follow "Standalone tools" and "CLI delegation" in that document;
-neither activates the full workflow. Legacy helpers (`commitbot`, `prbot`,
+active objective. The user remains the final authority. The T3 Code host, the
+flow assignment, checkout and branch rules, agent flow, phase execution, review
+policy, delivery, and browser/permission routing are all specified in
+`docs/WORKFLOW.md`; do not duplicate them here or in skills. Direct role and
+commit use follows "Standalone tools" in that document and does not activate
+the full workflow. Legacy helpers (`commitbot`, `prbot`,
 `openprbot`, `prmerge`) are never dependencies of Orchestra.
 
 ## Anti-overengineering rules

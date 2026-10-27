@@ -1,6 +1,6 @@
 # Repository context playbook
 
-For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the explicit `repository_context` capability.
+For a delegated capability assignment, use this playbook with the analyst role and the explicit `repository_context` capability.
 
 For consequential questions, return [decision
 evidence](architecture_guidance.md#decision-evidence) connecting journeys and

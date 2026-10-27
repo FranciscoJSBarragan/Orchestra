@@ -37,7 +37,7 @@ def inspect_source(root: Path, revision: str) -> dict[str, str]:
         "docs/WORKFLOW.md",
         "codex/skills/orchestra/SKILL.md",
         "codex/skills/orchestra/runtime.md",
-        "codex/scripts/delegate.py",
+        "codex/config/flow.toml",
     ):
         resource = root / relative
         if not resource.is_file() or not resource.resolve().is_relative_to(root.resolve()):

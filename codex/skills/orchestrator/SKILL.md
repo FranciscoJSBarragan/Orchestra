@@ -37,11 +37,11 @@ custom work remain separate modular uses under WORKFLOW "Standalone tools".
 Use [host transports](host-transports.md) to dispatch supported task roots.
 Every packet carries the [model notes](../orchestra/references/model_notes.md)
 lines for its target's family.
-The leaf-role delegate is still appropriate for an independent review or other
+A `delegate_task` role is still appropriate for an independent review or other
 bounded role; its no-commit/no-subagent contract cannot run a full child root.
 Before parallel mutation, establish isolated task checkouts and concrete shared
-contracts. Select task-root resources separately from the parent and role matrix;
-use the host mapping, including its Cursor Projects child-root selection. Wait for a dependency's required revision or
+contracts. Select task-root resources separately from the parent and the flow's
+role rows through the T3 mapping in [host transports](host-transports.md). Wait for a dependency's required revision or
 evidence rather than relying on a child's optimistic progress description.
 
 At stable handoff, consume the child's compact result once: exact revision,

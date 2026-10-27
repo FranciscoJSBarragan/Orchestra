@@ -24,7 +24,7 @@ class PrepareSourceTests(unittest.TestCase):
         self.git("config", "user.email", "fixture@example.invalid")
         for relative in (
             "docs/WORKFLOW.md", "codex/skills/orchestra/SKILL.md",
-            "codex/skills/orchestra/runtime.md", "codex/scripts/delegate.py",
+            "codex/skills/orchestra/runtime.md", "codex/config/flow.toml",
         ):
             path = self.repository / relative
             path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,11 +1,13 @@
 # Orchestra plugin bundles
 
-The plugin contains the native Orchestra workflow, reusable skills, four behavior
-profiles, local Python helpers, execution presets, and the Codex, Cursor,
-Grok Build, Devin, and Claude Code adapters. Python 3.11+ and Git are required; GitHub CLI is required
-only for PR delivery. A host must provide the adapter's native agent tools and
-models to run the full workflow. Package discovery is not proof of those
-capabilities. Standalone skills retain their own bounded authority.
+The plugin contains the Orchestra workflow, reusable skills, local Python
+helpers and the default flow assignment. Its full workflow runs inside T3 Code:
+install the bundle for each provider you use as a task root (Claude Code,
+Codex, Cursor or Grok), and T3 carries every role to the provider its flow row
+names. Python 3.11+ and Git are required; GitHub CLI is required only for PR
+delivery. Package discovery is not proof that T3 or a provider exposes the
+tools the workflow needs. Standalone skills retain their own bounded authority
+in any harness.
 
 ## Build from source
 
@@ -17,30 +19,27 @@ rebuilding. The builder never overwrites an installation.
 python3 codex/scripts/package_plugin.py --target portable --output dist/portable/orchestra
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
-python3 codex/scripts/package_plugin.py --target devin --output dist/devin/orchestra
 python3 codex/scripts/package_plugin.py --target claude --output dist/claude/orchestra
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
-manifest. `cursor` uses Cursor's native manifest.
-`grok` uses the Claude-compatible plugin layout recognized by Grok Build.
-`devin` uses Devin's native `.devin-plugin` manifest and `agents/` profiles.
-`claude` uses Claude Code's `.claude-plugin` manifest and ships the effort
-agents under `agents/`, namespaced `orchestra:<agent>`. Native
-variants avoid competing root manifests so each loader selects its own format.
-All content is copied from canonical source; there is no generated workflow fork.
-The metadata version is a package version, not a public release declaration.
+manifest. `cursor` uses Cursor's native manifest. `grok` uses the
+Claude-compatible plugin layout recognized by Grok Build. `claude` uses Claude
+Code's `.claude-plugin` manifest and ships one read hook. Native variants avoid
+competing root manifests so each loader selects its own format. All content is
+copied from canonical source; there is no generated workflow fork. The metadata
+version is a package version, not a public release declaration.
 
 ## Prepare a pinned remote source
 
 Use the shared recipe at `skills/orchestra/references/source_preparation.md`
 (source: `codex/skills/orchestra/references/source_preparation.md`). The same
-resource ships in plugin bundles and direct-sync skill installations.
+resource ships in every bundle.
 
 ## Downloadable candidates
 
 The repository's `Plugin bundles` GitHub Actions workflow runs the canonical
-full validator, builds all five targets, and uploads one artifact named
+full validator, builds all four targets, and uploads one artifact named
 `orchestra-plugins-<commit>`. It runs for pull requests, pushes to `main`, and
 manual dispatch. Artifacts expire after 14 days; they are development
 candidates, not marketplace publications or releases.
@@ -54,13 +53,7 @@ outer artifact, and verify the archives with `sha256sum -c SHA256SUMS` (or
 new directory. Its top-level `orchestra/` is the bundle used below. Do not
 extract over an active installation.
 
-## Load a local bundle
-
-Cursor supports a session-local directory without global sync:
-
-```sh
-cursor-agent --plugin-dir /absolute/path/to/dist/cursor/orchestra
-```
+## Load a bundle
 
 Claude Code validates a bundle and loads it for one session without
 installation:
@@ -71,11 +64,15 @@ claude --plugin-dir /absolute/path/to/dist/claude/orchestra
 ```
 
 Its `hooks/hooks.json` lets agents read the package's own files without
-prompts; it allows only `Read`, `Glob`, and `Grep` inside the bundle. A
-`managed` task checkout is entered with one confirmed `EnterWorktree`.
+prompts; it allows only `Read`, `Glob`, and `Grep` inside the bundle.
 
-Grok Build can validate and install a local bundle with its plugin manager
-(verified with 1.0.34):
+Cursor supports a session-local directory:
+
+```sh
+cursor-agent --plugin-dir /absolute/path/to/dist/cursor/orchestra
+```
+
+Grok Build can validate and install a local bundle with its plugin manager:
 
 ```sh
 grok plugin validate /absolute/path/to/dist/grok/orchestra
@@ -84,8 +81,8 @@ grok inspect --json
 ```
 
 For Codex, add the portable bundle to your chosen local marketplace using the
-host's plugin tools, then install `orchestra@<marketplace-name>`. The bundle is
-not itself a marketplace catalog. Codex manages its cached copy and updates;
+provider's plugin tools, then install `orchestra@<marketplace-name>`. The bundle
+is not itself a marketplace catalog. Codex manages its cached copy and updates;
 Orchestra does not write a personal marketplace or register one automatically.
 For example, an existing local catalog can use the following entry (the path is
 relative to that catalog's repository root):
@@ -103,137 +100,33 @@ Place the generated bundle at that catalog's `plugins/orchestra`, register the
 catalog through `codex plugin marketplace add /absolute/path/to/catalog-root`
 if needed, and run `codex plugin add orchestra@<marketplace-name>`. Inspect with
 `codex plugin list`; remove with `codex plugin remove orchestra@<marketplace-name>`.
-This lifecycle was verified in a temporary home with Codex CLI 0.153.4.
 
-For a local Codex update, rebuild into a fresh directory, replace the catalog's
-source bundle deliberately, and run `codex plugin add
-orchestra@<marketplace-name>` again. Check the installed copy and start a new
-conversation so the host reloads skills. Local development can use the host's
-cachebuster/reinstall flow when the package version has not changed. For
-Cursor's session-local loader, point the next session's `--plugin-dir` at the
-new bundle; stop supplying that flag to stop loading it.
+To update, rebuild into a fresh directory, replace the installed source
+deliberately, and check the installed copy before trusting a manager's success
+message: Grok Build 1.0.34 once reported a live symlink on `plugin update` and
+left the installed bytes unchanged, while uninstall and install refreshed them.
+Start a new T3 thread so the provider reloads skills.
 
-Grok Build 1.0.34 on macOS copied the local bundle during acceptance, but
-`grok plugin update orchestra` reported a live symlink and left the installed
-bytes unchanged. Inspect the installed path from `grok inspect --json` and
-compare its content with the selected source. For this observed case, stop
-the task's host process, run `grok plugin uninstall orchestra`, then install
-the new local bundle with `grok plugin install /absolute/path/to/orchestra`
-and inspect again. This remove/install path refreshed the content and
-preserved unrelated settings, task data, and worktrees. The manager rewrites
-its TOML configuration, so preserved settings do not imply byte-for-byte
-configuration preservation. Do not claim an update from command success
-alone, and preserve the source path while its plugin is installed.
+Invoke the Orchestra skill in a T3 thread with the name that provider exposes;
+plugins may namespace skill names. An unequivocal instruction such as “Use
+Orchestra to implement this change” also activates it. The root resolves
+runtime paths from the loaded skill and checks the `t3-code` tools before task
+setup. Loading alone does not start work and never changes permissions.
 
-The same portable bundle can be consumed by Agent Plugins clients, subject to
-their skill and native-agent capabilities. No untested host is advertised as a
-full workflow host.
+## Acceptance
 
-Start a new host conversation after installation and invoke the Orchestra skill
-using the name exposed by that host. Plugins may namespace skill names. An
-unequivocal instruction such as “Use Orchestra to implement this change” also
-activates it. The root resolves runtime paths from the loaded skill and checks
-native capabilities before task setup. Loading alone does not start work.
-
-Use one installation route per host. Before replacing direct sync, inspect its
-status and dry-run, then explicitly uninstall that host's owned resources with
-`sync.py`. Preserve reported drift and unrelated files. Plugin loading never
-runs that migration for you and never changes host permissions.
-
-## Verified host coverage
-
-The September 18–19, 2026 acceptance used isolated homes and the Python
-parser/CLI fixture described below on macOS. The fixture started at
-`e8f6811`; generated packages used the engineering-guidance sources at
-`ef85c1a` with the adapter clarifications in this change. Source bytes were
-checked after each update; a successful manager command was not sufficient.
-
-| Host | Installation and update | Native task evidence |
-| --- | --- | --- |
-| Codex CLI 0.153.4 | Local marketplace install, cached-copy reinstall, and removal; unrelated configuration and private data preserved | Candidate plan, process restart/resume, Luna max implementation, Luna xhigh independent verification (15 CLI cases), fresh Astra low review, phase commit `25fdc61`, update/resume, local integration, and cleanup |
-| Cursor CLI 2026.09.15-d2fe57e | Session-local `--plugin-dir`, bundle replacement between processes, and resume; no direct-sync skills | Candidate plan, process restart/resume, native Grok high implementation, Composer Fast independent verification (7 CLI cases), fresh Sol medium review, phase commit `b5eff79`, update/resume, local integration, and cleanup |
-| Grok Build 1.0.34 | Local plugin install and discovery; remove/install refreshed stale update content and preserved unrelated settings and private data | Candidate plan, process restart/resume, native Grok implementation, independent verification (8 CLI cases), fresh review, phase commit `1aab697`, update/resume, local integration, and cleanup |
-
-Each task used a separate native implementation owner, verifier, and fresh
-reviewer. Unit evidence was four test methods for Codex and Cursor and
-fourteen for Grok; these counts are not quality rankings. Cursor's reviewer
-raised the existing CPython decimal-conversion limit; the root recorded a
-rejection for the bounded fixture and the acceptance driver retained that
-limit. Its review was not finding-free. Cursor used the explicit
-`generalPurpose` model mapping documented in its adapter. Grok exposed
-`spawn_subagent`; the alternate `workflow` transport was not exercised.
-
-Codex's extra task-local coordination directory initially blocked guarded
-private-state cleanup after integration. Resume preserved that directory
-with the evidence archive and completed cleanup without repeating the
-merge or weakening the guard. The recipe below avoids that extra directory.
-Task evidence was archived inside each fixture's Git directory before local
-cleanup. No active user installation was migrated.
-
-This establishes one bounded native workflow on each tested CLI. It does
-not establish every IDE surface, browser journey, critical tier, remote PR
-delivery, production use, or improved generated-code quality. Wider host and
-real-project evidence and the paired quality comparison remain separate.
-
-## Acceptance recipe
-
-Use a disposable home and Git repository for each host, with the host's
-normal authentication available and no direct-sync Orchestra skills or
-profiles. Core-only acceptance must create no global Task databases or identity
-hooks. Keep only the local plan and artifacts in the guarded `.orchestra/` layout.
-Keep authentication out of reports. Record the host version,
-bundle source revision, effective model assignments, installation route,
-and actual resolved runtime paths. Python and Git must be ready before the
-workflow starts. Discovering all packaged skills without duplicates
-is the readiness check, not the acceptance result.
-
-A small standard-library Python parser and CLI provide a representative
-journey. Start with permissive comma-separated integer conversion and one
-passing valid-input test. Ask Orchestra to accept only nonnegative ASCII
-decimal tokens, trim surrounding whitespace, preserve order and duplicates,
-and reject empty input, blank tokens, negatives, fractions, plus signs, and
-non-ASCII digits. Require JSON and exit 0 on success; require exit 2, clear
-stderr, empty stdout, and no traceback on invalid input. Scope the work to
-the parser, CLI, tests, and task-private artifacts. The fixture's `.agent/`
-policy should name its unit command and require a separate independent CLI
-verification gate so that this acceptance exercises the verifier role.
-
-1. Invoke the installed Orchestra entry point with the native `standard`
-   tier and hybrid checkout. Inspect the concrete candidate plan before
-   explicitly approving it; no implementation is allowed at this checkpoint.
-2. End the host process, resume the same conversation, and approve the exact
-   candidate artifact revisions. Observe native implementation, independent
-   runtime verification, and a fresh independent review. Inspect reports and
-   the resulting diff before accepting their claims.
-3. Confirm the phase commit includes only approved files, all agents and
-   owned processes have completed, and the local plan is completed. Hold
-   delivery unless the fixture's exact local integration is also authorized.
-4. Update the isolated plugin and resume again. For local delivery acceptance,
-   explicitly authorize integration of the accepted task commit into the
-   fixture's local base. Check fresh configured checks, the final base SHA,
-   and safe merged-branch cleanup. A host or model gap remains a failed or
-   blocked gate; another CLI executor does not prove native execution.
-5. Remove the isolated plugin through its host manager (or stop passing the
-   Cursor directory). Confirm unrelated configuration, private task data,
-   and worktrees survive. Remove temporary authentication and stop only the
-   test's owned processes; retain the bounded evidence until review ends.
-
-For sync-to-plugin migration, first seed unrelated settings and files plus
-task/worktree sentinels in the disposable home. Run `sync.py apply --host
-<host> --dry-run`, then apply and inspect status. Uninstall the direct-sync
-resources with `sync.py uninstall --host <host>` before plugin installation.
-Compare preserved file bytes and unrelated configuration values after
-migration, update, and removal, and check that each public skill has exactly
-one discovered source. `uninstall` has no
-dry-run flag; do not substitute an unverified command. The active installation
-is a separate user-selected migration.
+The September 2026 acceptance of separate Codex, Cursor and Grok Build hosts
+is recorded at the `multi-host-final` tag. Acceptance of the T3 Code route,
+from a request to a delivered PR in one pass, is pending in
+[the roadmap](../docs/ROADMAP.md).
 
 ## Lifecycle
 
-Update and remove through the host's plugin manager. Removing the bundle leaves
-private tasks and worktrees intact; clear those only through their explicit
-lifecycle tools. Distribution, public catalogs, publication, and installation
-into your active environment are separate actions from building this artifact.
+Update and remove through each provider's plugin manager. Removing the bundle
+leaves private tasks and worktrees intact; clear those only through their
+explicit lifecycle tools. Distribution, public catalogs, publication, and
+installation into your active environment are separate actions from building
+this artifact.
 
 Format references: [Agent Plugins](https://agent-plugins.org/specification),
 [Codex plugins](https://developers.openai.com/plugins/build/plugins),
@@ -243,11 +136,11 @@ Format references: [Agent Plugins](https://agent-plugins.org/specification),
 
 ## Modular entries
 
-All targets and direct sync include `orchestra-engineering`,
-`orchestra-project-verification`, `orchestrator` and
-`orchestra-repo-readiness` from canonical sources. References relocate with the bundle.
-Engineering and verification entries allow host discovery; the initiative
-coordinator and repository readiness require an explicit request. Distribution makes resources
-available, not guaranteed selection or native root-task APIs. See
+All targets include `orchestra-engineering`, `orchestra-project-verification`,
+`orchestrator` and `orchestra-repo-readiness` from canonical sources.
+References relocate with the bundle. Engineering and verification entries
+allow provider discovery; the initiative coordinator and repository readiness
+require an explicit request. Distribution makes resources available, not
+guaranteed selection. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
-local integration canaries and the separate live-host evaluation boundary.
+local integration canaries and the separate live evaluation boundary.

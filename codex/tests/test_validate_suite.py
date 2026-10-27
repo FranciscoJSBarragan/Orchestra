@@ -410,74 +410,50 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("hook-contract", result.stdout)
 
-    def test_invalid_role_toml_is_actionable(self) -> None:
-        roles = self.root / "codex/config/roles.native.toml"
-        roles.write_text("[tiers.standard\n", encoding="utf-8")
+    def edit_flow(self, old: str, new: str) -> None:
+        flow = self.root / "codex/config/flow.toml"
+        text = flow.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        flow.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+    def test_invalid_flow_toml_is_actionable(self) -> None:
+        (self.root / "codex/config/flow.toml").write_text("[capabilities\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn(
-            "role-contract: codex/config/roles.native.toml is invalid",
-            result.stdout,
-        )
+        self.assertIn("flow-contract: codex/config/flow.toml is invalid", result.stdout)
 
-    def test_model_assignment_in_profile_is_rejected(self) -> None:
-        profile = self.root / "codex/agents/orchestra_reviewer.toml"
-        profile.write_text(
-            profile.read_text(encoding="utf-8") + '\nmodel = "gpt-5.6-terra"\n',
-            encoding="utf-8",
-        )
+    def test_flow_must_assign_every_capability_and_no_other(self) -> None:
+        for old, new in (
+            ('[capabilities.difficult_debugging]', '[capabilities.pr_poll]'),
+            ('[review_pair]', '[capabilities.pr_poll]\nprovider = "codex"\nmodel = "m"\n\n[review_pair]'),
+        ):
+            with self.subTest(change=new):
+                flow = self.root / "codex/config/flow.toml"
+                original = flow.read_text(encoding="utf-8")
+                try:
+                    self.edit_flow(old, new)
+                    result = self.run_validator()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("must assign every capability and no other", result.stdout)
+                finally:
+                    flow.write_text(original, encoding="utf-8")
+
+    def test_flow_entry_needs_provider_model_and_a_known_effort(self) -> None:
+        self.edit_flow('[review_pair]\nprovider = "claudeAgent"\n', '[review_pair]\n')
+        self.edit_flow('effort = "medium"', 'effort = "ultra"')
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn(
-            "profile-contract: orchestra_reviewer must contain only",
-            result.stdout,
-        )
+        self.assertIn("review_pair needs provider and model", result.stdout)
+        self.assertIn("has an invalid effort", result.stdout)
 
-    def test_invalid_role_model_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.native.toml"
-        roles.write_text(
-            roles.read_text(encoding="utf-8").replace(
-                'model = "gpt-6.1-sol"', 'model = "unsupported"', 1
-            ),
-            encoding="utf-8",
-        )
+    def test_model_id_in_skill_text_is_rejected(self) -> None:
+        skill = self.root / "codex/skills/orchestra-role-reviewer/SKILL.md"
+        skill.write_text(skill.read_text(encoding="utf-8") + "\nPrefer gpt-6.1-sol.\n", encoding="utf-8")
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("has invalid model", result.stdout)
+        self.assertIn("model assignments live only in codex/config/flow.toml", result.stdout)
 
-
-    def test_duplicate_profile_name_is_rejected(self) -> None:
-        analyst = self.root / "codex/agents/orchestra_analyst.toml"
-        analyst.write_text(
-            analyst.read_text(encoding="utf-8").replace(
-                'name = "orchestra_analyst"',
-                'name = "orchestra_reviewer"',
-                1,
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("profile names must be unique", result.stdout)
-
-    def test_sync_legacy_inventory_diagnostic_tracks_contract_count(self) -> None:
-        sync_script = self.root / "codex/scripts/sync.py"
-        sync_script.write_text(
-            sync_script.read_text(encoding="utf-8").replace(
-                '    "web_researcher",\n',
-                "",
-                1,
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(
-            "stale-profile cleanup must be limited to the 14 retired agent names",
-            result.stdout,
-        )
-
-    def test_unconsumed_matrix_role_is_rejected(self) -> None:
+    def test_unconsumed_flow_capability_is_rejected(self) -> None:
         skill = self.root / "codex/skills/orchestra/SKILL.md"
         skill.write_text(
             skill.read_text(encoding="utf-8").replace(
@@ -490,52 +466,6 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn(
             "difficult_debugging is not consumed", result.stdout
         )
-
-    def test_speculative_pr_role_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.native.toml"
-        roles.write_text(
-            roles.read_text(encoding="utf-8")
-            + '\n[tiers.standard.pr_poll]\nprofile = "orchestra_reviewer"\n'
-            + 'model = "gpt-5.6-terra"\n'
-            + 'reasoning_effort = "xhigh"\n',
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpected native.standard capability set", result.stdout)
-
-    def test_assignment_without_profile_is_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.native.toml"
-        roles.write_text(
-            roles.read_text(encoding="utf-8").replace(
-                'profile = "orchestra_implementation_worker"\n', "", 1
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("needs profile, model, and reasoning_effort", result.stdout)
-
-    def test_wrong_profile_mapping_and_sol_xhigh_are_rejected(self) -> None:
-        roles = self.root / "codex/config/roles.native.toml"
-        roles.write_text(
-            roles.read_text(encoding="utf-8")
-            .replace(
-                'profile = "orchestra_analyst"',
-                'profile = "orchestra_reviewer"',
-                1,
-            )
-            .replace(
-                'model = "gpt-6.1-sol"\nreasoning_effort = "high"',
-                'model = "gpt-5.6-sol"\nreasoning_effort = "xhigh"',
-                1,
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("approved assignment matrix", result.stdout)
-        self.assertIn("must not use Sol xhigh", result.stdout)
 
     def test_extra_internal_playbook_is_rejected(self) -> None:
         extra = self.root / "codex/skills/orchestra/references/extra.md"
@@ -617,18 +547,6 @@ class FullModeFixtureTest(unittest.TestCase):
                     self.assertIn(f"{name} must link runtime.md", result.stdout)
                 finally:
                     path.write_text(original)
-
-    def test_runtime_requires_exact_managed_markers(self) -> None:
-        runtime = self.root / "codex/runtime/AGENTS.orchestra.md"
-        runtime.write_text(
-            runtime.read_text(encoding="utf-8").replace(
-                "<!-- orchestra:end -->", "<!-- orchestra:done -->"
-            ),
-            encoding="utf-8",
-        )
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("runtime-contract: managed markers", result.stdout)
 
     def test_comment_gate_rejects_unparseable_python_in_both_modes(self) -> None:
         invalid = self.root / "codex/tests/invalid_fixture.py"

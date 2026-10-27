@@ -77,12 +77,10 @@ foundation includes reusable acceptance, arrange a fresh-agent run of that entry
 and report actual reproduction separately from the first implementation run.
 
 Run the smallest sufficient fresh checks and read their results. Classify
-deterministic failures directly. Orchestra synchronizes Guardian
-(`:workspace`, `on-request`, and Auto-review) as the default, while the active
-permission choice for the task, host, or launcher remains authoritative.
-Orchestra never changes that choice or blocks solely because it differs. When
-Guardian is active, use one exact automatically reviewed escalation for a
-protected boundary; never broaden the confirmed project scope merely because
+deterministic failures directly. The active permission choice of the
+provider or launcher remains authoritative: Orchestra never changes it or
+blocks solely because it differs. Issue a command that crosses a protected
+boundary once and respect its prompt or denial; never broaden the confirmed project scope merely because
 an external service, credential, or dependency is missing.
 
 ## Hand off and offer Orchestra

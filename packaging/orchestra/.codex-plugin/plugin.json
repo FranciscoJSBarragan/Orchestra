@@ -1,7 +1,7 @@
 {
   "name": "orchestra",
-  "version": "0.1.0",
-  "description": "Explicit planned software delivery with native agents, independent review, verification, and authorized delivery.",
+  "version": "0.2.0",
+  "description": "Explicit planned software delivery in T3 Code with independent review, verification, and authorized delivery.",
   "author": {
     "name": "Francisco Javier Serna Barragan"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Orchestra",
     "shortDescription": "Plan, implement, review, and verify software changes.",
-    "longDescription": "Reusable engineering skills, an optional planned workflow, native host adapters and local helpers.",
+    "longDescription": "Reusable engineering skills, an optional planned workflow for T3 Code, and local helpers.",
     "developerName": "Orchestra",
     "category": "Productivity",
     "capabilities": [],

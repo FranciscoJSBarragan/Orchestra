@@ -59,7 +59,7 @@ Check each item by running something, not by reading alone.
 
 Diagnosis is the default. With execution authority from the brief, run setup
 and gates for items 1 to 6, on a clean box from the user's fleet when one is
-available; use `orchestra_analyst` with `repository_context` for a large
+available; use the analyst role with `repository_context` for a large
 repository. Report each item as pass, fail or not checked, with command,
 revision, machine and observed output, separating observation from inference.
 Sampled inspection never certifies the whole repository.

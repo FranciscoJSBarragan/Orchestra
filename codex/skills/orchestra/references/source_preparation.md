@@ -19,8 +19,8 @@ python3 /absolute/path/to/orchestra/scripts/prepare_source.py \
 The compact JSON returns `revision`, `source_root`, `skills_root`, `runtime_root`
 and `workflow`. In source mode `runtime_root` is `<source>/codex`, while
 `workflow` is `<source>/docs/WORKFLOW.md`; pass these exact paths in the assignment.
-Resolve matrix, profile and adapter paths through the runtime's "Explicit source
-layout", including host files outside `runtime_root`. An instruction revision,
+Resolve the flow assignment through the source layout below. An instruction
+revision,
 product base SHA and environment build ID are separate identities. When the
 product being edited is Orchestra, use a separate immutable instruction checkout
 or verified pinned plugin before edits; reuse it for every role.
@@ -33,9 +33,7 @@ or the approved source revision through the environment's existing setup
 mechanism. Do not download a moving `main` helper and call that a pinned setup.
 A prepared VM image or build can retain the source checkout; verify it at
 launch rather than reinstalling on every role. Describe an expected cold start
-as preparation, not as a missing-skill failure. Cursor Cloud Build configuration
-belongs to the consuming environment and needs a live discovery test there;
-this helper does not configure it or prove native plugin loading.
+as preparation, not as a missing-skill failure.
 
 Preparation has one owner per destination and never runs concurrently against
 that path. The helper refuses an existing wrong revision, dirty checkout,
@@ -47,34 +45,28 @@ removes obsolete owned directories when no consumer remains. There is no
 cache registry, automatic updater or change to global permissions.
 
 An installed plugin can also supply a pinned runtime when its selected content
-and host loading are verified. Package archives identify their revision
+and provider loading are verified. Package archives identify their revision
 and checksum; a version label alone does not establish loaded bytes. Do
 not switch runtime copies during an active assignment. Plugin availability is
-not proof that a host loaded its instructions: runtime resources route the
+not proof that a provider loaded its instructions: runtime resources route the
 continuity rules when a skill is selected, while ordinary work without a loaded
-skill needs the host's applicable persistent instructions. Plugin installation
+skill needs the provider's applicable persistent instructions. Plugin installation
 does not silently rewrite those global instructions.
 
 ## Source layout
 
 `prepare_source.py` returns the selected source/runtime/skills roots and workflow.
-Resolve remaining resources from that same source, not `<runtime>/hosts`:
+Resolve remaining resources from that same source:
 
 | Resource | Prepared/source checkout |
 | --- | --- |
 | Workflow | `<source>/docs/WORKFLOW.md` |
 | Helpers | `<source>/codex/scripts/` |
-| Execution presets | `<source>/codex/config/execution-presets.toml` |
-| Codex matrix and profiles | `<source>/codex/config/roles.native.toml`, `<source>/codex/agents/<profile>.toml` |
-| Codex spawn reference | `<source>/codex/skills/orchestra/references/host_codex.md` |
-| Cursor/Grok/Devin/Claude Code matrix | `<source>/hosts/<host>/config/roles.<host>.toml` |
-| Cursor/Grok/Devin/Claude Code spawn reference | `<source>/hosts/<host>/references/spawn.md` |
-| Devin and Claude Code profile sources | `<source>/hosts/<host>/agents/<name>.md` |
+| Flow assignment | `<source>/codex/config/flow.toml` |
 | Skills | `<source>/codex/skills/<skill>/` |
 
-Pass the absolute selected matrix and adapter paths when dispatch needs them.
-Profile source availability alone does not register a native host profile; follow
-its adapter's actual loading requirements. Missing source resources block that
+Pass the absolute flow assignment path when dispatch needs it. Missing source
+resources block that
 route rather than falling back to an installed version. Source instructions stay
 read-only even when the task's product repository is Orchestra itself; prepare a
 separate pinned copy before editing that product checkout.

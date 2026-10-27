@@ -7,12 +7,13 @@ Read this once the specification is confirmed. Re-read
    [technical planning](technical_planning.md) when one owner of one
    implementation capability covers the work, its risk order is uniform, no
    result must be committed before another begins and its material design
-   decisions are resolved. Otherwise, or for critical risk or an unresolved
+   decisions are resolved. Otherwise, or for high-impact risk or an unresolved
    boundary decision (version compatibility, migration order, recovery
    semantics, ownership handoff), dispatch `technical_planning`. Item, file or
    screen counts and crossing a runtime boundary are not criteria, a short diff
-   settles no boundary, and this choice waives no gate. A selected execution
-   preset's root-reuse rule replaces it.
+   settles no boundary, and this choice waives no gate. When your observed
+   model matches the flow's `technical_planning` row, the root-reuse rule in
+   WORKFLOW "Flow assignment" replaces this choice.
 2. **Own the bundle.** Read the overview, phase index, risks and only the
    detail your judgment needs. Collapse phases that name no boundary yourself,
    without a review cycle. Apply triage rules 2 and 4 and the
@@ -24,9 +25,7 @@ Read this once the specification is confirmed. Re-read
    requires no decision review. Dispatch it for an unresolved architectural
    alternative, consequential contract, migration or recovery assumption,
    unfamiliar dependency or costly-to-reverse decision; counts never create the
-   gate. Prefer a bounded authorized experiment for an empirical question. A
-   critical plan always gets a focused review naming its measurable risk,
-   evidence, area and defect class.
+   gate. Prefer a bounded authorized experiment for an empirical question.
 4. **Judge.** Triage each `plan-review` finding by its stable ID. Accepting a
    defect does not approve its proposed correction; a correction that narrows,
    excludes or excepts the confirmed outcome is replaced by an in-scope one.

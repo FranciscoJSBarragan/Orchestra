@@ -1,22 +1,20 @@
-# T3 Code layer
+# T3 Code host
 
-Use this reference when the `t3-code` MCP tools (`delegate_task`,
-`t3_worktree_handoff`, `orchestrator_capabilities`) are available. T3 Code
-hosts the provider session; the provider remains the Orchestra host, and the
-`mixed-models` execution preset assigns every capability, with the review pair
-WORKFLOW "Host adapters" defines for T3, unless the user asks for a host tier
-or another preset. Record the selection in the plan Decisions; a later root on
-another model or provider keeps it. T3 also replaces checkout creation and
-role transport. Specification, planning, review policy, commits, and delivery
-are unchanged.
+T3 Code is the host of every Orchestra task. Its `t3-code` MCP tools
+(`delegate_task`, `t3_worktree_handoff`, `orchestrator_capabilities`) create
+the checkout and carry every role, and WORKFLOW "Flow assignment" names each
+role's provider, model and effort. A later root on another model or provider
+keeps the assignment recorded in the plan Decisions. Specification, planning,
+review policy, commits and delivery follow WORKFLOW.
 
 ## Outside T3
 
-An agent outside T3 with an MCP connection to a T3 Code server (the
-deployment documents its endpoint) starts Orchestra work there only when the
-user asks. It launches each task root as a top-level thread through the T3
-section of [host transports](../../orchestrator/host-transports.md),
-and the launched root runs under this reference. `delegate_task` and
+An agent outside T3 starts Orchestra work there only when the user asks,
+through an MCP connection to the T3 Code server (the deployment documents its
+endpoint) or T3's local CLI on the same machine. It launches each task root as
+a top-level thread through
+[host transports](../../orchestrator/host-transports.md), and the launched
+root runs under this reference. `delegate_task` and
 `create_threads` need a caller inside a T3 thread.
 
 ## Checkout
@@ -45,21 +43,16 @@ remove its worktree.
 ## Role transport
 
 Dispatch each role with `delegate_task`; its child runs in the root's bound
-checkout. Map the resolved row onto `target`: the `providerInstanceId` of the
-row's `executor` (`claude` → `claudeAgent`, `codex` → `codex`, `cursor` →
-`cursor`, `grok` → `grok`; a `host` row uses the root's own instance; a
-`native` row and each review-pair model use their model family's instance,
-`codex` for `gpt-*` and `claudeAgent` for `claude-*`),
-never another instance that serves the same model id, such as an ACP registry
-instance or `cursor` for a `claude` row; its exact
+checkout. Map the resolved row onto `target`: the row's `provider` is the
+`providerInstanceId`, never another instance that serves the same model id,
+such as an ACP registry instance; its exact
 `model` from the live `orchestrator_capabilities` catalog; and its effort in
 the effort option that model advertises there. A Cursor alias that encodes
 effort maps to the catalog model with that effort option and an explicit
 `fastMode`, `true` only for a `-fast` suffix, since the instance default may be
 on: `grok-4.7-xhigh` is `grok-4.7` at `xhigh` with `fastMode: false`. Both pair
 reviewers start in the same turn. A missing model or effort blocks; never
-substitute silently. This sets effort per dispatch, so the Claude Code
-`<profile>_<effort>` agents are not needed.
+substitute silently.
 
 - Use `runtimeMode: inherit`; T3 permissions are observed, never raised.
 - The packet is the normal role packet plus: do not delegate, launch threads,
@@ -78,10 +71,10 @@ substitute silently. This sets effort per dispatch, so the Claude Code
 - `task_status` `providerInstanceId` and `model` are observed evidence; the
   effort is requested only.
 - After every return, check Git status and HEAD. A read-only role that changed
-  anything other than its declared report blocks, as under WORKFLOW "CLI
-  delegation".
+  anything other than its declared report blocks, as under WORKFLOW "T3 Code
+  host".
 
-Task roots for an initiative follow the T3 section of
+Task roots for an initiative follow
 [host transports](../../orchestrator/host-transports.md).
 
 ## Browser
@@ -90,7 +83,7 @@ T3's collaborative browser is the first `auto` surface and the only `in_app`
 surface on every provider, with the tab steps the browser acceptance playbook
 defines; `delegate_task` children receive its `preview_*`
 tools, and each child sees only its own tabs. When it is unavailable, `auto`
-falls back to the host mapping. On a Linux host T3's browser needs a one-time
+falls back as WORKFLOW "Test permissions and browser routing" defines. On a Linux host T3's browser needs a one-time
 `sudo env "PATH=$PATH" t3 browser setup` (AppArmor); until then `preview_open`
 fails with a sandbox error. Orchestra never runs it: tell the user, and an
 `in_app` route returns `blocked` naming that command. T3 starts Claude Code without Chrome

@@ -1,6 +1,6 @@
 # Frontend implementation playbook
 
-For a delegated capability assignment, use this playbook with the `orchestra_implementation_worker` profile and the explicit `frontend_implementation` capability. Browser acceptance remains an independent verification capability.
+For a delegated capability assignment, use this playbook with the implementer role and the explicit `frontend_implementation` capability. Browser acceptance remains an independent verification capability.
 
 ## Contract
 
@@ -14,20 +14,8 @@ For a delegated capability assignment, use this playbook with the `orchestra_imp
 - When visual iteration is needed, require `browser_route: auto | in_app |
   chrome | codex-cu`. Explicit user selection must be attempted, including a canary of a
   previously failing tool, and remains fixed without fallback. Do
-  not veto or substitute it. Inside T3 Code (its `preview_*` tools are
-  available), T3's collaborative browser is the first `auto` surface and the
-  only `in_app` surface, using the T3 tab steps in
-  [browser acceptance](browser_acceptance.md). Otherwise, and for `chrome` or an `auto` fallback,
-  follow the host spawn reference. On Cursor, `auto` and `chrome` map to Browser Use and
-  `in_app` is blocked. On Codex, `auto` explicitly selects the dedicated Chrome
-  connector first and may fall back to Codex's in-app Browser only for a
-  technical gap. On Grok, `auto` maps to Playwright. On Claude Code, `auto` and
-  `chrome` map to Claude in Chrome and `in_app` is blocked. On Devin, every mapped
-  route is `blocked`.
-- On Cursor, drive Browser Use MCP with `new_tab` then `wait_for_load`. If the
-  MCP process client is not registered, authenticate once and retry; if it still
-  cannot run, or Chrome remote-debugging Allow is missing, return `blocked`. Do
-  not substitute the Cursor IDE browser or the Browser Use CLI.
+  not veto or substitute it. Use the routes and T3 tab steps in
+  [browser acceptance](browser_acceptance.md).
 - A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the first surface's blocker, close any implementation-owned tab already created on it, and repeat the complete visual scenario in a new task tab on the fallback surface. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
 - Use an implementation-owned task tab, separate from independent acceptance.
   Preserve user tabs, authenticated sessions, shared windows and applications.
