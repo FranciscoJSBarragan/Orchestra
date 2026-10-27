@@ -228,13 +228,7 @@ one discovered source. `uninstall` has no
 dry-run flag; do not substitute an unverified command. The active installation
 is a separate user-selected migration.
 
-## Optional companions and lifecycle
-
-Orchestra Tasks is distributed and installed separately. Core bundles contain no
-`orchestra-task`, Task CLI/MCP, global snapshot helper, Hub or identity hooks.
-CLI delegation and native execution adapters remain in core. Bridge is not
-required. Each package resolves the other's skills through the host only when
-explicitly needed; neither assumes sibling plugin-cache paths.
+## Lifecycle
 
 Update and remove through the host's plugin manager. Removing the bundle leaves
 private tasks and worktrees intact; clear those only through their explicit
@@ -257,18 +251,3 @@ coordinator and repository readiness require an explicit request. Distribution m
 available, not guaranteed selection or native root-task APIs. See
 [modular acceptance](../docs/evaluation/MODULAR_ACCEPTANCE.md) for source tests,
 local integration canaries and the separate live-host evaluation boundary.
-
-## Retiring a combined installation
-
-The core sync recognizes unchanged Task resources in its previous ownership
-manifest and retires them on update. Digest drift blocks preflight; unknown
-files and unrelated settings are preserved. New Tasks resources have separate
-runtime paths, hook names, config markers and ownership manifests. Core sync
-must never remove them. Task databases and private documents remain untouched.
-
-For the owner's known installation, replace the combined distribution only
-with explicit installation authority: stop actual consumers, back up the owned
-runtime/configuration, retire verified old resources, install the selected
-products and reload the hosts. Verify unique skill and hook registration. No
-active-card conversion or automatic schema migration is part of this split.
-The separate Tasks workflow owns any later storage migration.

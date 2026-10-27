@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Orchestra",
     "shortDescription": "Plan, implement, review, and verify software changes.",
-    "longDescription": "Reusable engineering skills, an optional planned workflow, native host adapters and local helpers. Orchestra Tasks is a separately installed companion.",
+    "longDescription": "Reusable engineering skills, an optional planned workflow, native host adapters and local helpers.",
     "developerName": "Orchestra",
     "category": "Productivity",
     "capabilities": [],

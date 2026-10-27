@@ -146,12 +146,6 @@ Use WORKFLOW "Task-private artifacts" for compact evidence and
 delta reports. After successful publication, the handoff is the outcome, exact
 artifact ID and material blockers/risks, not a second copy of the report.
 
-For explicit observation only, use the packet's observation ID and absolute
-snapshot-helper path at material start, final outcome or blocker. Do not search
-for a helper or load Tasks when they are absent. Snapshot failure never blocks
-the assignment. Card authority checks belong to the root under WORKFLOW
-"Attached Tasks companion"; a role's observation does not satisfy them.
-
 ## Stop rule
 
 Return the smallest concrete blocker when the capability is missing, not

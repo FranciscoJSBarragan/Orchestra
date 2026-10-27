@@ -30,7 +30,7 @@ An explicitly requested initiative can coordinate independent task roots across
 concurrent tasks in one repository or several projects and repositories while
 preserving local review and shared acceptance. Its parent handles global decisions without importing every child
 transcript. A persistent Markdown register and context links support continuation
-without becoming a task engine; Task Control and Hub remain optional. The same
+without becoming a task engine. The same
 parent/task-root/role design works through each host's verified native mechanisms,
 with local execution and cloud environments as separate supported routes.
 
@@ -104,9 +104,8 @@ destructive actions, and delivery remain in force.
 
 Workflow selection belongs to the user. A planning-only host mode never mutates
 through Orchestra, and ordinary change, plan, or implementation requests remain
-direct work. Preparing a `$orchestra-task` card remains inert. Only an explicit
-`$orchestra` invocation, adoption of a prepared task from a native host chat,
-or an unequivocal imperative to use or start Orchestra activates the workflow.
+direct work. Only an explicit `$orchestra` invocation or an unequivocal
+imperative to use or start Orchestra activates the workflow.
 On Codex, Orchestra recommends standard execution by default and critical
 scrutiny for actual high-impact risk. On Cursor and Claude Code it recommends `standard`,
 `minimal` when the user prioritizes
@@ -114,15 +113,6 @@ cost or speed, and `critical` for matching high-impact risk. On Grok Build and
 Devin it recommends `standard` and offers `critical` for matching high-impact
 risk; unassigned `minimal` remains blocked on both. The
 user makes the final tier choice among assigned tiers.
-
-### Optional task management
-
-Orchestra Tasks is a separate repository and installation for prepared cards,
-native-chat ownership, global snapshots and progress clients. Core skills and
-full execution do not install or call it by default. A user may attach a card
-or explicitly track a direct run; installing the companion grants no authority.
-The core retains local plans, evidence and Git delivery. An attached card keeps
-its companion obligations; loss of that dependency blocks the attached path.
 
 ### Quality per token
 
@@ -184,8 +174,7 @@ compilation, or CLI-usage failures remain real failures.
 Current source and Git remain authoritative for repository state. Project tests,
 runtime evidence, and independent review provide complementary correctness
 signals. Task-private evidence artifacts let later agents navigate prior work without
-root-authored replay. Global observation belongs to the optional Tasks companion
-and never grants execution authority.
+root-authored replay.
 New tasks keep their plan and semantic artifacts in one self-ignored
 `.orchestra/` directory inside the selected worktree. This state remains
 writable under normal workspace permissions, is removed only by guarded task
@@ -330,9 +319,6 @@ Orchestra succeeds when:
 
 - delivered software meets the accepted behavior with correct code, coherent
   maintainable architecture and meaningful verification of its material risks;
-- a task can be prepared durably without starting Orchestra, then adopted in a
-  visible native Codex, Cursor, Grok Build, or Devin chat without losing its origin, human ID, or
-  UUID;
 - ordinary tasks finish without workflow repair or manual state cleanup;
 - accepted phases leave no active write-capable agent or owned test process;
 - phase commits are routine and traceable;
@@ -384,8 +370,7 @@ Orchestra can be distributed as a self-contained plugin generated from its
 canonical source. Skills, native host adapters, CLI delegation, and helpers
 remain one product; packaging does not introduce another workflow runtime.
 Host-specific manifests adapt installation and discovery. The host retains
-permissions and execution authority. Task Control and Hub are optional
-companions, and neither is a prerequisite for the delivery flow.
+permissions and execution authority.
 
 A portable manifest broadens discovery; full execution support still requires
 the native capabilities described in WORKFLOW. Bridge integration and public

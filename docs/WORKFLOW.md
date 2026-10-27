@@ -6,11 +6,7 @@
 flowchart TD
     U["Normal chat"] --> Q{"User intent"}
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
-    Q -->|"Capture for later"| IN["Draft Kanban card; no activation"]
-    Q -->|"Prepare $orchestra-task"| DT["Separate Tasks companion: prepare card"]
-    DT -->|"Adopt ID from native host chat"| O
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
-    O --> B
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
     B --> MC["Resolve host matrix and assigned tiers"]
     MC --> TR["Root recommends the available tier with risk and cost-benefit"]
@@ -50,9 +46,8 @@ flowchart TD
 ## Orchestrator behavior
 
 Orchestra is an explicit planned-work route. It activates only through
-`$orchestra`, native-host-chat adoption of a ready `$orchestra-task`, or an
-unequivocal imperative to use or start Orchestra. Ordinary plan requests,
-descriptive mentions, task capture, and direct change, fix, or implementation
+`$orchestra` or an unequivocal imperative to use or start Orchestra. Ordinary
+plan requests, descriptive mentions, and direct change, fix, or implementation
 work remain outside Orchestra.
 
 If Orchestra is invoked in a planning-only host mode, reuse the conversation,
@@ -123,8 +118,7 @@ Resolve executable resources through `orchestra/runtime.md`. A plugin keeps
 skills, helpers, profiles, host matrices and presets in one relocatable
 package; direct sync keeps its managed global destinations and helper
 mirrors; explicit source mode uses the runtime reference's source layout.
-Settings stay outside the plugin under `${ORCHESTRA_HOME:-$HOME/.orchestra}`; the separately
-installed Tasks companion owns its data.
+Settings stay outside the plugin under `${ORCHESTRA_HOME:-$HOME/.orchestra}`.
 
 Plugins register no Codex agent types and edit no global configuration. A
 Codex plugin or prepared-source dispatch spawns a native `default` agent with
@@ -142,10 +136,9 @@ execpolicy rule or Git helper. Older or unreadable clients block before any
 change; manifest-owned Full Access or legacy blocks migrate atomically, and
 `uninstall` restores the exact prior configuration regardless of version. Other hosts' sync installs their
 agents, profiles and skills (Devin under `~/.config/devin/`, Claude Code under
-`~/.claude/`), with no settings, identity hook or Task configuration, and
-never writes any host's permission configuration. Native chats inherit configured
-permissions; explicit host choices are never rejected or rewritten, and Task
-Control never launches a host or overrides permissions. Under Codex Guardian,
+`~/.claude/`), with no settings, and never writes any host's permission
+configuration. Native chats inherit configured permissions; explicit host
+choices are never rejected or rewritten. Under Codex Guardian,
 shared Git metadata is outside the workspace boundary, so the root issues the
 exact Git operation once with a narrow escalation; a denial is never
 bypassed or turned into Full Access. The Claude Code plugin's only hook
@@ -154,9 +147,7 @@ the user to add its runtime and skills directories.
 
 Installing or loading a plugin does not activate Orchestra, select a tier,
 install another runtime or grant delivery authority. Use one installation
-route per host to avoid duplicate skills. The core package contains no Task
-Control, Hub, identity hook or MCP server; the Orchestra Tasks companion is
-optional.
+route per host to avoid duplicate skills.
 
 The orchestrator keeps the main objective while adapting safely to facts
 found during execution: it does not stop for routine technical choices or
@@ -173,7 +164,7 @@ implementers own bounded edits, and verifiers inspect behavior without editing
 source. The direct request supplies intent, scope, target checkout or revision,
 available evidence, and authority; ask only for information that cannot be
 inferred safely. Return a concise inline result unless a named consumer needs
-a file. Standalone work requires no tier, Coordinator, task card, phase IDs,
+a file. Standalone work requires no tier, phase IDs,
 plan persistence, or fabricated Orchestra artifacts.
 
 Capability playbooks retain their substantive engineering guidance in direct
@@ -309,7 +300,7 @@ The normal review/check loop assesses meaningful recipe changes with the code.
 
 `orchestrator` is an explicit route for an initiative with genuinely
 independent project, repository, acceptance or task-root boundaries; it never
-activates from a multi-file edit and needs no Task Control, Hub or Bridge.
+activates from a multi-file edit and needs no Bridge.
 Ordinary work stays one task with proportional phases. An initiative may span
 concurrent tasks in one repository, several repositories or projects on
 different hosts; resolve actual Git roots, instructions and execution
@@ -447,8 +438,7 @@ writes. Reconcile shared ports, databases and containers too: Git isolation
 does not isolate them. Read dependencies from accepted revisions or a fixed
 contract, never a sibling's evolving files. `completed` evidence marks a
 reviewed child revision; `delivered` only an actual integration into the
-required base or environment. Task Control cards may expose those facts but
-are no dependency.
+required base or environment.
 
 Resolve instructions separately from the product checkout through the
 selected runtime and source-preparation recipe: each environment uses one
@@ -557,12 +547,7 @@ publication scope. This never limits an authorized held result or local-only
 integration. A child launched from a shared primary directory establishes its
 isolated checkout before any write and uses it exclusively; an explicit
 shared-checkout choice serializes writers. Supplied branches are not the
-integration base; use managed semantics. A supplied branch outside
-`orchestra/*` skips optional Coordinator registration and its Hub projection
-(declared before setup; the child plan and register give visibility); when
-that projection is required, select an owned `orchestra/*` branch in the same
-checkout before registration, never silently losing a required card's
-identity. Unexpected commits, even descendants, are preserved,
+integration base; use managed semantics. Unexpected commits, even descendants, are preserved,
 reported and reconciled; unknown work is never reset. The parent may direct safe selection of the approved
 revision or accept a new captured base through a focused context delta. When
 host metadata and the actual branch disagree, establish how resume and
@@ -965,40 +950,6 @@ Reusable knowledge follows "Repository conventions" and "Durable knowledge
 checkpoint"; a suggested recipe never becomes a hard gate by appearing in a
 report.
 
-## Attached Tasks companion
-
-Orchestra works without Orchestra Tasks. Do not discover its installation, run
-its helpers or publish global snapshots for ordinary direct tasks. An explicitly
-tracked direct run may use its observation path without becoming a card.
-
-A plan with `origin: prepared-card` retains the exact `kanban_uuid`, canonical
-`kanban_short_id` and confirmed `kanban_title` from `task adopt`; resume
-requires all three to match. This is an attached card, never a direct
-task merely because its companion is unavailable. Load the host-selected
-`orchestra-task` skill and its own runtime mapping. Do not resolve it relative
-to the core bundle, use a different installed copy, or persist cache paths.
-Missing, ambiguous or incompatible required skills/helpers block the card path.
-Matching database schemas alone do not prove CLI/workflow compatibility.
-
-At the existing pauses before phase commit, terminal completion, delivery and
-returning to the user, apply the loaded companion's owner and safe-stop
-obligations. An unavailable authoritative query blocks further mutation and
-cleanup; mark the existing plan blocked with the concrete reason. The companion
-owns command semantics, transfer, acknowledgement, finish and registration.
-Its read-only snapshots cannot grant authority or replace the approved plan.
-
-Before a delivery helper can remove local plan state, retain the exact card,
-terminal revision and delivery inputs in the native handoff. Apply the
-companion's delivery-registration and reconciliation instructions to the actual
-verified result. A successful Git delivery with failed registration remains
-registration-pending, not a reason to repeat delivery or claim Tasks is updated.
-The companion documents the current original-chat-only recovery limitation.
-
-Only an attached card or an explicitly tracked direct run passes an observation
-ID plus the resolved absolute snapshot-helper path in transient packets. Observation failure is fail-soft;
-card ownership or stop-state failure is not. Direct tasks without tracking have
-no missing-companion warning. Loading either plugin does not activate this route.
-
 ## Tier flows and models
 
 Tiers are host-specific lookups, not a shared enum.
@@ -1217,12 +1168,9 @@ After explicit activation in an execution-capable mode:
    upstream; a failed fetch blocks; never `git pull`, implicit merge or base
    rebase). Dirty, detached, conflicted, active-operation or
    identity-ambiguous state needs one consolidated decision before mutation.
-   An adopted prepared card revalidates its specification revision against
-   the fetched base; a change gets a focused context delta and reopens
-   confirmation only if material. Run one idempotent `task_state.py init
-   --worktree <task-worktree>` and pass the returned artifacts path to every
-   producer; no global registration is required. Apply "Attached Tasks
-   companion" only for an attached card or explicit tracking.
+   Run one idempotent `task_state.py init --worktree <task-worktree>` and
+   pass the returned artifacts path to every producer; no global
+   registration is required.
 9. Confirmation starts formal planning, which the root runs as the root
    skill's `planning stage` reference defines: who authors the plan, review,
    finding judgment and approval. Plan documents, including phase boundaries,
@@ -1263,9 +1211,7 @@ overview verbatim, including authorized replacements; material corrections go
 in the root decisions so resume uses the current bundle. Its phase manifest
 maps each phase to the exact artifact ID, path, revision, progress, accepted
 commit, blocker and next action, without duplicating phase details. Adoption also records source revision,
-imported paths, existing commit range and remaining phases. Task identity is
-`origin: direct` (no Kanban fields or short ID), or `origin: prepared-card` under "Attached Tasks
-companion".
+imported paths, existing commit range and remaining phases.
 
 Material human authority is quoted, not paraphrased: the user's outcome
 statement and each answer that settles a material product question, with that
@@ -1891,9 +1837,7 @@ transient context, with no classifier or registry. Fresh tasks start at the
 intended committed base; adopted committed work starts at the source HEAD and
 keeps the integration base. Scoped dirty adoption imports selected
 non-ignored paths through `adopt_worktree.py` (content may stay unstaged);
-ambiguous dirty ownership blocks. When the fetched base changes an adopted
-prepared card's revision, request only a focused `repository_context` delta
-and reopen confirmation only for a material change.
+ambiguous dirty ownership blocks.
 
 Reuse is allowed only for the same live pre-approval task, or when plan,
 objective, checkout mode and path, starting identity, task branch, base and
@@ -2271,9 +2215,8 @@ from delivered and state the result location, how to run or demonstrate it,
 verification performed, safe test data, limitations, exact delivery state and
 the next authority needed. A task that delivers a case marks its case-list
 line ready to try with the delivery link and asks the user to try it; only the
-user's confirmation marks it done. An attached card uses its canonical identity from
-the Tasks companion; a direct task uses its repository and human title without
-inventing a card ID.
+user's confirmation marks it done. Name a task by its repository and human
+title.
 
 Explanations distinguish verified facts, supported inference and uncertainty,
 and use an available visualization only when a complex sequence, hierarchy,

@@ -354,12 +354,6 @@ class FullModeFixtureTest(unittest.TestCase):
         result = self.run_validator()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_task_runtime_cannot_return_to_core(self):
-        path = self.root / "codex/scripts/task_control.py"
-        path.write_text("raise SystemExit(0)\n")
-        failures = validator.check_distribution_boundary(self.root)
-        self.assertTrue(any("task_control.py belongs in Orchestra Tasks" in item for item in failures))
-
     def test_roadmap_must_preserve_precedence_boundary(self) -> None:
         roadmap = self.root / "docs/ROADMAP.md"
         roadmap.write_text("# Orchestra Roadmap\n", encoding="utf-8")

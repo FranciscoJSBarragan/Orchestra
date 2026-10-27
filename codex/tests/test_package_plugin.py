@@ -103,10 +103,6 @@ class PluginPackagingTests(unittest.TestCase):
         result = self.run_helper(plugin, "delegate.py", "--preset", "standard-delegate", "--host", "codex", "--capability", "independent_review", "--resolve-only")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("independent_review", result.stdout)
-        self.assertFalse((plugin / "control").exists())
-        self.assertFalse((plugin / "scripts/task_control.py").exists())
-        self.assertFalse((plugin / "scripts/coordination.py").exists())
-        self.assertFalse((plugin / "skills/orchestra-task").exists())
         self.assertFalse((self.root / "home/.orchestra").exists())
         after = {p.relative_to(plugin): p.read_bytes() for p in plugin.rglob("*") if p.is_file()}
         self.assertEqual(before, after)

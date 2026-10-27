@@ -12,7 +12,7 @@ Conformance and package checks establish integration, not improved generated
 code quality. Plugin installation is an alternative to direct sync; it does
 not create a second runtime.
 
-### Engineering baseline before the Tasks split
+### Engineering baseline
 
 Implementation through `f47b08bf49ce98ed632de8a47195f45d639c44c9` includes
 decision evidence and Lite v2 handoffs, useful verification, decision authority,
@@ -34,22 +34,12 @@ evaluation is part of this documentation and integration closure. Matched
 quality/model evaluation also remains pending; the recorded pilot is a bounded
 observation. No release or public marketplace publication is claimed.
 
-### Tasks separation
+### Orchestra Tasks retired
 
-The source split kept engineering skills, full execution, delegation,
-initiative coordination and local plan/Git helpers in Orchestra. The separate
-Orchestra Tasks repository owns cards, global snapshots, MCP, identity hooks and
-Hub clients. Direct tracking is explicit opt-in. Each has its own package and
-installer; core-only use has no Tasks dependency.
-
-The [separation acceptance record](evaluation/TASKS_SPLIT_ACCEPTANCE.md) records
-the independent Opus 5.5 Medium review, source and package checks, publication
-to both repositories' `main` branches, and the owner's authorized plugin
-replacement on 2026-09-26. Both repositories are public; public marketplace
-publication remains separate. Installed package parity and bounded runtime
-checks passed. The prior model-driven host trials below describe the combined
-baseline, not live workflow acceptance of this split.
-The held-out model-quality evaluation remains deferred.
+The owner retired the Orchestra Tasks companion on 2026-10-27: T3 Code threads
+now carry task intake and progress. Its cards, global snapshots, MCP, identity
+hooks and Hub clients are no longer an integration target, and core keeps no
+attachment boundary for them.
 
 ## Distribution
 
@@ -58,7 +48,7 @@ separate explicit delivery decision after host acceptance and real-project
 workflow evidence. This roadmap does not prescribe an implementation design.
 
 Bridge integration is deferred. Native adapters and CLI delegation remain in
-Orchestra. Task Control and Hub belong to the separate Orchestra Tasks companion.
+Orchestra.
 
 ## Plugin adoption evidence
 
@@ -81,7 +71,7 @@ managed worktrees and remote PR delivery through installed plugins. The owner's
 completed plugin update is recorded in the delivery snapshot above; migration
 of other installations and public publication remain separate delivery decisions.
 
-Task Control and Hub remain optional. Additional harnesses and comparative model
+Additional harnesses and comparative model
 benchmarks follow these adoption checks. This list records follow-up work; it
 does not itself authorize publication or a change to the active installation.
 
@@ -170,8 +160,7 @@ From Orchestra evaluations between 2026-10-08 and 2026-10-12:
 From mattpocock/skills `5beb35b`, reviewed on 2026-10-20:
 
 - **Issue tracker as workflow state** (`to-spec`, `to-tickets`, `triage`,
-  `wayfinder`): a second state store beside the local plan and Git; the Tasks
-  companion owns cards.
+  `wayfinder`): a second state store beside the local plan and Git.
 - **Parallel implementers over a ready frontier** (`implement-spec`): its
   users report file and naming collisions and a four-hour review-fix loop;
   Orchestra keeps one writer per checkout.
