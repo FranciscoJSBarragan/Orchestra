@@ -47,10 +47,9 @@ frequency as a safety net. Read details
 with `t3_thread_read` from the last known position rather than rereading the
 whole timeline. `t3_thread_send` continues the same provider
 session with its context intact, so it carries accepted fixes and deltas; use a
-stable `clientRequestId`. A task root links and watches only its own PR, with
-`link_pull_request`; a parent never links or watches a child's PR, which
-would bind the parent thread to that PR's state. T3 does not wake a thread
-when its PR merges, so the merging root reports the merge.
+stable `clientRequestId`. A task root watches only its own PR, as the
+[T3 Code](../orchestra/references/host_t3.md) reference defines; a parent never
+watches a child's PR, which would bind the parent thread to that PR's state.
 
 `delegate_task` is a leaf transport, not a task root. Its child runs in the
 caller's checkout with no workspace option. From a parent in a shared checkout
