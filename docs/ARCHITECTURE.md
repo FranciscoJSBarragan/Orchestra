@@ -53,15 +53,6 @@ Orchestra/
 
 ## Component responsibilities
 
-### Optional Tasks companion
-
-Orchestra Tasks owns cards, global snapshot storage, MCP, identity hooks and
-Hub clients in a separate repository. Core packages neither contain nor install
-those resources. Skills resolve their own runtime; cross-product integration
-uses the host-loaded entry and existing bounded CLI results, never private
-Python imports or relative paths between plugin caches. WORKFLOW "Attached
-Tasks companion" owns the narrow core boundary and failure distinction.
-
 ### Orchestrator
 
 Owns user dialogue, tier recommendation, product clarification, capability routing,
@@ -96,7 +87,7 @@ specification. Immediately after that confirmation the root uses Git directly
 to create a collision-free task branch in either a managed Orchestra-root
 worktree or the current clean hybrid checkout, keeps that task-checkout
 identity in transient context before plan approval, passes the exact checkout to every
-capability. Global observation occurs only through an explicitly attached Tasks companion.
+capability.
 
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, only verifiers required by the independent
@@ -109,8 +100,6 @@ At any earlier handoff, blocked cleanup prevents downstream dispatch and
 receives one cleanup-only return to the same owner; failure to clear it blocks
 the phase. A source-read-only task tab or window may remain partial until phase
 teardown.
-When explicitly tracked through Tasks, best-effort activity snapshots expose progress but do not prove that an
-agent or process is live and never participate in commit safety.
 
 The active implementation owner defines a stable observation boundary. Until
 that owner returns an outcome or blocker, the root coordinates without reading
@@ -283,7 +272,7 @@ reserved worktree-local task-state directory, loading delivery policy, running
 configured argv checks, opening or observing a PR through direct `gh`, merging
 an authorized clean PR with guarded task-resource cleanup, integrating a local
 fast-forward, synchronizing managed resources through direct sync, and
-validating the suite. Global observation helpers belong to the separate Tasks companion.
+validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. A helper must reduce the total
@@ -316,10 +305,6 @@ verbatim, and an exact phase manifest with IDs, private paths, artifact
 revisions, progress, commits, blocker, and next action. Phase details are not
 duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
 state; the plan carries approved intent, exact bundle selection, and progress.
-Task identity records whether the task is `prepared-card` or `direct`; only the
-former carries the exact Control UUID, canonical short ID, and confirmed title
-returned by adoption. Resume reconciles those values rather than recomputing
-them.
 
 Every overview includes the semantic `Review context` section, and every phase
 includes semantic context dependencies plus `Context maintenance paths` set to
@@ -343,7 +328,7 @@ Artifacts are plain files in the task-private `.orchestra/artifacts` directory.
 The filesystem is their only locator. The self-ignored ownership marker keeps
 Git status clean; unsafe collisions block before dispatch. Legacy private paths
 remain supported by local state cleanup. Artifact publication failure returns
-complete evidence inline. Global snapshots are optional Tasks-owned observation.
+complete evidence inline.
 
 Artifact `kind` is a file-naming convention:
 `repository-context`, `context-delta`, `plan-overview`, `plan-phase`,
@@ -377,8 +362,7 @@ approval, authority or risk judgment, and failed convergence. The root
 skill's planning stage and finding triage references own finding disposition
 and convergence. No review counter or limit persists.
 
-Optional Tasks cards are not a core workflow authority. Do not
-introduce a global workflow event ledger, authority-bundle chain, duplicate Git
+Do not introduce a global workflow event ledger, authority-bundle chain, duplicate Git
 index, commit recovery journal, event-sourced board, benchmark control plane, or
 general-purpose workflow state engine unless real usage demonstrates a
 requirement Git and the local plan cannot meet. The root uses the one-shot
@@ -524,9 +508,7 @@ unchanged under `docs/reference/orchestra-external/` in that repository. This
 reference has no runtime consumer in Orchestra and is not an installable
 integration. Future Bridge support must establish its own opt-in contract.
 Host adapters and CLI delegation stay in the Orchestra repository because they
-implement execution of the shared workflow. Task Control and Hub belong to the separately installed Orchestra Tasks
-repository. Their optional intake and observation responsibilities do not
-require them to be shipped with core.
+implement execution of the shared workflow.
 
 ## Verification environment and browser routing
 
@@ -624,8 +606,7 @@ consumer requirement or reproducible risk.
 The design explicitly rejects an authoritative workflow event ledger,
 authority-bundle chain, duplicate Git index, commit recovery journal, Kanban
 board, general-purpose workflow state engine, and repeated validation of
-unchanged authority unless later evidence passes the same gate. The optional Tasks companion owns durable intake and global observation;
-core uses only the attachment boundary in WORKFLOW.
+unchanged authority unless later evidence passes the same gate.
 
 Delivery uses exactly three focused helpers: `policy.py`, `pr.py`, and
 `integrate_local.py`. The root invokes `pr.py` directly for open, observe, and
@@ -695,7 +676,7 @@ They contain no installers, active configuration, credentials, or private data.
 
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
 compatibility manifest. Cursor, Grok, Devin, and Claude Code targets use native manifests
-for their host loaders. Task identity hooks are distributed only by Orchestra Tasks. The Claude Code
+for their host loaders. The Claude Code
 target ships one `PreToolUse` hook that allows read-only tools only inside its
 own package, because Claude Code otherwise denies non-interactive agents their
 role skills; it grants no write, shell, or outside-path access. The four Codex behavior
@@ -703,8 +684,7 @@ profiles are packet content, not plugin-registered agent types; the Devin
 target ships the four Devin agent profiles under `agents/` as the registered
 `subagent_type` dispatch surface, and the Claude Code target ships its
 effort agents there for the same purpose. All targets retain the same shared workflow;
-only distribution metadata and registered host profiles vary. Core ships no
-MCP server, Hub or identity hook. Runtime resolution and dispatch policy belong to
+only distribution metadata and registered host profiles vary. Runtime resolution and dispatch policy belong to
 WORKFLOW "Host adapters" and the loaded skill's runtime reference.
 
 Plugin install, update, listing, and removal belong to the host's plugin manager.

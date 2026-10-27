@@ -23,8 +23,7 @@ Use one persistent Markdown project register under WORKFLOW's location and
 ownership rules. [Project workspace](project-workspace.md) illustrates a small
 board and stable context; [the child packet](packet-example.md) carries the
 assignment. These are examples, not schemas. The register replaces the initiative
-index and links child evidence instead of copying plans. Optional Tasks links do
-not make Task Control or Hub a dependency.
+index and links child evidence instead of copying plans.
 
 Use [Orchestra](../orchestra/SKILL.md) task roots under WORKFLOW "Initiative
 coordination", carrying explicit activation and the actual authority. For an

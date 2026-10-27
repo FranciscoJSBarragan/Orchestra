@@ -8,8 +8,6 @@ You remain the product owner and final authority.
 
 The core includes skills, four agent profiles, host adapters and focused Python
 helpers. It needs no task manager, MCP server, database or background service.
-The optional **[Orchestra Tasks](https://github.com/FranciscoJSBarragan/OrchestraTasks)** companion owns task cards and progress views in
-a separate repository and installation. Both products can be installed independently.
 
 ```text
 $orchestra add CSV export to the orders page
@@ -156,27 +154,12 @@ The portable format supports Agent Plugins 1.0 and Codex. Native variants keep
 Cursor's native manifest, Grok's compatible loader, and the Devin and Claude
 Code agent profiles.
 All variants include the same workflow, skills, helpers, native adapters and CLI
-delegation. The core contains no Task Control, Hub, identity hook or MCP server.
-The package inherits host permissions.
+delegation. The package inherits host permissions.
 
 See [plugin packaging](packaging/README.md) for local loading, installation
 boundaries, updates, and switching from direct sync. Building does not install
 or publish anything. Full support on another harness requires a verified native
 adapter, beyond accepting the plugin format.
-
-## Optional Orchestra Tasks
-
-Orchestra Tasks owns `$orchestra-task`, prepared cards, optional global progress
-snapshots, Task MCP and the Hub, TUI and macOS clients. Capture and preparation
-work without core; executing a prepared card requires the separately loaded
-`orchestra` skill. Installing Tasks alone never starts execution or tracks direct
-runs. Direct-run tracking requires an explicit request.
-
-Core keeps its worktree-local plan and delivery helpers. Attached cards follow
-[the companion boundary](docs/WORKFLOW.md#attached-tasks-companion); ordinary
-work requires no companion discovery. See the separate
-[Orchestra Tasks repository](https://github.com/FranciscoJSBarragan/OrchestraTasks)
-for installation, clients and companion validation.
 
 ## Install with direct sync
 

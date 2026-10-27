@@ -331,12 +331,6 @@ def check_distribution_boundary(root: Path) -> list[str]:
             failures.append(
                 f"distribution-boundary: generated manifest belongs in a package, not {relative.as_posix()}"
             )
-    for relative in ("codex/control", "hub", "codex/skills/orchestra-task",
-                     "codex/scripts/task_control.py", "codex/scripts/task_mcp.py",
-                     "codex/scripts/coordination.py", "hosts/cursor/plugin/hooks/hooks.json",
-                     "hosts/devin/plugin/hooks.json"):
-        if (root / relative).exists():
-            failures.append(f"distribution-boundary: {relative} belongs in Orchestra Tasks")
     return failures
 
 
