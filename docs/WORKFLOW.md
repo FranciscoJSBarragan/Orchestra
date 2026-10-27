@@ -317,7 +317,9 @@ writer.
 Keep one compact Markdown register, typically `BOARD.md`, linking the approved
 brief and authority, repositories and checkout owners, shared contracts, child
 routes, task-root resources, native handles, dependencies, results,
-accepted SHAs, blockers and actual delivery. It replaces the initiative
+accepted SHAs, blockers and actual delivery. Each delivered task's line also
+records its review rounds, how many times the user had to step in, and any
+later revert or fix, so a rule change can be judged against outcomes. It replaces the initiative
 index and does not duplicate child plans; optional `PROJECT.md` holds stable context, not progress; Now/Next/Done
 are navigation, not states. Git and the host own execution state; a backlog
 entry grants no authority.
@@ -528,7 +530,7 @@ instructions and the flow assignment by absolute path, needs no plugin, and
 runs its own research through `delegate_task` on the flow's
 `repository_context` row. It lacks the repository's execution environment, so
 it commissions hard gates and joint acceptance to a verifier as described
-above. One task needs no register beyond its root's plan. How the user reaches
+above. For one task the register holds just that task's line. How the user reaches
 Hermes and what Hermes remembers belong to the user's Hermes configuration;
 repository knowledge stays under "Repository conventions".
 
@@ -1271,7 +1273,7 @@ phase:
    screenshots. The user may iterate the approved scope in this conversation; no new chat
    or manual process start is required.
    Git and the `implementation-report` remain truth; no preview artifact.
-4. Wait with `request_user_input` for iterate, freeze as-is, or skip. Iteration
+4. Wait with the provider's question tool for iterate, freeze as-is, or skip. Iteration
    stays uncommitted on the task branch unless the user authorized a commit;
    out-of-scope paths or new behavior block or replan.
 
@@ -1798,6 +1800,9 @@ The unchanged public PR skills preserve the proven behavioral chain:
    manifest commit, and pushes.
 6. The loop continues until one complete observation of the current head is
    clean; the merge helper observes again before and after its checks.
+   Between observations the task root waits on T3's pull request watcher as
+   `host_t3.md` defines, never by polling or by ending its turn with checks or
+   review bots still pending.
 
 GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
 in the PR body. The helper reports current checks and review-thread evidence; it
@@ -1889,9 +1894,12 @@ comparison or mapping becomes materially clearer; an unavailable capability
 never blocks. Delegated agents report to the root and create no user-facing
 visualizations.
 
-A question required to continue uses `request_user_input` without
-`autoResolutionMs` when available and stays open until the user answers. If
-the tool is unavailable or returns no usable selection, ask one concise
+A question required to continue uses the provider's question tool
+(`AskUserQuestion` in Claude Code, `request_user_input` without
+`autoResolutionMs` in Codex) when available, so the T3 thread shows that it
+waits, and stays open until the user answers; a task root launched by a parent
+sends the question to that parent instead. Stop watching a pull request before
+asking. If the tool is unavailable or returns no usable selection, ask one concise
 plain-text question in the final response and wait, without retrying the
 selector. Automatic resolution is only for informational, non-blocking
 questions whose timeout can safely accept the recommended default. This does

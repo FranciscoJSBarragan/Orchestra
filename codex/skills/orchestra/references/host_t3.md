@@ -77,6 +77,18 @@ substitute silently.
 Task roots for an initiative follow
 [host transports](../../orchestrator/host-transports.md).
 
+## Pull requests
+
+The task root that opens a PR watches it with T3's pull request watcher
+(`watch_pull_request`) after handling the feedback already present, then ends
+its turn: T3 wakes it when a check fails, the required checks pass, someone
+comments or reviews, or the branch conflicts. A wake is news, not a clean
+result; observe the PR again under WORKFLOW "PR path". Only the root that owns
+the PR watches it, never a `delegate_task` child or a parent. Call
+`unwatch_pull_request` before a handoff or a question so the thread leaves
+Working for the user's inbox. T3 does not wake a thread when its PR merges, so
+the merging root reports the merge.
+
 ## Browser
 
 T3's collaborative browser is the first `auto` surface and the only `in_app`
