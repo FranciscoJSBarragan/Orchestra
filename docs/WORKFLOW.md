@@ -541,7 +541,8 @@ under "Review policy", and lists the later recovery attempts. A user changes
 the assignment in `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml`, which has the
 same shape: each capability entry, `review_pair` or `escalation` it defines
 replaces the shipped one whole, and anything it omits keeps the default. Never
-edit the installed package to customize a task.
+edit the installed package to customize a task; `orchestra-models` shows the
+assignment and writes the user's file.
 
 Resolve the assignment once before the first dispatch and check every row
 against T3's live `orchestrator_capabilities` catalog, as `host_t3.md` maps it.
