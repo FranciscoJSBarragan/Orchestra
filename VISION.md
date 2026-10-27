@@ -11,12 +11,13 @@ quality-to-cost ratio.
 ## Vision
 
 Orchestra should make it practical to hand a well-defined implementation to a
-Codex, Cursor, Grok Build, Devin, or Claude Code orchestrator and trust it to reach a correct, reviewed, and
+task root running inside T3 Code and trust it to reach a correct, reviewed, and
 committed result. The user remains the product owner and final authority; the
-orchestrator acts as the technical lead responsible for execution. Codex,
-Cursor, Grok Build, Devin, and Claude Code are first-class execution hosts; they share one product, skills, helpers,
-and Git workflow, and each host supplies only spawn, models, conversation
-identity, permissions, and browser routing.
+root acts as the technical lead responsible for execution. T3 Code is the one
+execution host: it supplies threads, worktrees, delegation, the browser and pull
+request watching, while each provider it runs (Claude Code, Codex, Cursor and
+others) is an executor the flow assigns per capability. Supporting another
+provider is a row of data and a role check, not a host adapter.
 
 The desired experience is not maximum process. Direct implementation and any
 planning-only host mode remain available outside Orchestra. When the user
@@ -31,17 +32,16 @@ concurrent tasks in one repository or several projects and repositories while
 preserving local review and shared acceptance. Its parent handles global decisions without importing every child
 transcript. A persistent Markdown register and context links support continuation
 without becoming a task engine. The same
-parent/task-root/role design works through each host's verified native mechanisms,
-with local execution and cloud environments as separate supported routes.
+parent/task-root/role design runs on T3 threads, on the local machine or a
+remote T3 environment. Inside T3 a Hermes thread may act as the dispatcher
+parent: it works out a request with the user, recommends, launches and follows
+task roots, and never implements.
 
-The same analysis, implementation, review, verification, and commit tools are
-useful independently, without requiring the full planned workflow. A user may
-also choose a Codex, Cursor, Grok, Devin, or Claude Code CLI executor for a bounded assignment while the
-owning orchestrator retains scope, independent review, and delivery judgment.
-Reuse the user's chosen tools without introducing another workflow engine or
-weakening the quality contract. An explicitly selected shared execution preset
-may distribute capabilities across these tools while preserving the owning
-conversation and independent review.
+The analysis, implementation, review, verification, and commit skills are
+plain Markdown usable in any harness without the full planned workflow. Inside
+T3 there is one flow: Orchestra ships a default provider and model for each
+capability, and the user overrides them outside the package without forking
+the flow.
 
 ## Primary users
 
@@ -60,12 +60,11 @@ organization-wide approval bureaucracy.
 ### Intelligent orchestration
 
 The orchestrator is not a brainless dispatcher. It reuses the preceding
-conversation, obtains a bounded minimum brief, recommends an initial tier with
-its material risk and cost-benefit, and performs a short read-only preflight
-before selecting the configured managed or hybrid checkout path. The user chooses the active tier.
+conversation, obtains a bounded minimum brief, and performs a short read-only
+preflight before selecting the configured managed or hybrid checkout path.
 Orchestra then gathers focused repository evidence, closes genuine
 specification gaps, synthesizes that evidence, confirms the final scope with
-the user, recommends any justified tier change, chooses the next capability
+the user, chooses the next capability
 dispatch, handles ordinary blockers, and makes the final technical judgment
 from fresh evidence.
 
@@ -91,13 +90,10 @@ comparison, or mapping becomes materially easier to understand. Simple
 explanations remain prose, a missing visualization capability never blocks the
 workflow, and phase agents do not create user-facing visualizations.
 
-The active tier controls assignment intensity, not user authority. Each host
-provides its own native capability matrix. Codex offers standard and critical;
-Cursor and Claude Code also offer minimal for ordinary work where cost or
-speed matters. Grok Build and Devin offer standard and critical and have no
-cheaper assigned tier.
-The user chooses among assigned tiers after a concise risk recommendation.
-Independent authority boundaries for production, security, payments,
+There is one flow, not a ladder of tiers. What a change touches decides its
+extra scrutiny: a dedicated verifier for stateful data, credentials or external
+environments, and a decision review for authorization, compatibility or data
+integrity choices. Independent authority boundaries for production, security, payments,
 destructive actions, and delivery remain in force.
 
 ### Explicit, proportional workflow
@@ -106,13 +102,6 @@ Workflow selection belongs to the user. A planning-only host mode never mutates
 through Orchestra, and ordinary change, plan, or implementation requests remain
 direct work. Only an explicit `$orchestra` invocation or an unequivocal
 imperative to use or start Orchestra activates the workflow.
-On Codex, Orchestra recommends standard execution by default and critical
-scrutiny for actual high-impact risk. On Cursor and Claude Code it recommends `standard`,
-`minimal` when the user prioritizes
-cost or speed, and `critical` for matching high-impact risk. On Grok Build and
-Devin it recommends `standard` and offers `critical` for matching high-impact
-risk; unassigned `minimal` remains blocked on both. The
-user makes the final tier choice among assigned tiers.
 
 ### Quality per token
 
@@ -164,11 +153,9 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
-On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`, and
-Auto-review) as the default. Cursor, Grok, Devin, and Claude Code observe the host permission choice and
-never write Codex, Cursor, Grok, Devin, or Claude Code permission configuration. The active permission
-choice for the task, host, or launcher remains authoritative; the complete
-permission rules live in `docs/WORKFLOW.md`. Deterministic product, assertion,
+Orchestra observes T3's runtime mode and each provider's permission choice and
+never writes permission configuration; the complete permission rules live in
+`docs/WORKFLOW.md`. Deterministic product, assertion,
 compilation, or CLI-usage failures remain real failures.
 
 Current source and Git remain authoritative for repository state. Project tests,
@@ -236,28 +223,21 @@ The overview's review-context index points to exact repository evidence rather
 than replacing it; each phase uses exact, non-glob documentation-maintenance
 paths or explicitly states that none are authorized.
 
-The default implementation owner is the first deterministic quality gate.
-An execution preset may assign terminal checks to a separate verifier under
-WORKFLOW "Delegated execution presets"; neither route waives those checks. It runs and
-autocorrects every required local deterministic check, including the canonical
+The default implementation owner is the first deterministic quality gate. It
+runs and autocorrects every required local deterministic check, including the canonical
 full suite when one exists. The independent reviewer judges intent, source,
 diff, tests, and evidence without routinely repeating those gates; it may run
 only a minimal diagnostic check for a concrete defect hypothesis. Parent-side reproduction follows WORKFLOW "Cross-environment acceptance" only
 when a named risk or evidence gap requires it; ordinary child check ownership
 does not change. A separate
 verifier is reserved for browser interaction, owned services or processes,
-mutable data, credentials, network or external environments, explicit
-repository policy, and all critical phases. Critical work keeps double
-evidence: the owner verifies first and a verifier repeats the applicable gate
-independently.
+mutable data, credentials, network or external environments, or explicit
+repository policy.
 
-The installed assignment remains authoritative. Orchestra uses native host
-execution and optional explicit CLI delegation. Model-provider bridges and
-protocol compatibility belong to separate products; installing Orchestra does
-not require CodexBridge. The former Codex external-model integration is retained
-as historical reference in CodexBridge for a future opt-in integration, without
-an active integration contract. Unsupported assignments require an explicit
-supported choice rather than a hidden fallback.
+The flow's assignment, its defaults plus the user's overrides, remains
+authoritative. T3 delegation carries every role to its provider; model-provider
+bridges belong to separate products. An unavailable assignment requires an
+explicit supported choice rather than a hidden fallback.
 
 Within a phase, Orchestra keeps the implementation owner, independent reviewer,
 and, only when the independent gate requires one, a verifier for each used
@@ -272,9 +252,10 @@ its own shared processes, and retires the phase cohort with the lifecycle
 evidence available to the active multi-agent protocol. Resource handles remain
 transient and never become a registry.
 
-Browser work uses a host-mapped `browser_route` in a fresh task-owned tab; an
-explicit user route is never vetoed or substituted, and Orchestra never claims
-user tabs or closes shared browser state. The host mappings and tab lifecycle
+Browser work uses T3's browser or the configured `browser_route` in a fresh
+task-owned tab; an explicit user route is never vetoed or substituted, and
+Orchestra never claims user tabs or closes shared browser state. The routes and
+tab lifecycle
 live in `docs/WORKFLOW.md` ("Test permissions and browser routing").
 
 ### Idea-to-project continuity
@@ -304,7 +285,7 @@ worktree or the opt-in hybrid clean primary checkout. Orchestra never pulls, imp
 rebases setup work; existing work is never cleaned, stashed, or rewritten
 implicitly; and completed resources are removed only when exact Git and
 integration evidence make cleanup safe. The complete checkout mechanics live in `docs/WORKFLOW.md` ("Task checkout and
-branch"), sync and permission mechanics in "Host adapters", and the installation boundary in `docs/ARCHITECTURE.md`.
+branch"), provider and permission mechanics in "Host adapters", and the installation boundary in `docs/ARCHITECTURE.md`.
 
 Completion freezes the approved objective, acceptance, and artifact selection.
 The terminal phase commit may advance for the reviewed corrections before delivery
@@ -351,27 +332,23 @@ Orchestra succeeds when:
 - Persisting every internal thought or agent transition.
 - Creating a schema, artifact, or state machine for every workflow step.
 - Making coordination metadata, a dashboard, or a CLI authoritative for
-  workflow transitions, approvals, commits, tiers, or delivery.
+  workflow transitions, approvals, commits, or delivery.
 - Building an event-sourced ledger, mandatory heartbeat system, or remote
   coordination service before a demonstrated consumer requires one.
 - Selecting an approved artifact by recency, or duplicating Git/GitHub facts as
   semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
-- Porting to Hermes or any harness beyond the approved Codex, Cursor, Grok
-  Build, Devin, and Claude Code hosts; a Hermes initiative parent inside T3
-  Code reads Orchestra by path and is no port (WORKFLOW "Initiative
-  coordination").
+- Host adapters outside T3 Code. Other harnesses use the standalone skills;
+  a provider runs Orchestra roles only through T3.
 - Building extra profiles for capabilities that compose with the four
   base responsibilities.
 
 ## Distribution
 
 Orchestra can be distributed as a self-contained plugin generated from its
-canonical source. Skills, native host adapters, CLI delegation, and helpers
-remain one product; packaging does not introduce another workflow runtime.
-Host-specific manifests adapt installation and discovery. The host retains
-permissions and execution authority.
+canonical source. Skills and helpers remain one product; packaging does not
+introduce another workflow runtime. A provider that acts as a task root needs
+only the entry skill discoverable; roles read their skills by path. T3 and the
+provider retain permissions and execution authority.
 
-A portable manifest broadens discovery; full execution support still requires
-the native capabilities described in WORKFLOW. Bridge integration and public
-marketplace publication are separate work.
+Public marketplace publication is separate work.

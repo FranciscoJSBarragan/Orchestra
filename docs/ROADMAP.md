@@ -12,6 +12,36 @@ Conformance and package checks establish integration, not improved generated
 code quality. Plugin installation is an alternative to direct sync; it does
 not create a second runtime.
 
+### T3 Code convergence
+
+Decided by the owner on 2026-10-27:
+
+- T3 Code is the only host for the full workflow. Providers inside T3 (Claude
+  Code, Codex, Cursor, Grok, and providers T3 adds later such as Pi, OpenCode,
+  Muse Code or Antigravity) are executors: supporting one is a row in the
+  flow's assignment plus a role check against the live T3 catalog, not a host
+  adapter. Other harnesses keep the standalone skills.
+- One flow replaces the tiers. The `mixed-models` assignment becomes its
+  default, and the user overrides models outside the package. What a change
+  touches still adds a verifier or a decision review inside that flow.
+- A Hermes thread in T3 may be the dispatcher parent: it works out a request
+  with the user, recommends, launches and follows task roots, and never
+  implements. How the user reaches Hermes and what it remembers belong to the
+  user's Hermes configuration, not to Orchestra.
+
+Evidence behind the decision: on 2026-10-21 a Hermes thread in T3 launched task
+threads on a remote VM whose Claude Code, Codex, Grok and Cursor children
+reported back and woke it, including three reports that queued while it was
+mid-turn and were handled in order; on 2026-10-26 a message from outside T3
+woke the Hermes thread through the local `t3 thread send`, and the thread
+answered through the user's own channel. The full request-to-PR chain has not
+run in one pass yet.
+
+The last multi-host revision is `f2d0ba024a155077e37959121537de944826b35a`
+(tag `multi-host-final`). Restore a removed adapter, matrix or helper from it
+if later evidence reopens the question. Until the removal lands, WORKFLOW,
+skills and helpers still describe the multi-host route.
+
 ### Engineering baseline
 
 Implementation through `f47b08bf49ce98ed632de8a47195f45d639c44c9` includes
