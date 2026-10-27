@@ -56,8 +56,9 @@ Orchestra makes different bets:
 [`codex/config/flow.toml`](codex/config/flow.toml) is the default assignment:
 a T3 provider instance, model and optional effort for each capability, the
 second reviewer, and the recovery attempts. To change it, write only the
-entries you want in `~/.orchestra/flow.toml`; each replaces the shipped one
-whole. Supporting another T3 provider is one more row and a short check that
+entries you want in `~/.orchestra/flow.toml`, or ask `$orchestra-models` to
+show and change them against T3's live catalog; each entry replaces the
+shipped one whole. Supporting another T3 provider is one more row and a short check that
 its children can read their role skill and keep read-only work read-only.
 
 ## Use the pieces on their own
@@ -97,6 +98,7 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 | `orchestra` | Explicit full workflow in T3: spec → plan → phases → delivery |
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-readiness` | Existing repo. Checks it against a runnable target state (one-command setup, clean and deterministic gates, isolated tests, isolated app, structure) and repairs what you grant, writing a short tracked `.agent/` store |
+| `orchestra-models` | See or change the provider and model of each role, checked against T3's live catalog |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
 
