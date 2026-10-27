@@ -28,37 +28,29 @@ REQUIRED_PATHS = (
     "codex/scripts/validate_suite.py",
     "codex/scripts/comment_policy.py",
     "codex/tests/test_comment_policy.py",
-    "codex/scripts/sync.py",
     "codex/scripts/package_plugin.py",
     "codex/scripts/prepare_source.py",
     "codex/tests/test_prepare_source.py",
     "codex/tests/test_package_plugin.py",
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
+    "packaging/claude/hooks/hooks.json",
+    "packaging/claude/hooks/read_package.py",
     "codex/skills/orchestra/runtime.md",
     "codex/scripts/task_state.py",
     "codex/scripts/commit_phase.py",
-    "codex/scripts/delegate.py",
     "codex/scripts/adopt_worktree.py",
     "codex/scripts/policy.py",
     "codex/scripts/pr.py",
     "codex/scripts/integrate_local.py",
     "codex/scripts/_common.py",
-    "codex/config/roles.native.toml",
-    "codex/config/execution-presets.toml",
-    "codex/runtime/AGENTS.orchestra.md",
-    "codex/agents/orchestra_analyst.toml",
-    "codex/agents/orchestra_implementation_worker.toml",
-    "codex/agents/orchestra_reviewer.toml",
-    "codex/agents/orchestra_verifier.toml",
+    "codex/config/flow.toml",
     "codex/skills/orchestra/SKILL.md",
     "codex/skills/orchestra/agents/openai.yaml",
     "codex/skills/orchestra-project-start/SKILL.md",
     "codex/skills/orchestra-project-start/agents/openai.yaml",
     "codex/skills/orchestra-repo-readiness/SKILL.md",
     "codex/skills/orchestra-repo-readiness/agents/openai.yaml",
-    "codex/skills/orchestra-delegate/SKILL.md",
-    "codex/skills/orchestra-delegate/agents/openai.yaml",
     "codex/skills/orchestra-engineering/SKILL.md",
     "codex/skills/orchestra-engineering/agents/openai.yaml",
     "codex/skills/orchestra-project-verification/SKILL.md",
@@ -82,7 +74,6 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra/references/runtime_verification.md",
     "codex/skills/orchestra/references/architecture_guidance.md",
     "codex/skills/orchestra/references/shared_conduct.md",
-    "codex/skills/orchestra/references/host_codex.md",
     "codex/skills/orchestra/references/finding_triage.md",
     "codex/skills/orchestra/references/planning_stage.md",
     "codex/skills/orchestra-role-analyst/SKILL.md",
@@ -106,7 +97,6 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/SKILL.md",
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
-    "codex/tests/test_delegate.py",
     "codex/tests/test_adopt_worktree.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
@@ -114,27 +104,6 @@ REQUIRED_PATHS = (
     "codex/tests/test_delivery_policy.py",
     "codex/tests/test_pr_flow.py",
     "codex/tests/test_local_integration.py",
-    "codex/tests/test_sync.py",
-    "codex/tests/test_cursor_host.py",
-    "codex/tests/test_grok_host.py",
-    "codex/tests/test_devin_host.py",
-    "codex/tests/test_claude_host.py",
-    "hosts/cursor/config/roles.cursor.toml",
-    "hosts/cursor/references/spawn.md",
-    "hosts/cursor/plugin/.cursor-plugin/plugin.json",
-    "hosts/cursor/plugin/commands/orchestra.md",
-    "hosts/grok/config/roles.grok.toml",
-    "hosts/grok/references/spawn.md",
-    "hosts/devin/config/roles.devin.toml",
-    "hosts/devin/references/spawn.md",
-    "hosts/devin/agents/orchestra_analyst.md",
-    "hosts/devin/agents/orchestra_implementation_worker.md",
-    "hosts/devin/agents/orchestra_reviewer.md",
-    "hosts/devin/agents/orchestra_verifier.md",
-    "hosts/claude/config/roles.claude.toml",
-    "hosts/claude/references/spawn.md",
-    "hosts/claude/plugin/hooks/hooks.json",
-    "hosts/claude/plugin/hooks/read_package.py",
 )
 
 PERMANENT_DOCS = (
@@ -195,17 +164,11 @@ REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 exec python3 "$REPO_ROOT/codex/scripts/validate_suite.py" --quick --comment-target staged
 """
 
-ROLE_SKILL_BY_PROFILE = {
-    "orchestra_analyst": "orchestra-role-analyst",
-    "orchestra_implementation_worker": "orchestra-role-implementer",
-    "orchestra_reviewer": "orchestra-role-reviewer",
-    "orchestra_verifier": "orchestra-role-verifier",
-}
-PROFILE_NAMES = (
-    "orchestra_analyst",
-    "orchestra_implementation_worker",
-    "orchestra_reviewer",
-    "orchestra_verifier",
+ROLE_SKILLS = (
+    "orchestra-role-analyst",
+    "orchestra-role-implementer",
+    "orchestra-role-reviewer",
+    "orchestra-role-verifier",
 )
 
 PLAYBOOK_NAMES = (
@@ -218,28 +181,10 @@ PLAYBOOK_NAMES = (
     "runtime_verification",
 )
 ARCHITECTURE_REFERENCE = "architecture_guidance"
-LEGACY_PROFILE_NAMES = (
-    "analyst",
-    "browser_acceptance_tester",
-    "debugging_investigator",
-    "frontend_implementation_worker",
-    "implementation_worker",
-    "phase_committer",
-    "plan_scope_auditor",
-    "planner",
-    "pr_polling_specialist",
-    "pr_triage_specialist",
-    "repo_context_explorer",
-    "reviewer",
-    "verifier",
-    "web_researcher",
-)
-
 SKILL_NAMES = (
     "orchestra",
     "orchestra-project-start",
     "orchestra-repo-readiness",
-    "orchestra-delegate",
     "orchestra-engineering",
     "orchestra-project-verification",
     "orchestrator",
@@ -254,16 +199,6 @@ SKILL_NAMES = (
     "orchestra-role-reviewer",
     "orchestra-role-verifier",
 )
-VALID_MODELS = {
-    "gpt-6.1-sol",
-    "gpt-6-luna",
-    "gpt-6-astra",
-    "gpt-5.6-sol",
-    "gpt-5.6-terra",
-    "gpt-5.6-luna",
-}
-
-
 def check_required_paths(root: Path) -> list[str]:
     """Ensure every current conformance consumer is present and tracked."""
     failures = [
@@ -313,9 +248,6 @@ CAPABILITY_PROFILES = {
     "browser_acceptance": "orchestra_verifier",
     "runtime_verification": "orchestra_verifier",
 }
-EXPECTED_TIERS = {
-    "native": {"standard", "critical"},
-}
 REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
 
@@ -359,180 +291,64 @@ def check_delivery_config(root: Path) -> list[str]:
     return []
 
 
-def check_roles_and_profiles(root: Path) -> list[str]:
-    """Keep assignments canonical and profiles limited to behavior contracts."""
-    roles_paths = {
-        "native": root / "codex/config/roles.native.toml",
-    }
-    if not all(path.is_file() for path in roles_paths.values()):
+def check_flow_assignment(root: Path) -> list[str]:
+    path = root / "codex/config/flow.toml"
+    if not path.is_file():
+        return []
+    try:
+        flow = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, UnicodeError) as error:
+        return [f"flow-contract: codex/config/flow.toml is invalid: {error}"]
+    failures: list[str] = []
+    if set(flow) != {"capabilities", "review_pair", "escalation"}:
+        failures.append("flow-contract: flow.toml defines capabilities, review_pair and escalation only")
+
+    def entry_failures(label: str, entry: object) -> list[str]:
+        if not isinstance(entry, dict) or not {"provider", "model"} <= set(entry) <= {"provider", "model", "effort"}:
+            return [f"flow-contract: {label} needs provider and model, and at most effort"]
+        if not all(isinstance(entry[key], str) and entry[key].strip() for key in ("provider", "model")):
+            return [f"flow-contract: {label} needs a non-empty provider and model"]
+        if "effort" in entry and entry["effort"] not in REASONING_EFFORTS:
+            return [f"flow-contract: {label} has an invalid effort"]
         return []
 
-    failures: list[str] = []
-    # Use the runtime resolver's config validation rather than a second schema.
-    preset_check = subprocess.run(
-        [sys.executable, str(root / "codex/scripts/delegate.py"),
-         "--presets-file", str(root / "codex/config/execution-presets.toml"),
-         "--preset", "standard-delegate", "--host", "codex",
-         "--capability", "repository_context", "--resolve-only"],
-        capture_output=True, text=True, check=False,
-    )
-    if preset_check.returncode:
-        failures.append(f"role-contract: execution preset is invalid: {preset_check.stdout.strip()}")
-    tiers_by_config: dict[str, dict[str, object]] = {}
-    for modelconfig, roles_path in roles_paths.items():
-        relative = roles_path.relative_to(root).as_posix()
-        try:
-            roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, UnicodeError) as error:
-            failures.append(f"role-contract: {relative} is invalid: {error}")
-            continue
-        if set(roles) != {"tiers"}:
-            failures.append(f"role-contract: {relative} must contain tiers only")
-        tiers = roles.get("tiers")
-        expected_tier_names = EXPECTED_TIERS[modelconfig]
-        if not isinstance(tiers, dict) or set(tiers) != expected_tier_names:
-            expected_tiers = ", ".join(sorted(expected_tier_names))
-            failures.append(
-                f"role-contract: {relative} must define {expected_tiers}"
-            )
-            continue
-        tiers_by_config[modelconfig] = tiers
-        for tier in expected_tier_names:
-            actual_assignments = tiers.get(tier)
-            if not isinstance(actual_assignments, dict) or set(
-                actual_assignments
-            ) != set(CAPABILITY_PROFILES):
-                failures.append(
-                    f"role-contract: unexpected {modelconfig}.{tier} capability set"
-                )
-                continue
-            for capability, assignment in actual_assignments.items():
-                if not isinstance(assignment, dict) or set(assignment) != {
-                    "profile",
-                    "model",
-                    "reasoning_effort",
-                }:
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} needs "
-                        "profile, model, and reasoning_effort"
-                    )
-                    continue
-                if assignment["profile"] != CAPABILITY_PROFILES[capability]:
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} does "
-                        "not match the approved assignment matrix"
-                    )
-                if assignment["profile"] not in PROFILE_NAMES:
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} has "
-                        "invalid profile"
-                    )
-                if assignment["model"] not in VALID_MODELS:
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} has "
-                        "invalid model"
-                    )
-                if assignment["reasoning_effort"] not in {
-                    "low",
-                    "medium",
-                    "high",
-                    "xhigh",
-                    "max",
-                }:
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} has "
-                        "invalid reasoning_effort"
-                    )
-                if (
-                    assignment["model"] == "gpt-5.6-sol"
-                    and assignment["reasoning_effort"] == "xhigh"
-                ):
-                    failures.append(
-                        f"role-contract: {modelconfig}.{tier}.{capability} must "
-                        "not use Sol xhigh"
-                    )
-                if capability in {"root", "orchestrator"} or assignment[
-                    "profile"
-                ] in {"root", "orchestrator"}:
-                    failures.append("role-contract: root must have no assignment")
+    capabilities = flow.get("capabilities")
+    if not isinstance(capabilities, dict) or set(capabilities) != set(CAPABILITY_PROFILES):
+        failures.append("flow-contract: flow.toml must assign every capability and no other")
+    else:
+        for capability, entry in capabilities.items():
+            failures.extend(entry_failures(f"capabilities.{capability}", entry))
+    failures.extend(entry_failures("review_pair", flow.get("review_pair")))
+    escalation = flow.get("escalation")
+    if not isinstance(escalation, list) or not escalation:
+        failures.append("flow-contract: escalation needs at least one attempt")
+    else:
+        for index, entry in enumerate(escalation, start=2):
+            failures.extend(entry_failures(f"escalation attempt {index}", entry))
 
-    agents = root / "codex/agents"
-    actual_profiles = sorted(path.stem for path in agents.glob("*.toml"))
-    if actual_profiles != sorted(PROFILE_NAMES):
-        failures.append("profile-contract: current routing must define exactly four profiles")
-        return failures
-    declared_names: list[str] = []
-    for name in PROFILE_NAMES:
-        path = agents / f"{name}.toml"
-        try:
-            profile = tomllib.loads(path.read_text(encoding="utf-8"))
-        except (OSError, tomllib.TOMLDecodeError, UnicodeError) as error:
-            failures.append(f"profile-contract: {path.relative_to(root)} is invalid: {error}")
+    for name in ROLE_SKILLS:
+        role_path = root / f"codex/skills/{name}/SKILL.md"
+        if not role_path.is_file():
             continue
-        if set(profile) != {"name", "description", "developer_instructions"}:
+        role_text = role_path.read_text(encoding="utf-8")
+        for heading in ("## Input", "## Output", "## Stop conditions"):
+            if heading not in role_text:
+                failures.append(f"role-contract: {name} is missing {heading}")
+        if "shared_conduct.md" not in role_text:
+            failures.append(f"role-contract: {name} must reference shared conduct")
+    for name in SKILL_NAMES:
+        skill = root / f"codex/skills/{name}/SKILL.md"
+        if skill.is_file() and re.search(r"\b(?:gpt|claude|grok)-\d", skill.read_text(encoding="utf-8")):
             failures.append(
-                f"profile-contract: {name} must contain only name, description, "
-                "and developer_instructions"
+                "role-contract: model assignments live only in codex/config/flow.toml; "
+                f"found one in {skill.relative_to(root)}"
             )
-            continue
-        if profile["name"] != name:
-            failures.append(f"profile-contract: {name} has a mismatched name")
-        if isinstance(profile["name"], str):
-            declared_names.append(profile["name"])
-        if not isinstance(profile["description"], str) or not profile["description"].strip():
-            failures.append(f"profile-contract: {name} needs a description")
-        instructions = profile["developer_instructions"]
-        if not isinstance(instructions, str):
-            failures.append(f"profile-contract: {name} needs developer instructions")
-            continue
-        role_skill = ROLE_SKILL_BY_PROFILE[name]
-        if f".agents/skills/{role_skill}/SKILL.md" not in instructions:
-            failures.append(
-                f"profile-contract: {name} must read its role skill {role_skill}"
-            )
-        role_path = root / f"codex/skills/{role_skill}/SKILL.md"
-        if role_path.is_file():
-            role_text = role_path.read_text(encoding="utf-8")
-            for heading in ("## Input", "## Output", "## Stop conditions"):
-                if heading not in role_text:
-                    failures.append(
-                        f"profile-contract: {role_skill} is missing {heading}"
-                    )
-            if "shared_conduct.md" not in role_text:
-                failures.append(
-                    f"profile-contract: {role_skill} must reference shared conduct"
-                )
-
-    if len(declared_names) != len(set(declared_names)):
-        failures.append("profile-contract: profile names must be unique")
-
-    behavior_sources = [
-        *(agents / f"{name}.toml" for name in PROFILE_NAMES),
-        *(root / f"codex/skills/{name}/SKILL.md" for name in SKILL_NAMES),
-        root / "codex/runtime/AGENTS.orchestra.md",
-    ]
-    for path in behavior_sources:
-        if path.is_file() and re.search(r"\bgpt-\d", path.read_text(encoding="utf-8")):
-            failures.append(
-                "role-contract: model assignments must exist only in roles.*.toml; "
-                f"found one in {path.relative_to(root)}"
-            )
-
     routing_path = root / "codex/skills/orchestra/SKILL.md"
-    if routing_path.is_file() and tiers_by_config:
+    if routing_path.is_file():
         routing = routing_path.read_text(encoding="utf-8")
-        capabilities = {
-            capability
-            for tiers in tiers_by_config.values()
-            for assignments in tiers.values()
-            if isinstance(assignments, dict)
-            for capability in assignments
-        }
-        for capability in capabilities:
+        for capability in CAPABILITY_PROFILES:
             if f"`{capability}`" not in routing:
-                failures.append(
-                    f"role-contract: {capability} is not consumed by orchestra routing"
-                )
+                failures.append(f"role-contract: {capability} is not consumed by orchestra routing")
     return failures
 
 
@@ -607,7 +423,6 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         f"{ARCHITECTURE_REFERENCE}.md",
         "shared_conduct.md",
         "source_preparation.md",
-        "host_codex.md",
         "host_t3.md",
         "model_notes.md",
         "finding_triage.md",
@@ -623,7 +438,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
-                "one source preparation recipe, the Codex and T3 Code adapters, "
+                "one source preparation recipe, the T3 Code adapter, "
                 "the model notes, the finding triage and the planning stage"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
@@ -718,23 +533,14 @@ def check_skills_and_runtime(root: Path) -> list[str]:
                     f"skill-contract: {name} must directly consume {expected}"
                 )
 
-    runtime = root / "codex/runtime/AGENTS.orchestra.md"
-    if runtime.is_file():
-        text = runtime.read_text(encoding="utf-8")
-        if text.count("<!-- orchestra:start -->") != 1 or text.count(
-            "<!-- orchestra:end -->"
-        ) != 1:
-            failures.append("runtime-contract: managed markers must occur exactly once")
-        if "$orchestra" not in text:
-            failures.append("runtime-contract: managed block must route to $orchestra")
-    orchestra_home = "${ORCHESTRA_HOME:-$HOME/.orchestra}"
+    runtime_root = "${ORCHESTRA_RUNTIME_ROOT}"
     exempt = {"orchestra-project-start", "orchestra-engineering",
               "orchestra-project-verification", "orchestrator", "orchestra-repo-readiness",
-              *ROLE_SKILL_BY_PROFILE.values()}
+              *ROLE_SKILLS}
     for name in (skill for skill in SKILL_NAMES if skill not in exempt):
         skill = root / f"codex/skills/{name}/SKILL.md"
-        if skill.is_file() and orchestra_home not in skill.read_text(encoding="utf-8"):
-            failures.append(f"runtime-contract: {name} must state the Orchestra home")
+        if skill.is_file() and runtime_root not in skill.read_text(encoding="utf-8"):
+            failures.append(f"runtime-contract: {name} must name the selected runtime root")
     return failures
 
 
@@ -769,8 +575,7 @@ def check_modular_routing(root: Path) -> list[str]:
         root / f"codex/skills/{name}/SKILL.md"
         for name in ("orchestra-role-implementer", "orchestra-role-reviewer",
                      "orchestra-engineering", "orchestra-project-start",
-                     "orchestra-project-verification", "orchestra-repo-readiness",
-                     "orchestra-delegate")
+                     "orchestra-project-verification", "orchestra-repo-readiness")
     ]
     consumers.append(root / "codex/skills/orchestra/references/shared_conduct.md")
     consumers.append(root / "codex/skills/orchestrator/packet-example.md")
@@ -826,149 +631,6 @@ def check_modular_routing(root: Path) -> list[str]:
             }
             if (guidance.resolve(), anchor) not in targets:
                 failures.append(f"modular-routing: {consumer.relative_to(root)} must directly link architecture_guidance.md#{anchor}")
-    return failures
-
-
-def check_direct_sync(root: Path) -> list[str]:
-    """Validate the bounded source inventory and direct-sync public contract."""
-    failures: list[str] = []
-    sync_path = root / "codex/scripts/sync.py"
-    if not sync_path.is_file():
-        return failures
-    text = sync_path.read_text(encoding="utf-8")
-    try:
-        tree = ast.parse(text, filename=str(sync_path))
-    except SyntaxError:
-        return failures
-    constants: dict[str, object] = {}
-    commands: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(
-            node.targets[0], ast.Name
-        ):
-            if node.targets[0].id in {
-                "SKILLS",
-                "AGENTS",
-                "LEGACY_AGENTS",
-                "HELPERS",
-                "MODELCONFIGS",
-                "HOSTS",
-                "PERMISSION_PROFILE",
-                "GUARDIAN_MIN_VERSION",
-            }:
-                try:
-                    constants[node.targets[0].id] = ast.literal_eval(node.value)
-                except (TypeError, ValueError):
-                    pass
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "add_parser"
-            and node.args
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-        ):
-            commands.add(node.args[0].value)
-    if commands != {"status", "apply", "uninstall"}:
-        failures.append("sync-contract: CLI must expose exactly status, apply, and uninstall")
-    if set(constants.get("SKILLS", ())) != set(SKILL_NAMES):
-        failures.append("sync-contract: sync inventory must match the canonical skill set")
-    if set(constants.get("AGENTS", ())) != set(PROFILE_NAMES):
-        failures.append("sync-contract: sync inventory must name exactly four agents")
-    if set(constants.get("LEGACY_AGENTS", ())) != set(LEGACY_PROFILE_NAMES):
-        failures.append(
-            "sync-contract: stale-profile cleanup must be limited to the "
-            f"{len(LEGACY_PROFILE_NAMES)} retired agent names"
-        )
-    if tuple(constants.get("HELPERS", ())) != (
-        "task_state.py",
-        "commit_phase.py",
-        "delegate.py",
-        "prepare_source.py",
-        "adopt_worktree.py",
-        "policy.py",
-        "pr.py",
-        "integrate_local.py",
-        "_common.py",
-    ):
-        failures.append("sync-contract: sync inventory must match the canonical helper set")
-    if tuple(constants.get("MODELCONFIGS", ())) != ("native",):
-        failures.append(
-            "sync-contract: modelconfig choices must be native only"
-        )
-    if tuple(constants.get("HOSTS", ())) != ("codex", "cursor", "grok", "devin", "claude", "all"):
-        failures.append(
-            "sync-contract: host choices must be exactly codex, cursor, grok, devin, claude, and all"
-        )
-    if constants.get("PERMISSION_PROFILE") != ":workspace":
-        failures.append(
-            "sync-contract: installs must select the built-in workspace profile"
-        )
-    if tuple(constants.get("GUARDIAN_MIN_VERSION", ())) != (0, 146, 0):
-        failures.append(
-            "sync-contract: Guardian installs must require Codex 0.146.0 or later"
-        )
-    if "b'approval_policy = \"on-request\"'" not in text:
-        failures.append(
-            "sync-contract: managed permissions must keep approvals interactive"
-        )
-    if "b'approvals_reviewer = \"auto_review\"'" not in text:
-        failures.append(
-            "sync-contract: managed approvals must route through Auto-review"
-        )
-    if '"--modelconfig"' not in text:
-        failures.append("sync-contract: CLI must expose --modelconfig")
-    if '"--worktree-root"' not in text:
-        failures.append("sync-contract: CLI must expose --worktree-root")
-    if '"--checkout-mode"' not in text:
-        failures.append("sync-contract: CLI must expose --checkout-mode")
-    if '"--host"' not in text:
-        failures.append("sync-contract: CLI must expose --host")
-    for destination in (
-        ".agents/skills/",
-        "agents/",
-        "orchestra/roles.toml",
-        "orchestra/worktree-root",
-        "orchestra/checkout-mode",
-        "orchestra/scripts/",
-        "install-manifest.json",
-        "scripts/",
-        "hosts/cursor/roles.toml",
-        "hosts/grok/roles.toml",
-        "hosts/devin/roles.toml",
-        "hosts/claude/roles.toml",
-        ".cursor/plugins/local/orchestra",
-        ".config/devin/",
-        ".claude/agents",
-        ".claude/skills",
-        "AGENTS.md",
-        "config.toml",
-    ):
-        if destination not in text:
-            failures.append(f"sync-contract: missing destination contract {destination}")
-    skill_dirs = sorted(
-        path.name for path in (root / "codex/skills").iterdir() if path.is_dir()
-    )
-    if skill_dirs != sorted(SKILL_NAMES):
-        failures.append("sync-contract: source must contain exactly the supported skill directories")
-    profiles = sorted(path.stem for path in (root / "codex/agents").glob("*.toml"))
-    if profiles != sorted(PROFILE_NAMES):
-        failures.append("sync-contract: source must contain exactly four agent profiles")
-    role_sources = sorted(
-        path.name for path in (root / "codex/config").glob("roles.*.toml")
-    )
-    if role_sources != ["roles.native.toml"]:
-        failures.append(
-            "sync-contract: source must contain only the native Codex role matrix"
-        )
-    runtime = root / "codex/runtime/AGENTS.orchestra.md"
-    if runtime.is_file():
-        runtime_text = runtime.read_text(encoding="utf-8")
-        if not runtime_text.startswith("<!-- orchestra:start -->\n") or not runtime_text.endswith(
-            "<!-- orchestra:end -->\n"
-        ):
-            failures.append("sync-contract: runtime source must be exactly one marked block")
-
     return failures
 
 
@@ -1058,349 +720,6 @@ def check_python_tests(root: Path) -> list[str]:
     return [f"python-tests: unittest discovery failed\n{output}"]
 
 
-CURSOR_CAPABILITIES = (
-    "repository_context",
-    "web_research",
-    "runtime_verification",
-    "browser_acceptance",
-    "technical_planning",
-    "architecture_analysis",
-    "difficult_debugging",
-    "general_implementation",
-    "frontend_implementation",
-    "independent_review",
-)
-CURSOR_COMPOSER_FAST_CAPABILITIES = {
-    "repository_context",
-    "web_research",
-    "runtime_verification",
-}
-ASSIGNMENT_FIELDS = {"profile", "subagent_type", "model", "effort"}
-
-
-def _cursor_assignment_failures(
-    tier: str,
-    assignments: object,
-    expected_model_effort: Callable[[str], tuple[str, str, str]],
-) -> list[str]:
-    failures: list[str] = []
-    if not isinstance(assignments, dict) or set(assignments) != set(CURSOR_CAPABILITIES):
-        return [
-            f"cursor-contract: {tier} must define all ten capabilities and no extras"
-        ]
-    for capability, assignment in assignments.items():
-        if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
-            failures.append(
-                f"cursor-contract: {tier}.{capability} needs profile, "
-                "subagent_type, model, and effort"
-            )
-            continue
-        model, effort, worker = expected_model_effort(capability)
-        if assignment["model"] != model or assignment["effort"] != effort:
-            failures.append(
-                f"cursor-contract: {tier}.{capability} must be {model} {effort}"
-            )
-        if assignment["subagent_type"] != worker:
-            failures.append(
-                f"cursor-contract: {tier}.{capability} must dispatch {worker}"
-            )
-        if assignment["profile"] not in PROFILE_NAMES:
-            failures.append(
-                f"cursor-contract: {tier}.{capability} has an invalid profile"
-            )
-    return failures
-
-
-def check_cursor_host(root: Path) -> list[str]:
-    """Validate the Cursor adapter inventory and spawn contract."""
-    failures: list[str] = []
-    roles_path = root / "hosts/cursor/config/roles.cursor.toml"
-    spawn_path = root / "hosts/cursor/references/spawn.md"
-    if not all(path.is_file() for path in (roles_path, spawn_path)):
-        return failures
-    try:
-        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeError) as error:
-        return [f"cursor-contract: roles.cursor.toml is invalid: {error}"]
-    tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard", "critical"}:
-        failures.append(
-            "cursor-contract: roles.cursor.toml must assign minimal, standard, and critical"
-        )
-        return failures
-
-    def minimal_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
-            return "composer-2.5-fast", "fast", "composer-fast-worker"
-        if capability == "browser_acceptance":
-            return "gpt-5.6-luna", "high", "luna-worker"
-        return "cursor-grok-4.6", "high", "grok-worker"
-
-    def standard_contract(capability: str) -> tuple[str, str, str]:
-        if capability in {
-            "browser_acceptance",
-            "repository_context",
-            "web_research",
-            "runtime_verification",
-        }:
-            return "grok-4.7", "high", "grok-worker"
-        return "grok-4.7", "xhigh", "grok-worker"
-
-    def critical_contract(capability: str) -> tuple[str, str, str]:
-        if capability in CURSOR_COMPOSER_FAST_CAPABILITIES:
-            return "composer-2.5-fast", "fast", "composer-fast-worker"
-        if capability == "browser_acceptance":
-            return "gpt-5.6-luna", "xhigh", "luna-worker"
-        if capability in {"technical_planning", "architecture_analysis"}:
-            return "claude-fable-5-1", "medium", "generalPurpose"
-        if capability in {"difficult_debugging", "independent_review"}:
-            return "gpt-5.6-sol", "high", "sol-worker"
-        if capability in {"general_implementation", "frontend_implementation"}:
-            return "cursor-grok-4.6", "xhigh", "grok-worker"
-        return "", "", ""
-
-    failures.extend(_cursor_assignment_failures("minimal", tiers.get("minimal"), minimal_contract))
-    failures.extend(
-        _cursor_assignment_failures("standard", tiers.get("standard"), standard_contract)
-    )
-    failures.extend(
-        _cursor_assignment_failures("critical", tiers.get("critical"), critical_contract)
-    )
-    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
-    for required in (
-        "Task",
-        "run_in_background",
-        "composer-fast-worker",
-        "composer-2.5-fast",
-        "luna-worker",
-        "grok-worker",
-        "sol-worker",
-        "cursor-grok-4.6-high",
-        "cursor-grok-4.6-xhigh",
-        "grok-4.7-high",
-        "grok-4.7-xhigh",
-        "gpt-5.6-luna-xhigh",
-        "claude-fable-5-1-thinking-medium",
-        "gpt-5.6-sol-high",
-        "generalPurpose",
-        "plugin-browser-use-browser-use",
-        "Browser Use",
-    ):
-        if required not in spawn:
-            failures.append(f"cursor-contract: spawn.md must name {required}")
-    if "map to Playwright" in spawn or "maps to Playwright" in spawn:
-        failures.append(
-            "cursor-contract: spawn.md must not map Cursor routes to Playwright"
-        )
-    return failures
-
-
-GROK_CAPABILITIES = CURSOR_CAPABILITIES
-
-
-def check_grok_host(root: Path) -> list[str]:
-    """Validate the Grok adapter inventory, deferred critical, and spawn contract."""
-    failures: list[str] = []
-    roles_path = root / "hosts/grok/config/roles.grok.toml"
-    spawn_path = root / "hosts/grok/references/spawn.md"
-    if not roles_path.is_file() or not spawn_path.is_file():
-        return failures
-    try:
-        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeError) as error:
-        return [f"grok-contract: roles.grok.toml is invalid: {error}"]
-    tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"standard", "critical"}:
-        failures.append(
-            "grok-contract: roles.grok.toml must assign standard and critical only"
-        )
-        return failures
-    if "minimal" in tiers:
-        failures.append("grok-contract: minimal must remain unassigned")
-
-    def expected_assignment(tier: str, capability: str) -> tuple[str, str, str]:
-        model = "grok-4.7-build-fast"
-        return model, "xhigh", "general-purpose"
-
-    for tier_name in ("standard", "critical"):
-        assignments = tiers.get(tier_name)
-        if not isinstance(assignments, dict) or set(assignments) != set(GROK_CAPABILITIES):
-            failures.append(
-                f"grok-contract: {tier_name} must define all ten capabilities and no extras"
-            )
-            continue
-        for capability, assignment in assignments.items():
-            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
-                failures.append(
-                    f"grok-contract: {tier_name}.{capability} needs profile, "
-                    "subagent_type, model, and effort"
-                )
-                continue
-            model, effort, worker = expected_assignment(tier_name, capability)
-            if assignment["model"] != model or assignment["effort"] != effort:
-                failures.append(
-                    f"grok-contract: {tier_name}.{capability} must be {model} {effort}"
-                )
-            if assignment["subagent_type"] != worker:
-                failures.append(
-                    f"grok-contract: {tier_name}.{capability} must dispatch {worker}"
-                )
-            if assignment["profile"] not in PROFILE_NAMES:
-                failures.append(
-                    f"grok-contract: {tier_name}.{capability} has an invalid profile"
-                )
-    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
-    for required in (
-        "spawn_subagent",
-        "isolation: none",
-        "resume_from",
-        "get_command_or_subagent_output",
-        "timeout_ms: 600000",
-        "Playwright",
-        "general-purpose",
-        "grok-4.7-build-fast",
-        "xhigh",
-    ):
-        if required not in spawn:
-            failures.append(f"grok-contract: spawn.md must name {required}")
-    return failures
-
-
-DEVIN_CAPABILITIES = CURSOR_CAPABILITIES
-
-
-def check_devin_host(root: Path) -> list[str]:
-    failures: list[str] = []
-    roles_path = root / "hosts/devin/config/roles.devin.toml"
-    spawn_path = root / "hosts/devin/references/spawn.md"
-    agents_dir = root / "hosts/devin/agents"
-    required_paths = (roles_path, spawn_path)
-    if not all(path.is_file() for path in required_paths) or not agents_dir.is_dir():
-        return failures
-    try:
-        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeError) as error:
-        return [f"devin-contract: roles.devin.toml is invalid: {error}"]
-    tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"standard", "critical"}:
-        failures.append(
-            "devin-contract: roles.devin.toml must assign standard and critical only"
-        )
-        return failures
-    for tier_name in ("standard", "critical"):
-        assignments = tiers.get(tier_name)
-        if not isinstance(assignments, dict) or set(assignments) != set(DEVIN_CAPABILITIES):
-            failures.append(
-                f"devin-contract: {tier_name} must define all ten capabilities and no extras"
-            )
-            continue
-        for capability, assignment in assignments.items():
-            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
-                failures.append(
-                    f"devin-contract: {tier_name}.{capability} needs profile, "
-                    "subagent_type, model, and effort"
-                )
-                continue
-            expected_profile = CAPABILITY_PROFILES[capability]
-            if assignment["model"] != "swe-2-max" or assignment["effort"] != "inherit":
-                failures.append(
-                    f"devin-contract: {tier_name}.{capability} must be swe-2-max inherit"
-                )
-            if (
-                assignment["profile"] != expected_profile
-                or assignment["subagent_type"] != expected_profile
-            ):
-                failures.append(
-                    f"devin-contract: {tier_name}.{capability} must dispatch "
-                    f"{expected_profile}"
-                )
-    agent_files = sorted(path.name for path in agents_dir.iterdir())
-    if agent_files != sorted(f"{name}.md" for name in PROFILE_NAMES):
-        failures.append(
-            "devin-contract: agents/ must contain exactly the four orchestra profiles"
-        )
-    else:
-        for profile_path in sorted(agents_dir.glob("*.md")):
-            text = profile_path.read_text(encoding="utf-8")
-            if f"name: {profile_path.stem}" not in text or "model: swe-2-max" not in text:
-                failures.append(
-                    f"devin-contract: {profile_path.name} must pin its name and swe-2-max"
-                )
-    spawn = " ".join(spawn_path.read_text(encoding="utf-8").split())
-    for required in (
-        "run_subagent",
-        "read_subagent",
-        "swe-2-max",
-        "orchestra:<subagent_type>",
-        ".devin-plugin/plugin.json",
-        "~/.config/devin/skills/orchestra-role-<role>/SKILL.md",
-    ):
-        if required not in spawn:
-            failures.append(f"devin-contract: spawn.md must name {required}")
-    return failures
-
-
-def check_claude_host(root: Path) -> list[str]:
-    failures: list[str] = []
-    roles_path = root / "hosts/claude/config/roles.claude.toml"
-    spawn_path = root / "hosts/claude/references/spawn.md"
-    agents_dir = root / "hosts/claude/agents"
-    if not roles_path.is_file() or not spawn_path.is_file() or not agents_dir.is_dir():
-        return failures
-    try:
-        roles = tomllib.loads(roles_path.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeError) as error:
-        return [f"claude-contract: roles.claude.toml is invalid: {error}"]
-    tiers = roles.get("tiers")
-    if not isinstance(tiers, dict) or set(tiers) != {"minimal", "standard", "critical"}:
-        return ["claude-contract: roles.claude.toml must assign minimal, standard, and critical"]
-    spawn = spawn_path.read_text(encoding="utf-8")
-    agent_types: set[str] = set()
-    for tier_name, assignments in tiers.items():
-        if not isinstance(assignments, dict) or set(assignments) != set(CURSOR_CAPABILITIES):
-            failures.append(
-                f"claude-contract: {tier_name} must define all ten capabilities and no extras"
-            )
-            continue
-        for capability, assignment in assignments.items():
-            label = f"claude-contract: {tier_name}.{capability}"
-            if not isinstance(assignment, dict) or set(assignment) != ASSIGNMENT_FIELDS:
-                failures.append(f"{label} needs profile, subagent_type, model, and effort")
-                continue
-            profile, effort = assignment["profile"], assignment["effort"]
-            if profile != CAPABILITY_PROFILES[capability]:
-                failures.append(f"{label} must use {CAPABILITY_PROFILES[capability]}")
-            if effort not in REASONING_EFFORTS:
-                failures.append(f"{label} has an invalid effort")
-            if assignment["subagent_type"] != f"{profile}_{effort}":
-                failures.append(f"{label} must dispatch {profile}_{effort}")
-            if f"| `{assignment['model']}` |" not in spawn:
-                failures.append(f"{label} model has no Agent alias in spawn.md")
-            agent_types.add(assignment["subagent_type"])
-    agent_files = {path.stem for path in agents_dir.iterdir()}
-    if agent_files != agent_types or any(
-        path.suffix != ".md" for path in agents_dir.iterdir()
-    ):
-        failures.append(
-            "claude-contract: agents/ must contain exactly the matrix subagent types"
-        )
-        return failures
-    for name in sorted(agent_types):
-        metadata = _skill_frontmatter((agents_dir / f"{name}.md").read_text(encoding="utf-8"))
-        if (
-            metadata is None
-            or metadata.get("name") != name
-            or metadata.get("effort") != name.rsplit("_", 1)[1]
-            or metadata.get("disallowedTools") != "Agent"
-            or "model" in metadata
-        ):
-            failures.append(
-                f"claude-contract: {name}.md must pin its name and effort, deny Agent, "
-                "and leave the model to dispatch"
-            )
-    return failures
-
-
 def check_repository_conventions(root: Path) -> list[str]:
     """Keep this repository's `.agent/` hard-gate command declaration exact."""
     failures: list[str] = []
@@ -1427,15 +746,10 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_delivery_config,
     check_documentation,
     check_hook,
-    check_roles_and_profiles,
+    check_flow_assignment,
     check_skills_and_runtime,
     check_modular_routing,
     check_repository_conventions,
-    check_direct_sync,
-    check_cursor_host,
-    check_grok_host,
-    check_devin_host,
-    check_claude_host,
 )
 FULL_CHECKS: tuple[Check, ...] = QUICK_CHECKS + (
     check_python_syntax,

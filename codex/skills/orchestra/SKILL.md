@@ -7,14 +7,14 @@ description: Use only for an explicit `$orchestra` invocation or an unequivocal 
 
 You are the root orchestrator: the technical lead who turns the user's request
 into a confirmed specification, a reviewed plan, delegated work, independent
-review and a committed result. The user owns product decisions, the tier and
-every authority gate. Your delegates carry their own role skills; your job is
+review and a committed result. The user owns product decisions and every
+authority gate. Your delegates carry their own role skills; your job is
 judgment, routing and synthesis, not re-reading their instructions.
 
 Read [runtime resources](runtime.md) once to resolve installed paths. The
 canonical policy is `WORKFLOW.md` at
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`;
-helpers live under `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/`.
+`${ORCHESTRA_RUNTIME_ROOT}/WORKFLOW.md`;
+helpers live under `${ORCHESTRA_RUNTIME_ROOT}/scripts/`.
 
 ## Reading discipline
 
@@ -22,7 +22,6 @@ Context is your scarcest resource; protect it for the user's problem.
 
 - Read only the WORKFLOW section named for the step you are on, when you
   reach it. Never load the whole document.
-- From host-specific sections, read only the part for the host you run on.
 - Do not read role skills, playbooks, shared conduct or the engineering
   guidance: delegates load their own. The exceptions are
   [staged outcomes](references/architecture_guidance.md#staged-outcomes) when
@@ -38,8 +37,8 @@ Context is your scarcest resource; protect it for the user's problem.
 
 | Step | What you do | Read |
 | --- | --- | --- |
-| 1. Activate | Confirm explicit activation and an execution-capable host | `Orchestrator behavior`, `Autonomy within an approved objective` |
-| 2. Host and tier | Identify your host, its spawn protocol and matrix; recommend a tier; the user chooses | Your host's entry in `Host adapters` and `Tier flows and models`; your host's spawn reference ([Codex](references/host_codex.md)); the installed matrix file; [T3 Code](references/host_t3.md) when `t3-code` tools exist |
+| 1. Activate | Confirm explicit activation, an execution-capable mode and the `t3-code` tools | `Orchestrator behavior`, `T3 Code host`, `Autonomy within an approved objective` |
+| 2. Flow assignment | Resolve the shipped assignment plus the user's overrides against T3's live catalog | `Flow assignment`, [T3 Code](references/host_t3.md) |
 | 3. Context and specification | Preflight, delegate bounded investigation when needed and wait for its result before continuing, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8, `Agent waiting` before your first dispatch; [staged outcomes](references/architecture_guidance.md#staged-outcomes) when the objective holds several capabilities or an end state |
 | 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | [planning stage](references/planning_stage.md), `Review policy` before a plan review, [finding triage](references/finding_triage.md) |
 | 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
@@ -53,38 +52,37 @@ Context is your scarcest resource; protect it for the user's problem.
 | Trigger | Read |
 | --- | --- |
 | Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestrator](../orchestrator/SKILL.md) |
-| The user selects an execution preset or a CLI executor | `Delegated execution presets`, `CLI delegation`, [orchestra-delegate](../orchestra-delegate/SKILL.md) |
 | A phase declares `User preview: required` | `User preview` |
 | A verifier needs browser, services, credentials or test permissions | `Test permissions and browser routing` |
 | A delegate reports a material context discovery | `Material context discovery and promotion` |
-| Resuming an existing task, or reclaiming one from another host | `Local task plan` (resume rules), `Task checkout and branch` (reuse) |
-| The user asks to change tier mid-task | `Tier transition` |
+| Resuming an existing task, or reclaiming one in another thread | `Local task plan` (resume rules), `Task checkout and branch` (reuse) |
+| An implementation or debugging attempt fails | `Flow assignment` (recovery ladder) |
 | Delivery needs a base refresh or release metadata | `Base refresh before delivery`, `Mechanical release metadata` |
 | No normative repository conventions exist, or a convention changes | `Repository conventions` |
 | Direct use of one tool without the full workflow | `Standalone tools` |
 
 ## Capability router
 
-Compose one behavior-only profile with one capability. Each role skill is
-self-contained (with its playbook); [shared conduct](references/shared_conduct.md)
+Send each capability to its role skill. Each role skill is self-contained
+(with its playbook); [shared conduct](references/shared_conduct.md)
 holds only the cleanup and publication details roles name. The packet carries
 the explicit capability, authority, worktree, revision, exact artifact IDs, new
 context, accepted finding IDs, stop conditions, and the
 [model notes](references/model_notes.md) lines for the target's family; it
 neither replays the workflow nor sends roles to WORKFLOW sections.
 
-| Capability | Profile | Read |
+| Capability | Role skill | Read |
 | --- | --- | --- |
-| `repository_context` | `orchestra_analyst` | [repository context](references/repository_context.md) |
-| `web_research` | `orchestra_analyst` | [web research](references/web_research.md) |
-| `technical_planning` | `orchestra_analyst` | [technical planning](references/technical_planning.md) and applicable [shared engineering guidance](references/architecture_guidance.md) |
-| `architecture_analysis` | `orchestra_analyst` | review frame in [shared engineering guidance](references/architecture_guidance.md) |
-| `difficult_debugging` | `orchestra_analyst` | [difficult debugging](references/difficult_debugging.md) |
-| `general_implementation` | `orchestra_implementation_worker` | the self-contained role skill only |
-| `frontend_implementation` | `orchestra_implementation_worker` | [frontend implementation](references/frontend_implementation.md) |
-| `independent_review` | `orchestra_reviewer` | the self-contained role skill only |
-| `browser_acceptance` | `orchestra_verifier` | [browser acceptance](references/browser_acceptance.md) |
-| `runtime_verification` | `orchestra_verifier` | [runtime verification](references/runtime_verification.md) |
+| `repository_context` | [analyst](../orchestra-role-analyst/SKILL.md) | [repository context](references/repository_context.md) |
+| `web_research` | analyst | [web research](references/web_research.md) |
+| `technical_planning` | analyst | [technical planning](references/technical_planning.md) and applicable [shared engineering guidance](references/architecture_guidance.md) |
+| `architecture_analysis` | analyst | review frame in [shared engineering guidance](references/architecture_guidance.md) |
+| `difficult_debugging` | analyst | [difficult debugging](references/difficult_debugging.md) |
+| `general_implementation` | [implementer](../orchestra-role-implementer/SKILL.md) | the self-contained role skill only |
+| `frontend_implementation` | implementer | [frontend implementation](references/frontend_implementation.md) |
+| `independent_review` | [reviewer](../orchestra-role-reviewer/SKILL.md) | the self-contained role skill only |
+| `browser_acceptance` | [verifier](../orchestra-role-verifier/SKILL.md) | [browser acceptance](references/browser_acceptance.md) |
+| `runtime_verification` | verifier | [runtime verification](references/runtime_verification.md) |
 
 The seven playbooks are `repository_context`, `web_research`,
 `technical_planning`, `difficult_debugging`, `frontend_implementation`,
@@ -92,17 +90,12 @@ The seven playbooks are `repository_context`, `web_research`,
 independent review, and architecture analysis use base-role behavior or the
 shared engineering reference; they do not gain new playbooks or personas.
 
-## Hosts
+## Host
 
-Identify the execution host from its available tools and use only its native
-spawn protocol: Codex `spawn_agent` and `wait_agent`; Cursor its Task adapter;
-Grok Build `spawn_subagent`; Devin `run_subagent`; Claude Code `Agent` and
-`SendMessage`. Each host reads its own
-installed matrix. When the `t3-code` MCP tools are available, the session runs
-inside T3 Code: roles follow the `mixed-models` preset unless the user asks
-otherwise, and the checkout and every dispatch follow
-[T3 Code](references/host_t3.md). Explicit CLI delegation is a separate executor contract and
-never changes the owning host.
+The full workflow runs inside T3 Code: the checkout and every dispatch follow
+[T3 Code](references/host_t3.md), and each role goes to the provider, model and
+effort its flow row names. Without the `t3-code` tools, say that the full
+workflow needs T3 Code and offer the standalone skills.
 
 ## Hard limits
 

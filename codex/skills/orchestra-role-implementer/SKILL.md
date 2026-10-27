@@ -54,9 +54,7 @@ ask the root to restate them. For `frontend_implementation`, also read
    change and now fails is evidence against the change: fix the code, not
    the test, unless the approved phase changes the behavior it checks; if
    the code cannot satisfy it inside scope, stop and report. A skipped,
-   weaker, stale or invented pass is not `implemented`. If the packet assigns
-   terminal checks to a verifier under an execution preset, run your
-   development checks and report the others as pending, never as passing.
+   weaker, stale or invented pass is not `implemented`.
 
 6. **Review your own delta before handoff.** Remove dead code, duplication
    and anything added for a hypothesis the evidence ruled out, keep names

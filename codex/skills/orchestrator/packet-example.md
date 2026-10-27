@@ -6,7 +6,7 @@ WORKFLOW "Initiative coordination" owns investigation and continuation authority
 
 ## Register content
 
-- Outcome and authority: link the approved brief, exclusions, budget/tier choices
+- Outcome and authority: link the approved brief, exclusions, budget and resource choices
   and exact implementation, commit, push, PR, merge or deployment grants.
 - Repositories: identity, checkout owner, applicable instruction paths, and base
   revision. A project name alone is not a repository identity.
@@ -28,18 +28,18 @@ replacement. Reconcile with the host's existing tasks/sessions and Git.
 
 Role: task root for the named service, not a scoped implementation worker.
 Route: full Orchestra, explicitly activated for this child by the approved
-initiative. Tier: the user's selected supported tier. Repository and checkout:
+initiative. Repository and checkout:
 exact identity/path; one named checkout creator. Adopt a supplied isolated
 checkout, or establish managed isolation before any task/source writes when
 launched from a shared directory. Approved product base: full SHA. Reconcile any
 unexpected HEAD or host branch metadata before mutation.
 
-Task-root resources: the explicit supported model/effort or accepted host default;
-separate from the parent's selection and selected tier's role matrix. Resolve the
+Task-root resources: the explicit supported model/effort or the user's T3
+default, separate from the parent's selection and the flow's role rows. Resolve the
 actual dispatch type and controls through [host transports](host-transports.md).
 
 Instructions: pinned Orchestra revision or verified package identity; absolute
-entry skill, workflow, runtime/skills roots, selected matrix and spawn reference.
+entry skill, workflow, runtime/skills roots and flow assignment.
 Product base, instruction revision and environment build are separate identities.
 
 Objective: implement the approved response contract for the consumer named in
@@ -77,7 +77,7 @@ to full child evidence. Process exit alone is not acceptance.
 ## Investigation-only variant
 
 Use the same root-capable transport, selected instruction source and repository
-identity. Replace the execution packet's resources/tier, Objective, Authority,
+identity. Replace the execution packet's resources, Objective, Authority,
 Ownership, Retention and Handoff with the fields below. Omit Source-writing
 policy; this assignment does not authorize implementation.
 
@@ -86,10 +86,8 @@ behavior, identify affected callers and state, and propose the smallest supporte
 change. Separate evidence from hypotheses; unavailable reproduction is a limit.
 
 Investigation resources: parent-assigned model/effort, or the user's configured
-task-root default explicitly selected in this packet through the host controls.
-Name each delegated analyst's resources and bounded assignment separately;
-there is no inferred role matrix. Execution tier: the user's existing selection,
-or pending their decision.
+task-root default explicitly selected in this packet through T3's controls.
+Name each delegated analyst's resources and bounded assignment separately.
 
 Authority: read-only investigation and a report at the parent-named accessible
 private path. No source edits, task branch creation, phase plan/state, commit or
@@ -101,8 +99,8 @@ or initiative coordination. Retention: parent-readable report and actual root
 handle, plus owned-resource cleanup or explicitly authorized retention.
 
 Handoff: inspected full revision, findings with evidence locations, affected
-scope, risks, unresolved product decisions, verification approach and recommended
-tier. Include the specification and a plan candidate when useful, plus the
+scope, risks, unresolved product decisions and verification approach. Include
+the specification and a plan candidate when useful, plus the
 accessible report and actual child handle. Return for the parent's synthesis and
 user decision; do not report implementation acceptance.
 
@@ -110,7 +108,7 @@ user decision; do not report implementation acceptance.
 
 Apply WORKFLOW "Initiative coordination" and "Context and planning". The
 continuation packet names the existing root handle, report reference, user
-corrections, approved scope and tier, actual implementation/phase-commit/delivery
+corrections, approved scope, actual implementation/phase-commit/delivery
 grants, and any material change to the product revision or assumptions.
 
 ## Repair packet

@@ -1,11 +1,3 @@
-"""Structural invariants for composable planned Orchestra work.
-
-These tests pin machine-consumed structure: the four behavior-only profiles,
-the capability-to-profile routing, the installed assignment matrices, the
-closed playbook inventory. Behavioral policy
-lives only in `docs/WORKFLOW.md`; its wording is intentionally not frozen here.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,18 +6,12 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PROFILE_NAMES = {
-    "orchestra_analyst",
-    "orchestra_implementation_worker",
-    "orchestra_reviewer",
-    "orchestra_verifier",
-}
-ROLE_SKILLS = {
-    "orchestra_analyst": "orchestra-role-analyst",
-    "orchestra_implementation_worker": "orchestra-role-implementer",
-    "orchestra_reviewer": "orchestra-role-reviewer",
-    "orchestra_verifier": "orchestra-role-verifier",
-}
+ROLE_SKILLS = (
+    "orchestra-role-analyst",
+    "orchestra-role-implementer",
+    "orchestra-role-reviewer",
+    "orchestra-role-verifier",
+)
 PLAYBOOK_NAMES = {
     "repository_context",
     "web_research",
@@ -47,85 +33,36 @@ CAPABILITY_PROFILES = {
     "browser_acceptance": "orchestra_verifier",
     "runtime_verification": "orchestra_verifier",
 }
-EXPECTED_TIERS = {
-    "native": {"standard", "critical"},
-}
 REASONING_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
 
 
 class PlannedFlowInvariantTests(unittest.TestCase):
     def setUp(self) -> None:
         self.skill = (ROOT / "codex/skills/orchestra/SKILL.md").read_text()
-        self.role_matrices = {
-            modelconfig: tomllib.loads(
-                (ROOT / f"codex/config/roles.{modelconfig}.toml").read_text()
-            )["tiers"]
-            for modelconfig in ("native",)
-        }
-        self.profiles = {
-            path.stem: tomllib.loads(path.read_text())
-            for path in (ROOT / "codex/agents").glob("*.toml")
-        }
+        self.flow = tomllib.loads((ROOT / "codex/config/flow.toml").read_text())
         self.references = ROOT / "codex/skills/orchestra/references"
 
-    def role_skill(self, name: str) -> str:
-        return (ROOT / f"codex/skills/{ROLE_SKILLS[name]}/SKILL.md").read_text()
-
-    def test_exact_four_profiles_are_self_serve_stubs(self) -> None:
-        self.assertEqual(set(self.profiles), PROFILE_NAMES)
-        self.assertEqual(
-            {profile["name"] for profile in self.profiles.values()}, PROFILE_NAMES
-        )
-        for name, profile in self.profiles.items():
-            self.assertEqual(
-                set(profile), {"name", "description", "developer_instructions"}
-            )
-            self.assertTrue(profile["description"].strip())
-            stub = profile["developer_instructions"]
-            self.assertIn(
-                f".agents/skills/{ROLE_SKILLS[name]}/SKILL.md", stub, name
-            )
-            self.assertNotIn("gpt-5.", stub.lower())
-            role = self.role_skill(name)
+    def test_four_role_skills_are_complete_and_model_free(self) -> None:
+        for name in ROLE_SKILLS:
+            role = (ROOT / f"codex/skills/{name}/SKILL.md").read_text()
             for heading in ("## Input", "## Output", "## Stop conditions"):
                 self.assertIn(heading, role, name)
             self.assertIn("shared_conduct.md", role, name)
-            self.assertNotIn("gpt-5.", role.lower())
+            self.assertNotRegex(role, r"\b(?:gpt|claude|grok)-\d")
 
-    def test_matrices_route_every_capability_through_the_four_profiles(self) -> None:
-        for modelconfig, roles in self.role_matrices.items():
-            self.assertEqual(set(roles), EXPECTED_TIERS[modelconfig])
-            for tier, assignments in roles.items():
-                self.assertEqual(
-                    {name: value["profile"] for name, value in assignments.items()},
-                    CAPABILITY_PROFILES,
-                    f"{modelconfig}.{tier}",
-                )
-                for capability, assignment in assignments.items():
-                    self.assertEqual(
-                        set(assignment),
-                        {"profile", "model", "reasoning_effort"},
-                        f"{modelconfig}.{tier}.{capability}",
-                    )
-                    self.assertTrue(assignment["model"].strip())
-                    self.assertIn(
-                        assignment["reasoning_effort"], REASONING_EFFORTS
-                    )
-                    self.assertNotEqual(
-                        (assignment["model"], assignment["reasoning_effort"]),
-                        ("gpt-5.6-sol", "xhigh"),
-                    )
-                    self.assertNotIn(
-                        assignment["profile"], {"root", "orchestrator"}
-                    )
-
+    def test_flow_assigns_every_capability_a_provider_and_model(self) -> None:
+        self.assertEqual(set(self.flow["capabilities"]), set(CAPABILITY_PROFILES))
+        entries = [*self.flow["capabilities"].values(), self.flow["review_pair"], *self.flow["escalation"]]
+        for entry in entries:
+            self.assertTrue(entry["provider"].strip())
+            self.assertTrue(entry["model"].strip())
+            self.assertIn(entry.get("effort", "high"), REASONING_EFFORTS)
 
     def test_playbook_inventory_is_closed_and_consumed(self) -> None:
         expected = {f"{name}.md" for name in PLAYBOOK_NAMES} | {
             "architecture_guidance.md",
             "shared_conduct.md",
             "source_preparation.md",
-            "host_codex.md",
             "host_t3.md",
             "model_notes.md",
             "finding_triage.md",
@@ -146,13 +83,6 @@ class PlannedFlowInvariantTests(unittest.TestCase):
             self.assertIn(f"`{capability}`", self.skill)
 
     def test_normative_text_has_exactly_one_home(self) -> None:
-        """No long verbatim passage may be duplicated across policy homes.
-
-        WORKFLOW.md is the canonical home; the root skill, runtime overlay,
-        and AGENTS.md reference it. Short shared phrases (activation gate,
-        identifiers) are fine; a shared 25-word run means a rule was restated.
-        """
-
         def ngrams(text: str, n: int = 25) -> set[str]:
             words = " ".join(text.lower().split()).split()
             return {
@@ -162,9 +92,6 @@ class PlannedFlowInvariantTests(unittest.TestCase):
         sources = {
             "docs/WORKFLOW.md": (ROOT / "docs/WORKFLOW.md").read_text(),
             "codex/skills/orchestra/SKILL.md": self.skill,
-            "codex/runtime/AGENTS.orchestra.md": (
-                ROOT / "codex/runtime/AGENTS.orchestra.md"
-            ).read_text(),
             "AGENTS.md": (ROOT / "AGENTS.md").read_text(),
         }
         names = list(sources)

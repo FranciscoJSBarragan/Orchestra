@@ -2,17 +2,15 @@
 
 ## Architectural objective
 
-Build a multi-host orchestration product whose complexity is dominated by
-software delivery work, not by its own control plane. Codex, Cursor, Grok
-Build, Devin, and Claude Code are equal execution hosts; shared skills, helpers, and Git
-remain one copy.
+Build an orchestration product for T3 Code whose complexity is dominated by
+software delivery work, not by its own control plane. T3 Code is the one
+execution host and the providers it runs are executors; shared skills, helpers,
+and Git remain one copy.
 
 ```mermaid
 flowchart LR
-    U["User / harness"] --> I["Optional durable task intake"]
-    I -->|"Explicit start"| O["Orchestrator"]
-    U <--> O
-    O --> A["Four base profiles + capabilities"]
+    U["User"] <--> O["Orchestrator in a T3 thread"]
+    O --> A["Four roles + capabilities through T3"]
     O --> W["Workflow skills"]
     W --> G["Git / GitHub / project tools"]
     A --> E["Compact evidence and results"]
@@ -37,15 +35,10 @@ Orchestra/
 │   ├── WORKFLOW.md
 │   ├── ARCHITECTURE.md
 │   └── ROADMAP.md              # non-canonical sequencing
-├── packaging/                # plugin metadata and usage; built from canonical sources
+├── packaging/                # plugin metadata, Claude Code read hook and usage
 ├── .githooks/                 # versioned thin wrappers only
-├── hosts/
-│   ├── cursor/                # Cursor spawn, roles, local plugin
-│   ├── grok/                  # Grok Build spawn and roles
-│   ├── devin/                 # Devin spawn, roles, agent profiles
-│   └── claude/                # Claude Code spawn, roles, effort agent profiles
 └── codex/
-    ├── agents/                # four Codex TOML base profiles
+    ├── config/flow.toml       # default flow assignment
     ├── skills/                # public lanes and internal playbook references
     ├── scripts/               # deterministic mechanical helpers
     └── tests/
@@ -55,7 +48,7 @@ Orchestra/
 
 ### Orchestrator
 
-Owns user dialogue, tier recommendation, product clarification, capability routing,
+Owns user dialogue, product clarification, capability routing,
 synthesis, the local task plan, in-scope decisions, blocker resolution, phase
 commits, PR synthesis and observation, delivery choice, and final judgment. It
 holds compact authority and decision context and delegates repository-wide
@@ -73,14 +66,13 @@ missing visualization support is non-blocking, and delegated agents never own
 user-facing visualization.
 
 Initiative task roots use this same workflow. An investigation-only child may
-gather bounded evidence before implementation and execution-tier approval, then
+gather bounded evidence before implementation approval, then
 continue through the existing approval path. WORKFLOW "Initiative coordination"
 owns that authority and recovery contract; task size does not select a second
 worker workflow.
 
-After obtaining a bounded minimum brief, the orchestrator recommends an initial
-tier with concise risk and cost-benefit evidence, and the user chooses the
-active tier. It performs a short read-only Git and execution-readiness
+After obtaining a bounded minimum brief and resolving the flow assignment, the
+orchestrator performs a short read-only Git and execution-readiness
 preflight, grounds the specification dialogue in focused repository context
 (gathered directly or by a dispatched analyst), and confirms the complete
 specification. Immediately after that confirmation the root uses Git directly
@@ -127,29 +119,29 @@ their own authority. Operational recipes follow the separate maintenance
 lifecycle in WORKFLOW "Project verification". Disposition and persistence mechanics
 live in `docs/WORKFLOW.md` ("Material context discovery").
 
-### Base profiles and capabilities
+### Roles and capabilities
 
-Orchestra has exactly four behavior-only base profiles:
+Orchestra has exactly four roles, each a self-contained role skill:
 
-- `orchestra_analyst` gathers bounded evidence, researches, plans, analyzes architecture,
+- The analyst (`orchestra-role-analyst`) gathers bounded evidence, researches, plans, analyzes architecture,
   or diagnoses difficult failures. It does not edit implementation files,
   commit, route agents, or claim product authority.
-- `orchestra_implementation_worker` owns scoped code and test changes for an approved
+- The implementer (`orchestra-role-implementer`) owns scoped code and test changes for an approved
   packet and acts as the first deterministic quality gate. It runs and
   autocorrects required local deterministic checks. It may implement general or
   frontend work, but does not independently review itself, commit, or manage
   delivery.
-- `orchestra_reviewer` independently examines plans, architecture, code, meaningful
+- The reviewer (`orchestra-role-reviewer`) independently examines plans, architecture, code, meaningful
   deltas, tests, and verification evidence. It does not routinely repeat gates,
   reports evidence-backed findings, and never silently implements them.
-- `orchestra_verifier` supplies dedicated independent runtime or browser evidence
+- The verifier (`orchestra-role-verifier`) supplies dedicated independent runtime or browser evidence
   only when phase risk or policy requires it. It does not edit source code or
   reinterpret a failing result as success.
 
-Each dispatch composes one profile with one explicit named capability selected
+Each dispatch sends one role skill with one explicit named capability selected
 by the root. `general_implementation` and `independent_review` are assignment
-keys whose behavior stays in the base `orchestra_implementation_worker` and `orchestra_reviewer`
-prompts; they have no internal playbooks. Internal playbooks exist only for
+keys whose behavior stays in the implementer and reviewer role skills; they
+have no internal playbooks. Internal playbooks exist only for
 `repository_context`, `web_research`, `technical_planning`,
 `difficult_debugging`, `frontend_implementation`, `browser_acceptance`, and
 `runtime_verification`. The existing `architecture_guidance.md` is the shared
@@ -166,14 +158,13 @@ readiness" owns its authority and lifecycle. Shared engineering guidance owns
 the comment policy and prevention criteria; writing entries link them directly.
 
 Frontend implementation and browser acceptance are independent capabilities on
-different profiles. Root-owned plan authority, commits, PR observation,
-routing, and final judgment add no agent profile or capability key; a
+different roles. Root-owned plan authority, commits, PR observation,
+routing, and final judgment add no role or capability key; a
 dispatched technical planner may author the exact candidate documents that the
 root approves or rejects.
 
 The implementation owner, reviewer, and each required capability verifier form
-a bounded phase cohort. Ordinary deterministic non-critical phases have no
-verifier unless the selected execution preset assigns the terminal gate to one.
+a bounded phase cohort. Ordinary deterministic phases have no verifier.
 A required user preview keeps the same logical owner through absorption under
 WORKFLOW "User preview" and "Phase execution". One-shot analysts close after
 their result is consumed. The cohort
@@ -182,13 +173,7 @@ without carrying implementation state across phases. Analysis agents are
 one-shot except that a technical planner remains open through a dispatched
 plan-review correction loop and closes before implementation.
 
-At a user-directed tier transition, the root waits for the active tool call,
-collects the exact worktree state, progress, evidence, and owned resources,
-closes only agents whose immutable assignment changes, and creates replacements
-only when needed. The worktree and valid evidence provide continuity; there is
-no workflow restart, transition commit, or tier-history subsystem.
-
-Profiles share only minimal conventions: explicit capability and authority,
+Roles share only minimal conventions: explicit capability and authority,
 worktree, exact target artifact identifiers and roles, revision identity,
 accepted finding identifiers, new context delta, stop conditions, and
 outcome-first output status. Reusable results are complete
@@ -204,13 +189,13 @@ worktree or diff state and names affected paths.
 The implementation-review packet additionally carries the exact
 `repository-context` and `context-delta` evidence required by the approved
 overview and phase, or complete labeled inline fallbacks. This is routed
-evidence, not a profile, capability, persisted packet, or new artifact kind.
+evidence, not a role, capability, persisted packet, or new artifact kind.
 Retaining an inline producer result adds no artifact kind; WORKFLOW
 "Task-private artifacts" owns that transfer and lifecycle.
 
-Every profile applies the same owner-cleanup contract. It tracks task-owned
-servers, managed or detached processes, terminal sessions, Chrome connector
-tabs, and in-app Browser tabs in live context; closes them before a final,
+Every role applies the same owner-cleanup contract. It tracks task-owned
+servers, managed or detached processes, terminal sessions, and browser tabs in
+live context; closes them before a final,
 failed, or blocked handoff; and preserves unrelated user state. Analysts and
 reviewers never retain resources across a handoff. Implementers and verifiers
 may retain only an explicitly authorized non-browser resource category and
@@ -229,7 +214,7 @@ part of the existing report kind. It is not an authority grant, canonical
 documentation, or a separate artifact, and no empty section is emitted when
 nothing new was found.
 
-Every profile preserves the approved objective, constraints, acceptance, and
+Every role preserves the approved objective, constraints, acceptance, and
 authority under shared "Decision evidence" and WORKFLOW "Autonomy within an
 approved objective", reporting a conflict instead of silently broadening or
 replacing the approved result.
@@ -271,8 +256,7 @@ behavior: bounded Git inspection, initializing and safely cleaning the one
 reserved worktree-local task-state directory, loading delivery policy, running
 configured argv checks, opening or observing a PR through direct `gh`, merging
 an authorized clean PR with guarded task-resource cleanup, integrating a local
-fast-forward, synchronizing managed resources through direct sync, and
-validating the suite.
+fast-forward, packaging the plugin, and validating the suite.
 
 Helpers return compact structured results. They do not make product decisions,
 spawn agents, or own parallel approval systems. A helper must reduce the total
@@ -294,13 +278,15 @@ Orchestra may persist only contracts with direct consumers:
 - compact optional-helper result (`committed` with `sha`,
   `nothing_to_commit`, or `blocked` with the observed reason);
 - one PR-CONTEXT capsule in the GitHub PR body;
-- direct-sync manifest consumed by install, update, status, and uninstall.
+- the shipped flow assignment and the user's override file, read by the root
+  before dispatch.
 
 The provisional specification remains in conversation. An unapproved formal
 candidate is one `plan-overview`, one `plan-phase` per phase, and optional
 `plan-review` artifacts. Its current membership is an explicit bundle of IDs,
 never whichever artifacts are newest. Only after approval does the root write
-`plan.md` as `active`: task/Git identity, tier and decisions, approved overview
+`plan.md` as `active`: task/Git identity, the resolved flow assignment and
+decisions, approved overview
 verbatim, and an exact phase manifest with IDs, private paths, artifact
 revisions, progress, commits, blocker, and next action. Phase details are not
 duplicated. Git remains authoritative for branch, HEAD, commits, and worktree
@@ -376,163 +362,71 @@ without forcing it through standalone leaf roles or the full planned route.
 `orchestra-project-verification` owns the consumer-facing entry for preparing,
 executing and maintaining repository feature maps and recipes. These entries
 reuse the existing four roles and seven playbooks; no additional persona or
-model matrix is introduced. Operational authority and lifecycle live in
+assignment table is introduced. Operational authority and lifecycle live in
 WORKFLOW "Modular engineering", "Project verification" and "Repository conventions".
 
 `orchestrator` owns an explicitly selected parent responsibility across
-independent task roots. Its native host tasks or supported CLI root sessions
-retain child context. The existing leaf delegate remains deliberately narrower.
+independent task roots. Its task roots are T3 threads that retain child
+context; a `delegate_task` role remains deliberately narrower.
 One persistent Markdown project register links handles, plans, accepted revisions
 and joint evidence for the parent/resume consumer, including concurrent tasks in
 one repository. Optional stable context is separate from progress. This replaces
 the old private index, does not mirror child phase state and is not an authoritative
-board or scheduler. Host-created checkouts are adopted once and retained for
-host-owned cleanup; task-root resources remain separate from role matrices.
-WORKFLOW "Initiative coordination" owns the contract, and the coordinator's
-host-transports reference maps Codex and Cursor Projects independently. No shared
-rule depends on a Project service or a specific nested-agent tool.
+board or scheduler. T3-created checkouts are adopted once and retained for
+T3-owned cleanup; task-root resources remain separate from the flow's role
+rows. WORKFLOW "Initiative coordination" owns the contract, and the
+coordinator's host-transports reference maps it onto T3. A Hermes thread may
+act as the parent without implementing.
 
-## Host adapters
+## T3 Code host
 
-Shared product, skills, packets, artifacts, Git, and the four role skills are
-host-neutral. Each execution host supplies only spawn/wait/close, the model
-matrix, conversation identity, permissions, and `browser_route`.
-
-The root detects the host and resolves its native transport as specified in
-WORKFLOW "Host adapters" and the host spawn reference. An explicit
-CLI executor does not change the owning host. Codex keeps
-`fork_turns: none` and completed-state evidence. Cursor uses a fresh isolated Task per dispatch, may `resume` a
-phase-cohort agent for preview absorption or an unfinished turn, and never uses `resume: self` for a reviewer. Cursor Task
-`subagent_type` is a closed enum; custom `~/.cursor/agents` files are not the
-dispatch API. Grok uses a fresh native subagent per dispatch, `isolation:
-none`, `cwd` equal to the task checkout, may `resume_from` a phase-cohort
-agent after completion for preview absorption or an unfinished turn; every
-fix round and review is a fresh spawn. Devin uses a fresh `run_subagent`
-per dispatch in foreground by default; its `subagent_type` is the installed
-custom Devin profile name, namespaced `orchestra:<name>` under a plugin
-bundle. Every review is a fresh subagent, and
-the `read_subagent` or foreground result is the completed-state evidence
-because Devin has no `close_agent`. Claude Code uses a fresh `Agent` per
-dispatch with the row's explicit model alias and a registered
-`<profile>_<effort>` agent, because effort is fixed by agent frontmatter rather
-than the dispatch call. Those agents are the four behavior profiles at each
-assigned effort, not new responsibilities; each denies `Agent` to its child. A
-plugin bundle namespaces them `orchestra:<name>`. It resumes a phase-cohort
-agent with `SendMessage` only for preview absorption or an unfinished turn, and the returned result is the
-completed-state evidence because Claude Code has no `close_agent`.
-
-T3 Code is an app layer, not a host: inside it the provider keeps its matrix,
-while T3 owns the `managed` worktree (`t3_worktree_handoff`) and carries role
-dispatches (`delegate_task`) with explicit provider, model and effort.
-
-Every host resolves one native matrix through the selected installation, as
-specified in WORKFLOW "Host adapters". Settings and mutable state remain under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}`; direct sync additionally manages Codex
-profiles and Guardian under `$CODEX_HOME`.
-
-### Standalone roles and CLI executor
+Shared product, skills, packets, artifacts, Git and the four role skills are
+provider-neutral. T3 Code supplies threads, worktrees (`t3_worktree_handoff`),
+role transport (`delegate_task` with an explicit provider, model and effort),
+completion notifications, the collaborative browser and pull request watching,
+as WORKFLOW "T3 Code host" and the T3 Code reference specify. Each provider T3
+runs (Claude Code, Codex, Cursor, Grok and later ones) is an executor:
+supporting one is a flow row plus a role check against the live catalog, never
+a host adapter. Outside T3 the role, engineering and verification skills remain
+usable directly; the full workflow does not.
 
 Role skills have one behavior contract with two contexts: a direct assignment
 returns inline evidence; an approved phase supplies the workflow's artifacts
-and gates. `WORKFLOW.md` ("Standalone tools") owns that boundary. No alias
-skill, new agent profile, or parallel implementation of the role is needed.
+and gates. WORKFLOW "Standalone tools" owns that boundary. No alias skill or
+parallel implementation of a role is needed.
 
-`orchestra-delegate` routes a selected capability to `scripts/delegate.py`.
-The helper adapts Codex, Cursor, Grok, Devin, and Claude Code headless arguments and event output, checks
-Git identity and worktree content around one process, and returns a compact
-result plus a private diagnostic log. An optional private result file preserves
-the same final JSON before stdout delivery; it is atomically published once,
-never used as a running-state registry, and shares the log's recovery lifecycle.
-The host owns completion-aware waiting. Leader exit triggers bounded pipe
-drain and owned-child cleanup rather than waiting for the assignment timeout.
-The native CLI owns its session;
-explicit session IDs provide resumption. There is no delegation database or
-workflow engine. Native host matrices continue to own default assignments;
-the user's explicit executor/model selection is a per-assignment override.
-An optional shared execution preset resolves those overrides from
-`codex/config/execution-presets.toml` through the same helper. The root consumes
-its read-only resolution for native/root dispatch, and CLI execution consumes
-the same result directly. The source is synchronized with the existing managed
-file lifecycle; no selection or retry database is added. This small lookup
-prevents four host adapters from maintaining divergent copies of the user's
-assignment and recovery ladder. Selection, check ownership, root planning reuse,
-and recovery are defined only in WORKFLOW "Delegated execution presets".
-`WORKFLOW.md` ("CLI delegation") owns permissions, independence, recovery,
-and acceptance. Execution results cannot replace reviews or Git evidence.
+## Flow assignment
 
-## Model and reasoning configuration
+`codex/config/flow.toml` is the only shipped assignment: a provider instance,
+a model and an optional effort per capability, the second reviewer of the
+review pair, and the later recovery attempts. The user's
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml` replaces whole entries without
+editing the package. The root reads both directly; there is no resolver
+helper, tier, preset or per-provider matrix. Role skills stay model-free and
+capability playbooks stay independent of providers; the validator keeps the
+file complete and model ids out of skills. WORKFLOW "Flow assignment" owns
+resolution, availability, substitution and recovery.
 
-The user's root and the host catalog determine native model availability.
-Codex installs `codex/config/roles.native.toml` at
-`$CODEX_HOME/orchestra/roles.toml`. It exposes one top-level `tiers` table;
-there is no composed provider mode or model-specific rollout probe.
-
-Cursor reads one host matrix at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/cursor/roles.toml`. It offers
-`minimal`, `standard`, and `critical` with no mode split; this cut assigns
-all three. The TOML matrix, not this document, defines the per-capability
-model and effort assignments.
-
-Grok Build reads one host matrix at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/grok/roles.toml`. It offers
-`minimal`, `standard`, and `critical` with no mode split. This cut assigns
-`standard` and `critical` on `grok-4.7-build-fast` at effort `xhigh`. There is no cheaper
-assigned tier. `critical` uses the same spawn rows and raises root scrutiny.
-Selecting `minimal` on Grok blocks.
-
-Devin reads one host matrix at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/devin/roles.toml`. It offers
-`minimal`, `standard`, and `critical`. This cut assigns `standard` and
-`critical`: every capability pins `swe-2-max`, the model fixed in each
-installed Devin agent profile, with `inherit` effort because `run_subagent`
-accepts no per-dispatch model or reasoning field. `subagent_type` is that
-custom Devin profile name. There is no cheaper assigned tier; selecting
-`minimal` on Devin blocks.
-
-Claude Code reads one host matrix at
-`${ORCHESTRA_HOME:-$HOME/.orchestra}/hosts/claude/roles.toml`. It offers and
-assigns `minimal`, `standard`, and `critical`. Each row's model is passed per
-dispatch as an `Agent` alias; its effort selects the registered
-`<profile>_<effort>` agent. The validator keeps the shipped agents equal to the
-matrix's `subagent_type` set, so a reassigned effort cannot reference an
-unregistered agent.
-
-The installed rows supply exact models and reasoning efforts. Role profiles
-stay behavior-only; capability playbooks remain independent of providers.
-Workflow owns tier selection, transitions, unsupported assignments, and legacy
-task resumption. CLI executor overrides continue through `delegate.py`.
-
-CodexBridge is a separate optional product. Its historical Orchestra external
-matrix, V1 aliases, session inspection, and composition code are preserved
-unchanged under `docs/reference/orchestra-external/` in that repository. This
-reference has no runtime consumer in Orchestra and is not an installable
-integration. Future Bridge support must establish its own opt-in contract.
-Host adapters and CLI delegation stay in the Orchestra repository because they
-implement execution of the shared workflow.
+Model-provider bridges are separate products. CodexBridge keeps the historical
+external-model reference in its own repository; nothing in Orchestra consumes
+it.
 
 ## Verification environment and browser routing
 
 Permission and browser-routing behavior is specified once in
-`docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally:
-each host supplies its own permission surface (Codex synchronizes Guardian as
-the default; Cursor, Grok, Devin, and Claude Code observe the host choice and never write
-permission configuration), and `browser_route` is a transient packet value
-whose host mapping is fixed — Codex `auto` prefers the Chrome connector with a
-capability-based in-app fallback, Cursor maps `auto` and `chrome` to Browser
-Use and blocks `in_app`, Grok maps `auto` to Playwright and blocks
-`in_app` and `chrome`, Claude Code maps `auto` and `chrome` to Claude in
-Chrome and blocks `in_app`, and Devin blocks all three routes. Inside T3 Code,
-T3's collaborative browser precedes these mappings for `auto` and is the only
-`in_app` surface. Browser evidence is
-PNG screenshot files cited from the existing report kinds, not a new artifact
-kind.
+`docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally,
+T3's runtime mode and each provider's permission choice are observed and never
+written, and `browser_route` is a transient packet value: T3's collaborative
+browser first, then Claude in Chrome for a Claude child started with
+`--chrome`, or `codex-cu`. Browser evidence is PNG screenshot files cited from
+the existing report kinds, not a new artifact kind.
 
 ## Phase resource lifecycle
 
 Resource hygiene is owner-first and transient: agents clean exact owned
 resources before each handoff, retention requires explicit packet
 authorization, handles live only in root memory, and no helper discovers or
-kills processes globally. Waiting uses the host wait contract without
+kills processes globally. Waiting uses T3's completion notifications without
 busy-polling. The complete rules — cleanup statuses, teardown, verification
 ordering, and the observation boundary — live in `docs/WORKFLOW.md` ("Phase
 execution", "Phase teardown", and "Agent waiting"). Commit execution remains a
@@ -547,11 +441,9 @@ The workflow needs drift protection, but enforcement must remain thin.
 `codex/scripts/validate_suite.py` is the only suite conformance engine. Its
 checks should stay deterministic and fast enough for local use. It validates:
 
-- required canonical files and direct-sync boundaries;
-- skill links and profile references;
-- capability matrix/profile consistency, including the Cursor `minimal` and
-  `standard` matrices;
-- concise AGENTS/runtime instructions;
+- required canonical files and packaging boundaries;
+- skill links, role skill structure and runtime references;
+- flow assignment completeness and model-free skills;
 - plugin packaging boundaries and historical product narrative;
 - representative workflow contract tests.
 
@@ -578,17 +470,16 @@ implement three competing rule sets.
 ### Behavioral tests
 
 Tests pin structural invariants, never prose wording: explicit activation
-routing, the closed four-profile and seven-playbook inventory, capability →
-profile mapping consistency across every installed native matrix, helper
-behavior (checkout, commit, delivery,
-sync, local task state), and host adapter structure. Behavioral
+routing, the closed four-role and seven-playbook inventory, flow assignment
+completeness, and helper behavior (checkout, commit, delivery, packaging,
+local task state). Behavioral
 policy lives only in `docs/WORKFLOW.md` and is enforced by review, not by
 sentence-freezing assertions.
 
 ## Complexity safeguards
 
 Before accepting a persistent artifact, schema, lock, transaction layer,
-helper, agent profile, or capability playbook, document:
+helper, role, or capability playbook, document:
 
 - its named consumer;
 - a demonstrated failure, explicit requirement, or reproducible risk;
@@ -614,29 +505,15 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Managed task worktree creation remains a direct root
-`git worktree add` operation using the configured path and exact fetched
-upstream commit for a remotely tracked canonical base. Hybrid task setup first
+never clean. Managed task checkouts come from T3 (`t3_worktree_handoff`) at the
+configured path and exact fetched upstream commit for a remotely tracked
+canonical base. Hybrid task setup first
 resolves and fetches that upstream, uses `git merge --ff-only <upstream>` only
 when the clean local base is strictly behind, and then uses direct
 `git switch -c` against its captured HEAD. Ahead or diverged bases block instead
-of being rewritten. Synchronization records the absolute root, checkout
-mode, and one reversible Codex permission backend.
-Codex 0.146.0 or later receives the built-in `:workspace` profile with
-`approval_policy = "on-request"` and
-`approvals_reviewer = "auto_review"`; older clients block before mutation.
-Historical manifest-owned Full Access and legacy blocks remain migration and
-uninstall inputs only. No legacy sandbox mode, custom permission profile,
-writable-root list, worktree helper, or command rule is installed. Direct App
-Server launchers omit permission overrides to inherit those defaults. Explicit
-launcher overrides remain authoritative and are neither rejected nor rewritten;
-the exact workspace, on-request, and Auto-review values select Guardian
-explicitly. User-owned profiles or sandbox blocks that cannot be migrated
-unambiguously stop synchronization. When Guardian is active, the root proves
-write access with a temporary canary before dispatch, then requests one exact
-automatically reviewed escalation when direct Git must write protected shared
-metadata; active worktrees in older locations are never migrated implicitly.
-Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
+of being rewritten. The root proves write access with a temporary canary before
+the first dispatch; active worktrees in older locations are never migrated
+implicitly. Scoped dirty adoption uses `adopt_worktree.py` as a one-shot selected-path
 import into the task worktree.
 Phase commits use direct Git by default or the existing narrow exact-path helper
 when useful, never an agent. The scoped helper refuses active Git operations
@@ -664,82 +541,30 @@ an external coordinator or prepared environment. It returns runtime paths,
 preserves existing destinations and adds no installer service or task state.
 The setup owner handles retention; workers consume the selected runtime.
 `codex/skills/orchestra/references/source_preparation.md` owns this preparation
-recipe and ships with both plugin and direct-sync skills.
+recipe and ships with every plugin.
 
-`codex/scripts/package_plugin.py`
-builds a relocatable plugin from the same skills, profiles, helpers, native
-matrices, and canonical workflow used by direct sync. The builder consumes
+`codex/scripts/package_plugin.py` builds a relocatable plugin from the skills,
+helpers, flow assignment and canonical workflow. The builder consumes
 `packaging/orchestra/.codex-plugin/plugin.json` as its only metadata source and
 writes a new output directory; it refuses to overwrite an existing destination.
 Generated bundles are disposable distribution artifacts, excluded from Git.
 They contain no installers, active configuration, credentials, or private data.
 
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
-compatibility manifest. Cursor, Grok, Devin, and Claude Code targets use native manifests
-for their host loaders. The Claude Code
-target ships one `PreToolUse` hook that allows read-only tools only inside its
-own package, because Claude Code otherwise denies non-interactive agents their
-role skills; it grants no write, shell, or outside-path access. The four Codex behavior
-profiles are packet content, not plugin-registered agent types; the Devin
-target ships the four Devin agent profiles under `agents/` as the registered
-`subagent_type` dispatch surface, and the Claude Code target ships its
-effort agents there for the same purpose. All targets retain the same shared workflow;
-only distribution metadata and registered host profiles vary. Runtime resolution and dispatch policy belong to
-WORKFLOW "Host adapters" and the loaded skill's runtime reference.
+compatibility manifest; the Cursor, Grok and Claude Code targets use those
+providers' native manifests, so each can load the entry skill as a T3 task
+root. The Claude Code target ships one `PreToolUse` hook that allows read-only
+tools only inside its own package, because Claude Code otherwise denies
+non-interactive agents their role skills; it grants no write, shell, or
+outside-path access. All targets retain the same shared workflow; only
+distribution metadata varies. Runtime resolution and dispatch policy belong to
+WORKFLOW "T3 Code host" and the loaded skill's runtime reference.
 
-Plugin install, update, listing, and removal belong to the host's plugin manager.
-Removing a plugin does not remove user task data. Publishing bundles or a public
-marketplace is a separate delivery action. Supporting another host requires an
-explicit native capability adapter; recognizing a manifest is insufficient.
+Plugin install, update, listing, and removal belong to each provider's plugin
+manager; install once per provider used as a task root. Removing a plugin does
+not remove user task data. Publishing bundles or a public marketplace is a
+separate delivery action. Orchestra installation is never part of ordinary task
+execution, bootstrap of Orchestra itself must not invoke Orchestra, and copying
+the package to several machines belongs to the user's own machine
+configuration.
 
-Repository-driven direct sync remains an alternative installation route. A
-single sync tool owns explicitly managed
-resources per requested host (`codex`, `cursor`, `grok`, `devin`, `claude`, or `all`; default `codex`). It
-supports dry-run and backup, preserves unrelated user configuration, reports
-what it installed, and requires a restart when a Codex permission backend
-changes. Orchestra runtime installation is never part of ordinary task
-execution, and bootstrap of Orchestra itself must not invoke Orchestra.
-
-Shared destinations are `$HOME/.agents/skills/<skill>` including their internal
-playbook references, and `${ORCHESTRA_HOME:-$HOME/.orchestra}/` for helpers,
-checkout-mode, worktree-root, and the Cursor, Grok, Devin, and Claude Code host matrices.
-Codex-only destinations remain the four `$CODEX_HOME/agents/<profile>.toml` files,
-`$CODEX_HOME/orchestra/` for the Codex matrix, helper mirrors, manifest, and
-deterministic current backups, plus the marked blocks in `$CODEX_HOME/AGENTS.md`
-and `$CODEX_HOME/config.toml`. Cursor-only destinations are the local plugin
-under `~/.cursor/plugins/local/orchestra` and the Cursor spawn reference.
-Grok-only destinations are the Grok roles and spawn reference under
-`${ORCHESTRA_HOME}/hosts/grok/`. Devin-only destinations are the agent
-profiles under `~/.config/devin/agents/`, skills under
-`~/.config/devin/skills/`, and the Devin roles and spawn reference under
-`${ORCHESTRA_HOME}/hosts/devin/`. Claude Code-only destinations are the
-effort agents under `~/.claude/agents/`, skills under `~/.claude/skills/`, and
-the Claude Code roles and spawn reference under `${ORCHESTRA_HOME}/hosts/claude/`.
-The default `CODEX_HOME` is `$HOME/.codex`. The default `ORCHESTRA_HOME` is
-`$HOME/.orchestra`. Cursor, Grok, Devin, and Claude Code sync never write
-Codex, Cursor, Grok, Devin, or Claude Code permission configuration.
-
-The only managed content in `$CODEX_HOME/AGENTS.md` is the single block
-delimited by `<!-- orchestra:start -->` and `<!-- orchestra:end -->`.
-
-`status` and `apply --dry-run` are read-only. `apply` creates, upgrades, and
-removes stale owned resources only after a complete preflight. `uninstall`
-removes only content that still matches the manifest digest; drift and unrelated
-configuration are preserved and reported. The generated manifest is ownership
-evidence, while backups are bounded safety evidence rather than a recovery log.
-An explicit user-owned sandbox mode, default permission profile, or incompatible
-legacy sandbox table blocks preflight without byte changes. Synchronization
-takes reversible ownership of `approval_policy`, `approvals_reviewer`, and
-`default_permissions`, preserving their previous values for exact uninstall.
-Only a manifest-owned permission block may migrate from historical legacy or
-Full Access forms. Permission edits remove exact TOML spans and preserve all
-unrelated bytes, including multiline strings.
-
-Codex sync defaults to the native matrix. Former `external` and `dual` manifest
-values are accepted only to preserve ownership during migration or uninstall.
-An apply that includes Codex replaces the owned matrix with native content and
-removes an unchanged owned session-model helper through the existing digest
-checks. Status and dry-run preview the transition without mutation; drift still
-blocks apply. Sync for another host preserves Codex's installed selection until
-Codex itself is selected. Migration changes installation resources only; it does
-not convert active task plans or change CodexBridge configuration.

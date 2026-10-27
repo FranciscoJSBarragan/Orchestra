@@ -8,9 +8,35 @@ from pathlib import Path
 import shutil
 import sys
 
-from sync import AGENTS, HELPERS, SKILLS
-
-TARGETS = ("portable", "cursor", "grok", "devin", "claude")
+SKILLS = (
+    "orchestra",
+    "orchestra-project-start",
+    "orchestra-repo-readiness",
+    "orchestra-engineering",
+    "orchestra-project-verification",
+    "orchestrator",
+    "orchestra-phase-commit",
+    "orchestra-delivery-policy",
+    "orchestra-pr-open",
+    "orchestra-pr-review",
+    "orchestra-pr-merge",
+    "orchestra-local-integrate",
+    "orchestra-role-analyst",
+    "orchestra-role-implementer",
+    "orchestra-role-reviewer",
+    "orchestra-role-verifier",
+)
+HELPERS = (
+    "task_state.py",
+    "commit_phase.py",
+    "prepare_source.py",
+    "adopt_worktree.py",
+    "policy.py",
+    "pr.py",
+    "integrate_local.py",
+    "_common.py",
+)
+TARGETS = ("portable", "cursor", "grok", "claude")
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
@@ -40,36 +66,16 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
                 files.append((path, Path("skills") / skill / relative))
     for helper in HELPERS:
         files.append((source / "codex/scripts" / helper, Path("scripts") / helper))
-    for profile in AGENTS:
-        filename = f"{profile}.toml"
-        files.append((source / "codex/agents" / filename, Path("profiles") / filename))
-    for host, matrix in (
-        ("codex", "codex/config/roles.native.toml"),
-        ("cursor", "hosts/cursor/config/roles.cursor.toml"),
-        ("grok", "hosts/grok/config/roles.grok.toml"),
-        ("devin", "hosts/devin/config/roles.devin.toml"),
-        ("claude", "hosts/claude/config/roles.claude.toml"),
-    ):
-        files.append((source / matrix, Path("hosts") / host / "roles.toml"))
-        if host != "codex":
-            files.append((source / "hosts" / host / "references/spawn.md",
-                          Path("hosts") / host / "spawn.md"))
     for original, destination in (
         ("docs/WORKFLOW.md", "WORKFLOW.md"),
-        ("codex/config/execution-presets.toml", "execution-presets.toml"),
+        ("codex/config/flow.toml", "flow.toml"),
         ("LICENSE", "LICENSE"),
         ("packaging/README.md", "README.md"),
     ):
         files.append((source / original, Path(destination)))
-    if target == "devin":
-        for profile in AGENTS:
-            files.append((source / "hosts/devin/agents" / f"{profile}.md",
-                          Path("agents") / f"{profile}.md"))
-    elif target == "claude":
-        for path in sorted((source / "hosts/claude/agents").glob("orchestra_*.md")):
-            files.append((path, Path("agents") / path.name))
+    if target == "claude":
         for name in ("hooks.json", "read_package.py"):
-            files.append((source / "hosts/claude/plugin/hooks" / name, Path("hooks") / name))
+            files.append((source / "packaging/claude/hooks" / name, Path("hooks") / name))
     # Preflight every source before creating anything at the destination.
     for original, _ in files:
         if (not original.is_file() or original.is_symlink()
@@ -89,8 +95,6 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
             write_json(output / "plugin.json", {"$schema": SCHEMA, **common})
         elif target == "cursor":
             write_json(output / ".cursor-plugin/plugin.json", {**common, "skills": "./skills/"})
-        elif target == "devin":
-            write_json(output / ".devin-plugin/plugin.json", {**common, "skills": "./skills/"})
         else:
             write_json(output / ".claude-plugin/plugin.json", common)
     except Exception:

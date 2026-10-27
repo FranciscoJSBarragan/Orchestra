@@ -16,7 +16,7 @@ assignment, including context or planning before plan approval, or supplies a
 formal Orchestra packet. Otherwise it is a `standalone` direct task. Do not
 infer the mode from whether identifiers happen to be present. A role skill
 invocation never activates the full Orchestra workflow, creates a checkout,
-selects a tier or model, or starts a coordinator.
+selects a model, or starts a coordinator.
 
 In `standalone` mode, use the direct brief relevant to the requested operation:
 target, intent, bounded scope or allowed paths, revision identity, and the
@@ -24,25 +24,23 @@ evidence or acceptance basis needed for that operation. Resolve those details
 from the user's task and current worktree when safe; ask only for a material
 detail that cannot be inferred. Do not require or invent `plan-overview`,
 `plan-phase`, `plan.md`, artifact identifiers,
-`.orchestra` setup, coordination IDs, or tier-selection evidence. Follow the
+`.orchestra` setup, coordination IDs, or flow-assignment evidence. Follow the
 substantive guidance in a named capability reference, while adapting its
 phase-only transport, artifact naming, preview, and plan-bundle requirements
 to the canonical `Standalone tools` section in
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (source checkout:
+`${ORCHESTRA_RUNTIME_ROOT}/WORKFLOW.md` (source checkout:
 [runtime resources](../runtime.md)). Return the complete
 result inline by default; write a file only at an explicitly supplied path with
 matching authority. Direct work must not read unneeded phase recipes or
 manufacture an approved plan when none was supplied.
 
 In `orchestra_phase` mode, read the canonical
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md`; the source checkout is the
+`${ORCHESTRA_RUNTIME_ROOT}/WORKFLOW.md`; the source checkout is the
 [runtime resources](../runtime.md). Read the sections named by
 the root in addition to the required instructions under "Assignment and
 authority", and enforce its full exact-ID evidence, review, verification,
 cleanup, and authority gates. A formal packet with missing required fields is blocked;
-do not silently downgrade it to standalone. When explicit CLI delegation is
-selected, also follow the canonical CLI delegation boundary; it does not
-change this mode decision.
+do not silently downgrade it to standalone.
 
 ## Assignment and authority
 

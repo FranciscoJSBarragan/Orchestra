@@ -8,7 +8,7 @@ description: Commit one accepted Orchestra phase directly or one explicitly auth
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
 Choose `orchestra_phase` or `standalone` using the shared conduct router and
-the canonical `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/WORKFLOW.md` (`Standalone
+the canonical `${ORCHESTRA_RUNTIME_ROOT}/WORKFLOW.md` (`Standalone
 tools`; source checkout: [runtime resources](../orchestra/runtime.md)). A formal
 assignment with missing phase fields is blocked rather than downgraded to a
 direct commit.
@@ -34,7 +34,7 @@ In `standalone` mode, require explicit commit authority, the target repository
 or worktree, exact scoped paths, target and intent, current revision identity
 including dirty paths, and a useful verification summary covering the
 repository-required checks. Do not require or invent a plan, phase, artifact
-ID, `.orchestra` setup, coordination record, tier, or model. Honor any
+ID, `.orchestra` setup, coordination record, flow assignment, or model. Honor any
 repository-required review; report whether independent review is present,
 absent, or not supplied by the evidence. A standalone commit records the
 requested change and its evidence but never certifies independent review.
@@ -62,7 +62,7 @@ a pathspec and exact parent/tree evidence; the scoped helper is not a merge tool
 3. Write the message to a temporary file outside the repository, stage only
    the accepted or standalone-scoped paths, run `git commit -F <file>`, and
    read the resulting SHA and status once.
-4. Use `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/scripts/commit_phase.py` instead
+4. Use `${ORCHESTRA_RUNTIME_ROOT}/scripts/commit_phase.py` instead
    when exact-path staging benefits from a compact structured result. Pass
    `--repo`, `--message-file`, and each exact `--path`.
 5. Accept `committed` with its SHA or `nothing_to_commit`. For `blocked`,

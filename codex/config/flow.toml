@@ -1,0 +1,71 @@
+# Default assignment of the Orchestra flow inside T3 Code. WORKFLOW "Flow
+# assignment" owns resolution; a user overrides any entry in
+# ${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml instead of editing this file.
+# `provider` is a T3 provider instance. `effort` is omitted when the model id
+# already encodes it.
+
+[capabilities.repository_context]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "high"
+
+[capabilities.web_research]
+provider = "cursor"
+model = "grok-4.7-xhigh"
+
+[capabilities.technical_planning]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "high"
+
+[capabilities.architecture_analysis]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "high"
+
+[capabilities.difficult_debugging]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "high"
+
+[capabilities.general_implementation]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "high"
+
+[capabilities.frontend_implementation]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "high"
+
+[capabilities.independent_review]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "high"
+
+[capabilities.runtime_verification]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "medium"
+
+[capabilities.browser_acceptance]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "medium"
+
+# Second, blind reviewer of the first review that covers the complete terminal range.
+[review_pair]
+provider = "claudeAgent"
+model = "claude-haiku-5-5"
+effort = "high"
+
+# Second and third attempts for implementation and difficult debugging.
+[[escalation]]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "xhigh"
+
+[[escalation]]
+provider = "codex"
+model = "gpt-6.1-sol"
+effort = "high"

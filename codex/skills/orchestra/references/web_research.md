@@ -1,6 +1,6 @@
 # Web research playbook
 
-For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the explicit `web_research` capability.
+For a delegated capability assignment, use this playbook with the analyst role and the explicit `web_research` capability.
 
 ## Contract
 

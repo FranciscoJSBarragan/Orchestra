@@ -1,6 +1,0 @@
-interface:
-  display_name: "Orchestra Delegate"
-  short_description: "Delegate a scoped task to Codex, Cursor, Grok, Devin, or Claude Code CLI"
-  default_prompt: "Use $orchestra-delegate to execute a bounded assignment with my selected Codex, Cursor, Grok, Devin, or Claude Code CLI model and report its changes and evidence."
-policy:
-  allow_implicit_invocation: true

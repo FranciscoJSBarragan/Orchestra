@@ -9,8 +9,7 @@ The native workflow packages from canonical sources into relocatable bundles.
 Shared engineering guidance now supports conditional design, regression,
 state, performance, and verification practices through the existing roles.
 Conformance and package checks establish integration, not improved generated
-code quality. Plugin installation is an alternative to direct sync; it does
-not create a second runtime.
+code quality. Plugin installation does not create a second runtime.
 
 ### T3 Code convergence
 
@@ -21,8 +20,9 @@ Decided by the owner on 2026-10-27:
   Muse Code or Antigravity) are executors: supporting one is a row in the
   flow's assignment plus a role check against the live T3 catalog, not a host
   adapter. Other harnesses keep the standalone skills.
-- One flow replaces the tiers. The `mixed-models` assignment becomes its
-  default, and the user overrides models outside the package. What a change
+- One flow replaces the tiers. The former `mixed-models` assignment becomes
+  its default in `codex/config/flow.toml`, and the user overrides models in
+  `~/.orchestra/flow.toml`. What a change
   touches still adds a verifier or a decision review inside that flow.
 - A Hermes thread in T3 may be the dispatcher parent: it works out a request
   with the user, recommends, launches and follows task roots, and never
@@ -39,8 +39,10 @@ run in one pass yet.
 
 The last multi-host revision is `f2d0ba024a155077e37959121537de944826b35a`
 (tag `multi-host-final`). Restore a removed adapter, matrix or helper from it
-if later evidence reopens the question. Until the removal lands, WORKFLOW,
-skills and helpers still describe the multi-host route.
+if later evidence reopens the question. The removal deleted the Codex, Cursor,
+Grok, Devin and Claude Code host adapters and matrices, the tiers, the
+execution presets, CLI delegation (`delegate.py`), direct sync (`sync.py`) and
+the Codex Guardian setup.
 
 ### Engineering baseline
 
@@ -77,8 +79,7 @@ Local plugin packaging is supported. Public marketplace publication remains a
 separate explicit delivery decision after host acceptance and real-project
 workflow evidence. This roadmap does not prescribe an implementation design.
 
-Bridge integration is deferred. Native adapters and CLI delegation remain in
-Orchestra.
+Bridge integration is deferred.
 
 ## Plugin adoption evidence
 

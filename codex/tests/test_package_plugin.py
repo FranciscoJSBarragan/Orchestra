@@ -9,13 +9,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "codex/scripts"))
-from package_plugin import TARGETS, build_plugin
-from sync import AGENTS, HELPERS, SKILLS
+from package_plugin import HELPERS, SKILLS, TARGETS, build_plugin
 
 
 class PluginPackagingTests(unittest.TestCase):
@@ -46,32 +44,23 @@ class PluginPackagingTests(unittest.TestCase):
                 self.assertFalse((plugin / "skills/orchestra-lite").exists())
                 for helper in HELPERS:
                     self.assertEqual((plugin / "scripts" / helper).read_bytes(), (ROOT / "codex/scripts" / helper).read_bytes())
-                for profile in AGENTS:
-                    self.assertEqual((plugin / "profiles" / f"{profile}.toml").read_bytes(), (ROOT / "codex/agents" / f"{profile}.toml").read_bytes())
                 self.assertEqual((plugin / "WORKFLOW.md").read_bytes(), (ROOT / "docs/WORKFLOW.md").read_bytes())
+                self.assertEqual((plugin / "flow.toml").read_bytes(), (ROOT / "codex/config/flow.toml").read_bytes())
                 skill_root = ROOT / "codex/skills"
                 resources = (*skill_root.rglob("*.md"), *skill_root.glob("*/agents/openai.yaml"))
                 for source in resources:
                     self.assertEqual((plugin / "skills" / source.relative_to(ROOT / "codex/skills")).read_bytes(), source.read_bytes())
-                for host in ("codex", "cursor", "grok", "devin", "claude"):
-                    with (plugin / "hosts" / host / "roles.toml").open("rb") as handle:
-                        self.assertIn("tiers", tomllib.load(handle))
-                    if host != "codex":
-                        self.assertEqual(
-                            (plugin / "hosts" / host / "spawn.md").read_bytes(),
-                            (ROOT / "hosts" / host / "references/spawn.md").read_bytes(),
-                        )
-                self.assertFalse((plugin / "scripts/sync.py").exists())
+                for absent in ("hosts", "profiles", "agents", "scripts/sync.py", "scripts/delegate.py"):
+                    self.assertFalse((plugin / absent).exists(), absent)
                 self.assertFalse((plugin / ".mcp.json").exists())
                 self.assertFalse((plugin / "mcp.json").exists())
                 self.assertFalse((plugin / "config.toml").exists())
-                self.assertEqual((plugin / "agents").exists(), target in {"devin", "claude"})
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
-        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "devin": ".devin-plugin/plugin.json", "claude": ".claude-plugin/plugin.json"}
+        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "claude": ".claude-plugin/plugin.json"}
         for target in TARGETS:
             plugin = self.build(target)
             manifest = json.loads((plugin / manifests[target]).read_text())
@@ -94,15 +83,18 @@ class PluginPackagingTests(unittest.TestCase):
                     self.assertTrue(destination.is_relative_to(plugin), (page, link))
                     self.assertTrue(destination.is_file(), (page, link))
 
-    def test_relocated_helpers_use_bundled_presets_and_external_task_data(self) -> None:
+    def test_relocated_helpers_read_the_project_and_leave_the_bundle_unchanged(self) -> None:
         original = self.build()
         plugin = self.root / "relocated with spaces/orchestra"
         plugin.parent.mkdir()
         shutil.move(original, plugin)
+        project = self.root / "project"
+        project.mkdir()
+        shutil.copy2(ROOT / "orchestra.toml", project / "orchestra.toml")
         before = {p.relative_to(plugin): p.read_bytes() for p in plugin.rglob("*") if p.is_file()}
-        result = self.run_helper(plugin, "delegate.py", "--preset", "standard-delegate", "--host", "codex", "--capability", "independent_review", "--resolve-only")
+        result = self.run_helper(plugin, "policy.py", "--repo", str(project), "show")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("independent_review", result.stdout)
+        self.assertEqual(json.loads(result.stdout)["mode"], "hybrid")
         self.assertFalse((self.root / "home/.orchestra").exists())
         after = {p.relative_to(plugin): p.read_bytes() for p in plugin.rglob("*") if p.is_file()}
         self.assertEqual(before, after)
@@ -114,7 +106,7 @@ class PluginPackagingTests(unittest.TestCase):
         repository = self.root / "source fixture"
         for relative in (
             "docs/WORKFLOW.md", "codex/skills/orchestra/SKILL.md",
-            "codex/skills/orchestra/runtime.md", "codex/scripts/delegate.py",
+            "codex/skills/orchestra/runtime.md", "codex/config/flow.toml",
         ):
             target = repository / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -142,46 +134,12 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
-    def test_devin_target_bundles_native_layout(self) -> None:
-        plugin = self.build("devin")
-        manifest = json.loads((plugin / ".devin-plugin/plugin.json").read_text())
-        metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
-        for key in ("name", "version", "description", "author", "license", "keywords"):
-            self.assertEqual(manifest[key], metadata[key])
-        self.assertEqual(manifest["skills"], "./skills/")
-        for profile in AGENTS:
-            self.assertEqual(
-                (plugin / "agents" / f"{profile}.md").read_bytes(),
-                (ROOT / "hosts/devin/agents" / f"{profile}.md").read_bytes(),
-            )
-        self.assertFalse((plugin / "hooks.json").exists())
-        self.assertFalse((plugin / "scripts/session_identity.py").exists())
-        self.assertEqual(
-            (plugin / "hosts/devin/roles.toml").read_bytes(),
-            (ROOT / "hosts/devin/config/roles.devin.toml").read_bytes(),
-        )
-        self.assertEqual(
-            (plugin / "hosts/devin/spawn.md").read_bytes(),
-            (ROOT / "hosts/devin/references/spawn.md").read_bytes(),
-        )
-        self.assertFalse((plugin / "hooks").exists())
-
-
-    def test_claude_target_registers_every_effort_agent(self) -> None:
+    def test_claude_target_ships_only_the_package_read_hook(self) -> None:
         plugin = self.build("claude")
-        sources = sorted((ROOT / "hosts/claude/agents").glob("*.md"))
-        self.assertEqual(sorted(p.name for p in (plugin / "agents").iterdir()), [p.name for p in sources])
-        for source in sources:
-            self.assertEqual((plugin / "agents" / source.name).read_bytes(), source.read_bytes())
-        self.assertEqual(
-            (plugin / "hosts/claude/roles.toml").read_bytes(),
-            (ROOT / "hosts/claude/config/roles.claude.toml").read_bytes(),
-        )
         hooks = json.loads((plugin / "hooks/hooks.json").read_text())
         command = hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
         self.assertIn("${CLAUDE_PLUGIN_ROOT}", command)
         self.assertTrue((plugin / "hooks/read_package.py").is_file())
-        self.assertFalse((self.build("grok") / "agents").exists())
 
     def test_existing_destination_is_never_overwritten(self) -> None:
         plugin = self.build()
@@ -201,6 +159,29 @@ class PluginPackagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing skill"):
             build_plugin(source, output, "portable")
         self.assertFalse(output.exists())
+
+
+class PackageReadHookTests(unittest.TestCase):
+    def decide(self, root: Path, target: object) -> str:
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "packaging/claude/hooks/read_package.py")],
+            input=json.dumps({"tool_name": "Read", "tool_input": {"file_path": target}}),
+            env={**os.environ, "CLAUDE_PLUGIN_ROOT": str(root)},
+            capture_output=True, text=True, check=True,
+        )
+        return json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"] if result.stdout else "none"
+
+    def test_only_package_paths_are_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory).resolve()
+            package = base / "orchestra"
+            (package / "skills").mkdir(parents=True)
+            (package / "skills/escape").symlink_to(base)
+            self.assertEqual(self.decide(package, str(package / "skills/role/SKILL.md")), "allow")
+            for target in (str(base / "secret.txt"), str(package / "../secret.txt"),
+                           str(package / "skills/escape/secret.txt"), "skills/role/SKILL.md", None):
+                with self.subTest(target=target):
+                    self.assertEqual(self.decide(package, target), "none")
 
 
 if __name__ == "__main__":

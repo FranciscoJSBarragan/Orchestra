@@ -28,7 +28,7 @@ Coordinator: <native handle>; retention: <owner and destination>
 
 ## Now
 
-- Task A: <objective>, <repo>, <route/tier>, <root model/effort>.
+- Task A: <objective>, <repo>, <route>, <root model/effort>.
   Owner/checkout: <native handle and isolated checkout>.
   Dependency: <accepted contract/revision>; result/review: <accessible links>.
   Observed: <blocker or accepted SHA>; delivery: <actual outcome, if any>.

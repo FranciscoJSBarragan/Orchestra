@@ -8,12 +8,10 @@ flowchart TD
     Q -->|"Direct change, plan, or implementation"| DX["Ordinary direct execution outside Orchestra"]
     Q -->|"Explicit $orchestra or use/start Orchestra"| B["Minimum task brief"]
     POM["Planning-only host mode"] --> WAIT["Reuse context, pause mutation, continue when execution-capable"]
-    B --> MC["Resolve host matrix and assigned tiers"]
-    MC --> TR["Root recommends the available tier with risk and cost-benefit"]
-    TR --> T{"User chooses active tier"}
-    T --> E["Read-only Git and readiness preflight"]
+    B --> FA["Resolve the flow assignment"]
+    FA --> E["Read-only Git and readiness preflight"]
     E --> RC["Focused repository context: root-direct or analyst"]
-    RC --> C["Evidence-grounded final specification and tier recommendation"]
+    RC --> C["Evidence-grounded final specification"]
     C --> CM{"Managed or hybrid checkout"}
     CM -->|"Managed"| OW["Create task branch and portable worktree"]
     CM -->|"Hybrid"| HB["Create task branch in current clean checkout"]
@@ -65,89 +63,47 @@ identifiers Orchestra names stay verbatim. Tracked repository artifacts
 (code, comments, commits, PRs and docs) follow the repository's convention.
 
 Every dispatch starts from a clean context: the packet and named artifacts
-carry the assignment. The root identifies the execution host from available
-tools and follows its native protocol under "Host adapters" and that host's
-spawn reference. On every host the
-first review is fresh; later delta reviews reuse that reviewer only while it is
-available, and a closed owner or reviewer is recorded unavailable and replaced
-with the same logical assignment and exact approved artifact IDs (a replacement
-reviewer is always fresh and independent). Explicit CLI delegation is a
-separate executor boundary that never changes the owning host or its native
-spawn API.
+carry the assignment, dispatched under "T3 Code host". A closed owner or
+reviewer is recorded unavailable and replaced with the same logical assignment
+and exact approved artifact IDs; a replacement reviewer is always fresh and
+independent.
 
-## Host adapters
+## T3 Code host
 
-Shared skills, packets, artifacts, authority, cleanup declarations and Git are
-identical across hosts. Each host owns spawn, wait and close, its model
-matrix, conversation identity, permissions and `browser_route`. The host's
-spawn reference owns the exact dispatch mechanics; this table names the
-contract it implements.
+The full workflow runs inside T3 Code. The task root is a T3 thread on a
+provider whose `orchestra` entry skill is installed (Claude Code, Codex,
+Cursor or Grok today), and the `t3-code` MCP tools are its host: T3 owns
+threads, worktrees, role transport, the browser and pull request watching, and
+the T3 Code reference `host_t3.md` defines the exact calls. Without those
+tools the root says that the full workflow needs T3 Code and offers the
+standalone skills instead.
 
-| Host | Matrix and mechanics | Fresh agent per dispatch | Completed-state evidence before commit |
-| --- | --- | --- | --- |
-| Codex | native matrix, four behavior profiles; `host_codex.md` | `spawn_agent` with `fork_turns: none` | `wait_agent` completed state |
-| Cursor | `hosts/cursor/roles.toml`; Cursor spawn reference | isolated Task worker plus role skill; never `~/.cursor/agents` or `resume: self` for a reviewer | completed, no retained write-capable resource |
-| Grok Build | `hosts/grok/roles.toml`; Grok spawn reference | `general-purpose` subagent plus role skill, `isolation: none`, `cwd` = task checkout | completed, no retained write-capable resource |
-| Devin | `hosts/devin/roles.toml`; Devin spawn reference | `run_subagent` with the matrix profile plus role skill | foreground return or `read_subagent` result |
-| Claude Code | `hosts/claude/roles.toml`; Claude spawn reference | `Agent` with the matrix agent and explicit model, never `isolation: worktree`; packet names the checkout | returned result |
+Every provider T3 runs is an executor, not a host. "Flow assignment" names the
+provider instance, model and effort of each role, and `delegate_task` carries
+it. Supporting another provider needs only its row and one role check against
+the live `orchestrator_capabilities` catalog: the child reads its role skill by
+absolute path, publishes its report, and keeps a read-only assignment
+read-only.
 
-Matrix paths resolve under the selected runtime
-(`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}`). Every host
-resumes a phase-cohort agent only for preview absorption or an unfinished
-turn, never for a fix round or a review, and waits under "Agent waiting"
-without busy-polling. Devin and Claude Code have no `close_agent`; their
-returned result is the completed-state evidence. Devin and Claude Code
-plugin installations namespace agents as `orchestra:<name>`. A Claude Code
-`managed` checkout is entered with `EnterWorktree` before the first dispatch
-and left with `ExitWorktree` (`keep`) before cleanup. Devin has no native
-browser route: acceptance uses `codex-cu` or an explicitly selected Codex CLI
-Chrome handoff under "CLI delegation", otherwise `blocked`.
+Every dispatch is a fresh `delegate_task` child; each fix round and each review
+round starts a new one. The root continues a child's thread only for preview
+absorption or an unfinished turn, and waits under "Agent waiting". The child's
+returned result is the completed-state evidence before commit. After every
+return the root checks Git status and HEAD; a read-only role that changed
+anything beyond its declared report blocks.
 
-Inside T3 Code (its `t3-code` MCP tools are available) the provider remains
-the host, but roles follow the `mixed-models` execution preset whatever that
-provider, unless the user asks for a host tier or another preset; changing the
-root's model or provider mid-task keeps the preset recorded in the plan. On
-`standard` and `critical` the review pair under "Review policy" is
-`gpt-6.1-sol` and `claude-haiku-5-5`, both at `high`. T3 creates a `managed`
-checkout through `t3_worktree_handoff` and carries every role through
-`delegate_task` with the row's explicit provider, model and effort, as
-`host_t3.md` defines; the root still checks Git after every child and
-delivers with preserved T3-owned resources.
+Resolve executable resources through `orchestra/runtime.md`. An installed
+plugin keeps skills, helpers, the flow assignment and WORKFLOW in one
+relocatable package; explicit source mode uses a prepared checkout. Settings
+and the user's flow overrides stay outside the package under
+`${ORCHESTRA_HOME:-$HOME/.orchestra}`. Installing or loading the plugin does
+not activate Orchestra or grant delivery authority; install it once per
+provider to avoid duplicate skills.
 
-Resolve executable resources through `orchestra/runtime.md`. A plugin keeps
-skills, helpers, profiles, host matrices and presets in one relocatable
-package; direct sync keeps its managed global destinations and helper
-mirrors; explicit source mode uses the runtime reference's source layout.
-Settings stay outside the plugin under `${ORCHESTRA_HOME:-$HOME/.orchestra}`.
-
-Plugins register no Codex agent types and edit no global configuration. A
-Codex plugin or prepared-source dispatch spawns a native `default` agent with
-the matrix's explicit model and effort and includes the selected behavior
-profile's instructions and exact role skill path in the packet; direct sync
-uses its registered profile type. If the host cannot dispatch the required
-independent agents or explicit model assignment, report that gap; plugin
-compatibility alone does not imply workflow support.
-
-Codex synchronization requires `codex --version` 0.146.0 or later before any
-mutation and installs exactly `default_permissions = ":workspace"`,
-`approval_policy = "on-request"` and `approvals_reviewer = "auto_review"`,
-with no legacy sandbox mode, custom permission profile, workspace-root list,
-execpolicy rule or Git helper. Older or unreadable clients block before any
-change; manifest-owned Full Access or legacy blocks migrate atomically, and
-`uninstall` restores the exact prior configuration regardless of version. Other hosts' sync installs their
-agents, profiles and skills (Devin under `~/.config/devin/`, Claude Code under
-`~/.claude/`), with no settings, and never writes any host's permission
-configuration. Native chats inherit configured permissions; explicit host
-choices are never rejected or rewritten. Under Codex Guardian,
-shared Git metadata is outside the workspace boundary, so the root issues the
-exact Git operation once with a narrow escalation; a denial is never
-bypassed or turned into Full Access. The Claude Code plugin's only hook
-allows read-only tools inside the installed package; direct sync instead asks
-the user to add its runtime and skills directories.
-
-Installing or loading a plugin does not activate Orchestra, select a tier,
-install another runtime or grant delivery authority. Use one installation
-route per host to avoid duplicate skills.
+T3's runtime mode and each provider's permission choice are observed, never
+written or raised: children use `runtimeMode: inherit`, and a denial is never
+bypassed. The Claude Code plugin's only hook allows read-only tools inside its
+installed package, so a Claude child can read its role skill.
 
 The orchestrator keeps the main objective while adapting safely to facts
 found during execution: it does not stop for routine technical choices or
@@ -164,7 +120,7 @@ implementers own bounded edits, and verifiers inspect behavior without editing
 source. The direct request supplies intent, scope, target checkout or revision,
 available evidence, and authority; ask only for information that cannot be
 inferred safely. Return a concise inline result unless a named consumer needs
-a file. Standalone work requires no tier, phase IDs,
+a file. Standalone work requires no flow assignment, phase IDs,
 plan persistence, or fabricated Orchestra artifacts.
 
 Capability playbooks retain their substantive engineering guidance in direct
@@ -189,8 +145,8 @@ use the reviewer role without creating Orchestra delivery state.
 Orchestra supplies reusable engineering capabilities as well as an explicitly
 selected planned workflow. `orchestra-engineering` can be discovered for an
 ordinary investigation, explanation, design, implementation or evidence task;
-it preserves that task's outcome, authority and chosen flow. It does not select
-a tier, create task state, dispatch agents, require phase reports or activate
+it preserves that task's outcome, authority and chosen flow. It does not
+resolve the flow assignment, create task state, dispatch agents, require phase reports or activate
 `$orchestra`. `orchestra-project-verification` maintains and executes reusable
 project verification knowledge under the lifecycle below. Installed metadata
 makes skills discoverable, not guaranteed to run; hosts without automatic skill
@@ -229,8 +185,8 @@ prohibitions after every failure.
 repository so agents can work in it reliably: it diagnoses the repository
 against its target state, repairs what a grant names, cleans the test suite and
 maintains `.agent/` conventions. The target state lives only in that skill. It
-composes with ordinary engineering and full Orchestra without activating a
-tier, creating task state or adding a mandatory audit stage. Every
+composes with ordinary engineering and full Orchestra without activating the
+workflow, creating task state or adding a mandatory audit stage. Every
 source-writing entry consumes the comment policy directly.
 
 Diagnosis needs only the brief's execution authority and never edits. It
@@ -254,7 +210,7 @@ out of scope. Recurring mistakes are repaired through that skill.
 
 `orchestra-project-verification` supports four operations: prepare a useful
 feature map, run selected journeys, refresh affected knowledge, or audit a named
-map. The direct brief or approved phase supplies authority; no separate tier,
+map. The direct brief or approved phase supplies authority; no separate
 plan, report schema or global install is required. Reuse maintained repository
 documentation and tests. If no entry exists, `.agent/verification/README.md`
 may index short feature recipes and existing commands. Keep helpers with the
@@ -306,20 +262,20 @@ concurrent tasks in one repository, several repositories or projects on
 different hosts; resolve actual Git roots, instructions and execution
 environments rather than treating a project name or folder as the scope.
 
-The parent owns shared intent, contracts, dependency ordering, resource and
-tier choices within the user's selection, cross-child decisions and combined
+The parent owns shared intent, contracts, dependency ordering, resource
+choices within the user's selection, cross-child decisions and combined
 acceptance. Each child owns its plan, implementation, review, verification and
 permitted delivery as a full Orchestra root with proportional phases and the
 normal role agents, carrying explicit activation in its packet; task size and
-repository count never select another workflow. A child root is not a leaf
-capability sent through `delegate.py`. A user's explicit custom or standalone
+repository count never select another workflow. A child root is a T3 thread,
+not a leaf `delegate_task` role. A user's explicit custom or standalone
 selection stays available under "Standalone tools", identified as such,
 never presented as Orchestra execution or used as an automatic fallback. If the host cannot execute a root
 responsibility, report that gap. One parent coordinates independent children;
 children create no further hierarchy or sibling tasks.
 
 Before dispatch, the approved initiative identifies each child's outcome,
-repository and scope, exclusions, acceptance, supported tier or route, shared
+repository and scope, exclusions, acceptance, route, shared
 contract and dependency conditions. Children are cut as cases under shared
 guidance "Staged outcomes", each ending in a result the user can try, not by
 component or layer. Authority is inherited only within those
@@ -339,10 +295,10 @@ root-capable child with investigation-only authority, naming the bounded
 question, inspected product revision, investigation resources and a parent-readable
 report destination. The child runs the read-only investigation of "Context
 and planning", directly or with focused analyst evidence under "Standalone
-tools" when no tier is chosen; only explicitly assigned analysis resources are
+tools"; only explicitly assigned analysis resources are
 authorized. It returns the evidence-backed specification, cause or remaining
-hypotheses, affected scope, risks, verification approach, tier recommendation
-and a proportional plan candidate when useful; unavailable reproduction stays
+hypotheses, affected scope, risks, verification approach and a proportional
+plan candidate when useful; unavailable reproduction stays
 an explicit limitation. The report is authorized output outside product
 source, not a phase plan or task state, and grants no implementation, branch, phase
 state or delivery. A host-provisioned checkout is a separately authorized
@@ -350,7 +306,7 @@ resource with one owner and a cleanup handoff, not permission to edit.
 
 The parent synthesizes that report for the user's decision without repeating
 the investigation, then continues the same root when supported, carrying only
-the actual scope, tier, implementation, commit and delivery grants and
+the actual scope, implementation, commit and delivery grants and
 investigating only a material context delta. Use the existing combined
 approval or parent acceptance of a derived plan, never a child approving its
 own unseen plan; already authorized implementation gets no extra user stop
@@ -360,7 +316,7 @@ writer.
 
 Keep one compact Markdown register, typically `BOARD.md`, linking the approved
 brief and authority, repositories and checkout owners, shared contracts, child
-routes and tiers, task-root resources, native handles, dependencies, results,
+routes, task-root resources, native handles, dependencies, results,
 accepted SHAs, blockers and actual delivery. It replaces the initiative
 index and does not duplicate child plans; optional `PROJECT.md` holds stable context, not progress; Now/Next/Done
 are navigation, not states. Git and the host own execution state; a backlog
@@ -391,15 +347,15 @@ transient prompts and logs no longer needed. No board schema, allocator, databas
 
 Select resources separately for the parent, each task root and its role
 agents. Carry the explicit root model and effort in the packet and register
-through the host's actual controls, not a new matrix capability; role
-assignments keep the chosen tier or preset. Actual concurrency, nesting and
+through T3's actual controls; role assignments follow "Flow assignment".
+Actual concurrency, nesting and
 tool access must support the assignment; a model-family label is no evidence
 of effort.
 
 The parent's own research before dispatch (repositories, entry points, shared
-contracts) never inherits the parent's model: it uses the `mixed-models`
-`repository_context` assignment from `delegate.py --resolve-only` unless the
-user selects other resources, on the host's source-read-only transport. Start
+contracts) never inherits the parent's model: it uses the flow's
+`repository_context` row unless the user selects other resources, through a
+source-read-only `delegate_task`. Start
 one analyst per repository or independent area in the same turn, each with
 only its framing questions; a contract question spanning areas goes in exactly
 one packet. Each answers inline, Summary first, with Details limited to the
@@ -407,28 +363,14 @@ evidence behind each answer. Facts the children must share go into the brief,
 register or a child packet, not a research file. A problem needing a cause,
 specification or plan candidate goes to an investigation-only child root.
 
-Inside T3 Code a Hermes thread may be an initiative's parent. It is no
-Orchestra or task-root host and has no plugin or sync: it reads the pinned
-instructions by absolute path and never implements. Since `delegate.py`
-admits no Hermes host, it runs that research through T3 `delegate_task` with
-the `mixed-models` `repository_context` row read from the pinned presets file.
-It is always a parent without the repository's execution environment, so it
-commissions hard gates and joint acceptance to a verifier as described below.
-Task roots stay on approved hosts.
+Launch each task root as a T3 thread under `orchestrator/host-transports.md`
+in the resolved skills root, and internal roles through `delegate_task`, never
+as a claim of persistent task-root capabilities a leaf lacks. Check
+availability before launch, preserve exact thread identities and use argument
+APIs or safe quoting. Never strip a root's protections, enable hidden bypass
+permissions, or assume a plugin provides missing tools.
 
-Dispatch only through a host surface that supports the responsibility: native
-user-owned tasks when the user asked for separate tasks and the app supports
-them; native agents for internal roles, never as a claim of persistent
-task-root capabilities they lack; or an explicitly selected supported CLI
-running a root session. Consult `orchestrator/host-transports.md`
-under the resolved skills root for concrete host primitives and model
-selections. Check availability before
-launch, preserve exact session identities and use argument APIs or safe
-quoting. Never run a root through the leaf wrapper, strip its protections,
-enable hidden bypass permissions, or assume a plugin provides missing host
-tools.
-
-Exactly one checkout creator owns each checkout: the native task transport or
+Exactly one checkout creator owns each checkout: T3's thread transport or
 the child's setup, never both; a clean host-supplied isolated checkout may be
 adopted under "Child root setup". Several mutable repositories get separate
 checkouts and owners or explicitly serialized writes, each with its own
@@ -443,7 +385,7 @@ required base or environment.
 Resolve instructions separately from the product checkout through the
 selected runtime and source-preparation recipe: each environment uses one
 verified plugin or pinned read-only source, with absolute entry, role,
-workflow, matrix and adapter paths in packets. When changing Orchestra itself,
+workflow and flow assignment paths in packets. When changing Orchestra itself,
 prepare that copy before source edits. Verify it at launch instead of
 reinstalling per role. Project preferences point to the pinned coordination
 entry instead of copying its policy. After an update, report the instruction
@@ -528,11 +470,11 @@ persistent counter or watcher.
 ### Child root setup
 
 A coordinated child root first resolves inherited approval and the supplied
-checkout here and under the checkout rules, reusing settled scope, tier and
+checkout here and under the checkout rules, reusing settled scope and
 authority instead of presenting them as new decisions. An investigation-only
 grant runs the read-only steps and returns at specification confirmation (or
 the combined candidate), never reaching setup or execution without that
-authority. Pending tier selection follows the analysis-resource rule above.
+authority.
 
 A child may adopt a clean isolated host-supplied checkout and owned non-base
 branch after verifying repository identity, the approved base and HEAD, and no
@@ -575,208 +517,96 @@ evidence about its cause, not a waiver or a pass. Preserve partial work and
 route findings to the same child and reviewer; the parent does not take over
 its implementation or review loop.
 
-## CLI delegation
+### Hermes dispatcher
 
-On explicit user selection, the root may execute one bounded capability with
-Codex, Cursor, Grok Build, Devin or Claude Code CLI through
-`orchestra-delegate`, from any supported host. The executor choice changes
-neither the owning host nor the tier. Use the exact requested model and a
-supported effort after checking that CLI's current catalog or help; never fall
-back silently to another model, provider, account or billing path. Native
-assignments remain the default; a selected execution preset supplies the
-overrides below. A delegate is a worker, never a second root running the
-whole workflow.
+Inside T3 Code a Hermes thread may be the parent of one task or of an
+initiative. It works out the request with the user, recommends, launches task
+roots with the confirmed brief and the user's delivery endpoint, follows their
+reports and relays their questions. It never implements, not even a small fix:
+every change goes through a task root and its review. It reads the pinned
+instructions and the flow assignment by absolute path, needs no plugin, and
+runs its own research through `delegate_task` on the flow's
+`repository_context` row. It lacks the repository's execution environment, so
+it commissions hard gates and joint acceptance to a verifier as described
+above. One task needs no register beyond its root's plan. How the user reaches
+Hermes and what Hermes remembers belong to the user's Hermes configuration;
+repository knowledge stays under "Repository conventions".
 
-Browser acceptance stays in the owning host by default; delegating
-implementation never selects a browser handoff. An explicitly chosen Codex
-CLI Chrome handoff uses `--capability browser_acceptance --browser-route
-chrome` with explicit model and `--effort`, and needs a working dedicated
-Chrome connector in that CLI session (such as the `cua_repl` Chrome surface);
-Desktop tool availability is not evidence, and `requested_model` /
-`requested_effort` do not prove provider-observed execution. The packet names
-URL, readiness, journey, expected results, PNG evidence location and cleanup;
-the verifier opens and closes its own tab and stays source-read-only. If the
-connector returns an inline image without a file-save API, the root may save
-the original image from the completed tool event in the delegate's private
-log, preserving it and converting decoded pixels to PNG after checking the actual
-format, and records the event identity and image paths in the handoff; a textual description is not
-screenshot evidence. An unavailable model, connector, browser or permission
-returns `blocked`, with no in-app, standalone or manual-preview fallback.
+## Flow assignment
 
-The packet carries objective, acceptance, owned paths, checkout, expected
-HEAD, capability, constraints, permissions and useful evidence, and only the
-context the assignment needs, never the full conversation. Implementation
-packets link the shared "Source comments" guidance directly; do not assume
-another CLI reads the owning host's global instructions. Inside a phase, include the
-exact approved artifacts and handoff fields; outside it, the standalone
-contract. Keep one writer per overlapping scope and preserve unrelated dirty
-work.
+There is one flow. `flow.toml` in the selected runtime (source
+`codex/config/flow.toml`) assigns each capability a T3 provider instance, a
+model and an optional effort, names the second reviewer of the review pair
+under "Review policy", and lists the later recovery attempts. A user changes
+the assignment in `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml`, which has the
+same shape: each capability entry, `review_pair` or `escalation` it defines
+replaces the shipped one whole, and anything it omits keeps the default. Never
+edit the installed package to customize a task.
 
-Permissions follow the task's explicit authority and host restrictions; never
-change global permissions or bypass an active host denial. The helper's
-`default` policy keeps the configured approval rules of Codex, Devin and Claude
-Code for implementation and verification, and runs Grok in its `default`
-permission mode. `trusted` runs unattended and is used only
-when the user authorized it, including a standing task instruction:
+Resolve the assignment once before the first dispatch and check every row
+against T3's live `orchestrator_capabilities` catalog, as `host_t3.md` maps it.
+An unavailable provider, model or effort blocks only the dispatches that need
+it until the user selects a supported option; never substitute another
+provider, model, account or billing path silently. When quota or credits are
+the cause, continue work that does not need it and ask once: a recommended
+substitute for the affected roles, keeping a reviewer outside the
+implementer's model family, or waiting until the user reports the quota is
+back, after which the original row runs again. Record the resolved assignment,
+its override source and any chosen substitute in the plan Decisions. On resume
+compare them with the current files; drift needs an explicit decision, never
+an unnoticed reroute. No assignment waives production, migration, data,
+security, payment, destructive-action or delivery authority.
 
-| CLI | `trusted` | Analysis and review |
-| --- | --- | --- |
-| Cursor | `--trust`, plus `--force` for implementation and verification | `--mode ask`, never `--force` |
-| Grok | `--permission-mode bypassPermissions` | `plan` |
-| Codex | `--sandbox danger-full-access`, `approval_policy="never"` | `read-only`, no escalation |
-| Devin | `--permission-mode dangerous` | least-permissive `auto` |
-| Claude Code | `--permission-mode bypassPermissions` | `plan` |
+Four roles carry every capability, and each role skill is self-contained.
+`repository_context`, `web_research`, `technical_planning`,
+`architecture_analysis` and `difficult_debugging` use the analyst;
+`general_implementation` and `frontend_implementation` the implementer;
+`independent_review` the reviewer; `runtime_verification` and
+`browser_acceptance` the verifier. The only internal playbooks are
+`repository_context`, `web_research`, `technical_planning`,
+`difficult_debugging`, `frontend_implementation`, `browser_acceptance` and
+`runtime_verification`. `architecture_analysis` uses the review frame of the
+shared engineering guidance, and `general_implementation` and
+`independent_review` use their role skill alone. Frontend implementation and
+browser acceptance never run as one combined role.
+`orchestra-project-start` is the additive implicit greenfield entry point;
+`orchestra-repo-readiness` is the explicit-only lane that prepares an existing
+repository and writes or refreshes its tracked `.agent/` store without
+activating the workflow.
 
-Analysts and reviewers keep read-only mode even under `trusted`; every Devin
-assignment keeps workspace-trust checks and every Claude Code assignment
-denies the `Agent` tool. Verifiers run authorized checks in
-the CLI's execution mode with source-read-only instructions; a plan mode that
-rejects the test command cannot supply runtime evidence. Reapply explicit
-permissions on resume. Flags and prompts are not an operating-system sandbox:
-the helper detects tracked and non-ignored content, index and HEAD changes
-after execution and the root inspects them. Verification may declare exact
-new untracked report paths with `--output-path`, never tracked edits. Ignored
-build outputs and changes outside the checkout need their own runtime
-evidence.
-
-Execution is headless with structured output in the selected checkout; no
-interactive driver, relay, extra worktree or persisted workflow state. Private
-event logs outside the repository hold the observed session ID for explicit
-resume when the executor reports one. Accepted fixes start a fresh
-implementation session that receives a bounded continuation packet; start every
-independent review, including a delta review, in a fresh session and never
-resume a reviewer or an implementation session as its reviewer. A resume
-packet names the current revision and context delta after the root rechecks
-the worktree. Never use a last-session shortcut: Codex resume passes the
-exact session UUID, checkout, model and effort, never `--last` or
-`--ephemeral`. When the protocol reports no actual model, `observed_model`
-stays unknown.
-
-Launch once through the host's process tool, keep its handle and wait under
-"Agent waiting"; do not detach and poll files. Supply a new private
-`--result-file` beside the event log; the helper writes the final JSON
-atomically, never over an existing file. Read that result (or the equivalent
-tool output) once, then only the evidence judgment needs. Keep result and log
-through review and recovery, then remove them together.
-
-If the process ended without final output, inspect the result file and the
-exact native session once; an absent result proves neither progress nor
-success. Reconcile terminal evidence, Git content and owned resources before
-any same-session follow-up. A completed native session with its attributable
-report and check logs can recover evidence; otherwise it stays partial or
-blocked. Never repeat implementation or passed checks to recreate a summary,
-and do not claim arbitrary interruptions are recoverable.
-
-`session_id` is observed identity; `resume_session_id` preserves the request
-when the stream fails first; neither proves completion. Classify provider
-refusals separately from local approvals, authentication, quota and transport
-failures; a provider `403` never authorizes broader permissions or a bypass
-retry. Timeout, interruption, authentication, denial, quota or malformed
-evidence returns a bounded failure with the observed session and changes:
-stop only that invocation's processes, never replay a possibly mutating
-request, and inspect partial edits before resuming.
-
-Exit zero is execution success, not acceptance: the root reads the result and
-diff, completes repository checks, obtains the required independent review
-and judges. Commit, push, PR, merge, production and deployment authority never
-travel with a worker's write permissions; the root owns delivery. A missing
-browser transport blocks browser evidence; a CLI text result cannot
-substitute for it.
-
-## Delegated execution presets
-
-`standard-delegate` is an optional execution preset on the `standard` tier,
-available from Codex, Cursor, Grok, Devin, and Claude Code. Selecting it explicitly authorizes its
-assignments and bounded recovery ladder within the task's existing scope and
-permissions; it never activates Orchestra by itself, changes the root model
-or effort, or grants delivery authority. Outside T3 Code, ordinary native
-assignments remain the default. Do not combine it with another tier silently:
-a tier change requires an explicit choice to leave the preset or select a
-compatible one.
-`cross-review` keeps every assignment on the owning host's matrix and sends
-only independent review to another model family, because a reviewer from
-the implementer's family tends to share its blind spots.
-`mixed-models` gives each capability the model family chosen for it from
-measured role runs; it is the default inside T3 Code ("Host adapters"), where
-its assignments run through `delegate_task`.
-
-The sole assignment source is `codex/config/execution-presets.toml`, installed
-as `${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/execution-presets.toml` with a Codex
-compatibility mirror. Its consumer is `delegate.py --resolve-only`, except
-that a Hermes initiative parent reads its row directly ("Initiative
-coordination"): resolve
-the selected preset, owning host, capability, tier, and root-selected attempt
-before dispatch. It returns an exact CLI assignment, a native Codex or Claude
-Code assignment, root reuse, or the owning host's browser matrix. Check actual model/tool
-availability before use; unavailable assignments block rather than invoking a
-different account, model, host, or billing path. Native assignments must be
-supported by the active host runtime; a Claude Code native effort without a
-matching profile needs per-dispatch effort, such as T3 `delegate_task`. Other hosts use Codex CLI for Codex assignments and keep their own
-browser route. The preset's Codex browser assignment stays native. An explicit
-CLI Chrome handoff is a separate bounded assignment under "CLI delegation";
-it does not silently override the preset or another host's matrix.
-An explicitly supplied `--presets-file` may hold user-customized assignments;
-never edit managed installed files to customize one task.
-
-Keep the selection in conversation before approval and in the existing plan
-Decisions afterward, including the exact preset source and resolved assignments.
-On resume compare those assignments; configuration drift requires an explicit
-decision, never an unnoticed reroute. Attempt history stays in the existing
-reports and conversation. There is no retry database, agent registry, new
-artifact kind, or automatic retry process. Direct use stays in conversation.
-
-The launching conversation owns specification, orchestration, final judgment,
-and delivery; its chosen model and effort are authoritative. Reuse the root
-for planning and architecture when its observed model matches the configured
-planner and it has sufficient context, including multi-phase planning. This
-overrides the default requirement to dispatch a planner for complexity alone.
-Dispatch an independent planner only for a named investigation or missing
-context; a nonmatching root uses the configured planner without replacing
-itself. Independent plan and code reviews still follow Review policy.
-
-Delegate coherent assignments, not individual searches or commands. Context
-workers return focused source evidence; the root does not repeat their whole
-investigation. Each implementer fix round is a fresh session and each delta
-review a fresh reviewer. Never forward the full chat or convert an implementer
-session into its reviewer.
-
-For `standard-delegate`, the implementer writes or updates tests and runs useful
-development checks. The runtime verifier owns the terminal required tests,
-lint, types, build, and canonical suite in a separate source-read-only session.
-Put their exact argv and cwd in the phase's `Independent verification gate`,
-with reason `execution preset`; keep development checks under `Implementation
-handoff checks`. This is the explicit exception to the default all-checks-owner
-rule: the owner's handoff may name terminal checks as pending verification,
-never as passing. A required user preview still waits for those checks to pass.
-Then perform final independent review with the current verification evidence.
-Failed checks return to the implementer, not to a verifier that edits source.
-Rerun affected checks after fixes and the full gate only when required by
-repository policy. Browser verification remains a separate capability.
-If a repository explicitly requires the implementer itself to run a check,
-preserve that requirement; otherwise avoid duplicating whole suites.
+The launching conversation owns specification, orchestration, final judgment
+and delivery; its model and effort are the user's choice. The root plans and
+analyzes architecture itself when its observed model matches the
+`technical_planning` row and it has sufficient context, including multi-phase
+planning; otherwise it dispatches that row, and it dispatches an independent
+planner only for a named investigation or missing context. Independent plan
+and code reviews still follow "Review policy". Delegate coherent assignments,
+not individual searches or commands; context workers return focused source
+evidence that the root does not repeat. Never forward the full chat or turn an
+implementer's session into its reviewer.
 
 Recovery applies only to implementation and difficult debugging: attempt one
-uses the capability row, attempt two the first configured recovery assignment,
-and attempt three the last recovery assignment. A failed attempt means the
-agent returns with acceptance unmet, establishes a substantive blocker, or
-exhausts an agreed bounded work budget without a solution. An ordinary failing
-test during active development is not an exhausted attempt. Authentication,
-quota, unavailable models, permissions, transport failures, and an ordinary
-wait timeout do not consume attempts or trigger escalation. Scope or authority
-blockers require their existing decision, not a more privileged model.
+uses the capability row, and attempts two and three use the `escalation`
+entries in order. A failed attempt means the agent returns with acceptance
+unmet, establishes a substantive blocker, or exhausts an agreed bounded work
+budget without a solution. An ordinary failing test during active development
+is not an exhausted attempt. Authentication, quota, unavailable models,
+permissions, transport failures and an ordinary wait timeout do not consume
+attempts or trigger escalation. Scope or authority blockers require their
+existing decision, not a more capable model.
 
 The root decides each transition from evidence after the previous worker has
-stopped and its changes/resources are inspected. Preserve useful edits. Before
-the second attempt, pass what failed and the current revision; resume with the
-new model only if that CLI supports it, otherwise start fresh. Before the third,
-assemble both attempts' changes, commands/results, failed approaches, discarded
-hypotheses, remaining acceptance, and exact scope in one compact packet. Use a
-fresh Codex subagent on Codex or Codex CLI on another host; never pass a Cursor
-session ID to Codex. Difficult debugging remains read-only; actual fixes use an
-implementation capability with explicit edit scope. The rescue model does not
-replace the preset's independent reviewer or verifier. If the third attempt
-fails, report the concrete blocker and needed decision. Do not reset the ladder
-by renaming the same unresolved assignment or switching its capability.
+stopped and its changes and resources are inspected, and preserves useful
+edits. Before the second attempt, pass what failed and the current revision to
+a fresh child. Before the third, assemble both attempts' changes, commands and
+results, failed approaches, discarded hypotheses, remaining acceptance and
+exact scope in one compact packet. Difficult debugging remains read-only;
+actual fixes use an implementation capability with explicit edit scope. The
+rescue model does not replace the independent reviewer or verifier. If the
+third attempt fails, report the concrete blocker and needed decision. Do not
+reset the ladder by renaming the same unresolved assignment or switching its
+capability. Attempt history stays in the existing reports and conversation,
+with no retry database or agent registry.
 
 ## Autonomy within an approved objective
 
@@ -864,8 +694,8 @@ meaningful changes to the existing plan or handoff, not a message ledger.
 
 Worker commentary, a wait timeout and a completed native turn are different
 signals. A progress message is not a result, blocker or failed launch. Use the
-existing host handle and completion evidence under "Agent waiting" and "CLI
-delegation"; even process success needs the assigned deliverable and acceptance
+existing handle and completion evidence under "Agent waiting"; even process
+success needs the assigned deliverable and acceptance
 evidence. Do not relaunch, retire or inspect an evolving implementation because
 its worker said it was still working. A user correction goes to the same owner
 when supported, without replaying its original mutating assignment.
@@ -900,8 +730,8 @@ decisive.
 Resolve material acceptance or policy ambiguity before dependent code. Before
 implementation, independently review consequential choices that select or
 change authorization, cross-system compatibility, data integrity or recovery
-behavior, including choices an analyst calls settled; no tier or model exempts
-them. Use the plan review or a bounded decision review, not a second gate for
+behavior, including choices an analyst calls settled; no model or assignment
+exempts them. Use the plan review or a bounded decision review, not a second gate for
 choices already covered. A consequential choice emerging after combined
 approval is still reviewed and reconciled under "Autonomy within an approved
 objective" before dependent work. The root supplies the exact identities and
@@ -950,133 +780,6 @@ Reusable knowledge follows "Repository conventions" and "Durable knowledge
 checkpoint"; a suggested recipe never becomes a hard gate by appearing in a
 report.
 
-## Tier flows and models
-
-Tiers are host-specific lookups, not a shared enum.
-
-On Codex, the recommended native root uses the installed matrix's
-`technical_planning` model and effort. The user's current root remains
-authoritative: Orchestra never changes or respawns it. Read
-the Codex matrix selected by runtime resources and check the host's available
-tools and models before dispatch. No rollout inspection, bridge aliases, or
-external-model mode selection is required.
-
-On Cursor, the root reads
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/cursor/roles.toml`. Cursor offers
-`minimal`, `standard`, and `critical`. This cut assigns all three. The
-root recommends `standard`; it recommends `minimal` when the user prioritizes
-cost or speed; it recommends `critical` for matching high-impact risk.
-
-On Grok Build, the root reads
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/grok/roles.toml`. Grok offers
-`minimal`, `standard`, and `critical`. This cut assigns `standard` and
-`critical` on `grok-4.7-build-fast` at effort `xhigh`. The root recommends
-`standard`. Selecting `minimal` blocks: there is no cheaper Grok row.
-`critical` uses the same spawn rows and raises root scrutiny; it does not
-change model or reasoning.
-
-On Devin, the root reads
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/devin/roles.toml`. Devin offers
-`minimal`, `standard`, and `critical`. This cut assigns `standard` and
-`critical`: every capability pins `swe-2-max`, whose slug already encodes
-maximum reasoning, so there is no cheaper Devin row. The root recommends
-`standard`. Selecting `minimal` blocks. `critical` uses the same spawn rows
-and raises root scrutiny; it does not change model or reasoning.
-
-On Claude Code, the root reads
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/claude/roles.toml`. Claude Code
-offers and assigns `minimal`, `standard`, and `critical`. The root recommends
-`standard`; it recommends `minimal` when the user prioritizes cost or speed;
-it recommends `critical` for matching high-impact risk. The recommended root
-runs at `high` effort on every tier (Sonnet 5.5 on `minimal` and `standard`,
-Opus 5.5 on `critical`), because the root owns the approval gates; the user's
-`/model` and `/effort` remain authoritative.
-
-For every spawned dispatch, select a capability, profile, and explicit model
-and effort from the owning host's matrix, unless an explicit CLI assignment or
-execution preset overrides it. An unavailable assignment blocks only that
-dispatch until the user selects a supported option. When quota or credits are
-the cause, continue work that does not need it and ask once: a recommended
-substitute for the affected roles, keeping a reviewer outside the
-implementer's model family, or waiting until the user reports the quota is
-back, after which the original assignment runs again. A chosen substitute is
-recorded in the plan Decisions for those roles until the user changes it and
-never changes the tier or preset. Never silently substitute a bridge alias,
-another provider, or an account with different billing.
-
-The current workflow does not resume a former Codex external-mode task under
-native assignments automatically. If an existing plan records external or dual
-routing, stop before mutation and obtain an explicit transition decision that
-preserves its checkout, approved scope, and accepted evidence. Historical
-compatibility sources are archived in CodexBridge; they are not a runtime
-fallback or a currently supported add-on.
-
-Profiles contain behavior only.
-`orchestra-project-start` is the additive implicit greenfield entry point;
-`orchestra-repo-readiness` is the explicit-only lane that prepares an existing
-repository and writes or refreshes its tracked `.agent/` store without
-activating the workflow.
-`general_implementation` and `independent_review` are assignment keys whose
-behavior remains in the base `orchestra_implementation_worker` and `orchestra_reviewer` prompts;
-neither has an internal playbook.
-
-The only internal playbooks are `repository_context`, `web_research`,
-`technical_planning`, `difficult_debugging`, `frontend_implementation`,
-`browser_acceptance`, and `runtime_verification`. `architecture_analysis` uses
-the review frame of the shared engineering guidance; it has no dedicated
-playbook. Applicability for other roles follows "Engineering guidance and
-evidence".
-
-Codex offers `standard` and `critical`, with `standard` as the default
-recommendation. Cursor and Claude Code additionally assign `minimal` for
-ordinary work when cost or speed is the priority. Grok and Devin have no
-cheaper assigned tier.
-A tier choice
-never waives production, migration, data, security, payment, destructive-action,
-or delivery authority gates. Tier transitions remain user-directed.
-
-### Installed matrices are the assignment truth
-
-Explicit CLI and preset overrides follow "CLI delegation" and "Delegated
-execution presets"; the invariants below describe the native matrices.
-
-The installed TOML matrices, not this document, define native model and
-reasoning assignment. The sources are `codex/config/roles.native.toml`
-(installed as `$CODEX_HOME/orchestra/roles.toml`), `hosts/cursor/config/roles.cursor.toml`,
-`hosts/grok/config/roles.grok.toml`, `hosts/devin/config/roles.devin.toml`, and
-`hosts/claude/config/roles.claude.toml` (installed under
-`${ORCHESTRA_RUNTIME_ROOT:-${ORCHESTRA_HOME:-$HOME/.orchestra}}/hosts/<host>/roles.toml`). Reassigning a
-model or reasoning effort edits only the matching TOML file; this document is
-not updated for such a change. Structural invariants the matrices must keep:
-
-- Codex defines exactly `standard` and `critical`. Every defined tier assigns
-  all ten capabilities to the four base profiles.
-- No Orchestra assignment uses Sol xhigh.
-- Cursor assigns `minimal`, `standard`, and `critical`. Composer 2.5 Fast
-  remains the fast lane for repository, research, and runtime verification
-  on `minimal` and `critical`. The Cursor spawn reference maps each row onto
-  the closest live Task worker without rewriting product names.
-- Grok assigns `standard` and `critical` on `grok-4.7-build-fast` at effort
-  `xhigh` with identical spawn rows (`critical` raises root scrutiny, not the
-  model) and blocks unassigned `minimal`. The Grok spawn reference maps rows
-  onto `general-purpose` using supported explicit fields or documented host
-  resolution, verified against host-recorded child model and effort. The spawn
-  reference owns dispatch and recovery; do not invent a field a transport lacks.
-- Devin assigns `standard` and `critical` with every capability on `swe-2-max`
-  at `inherit` effort (`critical` raises root scrutiny, not the model) and
-  blocks unassigned `minimal`. The model is pinned in each installed Devin
-  agent profile; `run_subagent` accepts no per-dispatch model or reasoning
-  field. The Devin spawn reference maps `subagent_type` onto that custom
-  profile name, namespaced `orchestra:<name>` under a plugin installation.
-- Claude Code assigns `minimal`, `standard`, and `critical`. Each row's
-  `subagent_type` is `<profile>_<effort>`, a registered agent whose
-  frontmatter pins that effort, because `Agent` accepts a per-dispatch model
-  but no effort. Every such agent exists and no other is shipped. The Claude
-  Code spawn reference maps product models onto `Agent` model aliases.
-- Frontend implementation composes `orchestra_implementation_worker`; browser
-  acceptance composes `orchestra_verifier`. They never run as one combined
-  role.
-
 ## Context and planning
 
 An initiative child root first applies "Child root setup".
@@ -1089,16 +792,13 @@ After explicit activation in an execution-capable mode:
    critical risks and bounded factual questions. Without an objective, ask
    before creating resources. Explicit brainstorming stays read-only until
    setup is authorized.
-2. Read the owning host's installed matrix and capabilities ("Tier flows and
-   models"); never inspect Codex rollout files or choose a provider
-   compatibility mode.
-3. Recommend one available assigned tier, following the host defaults in
-   "Tier flows and models", with its risk, scrutiny and cost; the user
-   explicitly chooses. Weigh risk by what the current case touches and who can
-   reach it, not by a later stage. Offer [User preview](#user-preview) in the same message when its
-   detection rule matches; a bare tier choice is preview `none`. No tier waives
-   authority gates for production, migrations, data, security, payments,
-   destructive actions or delivery.
+2. Resolve the flow assignment under "Flow assignment".
+3. Weigh risk by what the current case touches and who can reach it, not by a
+   later stage; that risk decides a dedicated verifier and decision reviews,
+   never a separate track. Offer [User preview](#user-preview) in the first
+   message that reports the brief when its detection rule matches. Nothing
+   waives authority gates for production, migrations, data, security,
+   payments, destructive actions or delivery.
 4. Run a short read-only preflight: base branch and revision, repository
    policy, canonical runtime, dependency setup, services, permissions,
    credential categories (never secrets), verification commands, test-data
@@ -1134,7 +834,7 @@ After explicit activation in an execution-capable mode:
    decides, and the plan inherits the Decision with its pinned version.
 6. Confirm the final specification (Objective, User-visible behavior,
    Constraints, Acceptance, Exclusions, Decisions, Open questions), visibly on
-   first confirmation, and recommend any justified tier change. When the
+   first confirmation. When the
    objective holds several user-visible capabilities, an end state or users
    who do not exist yet, apply shared guidance "Staged outcomes" first: the
    specification covers only the confirmed current case, and the vision and
@@ -1157,7 +857,7 @@ After explicit activation in an execution-capable mode:
    verified, unless the user asks for them. Include the missing-conventions
    checkpoint in the same request when the worktree has no normative
    conventions.
-7. A single-phase, non-critical task may combine specification and candidate
+7. A single-phase task may combine specification and candidate
    plan in one message, visibly separated, only when the planning stage
    permits skipping plan and decision review; one approval covers both and a
    specification correction invalidates the plan. Otherwise confirm the
@@ -1182,7 +882,7 @@ hybrid mode switches only the selected clean checkout to the task branch.
 Scoped dirty adoption goes only into a managed task worktree unless the user
 authorizes carrying named changes in place.
 
-Standard and critical implementation begins only after the user explicitly
+Implementation begins only after the user explicitly
 approves the aligned plan, or the authorized initiative parent accepts the
 derived child plan under "Initiative coordination". Approval covers implementation and commits at approved phase
 boundaries, never merge, release, deployment, production mutation or other
@@ -1205,7 +905,7 @@ resume aid, not a workflow database: no field, artifact kind, ledger or status
 beyond those named here.
 
 It records task and Git identity, checkout mode and resource ownership, the
-hybrid starting branch and revision, owning host, active tier, user and root
+hybrid starting branch and revision, resolved flow assignment, user and root
 decisions, authorized preexisting changes, and the effective approved
 overview verbatim, including authorized replacements; material corrections go
 in the root decisions so resume uses the current bundle. Its phase manifest
@@ -1232,11 +932,10 @@ plan state never grants authority.
 On resume, resolve the path again, reconcile checkout, identity, branch, base,
 HEAD and commits with Git, then each phase by exact ID or path. Do not require
 a clean worktree or a phase commit; preserve uncommitted unique work and
-report Git and plan status. After reclaim on another host, skip the previous
-host's wait and close contract, spawn fresh workers, re-read this
-host's matrix and recommend an assigned tier, or inside T3 Code keep the
-plan's recorded preset; permissions stay those of the
-current chat. Git is authoritative for code and history; the plan only for
+report Git and plan status. After reclaim in another thread or on another
+provider, skip the previous thread's waits, dispatch fresh workers and keep the
+plan's recorded flow assignment under its drift rule; permissions stay those
+of the current chat. Git is authoritative for code and history; the plan only for
 approved intent, bundle and progress. A missing or unreadable plan blocks
 automatic continuation until reconstructed and realigned with the user.
 
@@ -1383,11 +1082,11 @@ from the `Independent verification gate`. The implementation owner runs every
 required local deterministic check: affected tests, lint, type checks, builds,
 validation commands and the canonical full suite when one exists, including
 each applicable `.agent/` hard gate when configured, and fixes failures within scope before
-handoff. An ordinary deterministic non-critical phase sets the independent
+handoff. An ordinary deterministic phase sets the independent
 gate to `none`. A verifier is required only for browser interaction, owned
 services or processes, mutable or stateful data, credentials, network or
-another external environment, explicit repository policy, or a critical
-phase, where it independently repeats the applicable gate. After an accepted
+another external environment, or explicit repository policy, where it
+independently repeats the applicable gate. After an accepted
 fix, rerun only affected checks unless the repository explicitly requires
 another full gate. Configured delivery checks remain a separate final boundary.
 
@@ -1396,10 +1095,9 @@ states the behavior or regression risk its changed tests demonstrate and any
 concrete benefit of overlapping coverage. Changing test selection never
 waives a repository gate.
 
-The loop below is the default assignment. A selected execution preset applies
-its check-ownership and bounded-recovery exceptions from "Delegated execution
-presets"; acceptance, independent review, source-read-only verification and
-delivery gates still apply.
+Implementation and difficult debugging may escalate under the recovery ladder
+in "Flow assignment"; acceptance, independent review, source-read-only
+verification and delivery gates still apply.
 
 1. The root selects one `orchestra_implementation_worker` with
    `general_implementation` or `frontend_implementation` as the phase's
@@ -1461,9 +1159,7 @@ delivery gates still apply.
    `verification-report`. The gate runs once, on the first revision whose
    review leaves no accepted open finding, because a run before review
    converges is repeated on the fixed revision; fix rounds before it rely on
-   the owner's handoff checks and delta review. An execution-preset terminal
-   gate instead precedes review, as "Delegated execution presets" defines. A
-   failure goes to a fix round with its report and accepted finding IDs,
+   the owner's handoff checks and delta review. A failure goes to a fix round with its report and accepted finding IDs,
    without root-authored replay; after the fix's delta review the verifier
    reruns only the failed scenarios and those the fix affects. The
    verifier receives the revision as a commit SHA: `HEAD` when committed,
@@ -1527,7 +1223,7 @@ delivery gates still apply.
 
 When the same causal failure repeats, corrections do not converge, scope
 expands or evidence points to a deeper shared cause, stop blind retries and
-choose: reassess the approach, recommend a tier change, dispatch
+choose: reassess the approach, dispatch
 `difficult_debugging`, or ask the user at an authority boundary. Distinct
 legitimate findings are not a trigger. An isolated Git failure stays with the
 root: inspect status and the latest commit once, apply an obvious safe fix,
@@ -1537,13 +1233,14 @@ and never dispatch an agent merely to operate Git.
 
 User preview is an optional user inspection of a user-visible surface after a
 phase's implementation handoff and before its independent verification and
-review. It is not a tier, matrix row, profile, plan status or artifact kind.
+review. It is not a flow row, role, plan status or artifact kind.
 
-Offer it in the initial tier message, without extra research, when all three
+Offer it in the first message that reports the brief, without extra research,
+when all three
 hold: the result is a surface the user operates or looks at; the change is
 material (a new or substantially changed screen or flow, not a string or
-minor CSS tweak); and a local run recipe is known or trivially inferable. A
-bare tier choice or silence is `none`. A conversational `interactive` /
+minor CSS tweak); and a local run recipe is known or trivially inferable.
+Silence is `none`. A conversational `interactive` /
 `interactivo` (or an equivalent in the chat language) that clearly means this
 pause is `required`; if it might mean
 the product is interactive, disambiguate once in that message. Never offer it
@@ -1595,20 +1292,8 @@ The review packet states that the user accepted the visible result at that
 revision: taste findings are out of scope; bugs, accessibility, regressions
 and defect-prone complexity remain in scope, and a defect forcing a visual
 change enables a short re-inspection. Preview never replaces
-`browser_acceptance`, lowers the tier or waives hard gates. After `completed`,
+`browser_acceptance` or waives hard gates. After `completed`,
 further taste work is a PR-fix inside approved intent or a new task.
-
-### Tier transition
-
-The active tier changes among the host's assigned tiers only on explicit user
-direction. Let the current tool call settle, collect revision and dirty state,
-accepted evidence, completed acceptance, pending work and retained resources,
-request cleanup only from their owners, and retire only phase agents whose
-assignment changes. Do not revert work, restart the workflow or create a
-transition commit. Update the plan's tier and Decisions and create replacement
-agents only when needed, with a compact continuation packet; the new worker
-owns the remaining phase. Evidence for the unchanged revision and conditions stays valid; a new risk
-receives only targeted context and reverification. A tier transition never changes the owning host, provider or billing path.
 
 ### Phase teardown
 
@@ -1623,12 +1308,12 @@ Activity rows are observability snapshots, not resource handles.
 
 Teardown is proportional. For an edit-only phase (no declared retention,
 `partial` or `blocked`, no processes, services or browser work) the root
-retires the cohort with the host close contract and commits. Otherwise, after
+retires the cohort and commits. Otherwise, after
 review and verification pass and before commit, it sends one parallel
 cleanup-only follow-up to the owners of those declarations, stops shared
 temporary processes it started, consumes the results, retires every phase
-agent through the host adapter (on Codex, completed with no active descendant
-or retained resource), and confirms that no agent or owned process with
+agent once its `delegate_task` result has returned with no retained
+resource, and confirms that no agent or owned process with
 worktree write access remains.
 
 An active write-capable agent or owned process blocks the commit. A
@@ -1641,17 +1326,13 @@ clearing runs after teardown and never affects the commit.
 
 ### Test permissions and browser routing
 
-On Codex, Orchestra synchronizes Guardian (`:workspace`, `on-request`,
-Auto-review) as the default. Cursor, Grok, Devin and Claude Code observe the
-host permission choice and never write permission configuration. The active
-permission choice stays authoritative; Orchestra never changes it or blocks
-because it differs. Under Codex Guardian, workspace commands run directly and
-one exact command crossing a protected boundary requests one narrow
-escalation (a prompt under manual approvals; no sandbox boundary under Full
-Access). Never retry a denial through a workaround or broaden permissions.
-Syntax, type, compile, lint, import, assertion, validation-contract and
-CLI-usage failures are real failures. A missing external service, credential
-or dependency may return `blocked` but never broadens authority.
+Orchestra observes T3's runtime mode and each provider's permission choice; it
+never changes them or blocks because they differ. A command that crosses a
+protected boundary is issued once, and its prompt or denial is respected; never
+retry a denial through a workaround or broaden permissions. Syntax, type,
+compile, lint, import, assertion, validation-contract and CLI-usage failures
+are real failures. A missing external service, credential or dependency may
+return `blocked` but never broadens authority.
 
 Packets for `frontend_implementation` browser work and `browser_acceptance`
 carry `browser_route: auto | in_app | chrome | codex-cu`. Without a
@@ -1659,29 +1340,22 @@ user-selected route, the root uses the one-line user setting
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/browser-route`, else `auto`; no
 installation writes or removes that setting.
 
-| Route | Codex | Cursor | Grok Build | Devin | Claude Code |
-| --- | --- | --- | --- | --- | --- |
-| `auto` | Chrome connector, then in-app Browser (see below) | Browser Use | Playwright | `blocked` | Claude in Chrome; inside T3 Code without `--chrome`, `codex-cu` |
-| `in_app` | in-app Browser only | `blocked` | `blocked` | `blocked` | `blocked` |
-| `chrome` | Chrome connector only | Browser Use | `blocked` | `blocked` | Claude in Chrome; inside T3 Code without `--chrome`, `blocked` |
-| `codex-cu` | codex-cu MCP | codex-cu MCP | codex-cu MCP | codex-cu MCP | codex-cu MCP |
+- `auto`: T3's collaborative browser through its `preview_*` tools. When it is
+  unavailable, including a `preview_open` sandbox or setup error, a Claude
+  child started with `--chrome` uses Claude in Chrome and any other child uses
+  `codex-cu`.
+- `in_app`: T3's browser only.
+- `chrome`: Claude in Chrome only, for a Claude child started with `--chrome`;
+  otherwise `blocked`.
+- `codex-cu`: the codex-cu MCP, Codex's computer-use engine driving Chrome. It
+  is `blocked` when the server, the ChatGPT app or its Chrome extension is
+  unavailable; because it cannot write files, copy each screenshot from the
+  path its result reports and convert it to the required PNG evidence path.
+  The optional server is
+  [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp).
 
-Codex `auto` may fall back to the in-app Browser only after supported Chrome
-connection recovery, when Chrome is unavailable or has a capability gap the
-in-app Browser satisfies. `codex-cu` is Codex's computer-use engine driving
-Chrome; it is `blocked` when the server, the ChatGPT app or its Chrome
-extension is unavailable, and because it cannot write files, copy each
-screenshot from the path its result reports and convert it to the required
-PNG evidence path. The optional server is
-[codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp). Devin has no native browser: `codex-cu` or a user-selected Codex CLI
-Chrome handoff under "CLI delegation" may run its acceptance; otherwise the
-gate stays `blocked`, and User preview never replaces it.
-
-Inside T3 Code (its `t3-code` MCP `preview_*` tools are available), T3's
-collaborative browser precedes the table on every provider: `auto` uses it
-first and falls back to the host column only when it is unavailable,
-including a `preview_open` sandbox or setup error, and `in_app` means T3's
-browser only. The browser acceptance playbook defines its tab steps.
+The browser acceptance playbook defines the tab steps, and User preview never
+replaces a blocked gate.
 
 An explicit user route, relayed or given directly, must be attempted even as
 a canary for a previously failing tool, and stays fixed without fallback. An
@@ -1690,10 +1364,9 @@ it. Functional failures, application timeouts and selector problems never
 cause a switch. On an allowed `auto` fallback, capture the first surface's
 blocker, close any task-owned tab on it, open a new task tab on the fallback
 surface and repeat the complete scenario, so evidence from different surfaces
-is never combined; if both are unavailable, return `blocked`. Computer Use,
-standalone browser automation, the Cursor IDE browser and the Browser Use CLI
-are not substitutes, except the host mappings in the table and T3's browser. A missing Browser Use MCP
-or Chrome remote-debugging permission returns `blocked`.
+is never combined; if both are unavailable, return `blocked`. Other computer
+use, standalone browser automation and other browsers are not substitutes for
+these routes.
 
 Every visual interaction or acceptance run opens a fresh task-owned tab on
 its surface, never a user tab or an earlier run's tab, and closes that exact
@@ -1727,11 +1400,11 @@ the whole bounded target and returns all known material findings; later reviews
 inspect only the meaningful delta and interactions affected by accepted fixes,
 because each fresh full review finds a different subset and never converges.
 
-Where a host defines a review pair, the review that first covers the complete
-terminal range runs as both reviewers in parallel on the same packet, blind to
-each other. The root merges their findings by defect, and one reviewer's
-dismissal never cancels the other's finding. Every other review uses the pair's
-first reviewer alone.
+The review that first covers the complete terminal range runs as a pair, the
+`independent_review` row and the flow's `review_pair`, in parallel on the same
+packet and blind to each other. The root merges their findings by defect, and
+one reviewer's dismissal never cancels the other's finding. Every other review
+uses the `independent_review` row alone.
 
 A reviewer is never resumed. Each delta round dispatches fresh reviewers, both
 of the pair when the pair ran, whose packet carries the full-review base, prior
@@ -1801,13 +1474,13 @@ immediately after specification confirmation; only read-only preflight and
 pre-checkout context precede it. Neither mode ever implements on the starting
 branch or on `main`.
 
-The installed `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` file selects
-`managed` (default) or opt-in `hybrid`, with fallback to
-`${CODEX_HOME:-$HOME/.codex}/orchestra/checkout-mode` and then `managed`; an
-explicit task direction overrides it and is recorded in the plan. Loading a
-plugin creates no settings file. Managed mode uses a dedicated worktree below
-`ORCHESTRA_WORKTREE_ROOT`, the installed worktree-root file, or
-`$HOME/.orchestra/worktrees`, in that order. Hybrid mode creates the task
+The `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` user setting selects
+`managed` (default) or opt-in `hybrid`; an explicit task direction overrides it
+and is recorded in the plan. Loading a plugin creates no settings file. Managed
+mode uses a dedicated worktree below `ORCHESTRA_WORKTREE_ROOT`, the
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root` setting, or
+`$HOME/.orchestra/worktrees`, in that order, created through T3 as
+`host_t3.md` defines. Hybrid mode creates the task
 branch from the exact captured HEAD of the current clean primary checkout or
 linked worktree.
 
@@ -1871,40 +1544,32 @@ blocks automatic resume.
 Apply "Conversation continuity" to user messages and worker updates received
 while waiting. An intermediate message does not terminate the assignment.
 
-Prefer the host's completion notification or a non-interruptive wait on the
-exact live agent/process handle. Native adapters use ten-minute windows
-(`timeout_ms: 600000`) when supported; obey a shorter active host limit.
-Completion or error must return immediately, including before the first status
-inspection interval. A timeout only means the wait ended, not that work failed.
+Dispatch roles with `delegate_task` in `async` mode and end the turn: T3's
+completion notification wakes the root, which reads the result once with
+`task_status`. Wait on a thread with one long `t3_thread_wait`. Completion or
+error must return immediately, including before any status inspection. A timeout only means the wait ended, not that work failed.
 Do not replace an event-aware wait with unconditional sleeps or a chain of
 model turns whose only purpose is deciding to sleep again. If the host supports
 only short waits, continue on the same handle without extra Git/log inspection
 or unchanged narration; do not invent a background-notification API.
 
-Choose foreground or background execution from the actual lifecycle. A task root
-whose background-role continuation is unverified runs its roles in the foreground
-(independent roles may use a supported parallel batch). A persistent root with
-verified completion-driven continuation may use background roles. A task root
-returns a stable accepted result or precise blocker, never completion while
+Independent roles may run in one parallel batch. A task root returns a stable accepted result or precise blocker, never completion while
 required descendants remain active. Ending a turn alone proves neither lost nor
 completed work. Resume only a confirmed completed/stopped owner, preserving its
 handle; progress messages do not justify relaunch or another writer.
 
-For CLI delegation, wait on the launcher process, not an empty redirected file.
 If manual status inspection is necessary, allow at least five minutes after
-dispatch and between inspections. For a review delegated through Cursor CLI,
-allow ten minutes before its first manual inspection unless the user specifies
-otherwise. These intervals limit unsolicited polling, never delay an available
-completion/error or an answer to the user. Apply the mutable-implementation
-boundary from `Phase execution` to active implementers in both phase and
+dispatch and between inspections; these intervals limit unsolicited polling,
+never delay an available completion, error or answer to the user. Apply the
+mutable-implementation boundary from `Phase execution` to active implementers in both phase and
 standalone assignments.
 
 After 30 accumulated minutes, the root may assess once for a concrete blocker;
 a reported error, unavailable process, or known stuck command can justify an
 earlier targeted diagnosis. Inspect only the needed process state or bounded
 diagnostic tail, without dumping full process arguments or event history. The
-owning worker should resolve a stalled command within its assignment. If CLI
-transport cannot receive a message while running, do not pretend otherwise:
+owning worker should resolve a stalled command within its assignment. If a
+child cannot receive a message while running, do not pretend otherwise:
 first reconcile the current invocation and its resources, then resume its exact
 session with the focused blocker when necessary. Never replay a mutating prompt.
 Stop only the identified owned resource when justified; elapsed time or silence
@@ -2196,17 +1861,16 @@ migration files and asks where they apply.
 
 ## Maturity
 
-Automated checks and representative canaries provide evidence. Codex, Cursor,
-Grok Build, Devin, and Claude Code are approved execution hosts. Hermes is not;
-its only role is the T3 initiative parent under "Initiative coordination". Any
-further harness remains deferred.
+Automated checks and representative canaries provide evidence. T3 Code is the
+approved execution host; a Hermes thread there acts only as the parent under
+"Hermes dispatcher". Any other host remains deferred.
 
 ## User-facing progress and handoff
 
 Report only material phase transitions, findings or decisions, blockers, fresh
 verification results and authority requests. Each update states current state,
 user-visible result or evidence, and next action. Describe behavior and
-decisions; mention process facts (tier, model assignment, checkout, branch,
+decisions; mention process facts (model assignment, checkout, branch,
 registration, service stacks, agent plumbing) only when they need a user
 decision, block progress, or another rule requires their disclosure
 (completion handoff, unverified base, skipped registration, resume status,

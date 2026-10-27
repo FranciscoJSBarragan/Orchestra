@@ -1,6 +1,6 @@
 # Difficult debugging playbook
 
-For a delegated capability assignment, use this playbook with the `orchestra_analyst` profile and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach, recommending a tier change, or asking the user.
+For a delegated capability assignment, use this playbook with the analyst role and the explicit `difficult_debugging` capability after an escalation trigger fired — the same causal failure repeated, correction cycles demonstrably failed to converge, scope expanded, or evidence indicates a deeper shared cause — and the root chose deeper diagnosis over reassessing the approach or asking the user.
 
 ## Contract
 
