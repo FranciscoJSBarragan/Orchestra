@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "codex/scripts"))
-from update_local import promote
+from update_local import carry_over, promote
 
 
 class PromoteTests(unittest.TestCase):
@@ -37,6 +37,15 @@ class PromoteTests(unittest.TestCase):
         self.assertEqual(self.version("current"), "3")
         self.assertEqual(self.version("previous"), "2")
         self.assertEqual(sorted(path.name for path in self.root.iterdir()), ["current", "previous"])
+
+    def test_a_provider_left_out_keeps_its_current_bundle(self) -> None:
+        (self.root / "current/portable").mkdir(parents=True)
+        (self.root / "current/portable/version").write_text("2")
+        (self.root / "next/claude").mkdir(parents=True)
+        carry_over(self.root, ["portable"])
+        promote(self.root)
+        self.assertEqual((self.root / "current/portable/version").read_text(), "2")
+        self.assertTrue((self.root / "current/claude").is_dir())
 
 
 if __name__ == "__main__":
