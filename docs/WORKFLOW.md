@@ -471,9 +471,12 @@ persistent counter or watcher.
 
 ### Child root setup
 
-A coordinated child root first resolves inherited approval and the supplied
-checkout here and under the checkout rules, reusing settled scope and
-authority instead of presenting them as new decisions. An investigation-only
+A child root, whether an initiative child or a task a Hermes dispatcher
+launched, first resolves inherited approval and the supplied checkout here and
+under the checkout rules, reusing settled scope and authority instead of
+presenting them as new decisions. Inherited authority never approves the
+child's own plan: it sends the plan to the parent thread and implements only
+after the parent accepts it. An investigation-only
 grant runs the read-only steps and returns at specification confirmation (or
 the combined candidate), never reaching setup or execution without that
 authority.
@@ -523,9 +526,10 @@ its implementation or review loop.
 
 Inside T3 Code a Hermes thread may be the parent of one task or of an
 initiative. It works out the request with the user, recommends, launches task
-roots with the confirmed brief and the user's delivery endpoint, follows their
-reports and relays their questions. It never implements, not even a small fix:
-every change goes through a task root and its review. It reads the pinned
+roots with the confirmed brief and the user's delivery endpoint, accepts a
+derived plan that stays within that brief, relays any other plan and every
+question to the user, and follows their reports. It never implements, not
+even a small fix: every change goes through a task root and its review. It reads the pinned
 instructions and the flow assignment by absolute path, needs no plugin, and
 runs its own research through `delegate_task` on the flow's
 `repository_context` row. It lacks the repository's execution environment, so
@@ -785,7 +789,7 @@ report.
 
 ## Context and planning
 
-An initiative child root first applies "Child root setup".
+A root launched by a parent thread first applies "Child root setup".
 
 After explicit activation in an execution-capable mode:
 
@@ -886,8 +890,8 @@ Scoped dirty adoption goes only into a managed task worktree unless the user
 authorizes carrying named changes in place.
 
 Implementation begins only after the user explicitly
-approves the aligned plan, or the authorized initiative parent accepts the
-derived child plan under "Initiative coordination". Approval covers implementation and commits at approved phase
+approves the aligned plan, or the parent that launched the root accepts the
+derived plan under "Child root setup". Approval covers implementation and commits at approved phase
 boundaries, never merge, release, deployment, production mutation or other
 delivery. Adopted committed work that passes unchanged needs no artificial
 commit.
