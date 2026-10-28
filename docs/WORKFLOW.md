@@ -354,7 +354,8 @@ Actual concurrency, nesting and
 tool access must support the assignment; a model-family label is no evidence
 of effort.
 
-The parent's own research before dispatch (repositories, entry points, shared
+The parent reads what shaping the brief and judging child plans needs.
+Research beyond that bounded reading (repositories, entry points, shared
 contracts) never inherits the parent's model: it uses the flow's
 `repository_context` row unless the user selects other resources, through a
 source-read-only `delegate_task`. Start
@@ -531,11 +532,9 @@ derived plan that stays within that brief, relays any other plan and every
 question to the user, and follows their reports. It never implements, not
 even a small fix: every change goes through a task root and its review. It reads the pinned
 instructions and the flow assignment by absolute path and needs no plugin. It
-reads the repository, its history, open PRs and issues as far as shaping the
-brief and judging a plan need, and leaves edits, commands with side effects and
-root-cause investigation to the task root; a question that needs more than
-bounded reading goes to `delegate_task` on the flow's `repository_context` row.
-It commissions hard gates and joint acceptance to a verifier as described
+reads and researches as a parent does above, including history, open PRs and
+issues, and leaves edits, commands with side effects and root-cause
+investigation to the task root. It commissions hard gates and joint acceptance to a verifier as described
 above. For one task the register holds just that task's line. How the user reaches
 Hermes and what Hermes remembers belong to the user's Hermes configuration;
 repository knowledge stays under "Repository conventions".
