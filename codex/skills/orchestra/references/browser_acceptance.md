@@ -37,7 +37,6 @@ Direct role use follows the standalone contract.
 Return `blocked` when the selected route or, for `auto`, its defined fallback is unavailable, a dedicated tab cannot be opened safely, required access or test data is unavailable, or the scenario would disturb unrelated state or cross a destructive, production, payment, security, privacy, or irreversible boundary.
 
 For reusable feature maps and recipe maintenance, use
-[project verification](../../orchestra-project-verification/SKILL.md) and its
-WORKFLOW lifecycle. Planning cites affected entries; verifiers execute their
+[project verification](../../orchestra-project-verification/SKILL.md). Planning cites affected entries; verifiers execute their
 assigned journeys and report stale instructions separately from product defects.
 The selected role's source and execution authority remains unchanged.

@@ -34,8 +34,10 @@ result inline by default; write a file only at an explicitly supplied path with
 matching authority. Direct work must not read unneeded phase recipes or
 manufacture an approved plan when none was supplied.
 
-In `orchestra_phase` mode, your role skill and the packet are complete; do not
-read WORKFLOW. Enforce the packet's exact-ID evidence, review, verification,
+In `orchestra_phase` mode, your role skill, its capability reference and the
+packet are complete; do not read WORKFLOW. A WORKFLOW section named in these
+files only cites a rule's home; follow the rule as stated where it is cited.
+Enforce the packet's exact-ID evidence, review, verification,
 cleanup and authority gates. A formal packet with missing required fields is
 blocked; do not silently downgrade it to standalone.
 
@@ -137,8 +139,9 @@ root, normally the next `<NN>-<kind>.md` under
 publication is unavailable, return the complete report inline; never
 retry-loop or make publication failure a workflow blocker. Do not replay
 packet contents, unchanged context, routine narration, or duplicate evidence.
-Use WORKFLOW "Task-private artifacts" for compact evidence and
-delta reports. After successful publication, the handoff is the outcome, exact
+Keep evidence compact: cite prior evidence for unchanged facts, keep raw logs
+and large tables in the evidence location, and make a delta report name its
+prior report, revision, affected findings and new verification. After successful publication, the handoff is the outcome, exact
 artifact ID and material blockers/risks, not a second copy of the report.
 
 ## Stop rule
