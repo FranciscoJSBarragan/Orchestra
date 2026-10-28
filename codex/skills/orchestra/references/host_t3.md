@@ -13,7 +13,7 @@ review policy, commits and delivery follow WORKFLOW.
 
 An agent outside T3 starts Orchestra work there only when the user asks,
 through an MCP connection to the T3 Code server (the deployment documents its
-endpoint) or T3's local CLI on the same machine. It launches each task root as
+endpoint). It launches each task root as
 a top-level thread through
 [host transports](../../orchestrator/host-transports.md), and the launched
 root runs under this reference. `delegate_task` and
@@ -63,7 +63,8 @@ substitute silently.
   turn instead of polling, then read the result once with `task_status`.
 - Every fix round is a fresh `delegate_task` with the fix packet, so its
   completion wakes the root. Continue an implementer's thread with
-  `t3_thread_send` only for preview absorption or an unfinished turn; that
+  `t3_thread_send` only for preview absorption, a cleanup-only follow-up or
+  an unfinished turn; that
   message does not reopen the delegated task, so wait on the thread with one
   long `t3_thread_wait` instead of status messages, then read only the new
   turn with `t3_thread_read`.

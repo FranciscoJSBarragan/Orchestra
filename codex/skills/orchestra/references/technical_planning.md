@@ -120,8 +120,8 @@ Each phase is independently executable and contains:
 - The independent gate is `none` for an ordinary deterministic phase. Assign a
   verifier only for browser interaction, owned services or processes, mutable
   or stateful data, credentials, network or another external environment, or
-  explicit repository policy, where the implementer runs its deterministic
-  checks and the verifier repeats the applicable gate. Runs in a scarce environment (hardware, a limited or costly
+  explicit repository policy, where the verifier runs the gate's scenarios
+  without repeating the implementer's deterministic checks. Runs in a scarce environment (hardware, a limited or costly
   session) belong only to the independent gate, never to handoff checks, and
   so do steps only the user can perform or judge (WORKFLOW "Autonomy within
   an approved objective"). After fixes, require only affected reruns unless

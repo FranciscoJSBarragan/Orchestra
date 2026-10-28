@@ -1,6 +1,6 @@
 {
   "name": "orchestra",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Explicit planned software delivery in T3 Code with independent review, verification, and authorized delivery.",
   "author": {
     "name": "Francisco Javier Serna Barragan"

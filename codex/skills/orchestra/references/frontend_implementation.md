@@ -19,8 +19,8 @@ For a delegated capability assignment, use this playbook with the implementer ro
 - A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the first surface's blocker, close any implementation-owned tab already created on it, and repeat the complete visual scenario in a new task tab on the fallback surface. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
 - Use an implementation-owned task tab, separate from independent acceptance.
   Preserve user tabs, authenticated sessions, shared windows and applications.
-  Follow WORKFLOW `Phase teardown` for cleanup and explicitly authorized
-  preview-process retention. Close task tabs at handoff; do not claim that all
+  Keep a preview process only when the packet explicitly authorizes it, and
+  close task tabs at handoff; do not claim that all
   resources were cleaned when a permitted preview process remains active.
 - Any phase that changes a user-visible surface requires at least one visual run before handoff whenever a local run recipe exists: render the changed surface in its relevant states, write PNG screenshot files into the exact task-private artifacts directory as `<NN>-implementation-report-shot-<k>.png`, and cite those exact filenames in the `implementation-report`. When no runnable surface exists, record that reason in the report instead of inventing screenshots; the root treats uncited screenshots on a surface-changing phase as missing evidence.
 - Visual iteration is implementation evidence, not independent acceptance and not user preview. Never claim acceptance of your own work; the root dispatches `browser_acceptance` separately when required. User preview, when the phase line is `required`, is a root-owned pause after this handoff.

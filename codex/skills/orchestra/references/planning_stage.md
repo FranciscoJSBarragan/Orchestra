@@ -30,9 +30,9 @@ Read this once the specification is confirmed. Re-read
    defect does not approve its proposed correction; a correction that narrows,
    excludes or excepts the confirmed outcome is replaced by an in-scope one.
    Only a genuine new product choice, or infeasibility crossing an authority
-   boundary, goes to the user with options and consequences. Return accepted
-   IDs and the correction direction to the same author, which republishes only
-   affected members and names the full current bundle. After a second material
+   boundary, goes to the user with options and consequences. Send accepted
+   IDs and the correction direction to a fresh planning session with the
+   current bundle, which republishes only affected members and names the full current bundle. After a second material
    review, and at once for marginal, contradictory or out-of-scope findings,
    read the exact bundle and reviews yourself and correct direction by finding
    ID.

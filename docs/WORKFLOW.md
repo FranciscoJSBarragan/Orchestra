@@ -63,10 +63,8 @@ identifiers Orchestra names stay verbatim. Tracked repository artifacts
 (code, comments, commits, PRs and docs) follow the repository's convention.
 
 Every dispatch starts from a clean context: the packet and named artifacts
-carry the assignment, dispatched under "T3 Code host". A closed owner or
-reviewer is recorded unavailable and replaced with the same logical assignment
-and exact approved artifact IDs; a replacement reviewer is always fresh and
-independent.
+carry the assignment, dispatched under "T3 Code host", with the same logical
+assignment and exact approved artifact IDs on every round.
 
 ## T3 Code host
 
@@ -87,7 +85,8 @@ read-only.
 
 Every dispatch is a fresh `delegate_task` child; each fix round and each review
 round starts a new one. The root continues a child's thread only for preview
-absorption or an unfinished turn, and waits under "Agent waiting". The child's
+absorption, a cleanup-only follow-up or an unfinished turn, and waits under
+"Agent waiting". The child's
 returned result is the completed-state evidence before commit. After every
 return the root checks Git status and HEAD; a read-only role that changed
 anything beyond its declared report blocks.
@@ -410,13 +409,9 @@ cure polling. On a stable result, read full child evidence only when a missing f
 failure requires it. Process success establishes neither acceptance,
 independent review nor delivery.
 
-A child messages the parent only when it needs the parent or is done: a
-decision outside its authority, a derived plan for acceptance, a shared
-resource request or release, a blocker, or its stable final handoff. Progress,
-started work, unsubmitted candidates and intermediate results stay in its own
-thread and reports for the parent to read when needed; a grant is acknowledged
-by acting on it, never by a reply. A parent woken by a message that needs no
-decision records any needed register fact without narrating it to the user.
+A child reports as "Child root setup" defines. A parent woken by a message
+that needs no decision records any needed register fact without narrating it
+to the user.
 
 After interruption or an ambiguous launch, reconcile the existing host handle,
 checkout and Git revision first; a pending entry does not mean nothing
@@ -427,10 +422,7 @@ accepted correction scope and changed dependency evidence. Replace a confirmed
 unavailable owner only after its writes stop and its checkout and evidence are
 handed over. A local failure requires no whole-initiative restart.
 
-Every implementation handoff gives repository, checkout, base and final full
-SHA, acceptance, checks, independent review status, evidence and recipe
-paths, blockers, assumptions, delivery state and resource cleanup. The parent
-consumes it once, then runs the real cross-project journey against the exact
+The parent consumes each implementation handoff once, then runs the real cross-project journey against the exact
 set of accepted revisions and relevant environment and configuration, naming which revisions
 and determining non-Git dependency versions actually ran; individual green
 suites cannot establish a shared contract. Before integrating a child
@@ -482,6 +474,19 @@ grant runs the read-only steps and returns at specification confirmation (or
 the combined candidate), never reaching setup or execution without that
 authority.
 
+The child messages the parent only when it needs the parent or is done: a
+decision outside its authority, a derived plan for acceptance, a question for
+the user, a shared resource request or release, a blocker, or its stable final
+handoff. It sends each through `t3_thread_send` in `queue` mode to the parent
+thread its packet names, naming its own `threadId`, as `orchestrator/host-transports.md` in the
+resolved skills root maps it.
+Progress, started work and intermediate results stay in its own thread; a
+grant is acknowledged by acting on it, never by a reply. A user preview runs
+through the parent, which relays the user's feedback. The final handoff gives
+repository, checkout, base and final full SHA, acceptance, checks, independent
+review status, evidence and recipe paths, blockers, assumptions, delivery
+state and resource cleanup.
+
 A child may adopt a clean isolated host-supplied checkout and owned non-base
 branch after verifying repository identity, the approved base and HEAD, and no
 other writer; a detached HEAD or base branch there gets one collision-free task
@@ -527,15 +532,17 @@ its implementation or review loop.
 
 Inside T3 Code a Hermes thread may be the parent of one task or of an
 initiative. It works out the request with the user, recommends, launches task
-roots with the confirmed brief and the user's delivery endpoint, accepts a
+roots with the confirmed brief and the user's delivery direction, accepts a
 derived plan that stays within that brief, relays any other plan and every
 question to the user, and follows their reports. It never implements, not
 even a small fix: every change goes through a task root and its review. It reads the pinned
 instructions and the flow assignment by absolute path and needs no plugin. It
 reads and researches as a parent does above, including history, open PRs and
 issues, and leaves edits, commands with side effects and root-cause
-investigation to the task root. It commissions hard gates and joint acceptance to a verifier as described
-above. For one task the register holds just that task's line. How the user reaches
+investigation to the task root. For one task it integrates nothing, so the
+root's own gates and delivery suffice and it commissions no further runs; for
+an initiative it commissions hard gates and joint acceptance as a verifier
+thread on its own T3 worktree at the exact revision, as described above. For one task the register holds just that task's line. How the user reaches
 Hermes and what Hermes remembers belong to the user's Hermes configuration;
 repository knowledge stays under "Repository conventions".
 
@@ -560,7 +567,10 @@ the cause, continue work that does not need it and ask once: a recommended
 substitute for the affected roles, keeping a reviewer outside the
 implementer's model family, or waiting until the user reports the quota is
 back, after which the original row runs again. Record the resolved assignment,
-its override source and any chosen substitute in the plan Decisions. On resume
+its override source and any chosen substitute in the plan Decisions. A change
+the user makes during a task applies from the next fresh dispatch of the
+affected roles: an active session finishes on its row, evidence already
+produced keeps its value, and the switch is recorded in plan Decisions. On resume
 compare them with the current files; drift needs an explicit decision, never
 an unnoticed reroute. No assignment waives production, migration, data,
 security, payment, destructive-action or delivery authority.
@@ -802,8 +812,8 @@ After explicit activation in an execution-capable mode:
    setup is authorized.
 2. Resolve the flow assignment under "Flow assignment".
 3. Weigh risk by what the current case touches and who can reach it, not by a
-   later stage; that risk decides a dedicated verifier and decision reviews,
-   never a separate track. Offer [User preview](#user-preview) in the first
+   later stage; that risk decides any decision review under "Review policy",
+   while a verifier follows only the boundaries "Phase execution" names. Offer [User preview](#user-preview) in the first
    message that reports the brief when its detection rule matches. Nothing
    waives authority gates for production, migrations, data, security,
    payments, destructive actions or delivery.
@@ -818,7 +828,7 @@ After explicit activation in an execution-capable mode:
    speculatively, waive a baseline failure or fix unrelated issues.
 5. Answer bounded factual questions directly when the preflight covers them;
    the criterion is the evidence still needed, never familiarity. When a
-   material amount of source remains, dispatch an `orchestra_analyst` with
+   material amount of source remains, dispatch an analyst with
    `repository_context`, the minimum objective and those questions: before
    checkout it works read-only in the current checkout and returns a complete
    labeled inline report; afterwards it publishes a revision-identified
@@ -1031,7 +1041,7 @@ material impact, `Affected judgment`, and the named current-task consumer. Class
 information, never repeat unchanged context, turn guesses into facts, edit
 earlier artifacts or claim authority. A discovery grants no authority and is
 not an artifact kind or an entry in coordination or another state store; only
-`repository_context`, performed by an `orchestra_analyst`, publishes a
+`repository_context`, performed by an analyst, publishes a
 `context-delta`.
 
 At a stable handoff, never while an owner is mutating the worktree, the root
@@ -1093,7 +1103,8 @@ required local deterministic check before handoff, as its role skill defines.
 When the canonical full suite takes minutes, the plan may leave it to one root
 run on the handoff revision, started with the first review in the task
 checkout while no writer is active and leaving `git status` as it found it;
-the phase does not commit before it passes, and a failure is a finding. The independent gate is `none` for an ordinary deterministic
+fix rounds wait until it concludes, step 6 waits for its result, and a failure
+is a finding. The independent gate is `none` for an ordinary deterministic
 phase. A verifier is required only for browser interaction, owned services or
 processes, mutable or stateful data, credentials, network or another external
 environment, or explicit repository policy. After an accepted fix only the
@@ -1130,7 +1141,8 @@ repository gate.
    sets the packet and the pair; the reviewer role skill sets how to review.
    Its packet adds the plan path and the context artifacts the phase requires,
    the cited screenshots of a visible change, the exact paths of root-authored
-   `.agent/` files, that the root runs the full suite when it does, and, for a
+   `.agent/` files (the commit cannot close without their inspection), that the
+   root runs the full suite when it does, and, for a
    fix of a failed verification, that `verification-report`.
 4. Fix. Accepted findings go to a fresh session of the same logical owner
    with the current revision and diff and the findings' evidence, except a
@@ -1156,9 +1168,9 @@ repository gate.
    only for a changed revision or a finding confirmed against it.
 6. Commit. Once the current review accepts the exact revision, every required
    gate and the root's full-suite run, if any, has passed or has a `blocked`
-   result the root accepted, and every discovery has a disposition, the root
-   runs phase
-   teardown, commits with direct Git or the exact-path helper and records the
+   result the root accepted, and every discovery has a disposition that leaves
+   no judgment of the current review undermined, the root runs phase teardown,
+   commits with direct Git or the exact-path helper and records the
    commit in the manifest. No commit artifact.
 
 When the same causal failure repeats, corrections do not converge, scope
@@ -1243,7 +1255,6 @@ servers, processes, terminal sessions and task tabs before a final, failed
 or blocked handoff by default. Analysts and reviewers retain nothing. Each session recreates its
 resources unless the packet authorizes retaining an exact non-browser
 category. Browser tabs are never retained across a handoff.
-Activity rows are observability snapshots, not resource handles.
 
 Teardown is proportional. For an edit-only phase (no declared retention,
 `partial` or `blocked`, no processes, services or browser work) the root
@@ -1260,8 +1271,7 @@ source-read-only browser tab that failed to close is partial cleanup and does
 not invalidate evidence or the commit. Orchestra never scans for or kills
 unrelated processes, closes unrelated tabs or sessions, persists a resource
 registry, or adds cleanup to the commit helper; the root stops only its own
-resources or an exact safely addressable handle reported by the owner. Best-effort activity
-clearing runs after teardown and never affects the commit.
+resources or an exact safely addressable handle reported by the owner.
 
 ### Test permissions and browser routing
 
@@ -1286,11 +1296,8 @@ installation writes or removes that setting.
 - `in_app`: T3's browser only.
 - `chrome`: Claude in Chrome only, for a Claude child started with `--chrome`;
   otherwise `blocked`.
-- `codex-cu`: the codex-cu MCP, Codex's computer-use engine driving Chrome. It
-  is `blocked` when the server, the ChatGPT app or its Chrome extension is
-  unavailable; because it cannot write files, copy each screenshot from the
-  path its result reports and convert it to the required PNG evidence path.
-  The optional server is
+- `codex-cu`: the codex-cu MCP, Codex's computer-use engine driving Chrome,
+  used as the browser acceptance playbook defines. The optional server is
   [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp).
 
 The browser acceptance playbook defines the tab steps, and User preview never
@@ -1521,7 +1528,7 @@ unchanged progress.
 ## Commit path
 
 Plan approval covers commits at successful phase boundaries. Commit execution
-is a root responsibility, not an agent profile or capability. The default path
+is a root responsibility, never a role. The default path
 is one direct pass: inspect status and the relevant diff, stage only the accepted
 paths, create a file-based commit with a concise title plus useful intent and
 validation, then read the resulting SHA and status once. Do not require empty
@@ -1794,10 +1801,9 @@ Report only material phase transitions, findings or decisions, blockers, fresh
 verification results and authority requests. Each update states current state,
 user-visible result or evidence, and next action. Describe behavior and
 decisions; mention process facts (model assignment, checkout, branch,
-registration, service stacks, agent plumbing) only when they need a user
-decision, block progress, or another rule requires their disclosure
-(completion handoff, unverified base, skipped registration, resume status,
-partial cleanup). At completion, distinguish implementation-complete
+service stacks, agent plumbing) only when they need a user decision, block
+progress, or another rule requires their disclosure (completion handoff,
+unverified base, resume status, partial cleanup). At completion, distinguish implementation-complete
 from delivered and state the result location, how to run or demonstrate it,
 verification performed, safe test data, limitations, exact delivery state and
 the next authority needed. A task that delivers a case marks its case-list

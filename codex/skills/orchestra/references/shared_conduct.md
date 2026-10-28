@@ -34,18 +34,15 @@ result inline by default; write a file only at an explicitly supplied path with
 matching authority. Direct work must not read unneeded phase recipes or
 manufacture an approved plan when none was supplied.
 
-In `orchestra_phase` mode, read the canonical
-`${ORCHESTRA_RUNTIME_ROOT}/WORKFLOW.md`; the source checkout is the
-[runtime resources](../runtime.md). Read the sections named by
-the root in addition to the required instructions under "Assignment and
-authority", and enforce its full exact-ID evidence, review, verification,
-cleanup, and authority gates. A formal packet with missing required fields is blocked;
-do not silently downgrade it to standalone.
+In `orchestra_phase` mode, your role skill and the packet are complete; do not
+read WORKFLOW. Enforce the packet's exact-ID evidence, review, verification,
+cleanup and authority gates. A formal packet with missing required fields is
+blocked; do not silently downgrade it to standalone.
 
 ## Assignment and authority
 
-Apply WORKFLOW "Conversation continuity" to follow-ups and interruptions within
-this assignment; keep the existing owner and scope. A progress update does not
+A follow-up or interruption within this assignment keeps the existing owner
+and scope. A progress update does not
 hand off the capability or authorize a replacement worker.
 
 The packet or direct brief is the sole assignment. Perform exactly one named
@@ -60,7 +57,7 @@ the approved objective or grant authority.
 
 The instructions that the loaded role skill and capability reference require
 for the assigned capability and mode are a minimum. A packet or brief may add
-WORKFLOW sections or bound the evidence sources consulted, but it cannot remove
+references or bound the evidence sources consulted, but it cannot remove
 those required instructions; neither requires reading all of WORKFLOW. An
 explicit human restriction remains binding, and an excluded source is not read.
 When such a restriction prevents applying a required instruction, report it as

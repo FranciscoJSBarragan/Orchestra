@@ -166,12 +166,10 @@ root approves or rejects.
 The implementation owner, reviewer, and each required capability verifier form
 a bounded phase cohort. Ordinary deterministic phases have no verifier.
 A required user preview keeps the same logical owner through absorption under
-WORKFLOW "User preview" and "Phase execution". One-shot analysts close after
-their result is consumed. The cohort
-closes only after final phase evidence is consumed, preserving relevant context
-without carrying implementation state across phases. Analysis agents are
-one-shot except that a technical planner remains open through a dispatched
-plan-review correction loop and closes before implementation.
+WORKFLOW "User preview" and "Phase execution". Every fix, rerun and delta
+review is a fresh session of its logical assignment, and the cohort closes
+after final phase evidence is consumed. Analysts are one-shot; a plan
+correction goes to a fresh planner session.
 
 Roles share only minimal conventions: explicit capability and authority,
 worktree, exact target artifact identifiers and roles, revision identity,
@@ -322,7 +320,7 @@ Artifact `kind` is a file-naming convention:
 `implementation-review`, `debugging-report`, and `pr-review` only when PR
 analysis has a downstream semantic consumer. Corrected overview and phase
 documents are immutable complete replacements. Mechanical start, completion,
-commit, push, check, and merge facts remain activity, Git, or GitHub state.
+commit, push, check, and merge facts remain Git or GitHub state.
 
 Material context discoveries remain sections of those existing reports and
 share their task-private lifecycle. They become cross-task knowledge only when
