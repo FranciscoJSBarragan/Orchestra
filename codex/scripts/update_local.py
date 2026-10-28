@@ -28,6 +28,12 @@ def promote(root: Path) -> None:
     staging.rename(current)
 
 
+def carry_over(root: Path, targets: list[str]) -> None:
+    for target in targets:
+        if (root / "current" / target).exists():
+            shutil.copytree(root / "current" / target, root / "next" / target, symlinks=True)
+
+
 def same_files(bundle: Path, installed: Path) -> bool:
     files = [path.relative_to(bundle) for path in bundle.rglob("*") if path.is_file()]
     return all((installed / name).is_file()
@@ -57,6 +63,7 @@ def main() -> int:
             (staging / "claude/.claude-plugin/marketplace.json").write_text(json.dumps(catalog, indent=2) + "\n")
         if args.codex:
             build_plugin(SOURCE, staging / "portable" / PLUGIN, "portable")
+        carry_over(root, [name for name, wanted in (("claude", args.claude), ("portable", args.codex)) if not wanted])
         promote(root)
         installed: dict[Path, Path] = {}
         if args.claude:
