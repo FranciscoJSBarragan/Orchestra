@@ -137,9 +137,9 @@ setup. Loading alone does not start work and never changes permissions.
 ## Acceptance
 
 The September 2026 acceptance of separate Codex, Cursor and Grok Build hosts
-is recorded at the `multi-host-final` tag. Acceptance of the T3 Code route,
-from a request to a delivered PR in one pass, is pending in
-[the roadmap](../docs/ROADMAP.md).
+is recorded at the `multi-host-final` tag. The T3 Code route delivered a PR
+from a request in one pass on 2026-10-28; [the roadmap](../docs/ROADMAP.md)
+records that evidence and what remains.
 
 ## Lifecycle
 

@@ -38,8 +38,17 @@ answered through the user's own channel. On 2026-10-28 the installed 0.2.0
 plugin passed in a fresh T3 thread: every flow row resolved against the live
 catalog once Grok used its catalog id, and reviewer children on Claude Code,
 Codex and Cursor read their role skill by absolute path, returned the role's
-format and found the seeded defect. The full request-to-PR chain has not run in
-one pass yet.
+format and found the seeded defect. The same day the full chain ran in one
+pass: a request from the user's channel reached the Hermes thread, which
+launched a Claude Code task root in a T3 worktree; the root passed the review
+pair (two accepted findings, one fix round, a delta review by both reviewers),
+committed the phase, opened the PR with its PR-CONTEXT capsule, watched it with
+T3's watcher and reported to Hermes, which relayed the link and archived the
+thread. Two defects surfaced. The root accepted its own plan; a parent-launched
+root now sends its plan to the parent, which still needs a live run. The
+watcher could not read checks while T3 used a token saved in its Source
+Control settings without check access, and woke the thread once T3 used the
+`gh` login.
 
 The last multi-host revision is `f2d0ba024a155077e37959121537de944826b35a`
 (tag `multi-host-final`). Restore a removed adapter, matrix or helper from it
