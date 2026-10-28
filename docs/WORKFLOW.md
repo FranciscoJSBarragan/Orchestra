@@ -1083,159 +1083,82 @@ Legacy tasks keep their Git-private cleanup path until they complete.
 
 Each phase has one outcome, allowed scope, acceptance criteria and
 verification set. A phase-specific subplan exists only when the phase cannot
-be safely delegated from the main plan.
+be safely delegated from the main plan. Implementation and difficult debugging
+may escalate under the recovery ladder in "Flow assignment"; acceptance,
+review and delivery gates still apply.
 
 The phase's `Verification` section separates `Implementation handoff checks`
-from the `Independent verification gate`. The implementation owner runs every
-required local deterministic check: affected tests, lint, type checks, builds,
-validation commands and the canonical full suite when one exists, including
-each applicable `.agent/` hard gate when configured, and fixes failures within scope before
-handoff. An ordinary deterministic phase sets the independent
-gate to `none`. A verifier is required only for browser interaction, owned
-services or processes, mutable or stateful data, credentials, network or
-another external environment, or explicit repository policy, where it
-independently repeats the applicable gate. After an accepted
-fix, rerun only affected checks unless the repository explicitly requires
-another full gate. Configured delivery checks remain a separate final boundary.
+from the `Independent verification gate`. The implementer runs and fixes every
+required local deterministic check before handoff, as its role skill defines.
+When the canonical full suite takes minutes, the plan may leave it to one root
+run on the handoff revision in parallel with the first review; a failure there
+is a finding. The independent gate is `none` for an ordinary deterministic
+phase. A verifier is required only for browser interaction, owned services or
+processes, mutable or stateful data, credentials, network or another external
+environment, or explicit repository policy. After an accepted fix only the
+affected checks rerun unless the repository requires another full gate;
+configured delivery checks remain the final boundary. Shared "Behavioral
+verification" guides test selection, and changing it never waives a
+repository gate.
 
-Use shared "Behavioral verification" to select and assess tests. Each handoff
-states the behavior or regression risk its changed tests demonstrate and any
-concrete benefit of overlapping coverage. Changing test selection never
-waives a repository gate.
-
-Implementation and difficult debugging may escalate under the recovery ladder
-in "Flow assignment"; acceptance, independent review, source-read-only
-verification and delivery gates still apply.
-
-1. The root selects one `orchestra_implementation_worker` with
+1. Implement. The root dispatches one implementer with
    `general_implementation` or `frontend_implementation` as the phase's
-   logical owner. One session covers the first handoff and preview
-   absorption; every fix round is a fresh session of that owner whose packet
-   carries the current revision and diff and the accepted findings with their
-   evidence, started only after the previous session is confirmed closed, so
-   there is never a second writer. The packet holds edit
-   authority, worktree, `plan.md` path, exact overview and phase IDs,
-   revision, accepted finding IDs, stop conditions and only new context. The
-   worker reads scope, acceptance, verification and dependencies from those
-   documents and only prior outputs the phase requires. A
-   context-maintenance fix also carries the discovery ID, `persist`
-   disposition, validating delta and exact maintenance path. While the worker
-   is active the root waits: it handles user dialogue, resource coordination
-   and root-owned setup that does not inspect or exercise the evolving
-   implementation, and does not read the evolving diff, consume the
-   worker's transcript as progress, run canaries against it or send design
-   corrections.
-2. At each stable handoff the worker publishes a complete
-   `implementation-report` (or returns it inline). It cannot return
-   `implemented` while a required check is failing, omitted without approved
-   reason, stale, contradicted by its output or weakened to pass. For every
-   check the report names the command and directory, evaluated revision and
-   dirty paths, exit status and salient output, mapped acceptance or risk,
-   tests changed and their coverage, permitted generated effects and cleanup, and
-   residual risk.
-   The root makes at most one bounded check of Git identity, status,
-   allowed-path scope (exempting only its own authorized normative `.agent/`
-   paths), `git diff --check` and the evidence inventory. For a
-   `frontend_implementation` phase that changed a visible surface with preview
-   `none`, that check also opens the cited screenshots, where the host renders
-   images, and judges layout, states and coherence with the existing design; a
-   material aesthetic defect becomes a finding, and missing screenshots block
-   unless the report records why no runnable surface existed.
-   When `plan.md` records a seed Decision, the root writes only the approved
-   `.agent/**` seed paths at the first phase's stable handoff: owner delivers,
-   root writes the seed, then independent gate, initial review and commit.
-   Later `.agent/**` persists follow steps 5–7.
-   A root investigation of a possible correctness defect is completed and
-   confirmed against the current source and diff before it contacts the
-   owner or pauses the phase cohort, then sent as one consolidated finding
-   packet with evidence, impact and acceptance, never provisional or
-   superseding directions. Returned discoveries get
-   their disposition before routing a dependent consumer.
-   Cleanup reporting is exception-based: no `cleanup`/`retained_resources`
-   declaration means pass with nothing retained. Authorized non-browser
-   retention stays in root memory until teardown; `partial` is non-blocking
-   only for a source-read-only task tab or window; `blocked` stops downstream
-   dispatch and gets one cleanup-only follow-up to the same owner, and a
-   second failure blocks the phase.
-   A `required` preview completes, with absorption, before the next step;
-   never verify or review the pre-pause revision.
-3. The root first validates the owner's evidence inventory, then starts the
-   review in step 4. For a gate of
-   `none` it creates no verifier; otherwise at most one verifier per
-   applicable capability, passing the gate reason, overview, phase,
-   implementation report, authority and revision. Each publishes a complete
-   `verification-report`. The gate runs once, on the first revision whose
-   review leaves no accepted open finding, because a run before review
-   converges is repeated on the fixed revision; fix rounds before it rely on
-   the owner's handoff checks and delta review. A failure goes to a fix round with its report and accepted finding IDs,
-   without root-authored replay; after the fix's delta review the verifier
-   reruns only the failed scenarios and those the fix affects. The
-   verifier receives the revision as a commit SHA: `HEAD` when committed,
-   otherwise a commit of the working tree that leaves branch and index
-   untouched (`t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD &&
-   GIT_INDEX_FILE=$t git add -A && git commit-tree $(GIT_INDEX_FILE=$t git
-   write-tree) -p HEAD -m verify`). Verification copies are `git worktree add
-   --detach` checkouts of that SHA; equal SHAs prove equal trees, so the
-   packet names that SHA and the scenarios to run, with no file manifests or
-   hash inventories.
-   On `blocked`, the root decides whether the phase proceeds without that
-   evidence and records the blocked reason in the phase evidence. While a stable revision is under verification the root does
-   no speculative source review; it interrupts only for a changed revision or
-   a finding confirmed against the exact current source and diff that
-   invalidates that packet. Verifier
-   discoveries stay in the verification report and get a disposition before
-   use.
-4. One reviewer receives the plan path with the relevant user and root
-   decisions as authority, exact overview, phase, implementation and any
-   verification IDs, every context artifact the overview and phase require,
-   the cited screenshots for a visible change, and the exact `.agent/` seed
-   paths when the commit will include root-authored `.agent/` files (that
-   commit cannot close without their inspection). The delta review of a fix
-   for a failed verification receives that `verification-report`.
-   The reviewer inspects source and diff independently, judges approved
-   intent before project guardrails and implementation evidence, and
-   publishes a complete initial `implementation-review` with `Context basis`
-   (only evidence actually consulted); fresh delta reviews under "Review
-   policy" name the full-review base and prior dispositions and receive only
-   new or replaced evidence rather than a replay of the full packet. It inspects source, diff, tests,
-   evidence freshness and completeness, and does not rerun checks already
-   evidenced; it may run the smallest local deterministic check that tests
-   one concrete defect hypothesis and records that command and result in the
-   `implementation-review`. Missing, stale,
-   contradictory, incomplete or weakened required evidence is a finding or
-   blocker. It opens full context only for a named `Review use` whose judgment depends
-   on it, and returns
-   `blocked` for missing or stale context only when that exact material
-   judgment is named, after reporting independently resolvable findings.
-5. The review and accepted finding IDs return to the same logical owner,
-   except a root correction under finding triage; the root does not restate
-   findings.
-   Context discoveries follow "Material context discovery and promotion":
-   confirm only when a result could change acceptance, a disposition,
-   replanning or a needed persist; product documentation returns to the owner;
-   normative `.agent/` policy stays root-authored; `normative` or `uncertain`
-   conflicts are fixed as defects, replanned, reported or escalated, never
-   rewritten to follow code.
-6. After an authorized documentation or `.agent/` edit, the same owner reruns
-   affected handoff checks and publishes a replacement `implementation-report`
-   for that revision; a new or changed hard gate requires running its literal
-   command. A fresh delta review follows. Apply the revalidation rule
-   in "Material context discovery and promotion" without a second analysis
-   cycle, and rerun a verifier only for an affected gate.
-7. After final evidence is consumed and every discovery has a disposition,
-   the reviewer must have an unblocked current context basis; a material
-   unresolved, stale or conflicting basis blocks commit. The root then runs
-   phase teardown.
-8. When teardown permits, the root commits with direct Git or the exact-path
-   helper and records the commit in the manifest. No commit artifact.
+   logical owner. Every fix round is a fresh session of that owner, started
+   only after the previous one closed, so there is never a second writer.
+   While it works the root handles the user and root-owned setup, and does not
+   read the evolving diff, take its transcript as progress, run checks against
+   it or send design corrections. A `required` user preview completes, with
+   absorption, before review.
+2. Accept the handoff. The root makes one bounded check of Git identity,
+   status, allowed paths (exempting its own authorized `.agent/` paths),
+   `git diff --check` and that the report cites every required check. When a
+   `frontend_implementation` phase changed a visible surface without a
+   preview, the root also opens the cited screenshots and judges layout,
+   states and coherence with the existing design; a material defect is a
+   finding, and missing screenshots block unless no runnable surface existed.
+   A defect the root suspects is confirmed against the current source and diff
+   first and sent as one finding packet with evidence, impact and acceptance,
+   never as provisional directions. Discoveries follow "Material context
+   discovery and promotion", cleanup follows "Phase teardown", and a
+   greenfield seed Decision writes its `.agent/` paths now, at the first
+   phase, under "Repository conventions".
+3. Review. The review of the handoff revision follows "Review policy", which
+   sets the packet and the pair; the reviewer role skill sets how to review.
+   Its packet adds the plan path and the context artifacts the phase requires,
+   the cited screenshots of a visible change, the exact paths of root-authored
+   `.agent/` files, and, for a fix of a failed verification, that
+   `verification-report`.
+4. Fix. Accepted findings go to a fresh session of the same logical owner
+   with the current revision and diff and the findings' evidence, except a
+   root correction under finding triage; a fresh delta review follows. An
+   authorized documentation or `.agent/` edit is an ordinary fix round.
+5. Verify. When the gate is not `none`, at most one verifier per applicable
+   capability runs once, on the first revision whose review leaves no accepted
+   open finding, since a run before review converges repeats on the fixed
+   revision. Its packet carries the gate reason, overview, phase,
+   implementation report, authority and the revision as a commit SHA: `HEAD`
+   when committed, otherwise a commit of the working tree that leaves branch
+   and index untouched (`t=$(mktemp -u); GIT_INDEX_FILE=$t git read-tree HEAD
+   && GIT_INDEX_FILE=$t git add -A && git commit-tree $(GIT_INDEX_FILE=$t git
+   write-tree) -p HEAD -m verify`). Its copy is a `git worktree add --detach`
+   of that SHA; equal SHAs prove equal trees, so no file manifests or hashes.
+   A failure goes to a fix round with its report, and after the fix's delta
+   review the verifier reruns only the failed scenarios and those the fix
+   affects. On `blocked` the root decides whether the phase proceeds without
+   that evidence and records why. During verification the root interrupts
+   only for a changed revision or a finding confirmed against it.
+6. Commit. Once the current review accepts the exact revision, every required
+   gate has passed and every discovery has a disposition, the root runs phase
+   teardown, commits with direct Git or the exact-path helper and records the
+   commit in the manifest. No commit artifact.
 
 When the same causal failure repeats, corrections do not converge, scope
 expands or evidence points to a deeper shared cause, stop blind retries and
-choose: reassess the approach, dispatch
-`difficult_debugging`, or ask the user at an authority boundary. Distinct
-legitimate findings are not a trigger. An isolated Git failure stays with the
-root: inspect status and the latest commit once, apply an obvious safe fix,
-and never dispatch an agent merely to operate Git.
+choose: reassess the approach, dispatch `difficult_debugging`, or ask the user
+at an authority boundary. Distinct legitimate findings are not a trigger. An
+isolated Git failure stays with the root: inspect status and the latest commit
+once, apply an obvious safe fix, and never dispatch an agent merely to operate
+Git.
 
 ### User preview
 
@@ -1308,10 +1231,9 @@ further taste work is a PR-fix inside approved intent or a new task.
 The root keeps only an in-memory list of the agents and temporary resources it
 created or permitted for the current phase. Every agent closes its own
 servers, processes, terminal sessions and task tabs before a final, failed
-or blocked handoff by default. Analysts and reviewers retain nothing. Implementation owners and
-verifiers stay open through the phase to reuse context, not tools; they
-recreate resources unless the packet authorizes retaining an exact
-non-browser category. Browser tabs are never retained across a handoff.
+or blocked handoff by default. Analysts and reviewers retain nothing. Each session recreates its
+resources unless the packet authorizes retaining an exact non-browser
+category. Browser tabs are never retained across a handoff.
 Activity rows are observability snapshots, not resource handles.
 
 Teardown is proportional. For an edit-only phase (no declared retention,

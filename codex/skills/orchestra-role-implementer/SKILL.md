@@ -49,8 +49,8 @@ ask the root to restate them. For `frontend_implementation`, also read
    needs more, say which one in the report.
 
 5. **Run every required check.** Affected tests, lint, type checks, builds,
-   validation commands, the canonical full suite and each repository hard
-   gate. Fix failures inside scope and rerun. A test that passed before your
+   validation commands, the canonical full suite (unless the phase leaves it
+   to the root's run beside review) and each repository hard gate. Fix failures inside scope and rerun. A test that passed before your
    change and now fails is evidence against the change: fix the code, not
    the test, unless the approved phase changes the behavior it checks; if
    the code cannot satisfy it inside scope, stop and report. A skipped,

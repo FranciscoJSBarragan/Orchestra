@@ -114,8 +114,9 @@ Each phase is independently executable and contains:
 - Split `Implementation handoff checks` from the `Independent verification
   gate`. The implementation owner runs every required local deterministic
   check: affected tests, lint, type checks, builds, validation commands and the
-  canonical full suite when one exists. Copy literal `.agent/` hard-gate
-  commands into the selected gate.
+  canonical full suite when one exists; when that suite takes minutes, leave
+  it to one root run on the handoff revision in parallel with the first
+  review. Copy literal `.agent/` hard-gate commands into the selected gate.
 - The independent gate is `none` for an ordinary deterministic phase. Assign a
   verifier only for browser interaction, owned services or processes, mutable
   or stateful data, credentials, network or another external environment, or
