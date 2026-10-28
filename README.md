@@ -133,7 +133,7 @@ Each consumer repository declares its delivery policy and checks in `orchestra.t
 
 ```toml
 [delivery]
-mode = "hybrid"   # "hold" | "pr" | "hybrid" | "local"
+mode = "hybrid"   # "pr-required" | "hybrid" | "local-direct"
 
 [[checks]]
 name = "suite"
