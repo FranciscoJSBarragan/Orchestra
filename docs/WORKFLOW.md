@@ -1104,7 +1104,8 @@ When the canonical full suite takes minutes, the plan may leave it to one root
 run on the handoff revision, started with the first review in the task
 checkout while no writer is active and leaving `git status` as it found it;
 fix rounds wait until it concludes, step 6 waits for its result, and a failure
-is a finding. The independent gate is `none` for an ordinary deterministic
+is a finding whose fix the root reruns the suite on, the new result replacing
+the failed one. The independent gate is `none` for an ordinary deterministic
 phase. A verifier is required only for browser interaction, owned services or
 processes, mutable or stateful data, credentials, network or another external
 environment, or explicit repository policy. After an accepted fix only the
