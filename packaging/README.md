@@ -66,6 +66,27 @@ claude --plugin-dir /absolute/path/to/dist/claude/orchestra
 Its `hooks/hooks.json` lets agents read the package's own files without
 prompts; it allows only `Read`, `Glob`, and `Grep` inside the bundle.
 
+To install it for every Claude Code session, wrap the bundle in a local
+marketplace: copy it to a persistent catalog folder as `orchestra/` and add
+`.claude-plugin/marketplace.json` beside it:
+
+```json
+{
+  "name": "orchestra-local",
+  "owner": {"name": "<your name>"},
+  "plugins": [{"name": "orchestra", "source": "./orchestra"}]
+}
+```
+
+Then register the catalog and install from it:
+
+```sh
+claude plugin marketplace add /absolute/path/to/catalog
+claude plugin install orchestra@orchestra-local
+```
+
+The catalog folder must stay in place while the plugin is installed.
+
 Cursor supports a session-local directory:
 
 ```sh
