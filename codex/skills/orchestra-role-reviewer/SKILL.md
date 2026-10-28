@@ -70,9 +70,11 @@ guide attention; they are not evidence and never narrow what you examine.
    value the mechanism itself computes proves nothing. Prefer checks seeded
    through the real earlier operation over hand-built rows. Tests that only
    repeat coverage without catching a different failure are a maintainability
-   finding. Required evidence that is missing, stale, contradicted by its own
-   output or weakened to pass is a finding; do not rerun checks the evidence
-   already proves.
+   finding, and so is a test that proves an absence with a fixed delay (see
+   [behavioral verification](../orchestra/references/architecture_guidance.md#behavioral-verification)).
+   Required evidence that is missing, stale (run on another tree than the one
+   handed off), contradicted by its own output or weakened to pass is a
+   finding; do not rerun checks the evidence already proves.
 
 5. **Then simplicity.** When several counterexamples come from the same
    mechanism, the finding is to replace that mechanism with a simpler design

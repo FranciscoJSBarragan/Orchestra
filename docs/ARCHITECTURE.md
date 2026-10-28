@@ -84,8 +84,8 @@ capability.
 For each implementation phase, the root also keeps transient handles for the
 implementation owner, reviewer, only verifiers required by the independent
 gate, and only explicitly retained non-browser temporary processes created for
-that phase. Agents close their owned resources before each handoff by default
-while remaining available for fixes, reruns, and delta review. Before commit,
+that phase. Agents close their owned resources before each handoff by default;
+fixes, reruns and delta reviews are fresh sessions. Before commit,
 the root follows up only on authorized retention or incomplete cleanup. Agent
 and resource handles remain in memory.
 At any earlier handoff, blocked cleanup prevents downstream dispatch and

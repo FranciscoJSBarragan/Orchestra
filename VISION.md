@@ -224,7 +224,8 @@ paths or explicitly states that none are authorized.
 
 The default implementation owner is the first deterministic quality gate. It
 runs and autocorrects every required local deterministic check, including the canonical
-full suite when one exists. The independent reviewer judges intent, source,
+full suite when one exists, unless the plan runs a slow suite beside the first
+review. The independent reviewer judges intent, source,
 diff, tests, and evidence without routinely repeating those gates; it may run
 only a minimal diagnostic check for a concrete defect hypothesis. Parent-side reproduction follows WORKFLOW "Cross-environment acceptance" only
 when a named risk or evidence gap requires it; ordinary child check ownership

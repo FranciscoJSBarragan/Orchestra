@@ -440,9 +440,10 @@ side effect; an HTTP success or attractive screenshot alone may be insufficient.
 In tests already changed by the task, remove setup, logging capture or waits
 that no longer support an observation. Preserve scheduling or instrumentation
 that is necessary to exercise and check a real asynchronous effect. To prove
-that something does not happen, await the signal that settles it (the request,
-event or state change that would trigger it) rather than a fixed delay, which
-can end before the effect and pass with the defect present.
+that something does not happen, await a signal that can only arrive after the
+effect would have occurred (the handler finished, the queue drained, a later
+event of the same flow), never a fixed delay or the trigger itself, which can
+end before the effect and pass with the defect present.
 
 Balance defect detection, fidelity, execution frequency, diagnostic value,
 reliability and maintenance cost. A fast focused test can remain valuable even

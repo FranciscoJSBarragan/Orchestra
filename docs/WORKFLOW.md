@@ -1091,8 +1091,9 @@ The phase's `Verification` section separates `Implementation handoff checks`
 from the `Independent verification gate`. The implementer runs and fixes every
 required local deterministic check before handoff, as its role skill defines.
 When the canonical full suite takes minutes, the plan may leave it to one root
-run on the handoff revision in parallel with the first review; a failure there
-is a finding. The independent gate is `none` for an ordinary deterministic
+run on the handoff revision, started with the first review in the task
+checkout while no writer is active and leaving `git status` as it found it;
+the phase does not commit before it passes, and a failure is a finding. The independent gate is `none` for an ordinary deterministic
 phase. A verifier is required only for browser interaction, owned services or
 processes, mutable or stateful data, credentials, network or another external
 environment, or explicit repository policy. After an accepted fix only the
@@ -1109,9 +1110,12 @@ repository gate.
    read the evolving diff, take its transcript as progress, run checks against
    it or send design corrections. A `required` user preview completes, with
    absorption, before review.
-2. Accept the handoff. The root makes one bounded check of Git identity,
-   status, allowed paths (exempting its own authorized `.agent/` paths),
-   `git diff --check` and that the report cites every required check. When a
+2. Accept each handoff, first and fix rounds alike. The root makes one
+   bounded check of Git identity, status, allowed paths (exempting its own
+   authorized `.agent/` paths), `git diff --check` and that the report cites
+   every required check run on the handed-off tree. A `blocked` cleanup stops
+   further dispatch until one cleanup-only follow-up to the same owner clears
+   it; a second failure blocks the phase. When a
    `frontend_implementation` phase changed a visible surface without a
    preview, the root also opens the cited screenshots and judges layout,
    states and coherence with the existing design; a material defect is a
@@ -1119,19 +1123,22 @@ repository gate.
    A defect the root suspects is confirmed against the current source and diff
    first and sent as one finding packet with evidence, impact and acceptance,
    never as provisional directions. Discoveries follow "Material context
-   discovery and promotion", cleanup follows "Phase teardown", and a
-   greenfield seed Decision writes its `.agent/` paths now, at the first
-   phase, under "Repository conventions".
+   discovery and promotion", other cleanup follows "Phase teardown", and a
+   seed Decision writes its `.agent/` paths now, at the first phase, under
+   "Repository conventions".
 3. Review. The review of the handoff revision follows "Review policy", which
    sets the packet and the pair; the reviewer role skill sets how to review.
    Its packet adds the plan path and the context artifacts the phase requires,
    the cited screenshots of a visible change, the exact paths of root-authored
-   `.agent/` files, and, for a fix of a failed verification, that
-   `verification-report`.
+   `.agent/` files, that the root runs the full suite when it does, and, for a
+   fix of a failed verification, that `verification-report`.
 4. Fix. Accepted findings go to a fresh session of the same logical owner
    with the current revision and diff and the findings' evidence, except a
-   root correction under finding triage; a fresh delta review follows. An
-   authorized documentation or `.agent/` edit is an ordinary fix round.
+   root correction under finding triage; a fresh delta review follows unless
+   finding triage exempts the round. A product-documentation `persist` goes to
+   the owner the same way with its discovery ID and exact path, while
+   normative `.agent/` edits stay root-authored; both then follow the
+   revalidation in "Material context discovery and promotion".
 5. Verify. When the gate is not `none`, at most one verifier per applicable
    capability runs once, on the first revision whose review leaves no accepted
    open finding, since a run before review converges repeats on the fixed
@@ -1148,7 +1155,9 @@ repository gate.
    that evidence and records why. During verification the root interrupts
    only for a changed revision or a finding confirmed against it.
 6. Commit. Once the current review accepts the exact revision, every required
-   gate has passed and every discovery has a disposition, the root runs phase
+   gate and the root's full-suite run, if any, has passed or has a `blocked`
+   result the root accepted, and every discovery has a disposition, the root
+   runs phase
    teardown, commits with direct Git or the exact-path helper and records the
    commit in the manifest. No commit artifact.
 
@@ -1656,9 +1665,8 @@ changes use normal implementation scope and review when already authorized,
 otherwise become bounded follow-up proposals without delaying delivery. Agents
 never gain authority to rewrite their own skills or policies from a failure.
 
-Keep the implementation owner and reviewer available until any authorized
-knowledge correction, affected checks, and delta review
-finish. The destination is the existing canonical repository documentation
+Hold the commit until any authorized knowledge correction, its affected
+checks and its delta review finish. The destination is the existing canonical repository documentation
 or an exact `.agent/` path under "Repository conventions"; do not create a
 second copy of already maintained knowledge.
 A candidate qualifies only when it is verified against the current revision,
