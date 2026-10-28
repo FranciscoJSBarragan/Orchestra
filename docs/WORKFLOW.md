@@ -1806,7 +1806,8 @@ the root persists no PR state beyond the PR itself.
    checks or review bots pending and no watch.
 6. Clean. One complete clean observation of the current head ends the loop.
    When only a person's review remains, the root reports that before it
-   waits. With merge authority, `pr.py merge` observes again before and after
+   waits. With merge authority, `orchestra-pr-merge` runs `pr.py merge`, which
+   observes again before and after
    the configured checks, merges only that exact head, which GitHub enforces,
    and cleans up conservatively: it never deletes a moved branch or a dirty
    worktree, and it reports what it retained.
