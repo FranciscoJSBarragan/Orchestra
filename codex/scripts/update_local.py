@@ -45,9 +45,10 @@ def main() -> int:
     parser.add_argument("--root", type=Path, required=True, help="bundles folder holding current and previous")
     parser.add_argument("--claude", metavar="MARKETPLACE", help="Claude Code marketplace name")
     parser.add_argument("--codex", metavar="MARKETPLACE", help="Codex marketplace name")
+    parser.add_argument("--cursor", action="store_true", help="copy into Cursor's local plugins folder")
     args = parser.parse_args()
-    if not (args.claude or args.codex):
-        parser.error("name at least one of --claude or --codex")
+    if not (args.claude or args.codex or args.cursor):
+        parser.error("name at least one of --claude, --codex or --cursor")
     root = args.root.expanduser().absolute()
     version = json.loads((SOURCE / "packaging/orchestra/.codex-plugin/plugin.json").read_text())["version"]
     try:
@@ -63,7 +64,10 @@ def main() -> int:
             (staging / "claude/.claude-plugin/marketplace.json").write_text(json.dumps(catalog, indent=2) + "\n")
         if args.codex:
             build_plugin(SOURCE, staging / "portable" / PLUGIN, "portable")
-        carry_over(root, [name for name, wanted in (("claude", args.claude), ("portable", args.codex)) if not wanted])
+        if args.cursor:
+            build_plugin(SOURCE, staging / "cursor" / PLUGIN, "cursor")
+        targets = (("claude", args.claude), ("portable", args.codex), ("cursor", args.cursor))
+        carry_over(root, [name for name, wanted in targets if not wanted])
         promote(root)
         installed: dict[Path, Path] = {}
         if args.claude:
@@ -79,6 +83,12 @@ def main() -> int:
             run("codex", "plugin", "add", plugin)
             codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
             installed[root / "current/portable" / PLUGIN] = codex_home / "plugins/cache" / args.codex / PLUGIN / version
+        if args.cursor:
+            local = Path.home() / ".cursor/plugins/local" / PLUGIN
+            if local.exists():
+                shutil.rmtree(local)
+            shutil.copytree(root / "current/cursor" / PLUGIN, local)
+            installed[root / "current/cursor" / PLUGIN] = local
     except (subprocess.CalledProcessError, StopIteration, ValueError, OSError) as exc:
         detail = getattr(exc, "stderr", None) or getattr(exc, "stdout", None) or exc
         print(f"error: {detail}", file=sys.stderr)

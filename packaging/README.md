@@ -87,7 +87,8 @@ claude plugin install orchestra@orchestra-local
 
 The catalog folder must stay in place while the plugin is installed.
 
-Cursor supports a session-local directory:
+Cursor loads a copied bundle from `~/.cursor/plugins/local/orchestra` after a
+reload (it skips symlinks that leave that folder), or one for a session:
 
 ```sh
 cursor-agent --plugin-dir /absolute/path/to/dist/cursor/orchestra
@@ -122,21 +123,23 @@ catalog through `codex plugin marketplace add /absolute/path/to/catalog-root`
 if needed, and run `codex plugin add orchestra@<marketplace-name>`. Inspect with
 `codex plugin list`; remove with `codex plugin remove orchestra@<marketplace-name>`.
 
-To update Claude Code and Codex with one command, keep the bundles under one
-fixed folder so catalogs never change path. Register once: the Claude Code
-catalog is `<folder>/current/claude` and the Codex catalog entry's source is
-`<folder>/current/portable/orchestra`. Then each update is:
+To update Claude Code, Codex and Cursor with one command, keep the bundles
+under one fixed folder so catalogs never change path. Register once: the Claude
+Code catalog is `<folder>/current/claude` and the Codex catalog entry's source
+is `<folder>/current/portable/orchestra`. Cursor needs no registration. Then
+each update is:
 
 ```sh
 git pull
-python3 codex/scripts/update_local.py --root <folder> --claude <marketplace> --codex <marketplace>
+python3 codex/scripts/update_local.py --root <folder> --claude <marketplace> --codex <marketplace> --cursor
 ```
 
 Pass only the providers you use. The script runs the full validator, builds into
 `<folder>/next` (writing the Claude Code catalog with the given name), moves
 `current` to `previous` (dropping the older `previous`) and promotes the new
 build to `current`. It then uninstalls and reinstalls through `claude plugin` and
-`codex plugin` and fails unless every bundle file is byte-identical in the
+`codex plugin`, replaces Cursor's local copy (Cursor's manager adds only Git
+marketplaces) and fails unless every bundle file is byte-identical in each
 installed copy; it writes no provider configuration. Managers can report success
 and leave stale bytes, as Grok Build 1.0.34 did on `plugin update`. Start a new
 T3 thread so the provider reloads skills. To roll back, move `previous` back to
