@@ -530,10 +530,12 @@ roots with the confirmed brief and the user's delivery endpoint, accepts a
 derived plan that stays within that brief, relays any other plan and every
 question to the user, and follows their reports. It never implements, not
 even a small fix: every change goes through a task root and its review. It reads the pinned
-instructions and the flow assignment by absolute path, needs no plugin, and
-runs its own research through `delegate_task` on the flow's
-`repository_context` row. It lacks the repository's execution environment, so
-it commissions hard gates and joint acceptance to a verifier as described
+instructions and the flow assignment by absolute path and needs no plugin. It
+reads the repository, its history, open PRs and issues as far as shaping the
+brief and judging a plan need, and leaves edits, commands with side effects and
+root-cause investigation to the task root; a question that needs more than
+bounded reading goes to `delegate_task` on the flow's `repository_context` row.
+It commissions hard gates and joint acceptance to a verifier as described
 above. For one task the register holds just that task's line. How the user reaches
 Hermes and what Hermes remembers belong to the user's Hermes configuration;
 repository knowledge stays under "Repository conventions".
