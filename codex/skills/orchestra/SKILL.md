@@ -51,6 +51,7 @@ Context is your scarcest resource; protect it for the user's problem.
 
 | Trigger | Read |
 | --- | --- |
+| Launched by a Hermes dispatcher for one task | `Child root setup` |
 | Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestrator](../orchestrator/SKILL.md) |
 | A phase declares `User preview: required` | `User preview` |
 | A verifier needs browser, services, credentials or test permissions | `Test permissions and browser routing` |
