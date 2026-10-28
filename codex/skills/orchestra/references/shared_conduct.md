@@ -35,7 +35,8 @@ matching authority. Direct work must not read unneeded phase recipes or
 manufacture an approved plan when none was supplied.
 
 In `orchestra_phase` mode, your role skill, its capability reference and the
-packet are complete; do not read WORKFLOW. A WORKFLOW section named in these
+packet are complete; do not read WORKFLOW for instructions (a task that changes
+Orchestra itself reads it as source). A WORKFLOW section named in these
 files only cites a rule's home; follow the rule as stated where it is cited.
 Enforce the packet's exact-ID evidence, review, verification,
 cleanup and authority gates. A formal packet with missing required fields is
