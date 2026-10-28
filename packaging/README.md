@@ -122,11 +122,25 @@ catalog through `codex plugin marketplace add /absolute/path/to/catalog-root`
 if needed, and run `codex plugin add orchestra@<marketplace-name>`. Inspect with
 `codex plugin list`; remove with `codex plugin remove orchestra@<marketplace-name>`.
 
-To update, rebuild into a fresh directory, replace the installed source
-deliberately, and check the installed copy before trusting a manager's success
-message: Grok Build 1.0.34 once reported a live symlink on `plugin update` and
-left the installed bytes unchanged, while uninstall and install refreshed them.
-Start a new T3 thread so the provider reloads skills.
+To update Claude Code and Codex with one command, keep the bundles under one
+fixed folder so catalogs never change path. Register once: the Claude Code
+catalog is `<folder>/current/claude` and the Codex catalog entry's source is
+`<folder>/current/portable/orchestra`. Then each update is:
+
+```sh
+git pull
+python3 codex/scripts/update_local.py --root <folder> --claude <marketplace> --codex <marketplace>
+```
+
+Pass only the providers you use. The script runs the full validator, builds into
+`<folder>/next` (writing the Claude Code catalog with the given name), moves
+`current` to `previous` (dropping the older `previous`) and promotes the new
+build to `current`. It then uninstalls and reinstalls through `claude plugin` and
+`codex plugin` and fails unless every bundle file is byte-identical in the
+installed copy; it writes no provider configuration. Managers can report success
+and leave stale bytes, as Grok Build 1.0.34 did on `plugin update`. Start a new
+T3 thread so the provider reloads skills. To roll back, move `previous` back to
+`current`, then uninstall and install through each manager.
 
 Invoke the Orchestra skill in a T3 thread with the name that provider exposes;
 plugins may namespace skill names. An unequivocal instruction such as “Use

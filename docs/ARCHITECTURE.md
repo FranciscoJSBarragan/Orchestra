@@ -561,7 +561,10 @@ distribution metadata varies. Runtime resolution and dispatch policy belong to
 WORKFLOW "T3 Code host" and the loaded skill's runtime reference.
 
 Plugin install, update, listing, and removal belong to each provider's plugin
-manager; install once per provider used as a task root. Removing a plugin does
+manager; install once per provider used as a task root.
+`codex/scripts/update_local.py` rebuilds into a fixed folder and drives those
+managers for Claude Code and Codex without writing their configuration.
+Removing a plugin does
 not remove user task data. Publishing bundles or a public marketplace is a
 separate delivery action. Orchestra installation is never part of ordinary task
 execution, bootstrap of Orchestra itself must not invoke Orchestra, and copying

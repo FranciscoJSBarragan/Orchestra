@@ -32,6 +32,8 @@ REQUIRED_PATHS = (
     "codex/scripts/prepare_source.py",
     "codex/tests/test_prepare_source.py",
     "codex/tests/test_package_plugin.py",
+    "codex/scripts/update_local.py",
+    "codex/tests/test_update_local.py",
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
     "packaging/claude/hooks/hooks.json",
