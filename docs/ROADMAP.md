@@ -34,8 +34,12 @@ threads on a remote VM whose Claude Code, Codex, Grok and Cursor children
 reported back and woke it, including three reports that queued while it was
 mid-turn and were handled in order; on 2026-10-26 a message from outside T3
 woke the Hermes thread through the local `t3 thread send`, and the thread
-answered through the user's own channel. The full request-to-PR chain has not
-run in one pass yet.
+answered through the user's own channel. On 2026-10-28 the installed 0.2.0
+plugin passed in a fresh T3 thread: every flow row resolved against the live
+catalog once Grok used its catalog id, and reviewer children on Claude Code,
+Codex and Cursor read their role skill by absolute path, returned the role's
+format and found the seeded defect. The full request-to-PR chain has not run in
+one pass yet.
 
 The last multi-host revision is `f2d0ba024a155077e37959121537de944826b35a`
 (tag `multi-host-final`). Restore a removed adapter, matrix or helper from it

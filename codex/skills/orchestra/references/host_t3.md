@@ -3,7 +3,9 @@
 T3 Code is the host of every Orchestra task. Its `t3-code` MCP tools
 (`delegate_task`, `t3_worktree_handoff`, `orchestrator_capabilities`) create
 the checkout and carry every role, and WORKFLOW "Flow assignment" names each
-role's provider, model and effort. A later root on another model or provider
+role's provider, model and effort. When another MCP server exposes the same
+tool names, use the `t3-code` server's for every call. A later root on another
+model or provider
 keeps the assignment recorded in the plan Decisions. Specification, planning,
 review policy, commits and delivery follow WORKFLOW.
 
@@ -47,10 +49,9 @@ checkout. Map the resolved row onto `target`: the row's `provider` is the
 `providerInstanceId`, never another instance that serves the same model id,
 such as an ACP registry instance; its exact
 `model` from the live `orchestrator_capabilities` catalog; and its effort in
-the effort option that model advertises there. A Cursor alias that encodes
-effort maps to the catalog model with that effort option and an explicit
-`fastMode`, `true` only for a `-fast` suffix, since the instance default may be
-on: `grok-4.7-xhigh` is `grok-4.7` at `xhigh` with `fastMode: false`. Both pair
+the effort option that model advertises there, whatever its name (`effort`,
+`reasoningEffort` or `reasoning_effort`). A provider whose instance turns
+`fastMode` on by default, as Cursor does, gets `fastMode: false`. Both pair
 reviewers start in the same turn. A missing model or effort blocks; never
 substitute silently.
 

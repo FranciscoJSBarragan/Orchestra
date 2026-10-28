@@ -61,7 +61,8 @@ your capability:
 
 Read-only for source and external state. Do not edit, stage, commit, push,
 merge, deploy, spawn agents, choose models or claim product authority. Use
-bounded reads; close anything you start. Never expose secrets.
+bounded reads; close anything you start and remove any file your commands
+created, such as a bytecode cache (run Python with `-B`). Never expose secrets.
 
 ## Output
 
