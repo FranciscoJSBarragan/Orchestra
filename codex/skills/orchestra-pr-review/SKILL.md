@@ -1,80 +1,47 @@
 ---
 name: orchestra-pr-review
-description: Converge an authorized Orchestra pull request through host-adapted independent review, accepted fixes, required checks, and a clean observation of the current HEAD; never merge implicitly.
+description: Use once an Orchestra PR is open and whenever it gets feedback or check results; observes GitHub, triages, routes accepted fixes and returns when the current head is clean. Never merges.
 ---
 
-# Converge an authorized PR
+# Bring the PR to clean
 
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
-Keep the root responsible for GitHub observation, feedback disposition, routing,
-blockers, pushes, and the clean conclusion. Read WORKFLOW `PR path`, `Review
-policy`, and the selected host adapter before dispatching any reviewer. This
-skill never merges, releases, deploys, publishes, or persists PR state.
+Drive an open PR to one complete clean observation of its current head. The
+loop and its authority are WORKFLOW "PR path"; judge every item with
+[finding triage](../orchestra/references/finding_triage.md).
 
-## Observe and review
+## Steps
 
-1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" observe
-   --repo <root> --repository <OWNER/REPO> --pr <number>`. Include repeatable
-   `--acknowledged-feedback <fingerprint>` only after triage of supplemental
-   review bodies and issue comments. Tokens bind repository,
-   PR, head, and exact content. Never use acknowledgements to bypass unresolved
-   threads; pass the accepted tokens to the merge helper too.
-2. Treat current head, checks, review decision, merge state, unresolved
-   non-outdated feedback, pagination completeness, and clean-observation
-   fields as external facts. Malformed or incomplete evidence is `partial` or
-   `blocked`, never clean.
-3. Resolve `independent_review` and the review pair through WORKFLOW
-   "Flow assignment" and match the assignment recorded in the plan before
-   dispatch.
-4. Require the terminal review WORKFLOW `Review policy` defines before
-   declaring a PR clean, and reuse it for unchanged code. Triage GitHub
-   feedback under that policy; dispatch the reviewer role only for
-   feedback whose validity needs investigation. Supply review authority, task
-   and worktree identity, observation, exact head, PR-CONTEXT, complete current
-   base..HEAD diff, approved overview and phase IDs, current
-   `implementation-report`, every required `verification-report` (none for a
-   gate of `none`), GitHub feedback, stop conditions, and only the new delta.
-   A multi-phase baseline packet carries no earlier implementation or PR
-   review.
-5. Require `pr-review` when semantic findings must pass to the owner or before
-   a delivery commit. Every actionable finding has a stable identifier.
+1. Observe with `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" observe
+   --repo <root> --repository <OWNER/REPO> --pr <number>`. Its fields are
+   GitHub's facts. Review bodies and issue comments have no resolved state, so
+   after triaging one, pass its token with `--acknowledged-feedback`, here and
+   to the merge helper. A token binds the head and the exact content and never
+   stands in for an unresolved thread.
+2. Triage everything actionable. Dispatch the `independent_review` row the plan
+   recorded only for feedback whose validity needs investigation, with
+   PR-CONTEXT, the current diff and evidence, the feedback and only the new
+   delta.
+3. Send accepted items to a fresh session of the implementation owner under
+   WORKFLOW "Phase execution". After its delta review, commit through
+   [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md), push and
+   refresh the capsule through [orchestra-pr-open](../orchestra-pr-open/SKILL.md).
+4. Resolve a thread by its ID once its fix is pushed or triage rejected it with
+   evidence.
+5. While checks are pending or failed, a bot review is in progress, review is
+   required or changes are requested, the branch conflicts, accepted feedback
+   is open or evidence is incomplete, watch the PR as
+   [T3 Code](../orchestra/references/host_t3.md#pull-requests) defines and end
+   your turn. On a wake, start again at step 1.
 
-## Fix and converge
+## Ask only if
 
-1. Return accepted findings to the same logical implementation owner and keep
-   its capability and playbook. If that owner is confirmed closed or
-   unavailable, spawn one replacement with the exact approved artifacts,
-   accepted IDs, and existing ownership label; do not invent a new role or
-   silently transfer scope.
-2. The owner applies only accepted fixes, reruns the checks they affect, and
-   publishes a replacement `implementation-report`. Rerun only an affected
-   independent gate, with the same verifier when available; replace it only
-   after confirmed unavailability. Dispatch a fresh independent reviewer with
-   the full-review base, prior dispositions, the meaningful delta and exact
-   current evidence.
-3. Do not commit or push until the current reviewer accepts the meaningful
-   delta, the affected checks are fresh, and the affected phase's review and
-   verification evidence is complete. Commit through
-   [orchestra-phase-commit](../orchestra-phase-commit/SKILL.md) and update the
-   phase terminal manifest before pushing under the existing PR authority.
-   Refresh the PR-CONTEXT capsule from the complete resulting branch range
-   through `orchestra-pr-open`; preserve the human body and approved intent.
-4. Clear supplemental dispositions after a push or observed head change and
-   resume direct observation. Do not restart discovery, planning, or unaffected
-   verification.
-5. Treat pending or failed checks, a bot review of the current head still in
-   progress, required review, changes requested, non-clean merge state,
-   accepted feedback, or incomplete pagination as `partial`.
-6. Return `ok` after one complete clean observation of the current HEAD.
-7. If pagination exceeds the helper's bound, collect all remaining pages with
-   the same GitHub API under read-only authority. Keep the result partial until
-   completeness is proven; do not loop on an unchanged truncated response.
-8. Resolve a thread through GitHub, by exact thread ID on the current head,
-   once its fix is reviewed and pushed or its triage rejected it with
-   evidence. Resolution is covered by PR-processing authority; posting replies
-   requires separate messaging authority. Re-observe after resolution.
+Feedback asks for a visible change the user did not approve, or triage reaches
+a decision the approved intent does not settle.
 
-`Open PR` authority covers opening, review, fixes, required checks, commits,
-and pushes needed to make that PR clean. Merge still requires separate explicit
-authorization through [orchestra-pr-merge](../orchestra-pr-merge/SKILL.md).
+## Report
+
+`ok` after one complete clean observation of the current head, with the head,
+the checks and the review rounds. Otherwise `partial` or `blocked` with what
+remains; when only a person's review remains, say so before you wait.

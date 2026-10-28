@@ -1758,77 +1758,58 @@ after owners close.
 
 ## Delivery policy
 
-A consumer repository stores an explicit delivery policy. When it is missing,
-Orchestra asks the user once and recommends `hybrid`. It does not infer
-permission from existing PRs, CI workflows, or branch history.
-
-`orchestra.toml` contains only the delivery mode and ordered verification checks
-as argument arrays. PR merge and local integration share that check runner;
-commands never pass through a shell.
-
-Supported policy modes:
+A consumer repository declares its delivery mode and its ordered verification
+checks in `orchestra.toml`; checks are argument arrays that never pass through
+a shell, and PR merge and local integration run them alike. Orchestra never
+infers permission from existing PRs, CI workflows or branch history: when the
+policy is missing it asks the user once and recommends `hybrid`.
 
 - `pr-required`: final integration goes through a PR.
-- `hybrid`: the user chooses local integration or PR per task.
+- `hybrid`: the user chooses local integration or a PR per task.
 - `local-direct`: local integration is permitted when explicitly requested.
+
+Delivery needs both the mode's permission and the user's direction for this
+task. `Open a PR` authorizes opening it and the review, fixes, commits and
+pushes that make it clean; it authorizes merge only when the user said `merge
+when clean` or asks later. No delivery authorizes release, deployment or
+production mutation.
 
 ## PR path
 
-The unchanged public PR skills preserve the proven behavioral chain:
+The task root owns its PR: it writes the body, observes GitHub, triages
+feedback, routes fixes and decides when the PR is clean. GitHub is the
+external truth. `pr.py` reports what GitHub holds without interpreting it, and
+the root persists no PR state beyond the PR itself.
 
-1. PR-open reads the complete branch commit range and diff, publishes the
-   intended branch, and verifies the remote head and PR body after creation or
-   update.
-2. The root synthesizes and publishes a compact `PR-CONTEXT` capsule.
-3. The root calls the narrow PR helper directly to observe every relevant
-   GitHub/CI feedback surface: review bodies, issue comments, complete review
-   threads, checks, review decision, merge state, and current head. It never
-   relies on only the last thread comment.
-4. The root triages actionable feedback under "Review policy" against
-   PR-CONTEXT and current code, and dispatches a reviewer only for feedback
-   whose validity needs investigation; status-only bodies need none, but a
-   bot status reporting its review of the current head still in progress
-   counts as a pending check until it completes. A PR
-   cannot become clean without the terminal review "Review policy" requires.
-   The root keeps revision-scoped dispositions in memory for the current
-   observation and never persists a feedback ledger.
-5. A fresh session of the implementation owner, or the root for a root
-   correction under finding triage, applies accepted fixes, reruns the checks
-   they affect, and publishes a replacement `implementation-report`; only an
-   affected independent gate reruns, with the same verifier. The pushed
-   head's PR checks and the merge helper's configured checks remain the full
-   gate. A fresh delta review evaluates the meaningful delta and
-   replacement evidence, producing the current accepted `pr-review`. The root
-   commits with that current review and only the `verification-report` evidence
-   required by the relevant gate, updates the affected phase's terminal
-   manifest commit, and pushes.
-6. The loop continues until one complete observation of the current head is
-   clean; the merge helper observes again before and after its checks.
-   Between observations the task root waits on T3's pull request watcher as
-   `host_t3.md` defines, never by polling or by ending its turn with checks or
-   review bots still pending.
-
-GitHub remains the external truth. PR-CONTEXT lives only as one upserted capsule
-in the PR body. The helper reports current checks and review-thread evidence; it
-does not interpret feedback, fix code, route work, or persist state. The root
-evaluates unresolved, non-outdated threads and supplemental review/issue comments and returns accepted findings
-to the same implementation owner by stable finding or GitHub reference. Publish
-`pr-review` only when an agent's semantic analysis must be consumed downstream;
-do not duplicate check, push, thread, or merge state as artifacts.
-
-`Open a PR` authorizes opening, review processing, fixes, commits, and pushes
-needed to make that PR clean. It does not authorize merge unless the user said
-`merge when clean` or separately requests merge later.
-
-After an authorized merge, the PR helper verifies the `MERGED` state against the
-exact reviewed head and performs conservative cleanup. The merge command itself
-uses `--match-head-commit` to reject a concurrent head change. It uses lease-protected
-deletion for an unchanged remote task branch and expected-value guards for local
-resources. Managed mode removes its task worktree; hybrid mode restores the
-starting branch and preserves the checkout. This exact
-merged-head proof permits cleanup after merge, squash, or rebase without
-pretending that all three preserve commit ancestry. An absent remote branch is
-already clean; a moved branch is retained.
+1. Open. The body describes the complete `base..HEAD` range for its readers.
+   One `PR-CONTEXT` capsule in the body carries the approved objective,
+   acceptance, invariants, non-goals, the main regression to avoid, runtime
+   and exposure, and whether the change is user-visible, so triage, and any
+   later thread that resumes the PR, can judge feedback without the task's
+   private state.
+2. Observe. `pr.py observe` reads every feedback surface of the current head:
+   review threads, review bodies, issue comments, checks, review decision and
+   merge state. Incomplete or malformed evidence is never clean, and a bot's
+   review of the current head still in progress counts as a pending check.
+3. Triage. The root judges each actionable item under "Review policy" against
+   PR-CONTEXT and current code, dispatching a reviewer only when validity needs
+   investigation. A PR is never clean without the terminal review that policy
+   requires.
+4. Fix. Accepted items follow the fix rounds of "Phase execution": a fresh
+   session of the owner, the affected checks and gates, then a fresh delta
+   review whose `pr-review` the phase commit consumes. The commit advances the
+   phase's terminal manifest commit before the push, and the capsule is
+   refreshed. A thread is resolved once its fix is pushed or triage rejected it
+   with evidence; replying on GitHub needs separate messaging authority.
+5. Wait. Between observations the root waits on T3's pull request watcher as
+   `host_t3.md` defines, never by polling and never by ending its turn with
+   checks or review bots pending and no watch.
+6. Clean. One complete clean observation of the current head ends the loop.
+   When only a person's review remains, the root reports that before it
+   waits. With merge authority, `pr.py merge` observes again before and after
+   the configured checks, merges only that exact head, which GitHub enforces,
+   and cleans up conservatively: it never deletes a moved branch or a dirty
+   worktree, and it reports what it retained.
 
 ## Local integration path
 

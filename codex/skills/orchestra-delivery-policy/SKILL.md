@@ -1,37 +1,38 @@
 ---
 name: orchestra-delivery-policy
-description: Choose the authorized Orchestra delivery path after reviewed phase commits are complete. Use when a committed change must be held, opened as a PR, or integrated locally according to explicit repository policy and task-level user direction without inferring authority from Git, GitHub, or CI history.
+description: Use when a reviewed, committed Orchestra task must be held, opened as a PR or integrated locally; routes by the repository's declared policy and the user's direction for this task.
 ---
 
-# Choose an authorized delivery path
+# Choose the delivery path
 
 Read [runtime resources](../orchestra/runtime.md) before resolving workflow files or helpers.
 
-Keep the root responsible for reading the user's delivery direction and making the routing decision. Delivery policy is a direct root/helper operation, not a profile or capability assignment. Have the root read repository policy with `${ORCHESTRA_RUNTIME_ROOT}/scripts/policy.py`; do not infer it from branches, PRs, checks, or history.
+Route a finished task to hold, a PR or local integration. The rules are
+WORKFLOW "Delivery policy"; this skill applies them.
 
-## Resolve policy and authority
+## Requires
 
-1. Require an independently reviewed, fully verified, committed change, its exact revision, the
-   completed plan manifest, its terminal phase commit, checkout mode, and
-   recorded resource ownership. Require the effective task HEAD to match that
-   terminal commit and require the current review and all configured checks for
-   that revision before PR or local delivery; an unexplained mismatch blocks
-   use of the completed plan. The durable knowledge checkpoint has already
-   run; if it produced an `.agent/` commit, that commit is the terminal one.
-2. Have the root directly run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/policy.py" --repo <root> show` and read its structured result.
-3. If the policy is missing, ask the user once and recommend `hybrid`. Return `blocked`; do not create the file or choose for the user.
-4. If the user chooses hold, make no delivery mutation and return `ok` with the committed branch or worktree.
-5. Allow the PR lane only for `pr-required` or `hybrid`. Require `open PR` or equivalent explicit task direction, then route to [orchestra-pr-open](../orchestra-pr-open/SKILL.md).
-6. Allow local integration only for `hybrid` or `local-direct`. Require explicit task-level local integration direction, then route to [orchestra-local-integrate](../orchestra-local-integrate/SKILL.md).
-7. If policy and user direction conflict, return `blocked` with the available authorized choices.
+- The task HEAD equals the completed plan's terminal phase commit, and the
+  current independent review and every configured check cover it. A mismatch
+  you cannot explain blocks delivery.
+- The durable knowledge checkpoint has run; an `.agent/` commit it made is the
+  terminal one.
 
-Opening a PR authorizes the create/review/fix/commit/push loop through clean status. It never authorizes merge. Local integration authority does not authorize release, deployment, publication, or production mutation. Delivery selection never changes a completed local plan back into execution state. Return only `ok`, `partial`, or `blocked` with compact evidence.
+## Steps
 
-For a subsequent explicitly authorized release, use the repository's release
-tooling and WORKFLOW "Review policy" / "Mechanical release metadata". That lane
-does not replace the implementation review or terminal-revision delivery gate.
+1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/policy.py" --repo <root> show`.
+2. No policy: ask the user once, recommend `hybrid` and return `blocked`. Never
+   write the file yourself.
+3. Hold: change nothing and return `ok` with the branch or worktree.
+4. A PR the user asked for, under `pr-required` or `hybrid`:
+   [orchestra-pr-open](../orchestra-pr-open/SKILL.md).
+5. Local integration the user asked for, under `hybrid` or `local-direct`:
+   [orchestra-local-integrate](../orchestra-local-integrate/SKILL.md).
+6. Direction and policy conflict: return `blocked` with the choices the policy
+   allows.
 
-An accepted PR fix that remains inside approved intent may advance the affected
-phase's terminal manifest commit after verification, review, and phase commit;
-update it before push. New scope or user-visible behavior after `completed` or
-`hold` requires a new task and plan.
+New scope or a visible change after `completed` or `hold` is a new task.
+
+## Report
+
+`ok`, `partial` or `blocked`, with the chosen path and its evidence.
