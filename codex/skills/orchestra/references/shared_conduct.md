@@ -140,9 +140,11 @@ root, normally the next `<NN>-<kind>.md` under
 publication is unavailable, return the complete report inline; never
 retry-loop or make publication failure a workflow blocker. Do not replay
 packet contents, unchanged context, routine narration, or duplicate evidence.
-Keep evidence compact: cite prior evidence for unchanged facts, keep raw logs
-and large tables in the evidence location, and make a delta report name its
-prior report, revision, affected findings and new verification. After successful publication, the handoff is the outcome, exact
+Keep evidence compact, as WORKFLOW "Task-private artifacts" holds: a report
+keeps enough evidence to establish its outcome and cites prior evidence for
+unchanged facts, raw logs and large tables stay in the evidence location, and a
+delta report names its prior report, revision, affected findings and new
+verification. After successful publication, the handoff is the outcome, exact
 artifact ID and material blockers/risks, not a second copy of the report.
 
 ## Stop rule
