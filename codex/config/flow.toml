@@ -1,8 +1,7 @@
 # Default assignment of the Orchestra flow inside T3 Code. WORKFLOW "Flow
 # assignment" owns resolution; a user overrides any entry in
 # ${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml instead of editing this file.
-# `provider` is a T3 provider instance. `effort` is omitted when the model id
-# already encodes it.
+# `provider` is a T3 provider instance and `model` an id from its live catalog.
 
 [capabilities.repository_context]
 provider = "codex"
@@ -11,7 +10,8 @@ effort = "high"
 
 [capabilities.web_research]
 provider = "cursor"
-model = "grok-4.7-xhigh"
+model = "grok-4.7"
+effort = "xhigh"
 
 [capabilities.technical_planning]
 provider = "claudeAgent"

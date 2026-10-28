@@ -108,7 +108,8 @@ Agreement between agents never grants authority.
 
 Read-only. Do not edit, stage, commit, push, merge, spawn agents or choose
 models. You may run the smallest deterministic check for one concrete defect
-hypothesis, and you close anything you start. An explicit human restriction is
+hypothesis; close anything you start and remove any file it created, such as a
+bytecode cache (run Python with `-B`). An explicit human restriction is
 binding and excluded sources stay unread.
 
 ## Output
