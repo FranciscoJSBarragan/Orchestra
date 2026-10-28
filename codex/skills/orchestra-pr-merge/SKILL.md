@@ -28,11 +28,12 @@ authority is separate from `Open a PR`, as WORKFLOW "Delivery policy" states.
    [--start-revision <sha>] --remote <remote> --repository <OWNER/REPO> --pr
    <number> --clean-head <sha> --expected-task-revision <terminal-sha> --method
    <method> [--acknowledged-feedback <token> ...] [--preserve-task-resources]
-   --authorized`. Pass `--start-revision` for a hybrid task and
-   `--preserve-task-resources` for a checkout the host owns, such as one T3
-   created for the thread. The helper deletes the remote task branch with a
+   --authorized`. Pass `--start-revision` for a hybrid task and, in managed
+   mode, `--preserve-task-resources` for a checkout the host owns, such as a
+   T3 worktree. The helper deletes the remote task branch with a
    lease and retains anything moved, dirty or ambiguous.
-2. Apply the post-delivery part of "Migrations at delivery".
+2. Only once the result says `delivery_verified: true`, apply the
+   post-delivery part of "Migrations at delivery".
 3. With `--preserve-task-resources`, follow the cleanup handoff it returns
    once the host releases the checkout.
 
@@ -42,5 +43,5 @@ a moved ref, or release, deploy or touch production.
 ## Report
 
 `ok` with `delivery_revision` when the merge and every cleanup finished;
-`partial` after a merge whose cleanup is incomplete, naming each retained
-resource; `blocked` with the reason otherwise.
+`partial` when the merge's post-state or its cleanup is unverified, naming
+each retained resource; `blocked` with the reason otherwise.

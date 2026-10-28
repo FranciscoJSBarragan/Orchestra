@@ -38,7 +38,8 @@ Call `t3_worktree_status` before task setup.
   resume, verify path, branch, and HEAD, then run the WORKFLOW canary write.
   Starting the thread in a T3 worktree avoids the handoff entirely.
 
-The checkout is T3-owned. Deliver with `--preserve-task-resources`; the user
+A T3 worktree, attached or handed off, is T3-owned. Deliver it in managed
+mode with `--preserve-task-resources`; the user
 releases the worktree and thread from T3, since archiving a thread does not
 remove its worktree.
 

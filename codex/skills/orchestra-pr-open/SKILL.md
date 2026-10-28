@@ -19,12 +19,13 @@ triage can judge. Authority and the loop after opening are WORKFLOW "PR path".
      [writing for readers](../orchestra/references/architecture_guidance.md#writing-for-readers);
    - the capsule's intent, read from the approved plan and phase documents
      rather than recalled, with the fields "PR path" lists.
-3. Run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" open --repo <root>
+3. Push the task branch at the completed plan's terminal phase commit, then
+   run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" open --repo <root>
    --repository <OWNER/REPO> --base <base> --head <head>
    --expected-task-revision <terminal-sha> --title <title> --body-file <body>
-   --context-file <intent> --authorized`. It refuses a head other than the
-   completed plan's terminal phase commit, publishes the branch and reads back
-   the remote head and body.
+   --context-file <intent> --authorized`. It refuses a local or remote head
+   other than that commit, creates or updates the PR and reads back its head
+   and body.
 4. Require `ok` and exactly one `PR-CONTEXT` capsule. The helper keeps human
    edits to the body and replaces only the capsule.
 5. Delete the temporary files and continue with
