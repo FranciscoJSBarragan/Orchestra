@@ -242,8 +242,8 @@ explicit supported choice rather than a hidden fallback.
 Within a phase, the implementation owner, the independent reviewer and, only
 when the independent gate requires one, a verifier for each used verification
 capability are logical assignments: every fix, rerun and delta review is a
-fresh session. Analysts are one-shot, and a plan correction goes to a fresh
-planner session. Before each handoff, every
+fresh session. Analysts are one-shot, except that a technical planner stays
+open through its plan-review correction loop. Before each handoff, every
 agent closes its own temporary processes, terminal sessions, and task tabs;
 only a non-browser resource category explicitly authorized by the packet may
 survive for phase reuse. Before the phase commit, the root

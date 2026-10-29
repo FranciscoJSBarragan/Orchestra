@@ -80,8 +80,8 @@ questions as a targeted `context-delta`. A plan stays a candidate until the
 user accepts it; only the root writes the active plan.
 
 `repository_context`, `web_research`, `architecture_analysis` and
-`difficult_debugging` are one-shot, and so is `technical_planning`: a plan
-correction is a fresh session with the accepted IDs and the current bundle.
+`difficult_debugging` are one-shot. A `technical_planning` analyst stays
+available only for the plan-review correction loop.
 
 ## Stop conditions
 

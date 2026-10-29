@@ -168,8 +168,9 @@ a bounded phase cohort. Ordinary deterministic phases have no verifier.
 A required user preview keeps the same logical owner through absorption under
 WORKFLOW "User preview" and "Phase execution". Every fix, rerun and delta
 review is a fresh session of its logical assignment, and the cohort closes
-after final phase evidence is consumed. Analysts are one-shot; a plan
-correction goes to a fresh planner session.
+after final phase evidence is consumed. Analysts are one-shot, except that a
+technical planner stays open through its plan-review correction loop and
+closes before implementation.
 
 Roles share only minimal conventions: explicit capability and authority,
 worktree, exact target artifact identifiers and roles, revision identity,

@@ -85,8 +85,8 @@ read-only.
 
 Every dispatch is a fresh `delegate_task` child; each fix round and each review
 round starts a new one. The root continues a child's thread only for preview
-absorption, a cleanup-only follow-up or an unfinished turn, and waits under
-"Agent waiting". The child's
+absorption, a planner's plan-review corrections, a cleanup-only follow-up or an
+unfinished turn, and waits under "Agent waiting". The child's
 returned result is the completed-state evidence before commit. After every
 return the root checks Git status and HEAD; a read-only role that changed
 anything beyond its declared report blocks.
