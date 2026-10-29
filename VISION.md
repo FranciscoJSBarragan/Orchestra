@@ -224,7 +224,8 @@ paths or explicitly states that none are authorized.
 
 The default implementation owner is the first deterministic quality gate. It
 runs and autocorrects every required local deterministic check, including the canonical
-full suite when one exists. The independent reviewer judges intent, source,
+full suite when one exists, unless the plan runs a slow suite beside the first
+review. The independent reviewer judges intent, source,
 diff, tests, and evidence without routinely repeating those gates; it may run
 only a minimal diagnostic check for a concrete defect hypothesis. Parent-side reproduction follows WORKFLOW "Cross-environment acceptance" only
 when a named risk or evidence gap requires it; ordinary child check ownership
@@ -238,11 +239,11 @@ authoritative. T3 delegation carries every role to its provider; model-provider
 bridges belong to separate products. An unavailable assignment requires an
 explicit supported choice rather than a hidden fallback.
 
-Within a phase, Orchestra keeps the implementation owner, independent reviewer,
-and, only when the independent gate requires one, a verifier for each used
-verification capability available for fixes, reruns, and delta review.
-Analysis agents are one-shot except that a technical planner remains open
-through a dispatched plan-review correction loop. Before each handoff, every
+Within a phase, the implementation owner, the independent reviewer and, only
+when the independent gate requires one, a verifier for each used verification
+capability are logical assignments: every fix, rerun and delta review is a
+fresh session. Analysts are one-shot, except that a technical planner stays
+open through its plan-review correction loop. Before each handoff, every
 agent closes its own temporary processes, terminal sessions, and task tabs;
 only a non-browser resource category explicitly authorized by the packet may
 survive for phase reuse. Before the phase commit, the root
@@ -308,8 +309,8 @@ Orchestra succeeds when:
 - delivery rejects a task head that is not the terminal manifest commit;
 - the PR path can open, review, fix, push, converge, merge when authorized, and
   clean exact task resources without losing intent;
-- concurrent tasks and their material activity can be queried without opening
-  every agent conversation;
+- concurrent tasks and their state can be read from T3's thread list and the
+  parent's register without opening every agent conversation;
 - downstream agents consume exact producer-authored documents without
   root-authored summary chains;
 - material context discoveries reach a named current-task consumer or receive

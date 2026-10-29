@@ -126,8 +126,9 @@ if needed, and run `codex plugin add orchestra@<marketplace-name>`. Inspect with
 To update Claude Code, Codex and Cursor with one command, keep the bundles
 under one fixed folder so catalogs never change path. Register once: the Claude
 Code catalog is `<folder>/current/claude` and the Codex catalog entry's source
-is `<folder>/current/portable/orchestra`. Cursor needs no registration. Then
-each update is:
+is `<folder>/current/portable/orchestra`. Cursor needs no registration. The
+first run builds `current` and stops at the reinstall step until those catalogs
+are registered; register them and run it again. Then each update is:
 
 ```sh
 git pull

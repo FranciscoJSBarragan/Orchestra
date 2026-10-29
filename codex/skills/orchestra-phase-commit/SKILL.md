@@ -14,8 +14,7 @@ assignment with missing phase fields is blocked rather than downgraded to a
 direct commit.
 
 Commit execution is a root responsibility in `orchestra_phase` mode. Do not
-resolve an assignment, spawn a committer profile, or create a commit
-capability. The same skill also supports a direct `standalone` commit when the
+resolve an assignment or dispatch a role to commit. The same skill also supports a direct `standalone` commit when the
 caller explicitly authorizes that commit. In either mode, stage only exact
 repository-relative paths, preserve unrelated work, and let Git remain the
 commit truth.

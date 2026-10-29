@@ -6,7 +6,8 @@ description: Use when the user asks to see or change which providers and models 
 # Orchestra models
 
 Read [runtime resources](../orchestra/runtime.md) once to resolve the package.
-The shipped assignment is `${ORCHESTRA_RUNTIME_ROOT}/flow.toml`. The user's
+The shipped assignment is `${ORCHESTRA_RUNTIME_ROOT}/flow.toml` in a package,
+or `codex/config/flow.toml` in a source checkout. The user's
 changes live only in `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml`, and
 WORKFLOW "Flow assignment" owns how the two combine. This skill never starts a
 task, dispatches agents or changes permissions.
@@ -28,11 +29,13 @@ task, dispatches agents or changes permissions.
 2. Refuse a provider, model or effort the live catalog lacks and name what it
    offers instead. Without the catalog, save it only if the user accepts that
    an unknown model blocks the task that first needs it.
-3. Keep `independent_review` and `review_pair` outside the implementer's model
-   family; if the user still wants the same family, say once that reviewers
+3. Keep at least one reviewer of the pair outside the implementer's model
+   family, as WORKFLOW "Flow assignment" requires; if the user still wants none, say once that reviewers
    from the implementer's family share its blind spots, then follow the user.
 4. Show the resulting entries, then write only the user's file: the shipped
-   shape with just the entries that differ. Never edit the package.
+   shape with just the entries that differ. Each entry written replaces the
+   shipped one whole, so a changed `escalation` lists every attempt. Never edit
+   the package.
 5. To restore defaults, delete the user's entries, or the whole file, after the
    user confirms.
 
