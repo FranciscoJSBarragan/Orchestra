@@ -8,7 +8,7 @@ restate mechanics. When this file and `docs/WORKFLOW.md` appear to disagree,
 ## Product source of truth
 
 Read `VISION.md`, `docs/WORKFLOW.md`, and `docs/ARCHITECTURE.md` before changing
-Orchestra's workflow. Skills, scripts, profiles, tests, and hooks implement those
+Orchestra's workflow. Skills, scripts, the flow assignment, tests, and hooks implement those
 documents; they do not redefine them independently. Each normative rule has
 exactly one home; other documents reference it instead of restating it.
 
@@ -16,7 +16,7 @@ exactly one home; other documents reference it instead of restating it.
 
 Agent communication and task artifacts use the user's language, per WORKFLOW
 "Orchestrator behavior". This repository's tracked files (code, comments,
-commits, skills, prompts, profiles, schemas and docs) are English.
+commits, skills, prompts, schemas and docs) are English.
 
 Source-writing work follows [Source comments](codex/skills/orchestra/references/architecture_guidance.md#source-comments).
 Test design and review follow [Behavioral verification](codex/skills/orchestra/references/architecture_guidance.md#behavioral-verification):

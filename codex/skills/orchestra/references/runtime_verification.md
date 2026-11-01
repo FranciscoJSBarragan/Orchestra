@@ -45,7 +45,6 @@ assess the check; report required checks that could not run as blockers.
 Return `blocked` when the environment, dependency, credential, test data, revision, or evidence source is unavailable or unsafe. Return `failed` when trustworthy evidence demonstrates unmet acceptance or a regression.
 
 For reusable feature maps and recipe maintenance, use
-[project verification](../../orchestra-project-verification/SKILL.md) and its
-WORKFLOW lifecycle. Planning cites affected entries; verifiers execute their
+[project verification](../../orchestra-project-verification/SKILL.md). Planning cites affected entries; verifiers execute their
 assigned journeys and report stale instructions separately from product defects.
 The selected role's source and execution authority remains unchanged.

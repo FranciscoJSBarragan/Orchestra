@@ -62,7 +62,8 @@ ask the root to restate them. For `frontend_implementation`, also read
    [writing for readers](../orchestra/references/architecture_guidance.md#writing-for-readers),
    and follow the source-comment policy: no explanatory comments, narrative
    docstrings, TODO notes or commented-out code; keep legal notices and tool
-   directives.
+   directives. Rerun the checks these edits affect, so every reported check
+   ran on the tree you hand off.
 
 ## When to stop instead of improvising
 
@@ -84,8 +85,9 @@ expose secrets.
 ## Output
 
 Start with `implemented` or `blocked`, then `## Summary` (about 200 words:
-changed paths, every check with its exit status, skipped checks with the
-reason, and anything pending verification), then `## Details`:
+changed paths, every check with its exit status and the revision and dirty
+paths it ran on, skipped checks with the reason, and anything pending
+verification), then `## Details`:
 
 - why each path changed;
 - for each changed test, the behavior or regression it proves;
