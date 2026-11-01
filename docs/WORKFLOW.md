@@ -1140,11 +1140,11 @@ repository gate.
    a fix of a failed verification, that `verification-report`.
 4. Fix. Accepted findings go to a fresh session of the same logical owner
    with the current revision and diff and the findings' evidence, except a
-   root correction under finding triage; a fresh delta review follows. A
-   product-documentation `persist` goes to the owner the same way with its
-   discovery ID and exact path, while normative `.agent/` edits stay
-   root-authored; both then follow the revalidation in "Material context
-   discovery and promotion".
+   root correction under finding triage; a fresh delta review follows unless
+   finding triage exempts the round. A product-documentation `persist` goes to
+   the owner the same way with its discovery ID and exact path, while
+   normative `.agent/` edits stay root-authored; both then follow the
+   revalidation in "Material context discovery and promotion".
 5. Verify. When the gate is not `none`, at most one verifier per applicable
    capability runs once, on the first revision whose review leaves no accepted
    open finding, since a run before review converges repeats on the fixed
