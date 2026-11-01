@@ -440,7 +440,7 @@ class FullModeFixtureTest(unittest.TestCase):
 
     def test_flow_entry_needs_provider_model_and_a_known_effort(self) -> None:
         self.edit_flow('[review_pair]\nprovider = "claudeAgent"\n', '[review_pair]\n')
-        self.edit_flow('effort = "medium"', 'effort = "ultra"')
+        self.edit_flow('effort = "xhigh"', 'effort = "ultra"')
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("review_pair needs provider and model", result.stdout)

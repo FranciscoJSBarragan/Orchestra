@@ -5,8 +5,8 @@
 
 [capabilities.repository_context]
 provider = "codex"
-model = "gpt-6.1-sol"
-effort = "high"
+model = "gpt-6.1-terra"
+effort = "xhigh"
 
 [capabilities.web_research]
 provider = "cursor"
@@ -45,13 +45,13 @@ effort = "high"
 
 [capabilities.runtime_verification]
 provider = "codex"
-model = "gpt-6.1-sol"
-effort = "medium"
+model = "gpt-6.1-terra"
+effort = "xhigh"
 
 [capabilities.browser_acceptance]
 provider = "codex"
-model = "gpt-6.1-sol"
-effort = "medium"
+model = "gpt-6.1-terra"
+effort = "xhigh"
 
 # Second, blind reviewer of the first review that covers the complete terminal range.
 [review_pair]
