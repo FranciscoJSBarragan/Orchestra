@@ -427,7 +427,7 @@ class FullModeFixtureTest(unittest.TestCase):
         for old, new, expected in (
             ('[capabilities.difficult_debugging]', '[capabilities.pr_poll]', capability_set),
             ('[review_pair]', '[capabilities.pr_poll]\nprovider = "codex"\nmodel = "m"\n\n[review_pair]', capability_set),
-            ('[task_root]\nprovider = "claudeAgent"\nmodel = "claude-opus-5-5"\neffort = "high"\n', '', "task_root needs provider and model"),
+            ('[task_root]', '[former_task_root]', "task_root needs provider and model"),
         ):
             with self.subTest(change=old):
                 flow = self.root / "codex/config/flow.toml"
