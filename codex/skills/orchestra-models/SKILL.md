@@ -14,9 +14,9 @@ task, dispatches agents or changes permissions.
 
 ## Show
 
-1. Read both files and show one table: each capability, then `review_pair` and
-   each `escalation` attempt, with provider, model, effort, and whether the
-   entry is the default or the user's.
+1. Read both files and show one table: `task_root`, each capability, then
+   `review_pair` and each `escalation` attempt, with provider, model, effort,
+   and whether the entry is the default or the user's.
 2. With the `t3-code` tools available, read `orchestrator_capabilities` and mark
    every entry whose provider instance, model or effort the live catalog lacks.
    Without them, say that the check needs T3 Code.
