@@ -52,7 +52,12 @@ class PlannedFlowInvariantTests(unittest.TestCase):
 
     def test_flow_assigns_every_capability_a_provider_and_model(self) -> None:
         self.assertEqual(set(self.flow["capabilities"]), set(CAPABILITY_PROFILES))
-        entries = [*self.flow["capabilities"].values(), self.flow["review_pair"], *self.flow["escalation"]]
+        entries = [
+            self.flow["task_root"],
+            *self.flow["capabilities"].values(),
+            self.flow["review_pair"],
+            *self.flow["escalation"],
+        ]
         for entry in entries:
             self.assertTrue(entry["provider"].strip())
             self.assertTrue(entry["model"].strip())

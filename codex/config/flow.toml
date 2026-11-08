@@ -3,6 +3,11 @@
 # ${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml instead of editing this file.
 # `provider` is a T3 provider instance and `model` an id from its live catalog.
 
+[task_root]
+provider = "claudeAgent"
+model = "claude-opus-5-5"
+effort = "high"
+
 [capabilities.repository_context]
 provider = "codex"
 model = "gpt-6.1-terra"

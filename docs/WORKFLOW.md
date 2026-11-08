@@ -346,8 +346,11 @@ continuation handles while they have a consumer and remove only owned
 transient prompts and logs no longer needed. No board schema, allocator, database or watcher.
 
 Select resources separately for the parent, each task root and its role
-agents. Carry the explicit root model and effort in the packet and register
-through T3's actual controls; role assignments follow "Flow assignment".
+agents. A parent, Hermes included, launches and continues each task root with
+the flow's `task_root` entry unless the user selects other resources, checked
+against the live catalog like every other row. Carry the explicit root model
+and effort in the packet and register through T3's actual controls; role
+assignments follow "Flow assignment".
 Actual concurrency, nesting and
 tool access must support the assignment; a model-family label is no evidence
 of effort.
@@ -551,10 +554,12 @@ repository knowledge stays under "Repository conventions".
 
 There is one flow. `flow.toml` in the selected runtime (source
 `codex/config/flow.toml`) assigns each capability a T3 provider instance, a
-model and an optional effort, names the second reviewer of the review pair
-under "Review policy", and lists the later recovery attempts. A user changes
-the assignment in `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml`, which has the
-same shape: each capability entry, `review_pair` or `escalation` it defines
+model and an optional effort, names the resources of a parent-launched task
+root (`task_root`, used as "Initiative coordination" says) and the second
+reviewer of the review pair under "Review policy", and lists the later recovery
+attempts. A user changes the assignment in
+`${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml`, which has the same shape: each
+capability entry, `task_root`, `review_pair` or `escalation` it defines
 replaces the shipped one whole, and anything it omits keeps the default. Never
 edit the installed package to customize a task; `orchestra-models` shows the
 assignment and writes the user's file.
