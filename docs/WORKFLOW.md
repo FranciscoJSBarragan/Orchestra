@@ -470,8 +470,10 @@ A child root, whether an initiative child or a task a Hermes dispatcher
 launched, first resolves inherited approval and the supplied checkout here and
 under the checkout rules, reusing settled scope and authority instead of
 presenting them as new decisions. Inherited authority never approves the
-child's own plan: it sends the plan to the parent thread and implements only
-after the parent accepts it. An investigation-only
+child's own plan, and neither does a reply to a specification confirmation
+other than the combined candidate, even one that names the plan candidate and
+grants implementation: the child sends its plan to the parent thread and
+implements only after the parent accepts it. An investigation-only
 grant runs the read-only steps and returns at specification confirmation (or
 the combined candidate), never reaching setup or execution without that
 authority.
