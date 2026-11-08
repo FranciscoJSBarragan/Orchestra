@@ -55,9 +55,9 @@ Orchestra makes different bets:
 
 [`codex/config/flow.toml`](codex/config/flow.toml) is the default assignment:
 a T3 provider instance, model and optional effort for each capability, the
-second reviewer, and the recovery attempts. To change it, write only the
-entries you want in `~/.orchestra/flow.toml`, or ask `$orchestra-models` to
-show and change them against T3's live catalog; each entry replaces the
+task root a parent launches, the second reviewer, and the recovery attempts.
+To change it, write only the entries you want in `~/.orchestra/flow.toml`, or
+ask `$orchestra-models` to show and change them against T3's live catalog; each entry replaces the
 shipped one whole. Supporting another T3 provider is one more row and a short check that
 its children can read their role skill and keep read-only work read-only.
 

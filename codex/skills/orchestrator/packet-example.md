@@ -34,8 +34,8 @@ checkout, or establish managed isolation before any task/source writes when
 launched from a shared directory. Approved product base: full SHA. Reconcile any
 unexpected HEAD or host branch metadata before mutation.
 
-Task-root resources: the explicit supported model/effort or the user's T3
-default, separate from the parent's selection and the flow's role rows. Resolve the
+Task-root resources: the flow's `task_root` entry or the user's explicit
+choice, separate from the parent's selection and the flow's role rows. Resolve the
 actual dispatch type and controls through [host transports](host-transports.md).
 
 Instructions: pinned Orchestra revision or verified package identity; absolute
@@ -85,8 +85,8 @@ Objective: explain why the reported operation does not produce the requested
 behavior, identify affected callers and state, and propose the smallest supported
 change. Separate evidence from hypotheses; unavailable reproduction is a limit.
 
-Investigation resources: parent-assigned model/effort, or the user's configured
-task-root default explicitly selected in this packet through T3's controls.
+Investigation resources: the flow's `task_root` entry or the user's explicit
+choice, selected in this packet through T3's controls.
 Name each delegated analyst's resources and bounded assignment separately.
 
 Authority: read-only investigation and a report at the parent-named accessible

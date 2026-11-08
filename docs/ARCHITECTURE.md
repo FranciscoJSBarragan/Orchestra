@@ -397,8 +397,9 @@ parallel implementation of a role is needed.
 ## Flow assignment
 
 `codex/config/flow.toml` is the only shipped assignment: a provider instance,
-a model and an optional effort per capability, the second reviewer of the
-review pair, and the later recovery attempts. The user's
+a model and an optional effort per capability, the resources of a
+parent-launched task root, the second reviewer of the review pair, and the
+later recovery attempts. The user's
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml` replaces whole entries without
 editing the package. The root reads both directly; there is no resolver
 helper, tier, preset or per-provider matrix. Role skills stay model-free and

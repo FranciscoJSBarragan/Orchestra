@@ -423,18 +423,20 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("flow-contract: codex/config/flow.toml is invalid", result.stdout)
 
     def test_flow_must_assign_every_capability_and_no_other(self) -> None:
-        for old, new in (
-            ('[capabilities.difficult_debugging]', '[capabilities.pr_poll]'),
-            ('[review_pair]', '[capabilities.pr_poll]\nprovider = "codex"\nmodel = "m"\n\n[review_pair]'),
+        capability_set = "must assign every capability and no other"
+        for old, new, expected in (
+            ('[capabilities.difficult_debugging]', '[capabilities.pr_poll]', capability_set),
+            ('[review_pair]', '[capabilities.pr_poll]\nprovider = "codex"\nmodel = "m"\n\n[review_pair]', capability_set),
+            ('[task_root]', '[former_task_root]', "task_root needs provider and model"),
         ):
-            with self.subTest(change=new):
+            with self.subTest(change=old):
                 flow = self.root / "codex/config/flow.toml"
                 original = flow.read_text(encoding="utf-8")
                 try:
                     self.edit_flow(old, new)
                     result = self.run_validator()
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertIn("must assign every capability and no other", result.stdout)
+                    self.assertIn(expected, result.stdout)
                 finally:
                     flow.write_text(original, encoding="utf-8")
 

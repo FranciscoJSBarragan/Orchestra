@@ -305,8 +305,8 @@ def check_flow_assignment(root: Path) -> list[str]:
     except (tomllib.TOMLDecodeError, UnicodeError) as error:
         return [f"flow-contract: codex/config/flow.toml is invalid: {error}"]
     failures: list[str] = []
-    if set(flow) != {"capabilities", "review_pair", "escalation"}:
-        failures.append("flow-contract: flow.toml defines capabilities, review_pair and escalation only")
+    if set(flow) != {"task_root", "capabilities", "review_pair", "escalation"}:
+        failures.append("flow-contract: flow.toml defines task_root, capabilities, review_pair and escalation only")
 
     def entry_failures(label: str, entry: object) -> list[str]:
         if not isinstance(entry, dict) or not {"provider", "model"} <= set(entry) <= {"provider", "model", "effort"}:
@@ -323,6 +323,7 @@ def check_flow_assignment(root: Path) -> list[str]:
     else:
         for capability, entry in capabilities.items():
             failures.extend(entry_failures(f"capabilities.{capability}", entry))
+    failures.extend(entry_failures("task_root", flow.get("task_root")))
     failures.extend(entry_failures("review_pair", flow.get("review_pair")))
     escalation = flow.get("escalation")
     if not isinstance(escalation, list) or not escalation:
