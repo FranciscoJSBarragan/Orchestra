@@ -305,12 +305,11 @@ resource with one owner and a cleanup handoff, not permission to edit.
 The parent synthesizes that report for the user's decision without repeating
 the investigation, then continues the same root when supported, carrying only
 the actual scope, implementation, commit and delivery grants and
-investigating only a material context delta. Use the existing combined
-approval or parent acceptance of a derived plan, never a child approving its
-own unseen plan; already authorized implementation gets no extra user stop
-merely because the child investigated. An unavailable handle uses the
-recovery rule below and the accessible report, never an automatic second
-writer.
+investigating only a material context delta. Use the parent's acceptance of
+the derived plan, never a child approving its own unseen plan; already
+authorized implementation gets no extra user stop merely because the child
+investigated. An unavailable handle uses the recovery rule below and the
+accessible report, never an automatic second writer.
 
 Keep one compact Markdown register, typically `BOARD.md`, linking the approved
 brief and authority, repositories and checkout owners, shared contracts, child
@@ -454,29 +453,31 @@ consequences rather than repeating unchanged local code reviews. Completion requ
 and honest delivery state, not a list of successful child messages; merge,
 push, release and deployment stay separately scoped under delivery policy.
 
-An initiative parent may keep a periodic read-only retrospective: a cheap
-periodic run only counts closed initiatives from the register and Git or host
-state and, once three more have closed since the last retrospective thread,
-launches a read-only thread (Claude Code `claude-opus-5-5` at `xhigh`) that
-analyzes finished threads, reports, PRs and Git and returns only
-evidence-backed proposals, consumed under "Engineering guidance and evidence".
-An approved proposal enters through a normal root and PR; agents never rewrite
-their own skills or policies. Beyond that periodic run it adds no artifact,
-persistent counter or watcher.
+A parent that keeps registers, Hermes included, runs one read-only
+retrospective cadence across all of them: whenever it closes a register line,
+for one task or an initiative, it reads every register it keeps and host
+state, counts the lines closed in any of them since its latest retrospective
+thread, whichever register holds that handle, and, once five or more have
+closed, launches a read-only thread (Claude Code `claude-opus-5-5` at
+`xhigh`) that analyzes finished threads, reports, PRs and Git and returns
+only evidence-backed proposals, consumed under "Engineering guidance and
+evidence". It records that thread's handle in the register whose closing line
+triggered it and tells the user it launched one instead of asking first. An
+approved proposal enters through a normal root and PR; agents never rewrite
+their own skills or policies. The retrospective adds no artifact, persistent
+counter, schedule or watcher.
 
 ### Child root setup
 
 A child root, whether an initiative child or a task a Hermes dispatcher
 launched, first resolves inherited approval and the supplied checkout here and
 under the checkout rules, reusing settled scope and authority instead of
-presenting them as new decisions. Inherited authority never approves the
-child's own plan, and neither does a reply to a specification confirmation
-other than the combined candidate, even one that names the plan candidate and
-grants implementation: the child sends its plan to the parent thread and
-implements only after the parent accepts it. An investigation-only
-grant runs the read-only steps and returns at specification confirmation (or
-the combined candidate), never reaching setup or execution without that
-authority.
+presenting them as new decisions. Neither inherited authority nor any reply to
+its specification approves the child's own plan, even a reply that names the
+plan candidate and grants implementation: the child sends its plan to the
+parent thread and implements only after the parent accepts it. An
+investigation-only grant runs the read-only steps and returns at specification
+confirmation, never reaching setup or execution without that authority.
 
 The child messages the parent only when it needs the parent or is done: a
 decision outside its authority, a derived plan for acceptance, a question for
@@ -878,12 +879,13 @@ After explicit activation in an execution-capable mode:
    verified, unless the user asks for them. Include the missing-conventions
    checkpoint in the same request when the worktree has no normative
    conventions.
-7. A single-phase task may combine specification and candidate
-   plan in one message, visibly separated, only when the planning stage
-   permits skipping plan and decision review; one approval covers both and a
-   specification correction invalidates the plan. Otherwise confirm the
-   specification, plan, complete required review, then request plan approval.
-   Later in-scope corrections follow "Autonomy within an approved objective".
+7. A single-phase task whose root no parent launched may combine
+   specification and candidate plan in one message, visibly separated, only
+   when the planning stage permits skipping plan and decision review; one
+   approval covers both and a specification correction invalidates the plan.
+   Otherwise confirm the specification, plan, complete required review, then
+   request plan approval. Later in-scope corrections follow "Autonomy within an
+   approved objective".
 8. Immediately after confirmation, create the task checkout under "Task
    checkout and branch" (fresh canonical-base tasks fetch the configured
    upstream; a failed fetch blocks; never `git pull`, implicit merge or base
@@ -1669,7 +1671,7 @@ guidance "Prevent recurring failures" to choose a proportionate prevention
 mechanism from the verified cause. The same criterion is available to ordinary,
 maintenance work without this final-phase checkpoint. This judgment adds
 no reflection stage or transcript-mining job; the only retrospective is the
-initiative parent's under "Initiative coordination". The checkpoint's writes remain
+parent's under "Initiative coordination". The checkpoint's writes remain
 limited to the repository knowledge below; code, routing, or Orchestra-policy
 changes use normal implementation scope and review when already authorized,
 otherwise become bounded follow-up proposals without delaying delivery. Agents
