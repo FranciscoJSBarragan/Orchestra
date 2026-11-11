@@ -80,7 +80,7 @@ class ValidateSuiteTests(unittest.TestCase):
         shutil.copytree(
             SOURCE_ROOT,
             self.root,
-            ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc", "dist"),
+            ignore=shutil.ignore_patterns(".git", ".task-clones", "__pycache__", "*.pyc", "dist"),
         )
 
     def run_validator(
@@ -274,6 +274,8 @@ class ValidateSuiteTests(unittest.TestCase):
         )
 
     def test_full_mode_runs_the_fixture_test_suite(self) -> None:
+        for existing in (self.root / "codex/tests").glob("test_*.py"):
+            existing.write_text("", encoding="utf-8")
         test_file = self.root / "codex/tests/test_validate_suite.py"
         test_file.write_text(
             """from pathlib import Path
