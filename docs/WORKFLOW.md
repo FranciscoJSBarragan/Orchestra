@@ -538,8 +538,16 @@ its implementation or review loop.
 Inside T3 Code a Hermes thread may be the parent of one task or of an
 initiative. It works out the request with the user, recommends, launches task
 roots with the confirmed brief and the user's delivery direction, accepts a
-derived plan that stays within that brief, relays any other plan and every
-question to the user, and follows their reports. It never implements, not
+derived plan that stays within that brief, relays any other plan to the user,
+and follows their reports. It answers a child's question itself when the
+confirmed brief, the user's earlier decisions, repository conventions and
+"Autonomy within an approved objective" already settle it. It relays to the
+user, as the parent does under "Initiative coordination", every other
+question: one this authority leaves open, and one that needs what this
+document reserves for a separate grant or user confirmation, such as an
+ungranted delivery action, a new or changed repository convention or a
+decision past a boundary of "Autonomy within an approved objective", which it
+never grants itself. It never implements, not
 even a small fix: every change goes through a task root and its review. It reads the pinned
 instructions and the flow assignment by absolute path and needs no plugin. It
 reads and researches as a parent does above, including history, open PRs and
