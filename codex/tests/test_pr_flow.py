@@ -113,6 +113,8 @@ elif args[:2] == ["pr", "view"]:
         print(os.environ["FAKE_OBSERVE_VIEW"])
 elif args[:1] == ["api"] and "/compare/" in args[1]:
     print(os.environ.get("FAKE_BEHIND_BY", "0"))
+elif args[:1] == ["api"] and args[1].endswith("/git/ref/heads/main"):
+    print(json.dumps({"object": {"sha": os.environ["FAKE_REMOTE_BASE"]}}))
 elif args[:1] == ["api"] and args[1].startswith("repos/"):
     print(json.dumps({"object": {"sha": os.environ["FAKE_REMOTE_HEAD"]}}))
 elif args[:2] == ["api", "graphql"]:
@@ -134,6 +136,7 @@ else:
             "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", ""),
             "FAKE_GH_LOG": str(self.log),
             "FAKE_REMOTE_HEAD": self.head,
+            "FAKE_REMOTE_BASE": self.git("rev-parse", "main").stdout.strip(),
             "FAKE_PR_LIST": "[]",
             "FAKE_OBSERVE_VIEW": json.dumps(
                 {
@@ -261,13 +264,12 @@ else:
         authorized: bool = True,
         checkout_mode: str = "managed",
         start_revision: str | None = None,
+        base_worktree: bool = True,
     ) -> list[str]:
         args = [
             "merge",
             "--repo",
             str(self.repo),
-            "--base-worktree",
-            str(self.base),
             "--task-branch",
             "feature",
             "--base-branch",
@@ -285,6 +287,8 @@ else:
             "--method",
             method,
         ]
+        if base_worktree:
+            args.extend(("--base-worktree", str(self.base)))
         if authorized:
             args.append("--authorized")
         if checkout_mode != "managed":
@@ -403,6 +407,75 @@ else:
         body = create[create.index("--body") + 1]
         self.assertIn("Changed paths (2)", body)
         self.assertNotIn("main-only.txt", body)
+
+    def test_open_describes_the_published_base_when_the_local_base_is_behind(self) -> None:
+        task = self.repo
+        self.repo = self.base
+        self.write("main-only.txt", "main\n")
+        self.git("add", "main-only.txt")
+        self.git("commit", "-q", "-m", "main moves on")
+        published_base = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("reset", "-q", "--hard", "HEAD~1")
+        self.repo = task
+        self.git("merge", "-q", "--no-edit", published_base)
+        self.head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.environment["FAKE_REMOTE_HEAD"] = self.head
+        self.environment["FAKE_REMOTE_BASE"] = published_base
+
+        result, payload = self.run_pr(*self.open_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        create = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "create"])
+        body = create[create.index("--body") + 1]
+        self.assertIn(f"Base: main ({published_base})", body)
+        self.assertNotIn("main moves on", body)
+        self.assertIn("Changed paths (2)", body)
+        self.assertNotIn("main-only.txt", body)
+
+    def test_open_describes_the_published_range_when_the_local_base_is_ahead(self) -> None:
+        published_base = self.environment["FAKE_REMOTE_BASE"]
+        task = self.repo
+        self.repo = self.base
+        self.write("local-only.txt", "local\n")
+        self.git("add", "local-only.txt")
+        self.git("commit", "-q", "-m", "unpublished base change")
+        self.repo = task
+        self.git("merge", "-q", "--no-edit", "main")
+        self.head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.environment["FAKE_REMOTE_HEAD"] = self.head
+
+        result, payload = self.run_pr(*self.open_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        create = next(entry for entry in self.log_entries() if entry[:2] == ["pr", "create"])
+        body = create[create.index("--body") + 1]
+        self.assertIn(f"Base: main ({published_base})", body)
+        self.assertIn("unpublished base change", body)
+        self.assertIn("Changed paths (3)", body)
+        self.assertIn("local-only.txt", body)
+
+    def test_open_blocks_before_mutation_when_the_published_base_is_not_fetched(self) -> None:
+        self.environment["FAKE_REMOTE_BASE"] = "c" * 40
+
+        result, payload = self.run_pr(*self.open_args())
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("fetch", payload["reason"])
+        self.assertFalse(any(
+            entry[:2] in (["pr", "create"], ["pr", "edit"]) for entry in self.log_entries()
+        ))
+
+    def test_open_does_not_need_the_local_base_branch(self) -> None:
+        task = self.repo
+        self.repo = self.base
+        self.git("switch", "-q", "--detach")
+        self.git("branch", "-q", "-D", "main")
+        self.repo = task
+
+        result, payload = self.run_pr(*self.open_args())
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(payload["action"], "created")
 
     def test_open_blocks_missing_authority_before_gh(self) -> None:
         args = self.open_args()
@@ -768,9 +841,19 @@ else:
         self.assertEqual(self.remote_head(), self.head)
         self.assertTrue(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
 
+    def test_merge_without_base_worktree_blocks_unless_resources_are_preserved(self) -> None:
+        self.write_policy(passing=True)
+        result, payload = self.run_pr(*self.merge_args(base_worktree=False))
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("base-worktree", payload["reason"])
+        self.assertFalse(any(entry[:2] == ["pr", "merge"] for entry in self.log_entries()))
+
     def test_host_checkout_retained_and_remote_ref_cleaned_after_verified_merge(self) -> None:
         self.write_policy(passing=True)
-        result, payload = self.run_pr(*self.merge_args(), "--preserve-task-resources")
+        result, payload = self.run_pr(
+            *self.merge_args(base_worktree=False), "--preserve-task-resources"
+        )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(payload["status"], "partial")
         self.assertTrue(payload["delivery_verified"])

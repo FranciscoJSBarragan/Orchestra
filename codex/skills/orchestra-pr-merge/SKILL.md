@@ -23,15 +23,16 @@ authority is separate from `Open a PR`, as WORKFLOW "Delivery policy" states.
 ## Steps
 
 1. Run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/pr.py" merge --repo
-   <task-checkout> --base-worktree <base-checkout> --task-branch <task-branch>
+   <task-checkout> [--base-worktree <base-checkout>] --task-branch <task-branch>
    --base-branch <base-branch> --checkout-mode <managed|hybrid>
    [--start-revision <sha>] --remote <remote> --repository <OWNER/REPO> --pr
    <number> --clean-head <sha> --expected-task-revision <terminal-sha> --method
    <method> [--acknowledged-feedback <token> ...] [--preserve-task-resources]
    --authorized`. Pass `--start-revision` for a hybrid task and, in managed
    mode, `--preserve-task-resources` for a checkout the host owns, such as a
-   T3 worktree. The helper deletes the remote task branch with a
-   lease and retains anything moved, dirty or ambiguous.
+   T3 worktree; only that preserving merge may omit `--base-worktree`. The
+   helper deletes the remote task branch with a lease and retains anything
+   moved, dirty or ambiguous.
 2. Only once the result says `delivery_verified: true`, apply the
    post-delivery part of "Migrations at delivery".
 3. With `--preserve-task-resources`, follow the cleanup handoff it returns
