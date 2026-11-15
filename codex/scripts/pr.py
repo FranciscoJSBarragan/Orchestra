@@ -197,23 +197,37 @@ def open_pr(
         return blocked("delivery policy does not permit the PR lane")
     if not title.strip() or not base or not head:
         return blocked("base, head, and title are required")
-    base_sha = _resolve_commit(repo, base)
     head_sha, revision_error = require_expected_revision(
         repo, head, expected_task_revision
     )
     if revision_error:
         return revision_error
-    if base_sha is None:
-        return blocked("base does not resolve to a commit")
     assert head_sha is not None
 
-    commits = _git(repo, "log", "--format=%H%x09%s", f"{base}..{head}")
+    published_base, error = _json_output("published base", _gh(
+        repo, "api", f"repos/{repository}/git/ref/heads/{quote(base, safe='')}"))
+    if error:
+        return error
+    base_sha = (
+        published_base["object"].get("sha")
+        if isinstance(published_base, dict) and isinstance(published_base.get("object"), dict)
+        else None
+    )
+    if not isinstance(base_sha, str) or not SHA_PATTERN.fullmatch(base_sha):
+        return blocked("published base branch does not resolve to a commit")
+    if _resolve_commit(repo, base_sha) != base_sha:
+        return blocked(
+            f"published base {base} ({base_sha}) is not in this clone; "
+            "fetch the base branch from the remote and retry"
+        )
+
+    commits = _git(repo, "log", "--format=%H%x09%s", f"{base_sha}..{head}")
     if commits.returncode:
         return _command_error("git log base..HEAD", commits)
     commit_lines = [line for line in commits.stdout.splitlines() if line]
     if not commit_lines:
         return blocked("base..HEAD contains no commits")
-    changed = _git(repo, "diff", "--no-renames", "--name-only", f"{base}...{head}")
+    changed = _git(repo, "diff", "--no-renames", "--name-only", f"{base_sha}...{head}")
     if changed.returncode:
         return _command_error("git diff base...HEAD", changed)
     changed_paths = [path for path in changed.stdout.splitlines() if path]
@@ -510,7 +524,7 @@ def observe_pr(
 
 def merge_pr(
     repo: Path,
-    base_worktree: Path,
+    base_worktree: Path | None,
     task_branch: str,
     base_branch: str,
     remote: str,
@@ -533,29 +547,34 @@ def merge_pr(
     if error:
         return error
     assert repo is not None
-    base, error = _repository_root(base_worktree)
-    if error:
-        return blocked("base worktree is invalid")
-    assert base is not None
+    base: Path | None = None
+    if not preserve_task_resources:
+        if base_worktree is None:
+            return blocked("--base-worktree is required unless task resources are preserved")
+        base, error = _repository_root(base_worktree)
+        if error:
+            return blocked("base worktree is invalid")
+        assert base is not None
     if preserve_task_resources and checkout_mode != "managed":
         return blocked("preserving host-owned task resources requires managed checkout mode")
     if checkout_mode not in {"managed", "hybrid"}:
         return blocked("checkout mode must be managed or hybrid")
-    if checkout_mode == "managed" and repo == base:
-        return blocked("managed task and base must be distinct Git worktree roots")
-    if checkout_mode == "hybrid" and repo != base:
-        return blocked("hybrid task and base must be the same Git checkout")
-    if _common_dir(repo) is None or _common_dir(repo) != _common_dir(base):
-        return blocked("task and base worktrees do not share a Git repository")
+    if base is not None:
+        if checkout_mode == "managed" and repo == base:
+            return blocked("managed task and base must be distinct Git worktree roots")
+        if checkout_mode == "hybrid" and repo != base:
+            return blocked("hybrid task and base must be the same Git checkout")
+        if _common_dir(repo) is None or _common_dir(repo) != _common_dir(base):
+            return blocked("task and base worktrees do not share a Git repository")
     if (
         not _valid_branch(repo, task_branch)
-        or not _valid_branch(base, base_branch)
+        or not _valid_branch(base or repo, base_branch)
         or task_branch == base_branch
     ):
         return blocked("task and base branch names are invalid or identical")
     if _checked_out_branch(repo) != task_branch:
         return blocked("task checkout is on an unexpected branch")
-    if checkout_mode == "managed" and _checked_out_branch(base) != base_branch:
+    if base is not None and checkout_mode == "managed" and _checked_out_branch(base) != base_branch:
         return blocked("base worktree is on an unexpected branch")
     if checkout_mode == "hybrid":
         if not start_revision:
@@ -708,6 +727,7 @@ def merge_pr(
             start_revision,
         )
     else:
+        assert base is not None
         cleanup = _cleanup_merged_task(
             repo, base, task_branch, base_branch, remote, clean_head
         )
@@ -1023,7 +1043,7 @@ def parse_args() -> argparse.Namespace:
 
     merge_parser = subparsers.add_parser("merge")
     merge_parser.add_argument("--repo", type=Path, required=True)
-    merge_parser.add_argument("--base-worktree", type=Path, required=True)
+    merge_parser.add_argument("--base-worktree", type=Path)
     merge_parser.add_argument("--task-branch", required=True)
     merge_parser.add_argument("--base-branch", required=True)
     merge_parser.add_argument("--remote", required=True)
