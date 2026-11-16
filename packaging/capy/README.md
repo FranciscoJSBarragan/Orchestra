@@ -17,20 +17,24 @@ Drive is mounted, after `git pull`:
 drive=~/.capy/drive/<location>
 build=$(mktemp -d)/orchestra &&
 python3 codex/scripts/package_plugin.py --target capy --output "$build" &&
+cp -R "$build/." "${drive:?}/" &&
 (cd "$build" && for entry in .codex-plugin * skills/*; do
-  [ "$entry" = skills ] || rm -rf "${drive:?}/$entry"
-done) &&
-cp -R "$build/." "$drive/"
+  [ "$entry" = skills ] || (cd "$drive" && find "$entry" -depth)
+done) | while IFS= read -r installed; do
+  [ -e "$build/$installed" ] || rm -rf "$drive/$installed"
+done
 ```
 
-The loop removes the Drive's copy of every top-level entry the bundle ships
-except `skills/`, and of every Orchestra skill folder; `cp` then writes the
-new bundle in their place, so a file the new bundle no longer ships disappears.
-Every other top-level entry of the Drive (`NOTES.md`, `CREW.md`, `AGENTS.md`,
+`cp` writes the new bundle over the installed one, so threads reading the
+Drive never find it missing. The loop then lists every path under each
+top-level entry the bundle ships except `skills/`, and under each Orchestra
+skill folder, and removes the paths the new bundle no longer ships. Every
+other top-level entry of the Drive (`NOTES.md`, `CREW.md`, `AGENTS.md`,
 `reports/`, `handoffs/`, `renders/`, `orchestra-home/`) and every other skill
 folder stays untouched. It uses only POSIX shell tools, so it behaves the same
-on Linux and macOS; it avoids `rsync` because macOS's openrsync keeps stale
-files inside any directory a protect filter matches. A top-level file or skill
-folder that a later bundle drops stays until you remove it. Keep settings and
-flow overrides in that Drive's `orchestra-home/`, which the update never
-touches. New threads load the updated skills.
+in `sh`, `bash` and `zsh` on Linux and macOS; it avoids `rsync` because
+macOS's openrsync keeps stale files inside any directory a protect filter
+matches. A top-level file or skill folder that a later bundle drops stays
+until you remove it. Keep settings and flow overrides in that Drive's
+`orchestra-home/`, which the update never touches. New threads load the
+updated skills.

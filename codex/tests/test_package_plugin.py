@@ -187,7 +187,9 @@ class PluginPackagingTests(unittest.TestCase):
         shutil.copytree(bundle, drive)
         for directory in [path for path in drive.rglob("*") if path.is_dir()]:
             if directory != drive / "skills":
-                (directory / "stale.md").write_text("stale")
+                (directory / "stale").mkdir()
+                for stale in (directory / "stale.md", directory / "stale/stale.md"):
+                    stale.write_text("stale")
         (drive / "skills/orchestra/SKILL.md").write_text("previous")
         kept = {Path(name): name.encode() for name in (
             "NOTES.md", "CREW.md", "AGENTS.md", "reports/ORCH-5.md", "handoffs/ORCH-2/host.md",
@@ -203,8 +205,8 @@ class PluginPackagingTests(unittest.TestCase):
             capture_output=True, text=True, check=False,
         )
         build = Path(result.stdout.splitlines()[-1] if result.stdout else "")
-        if build.is_absolute() and build.name == "orchestra":
-            self.addCleanup(shutil.rmtree, build.parent, True)
+        if build.is_absolute() and build.is_dir() and [p.name for p in build.parent.iterdir()] == [build.name]:
+            self.addCleanup(shutil.rmtree, build.parent)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         installed = {path.relative_to(drive): path.read_bytes() for path in drive.rglob("*") if path.is_file()}
         self.assertEqual({path: installed.pop(path, None) for path in kept}, kept)
