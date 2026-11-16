@@ -202,6 +202,17 @@ class LocalIntegrationTests(unittest.TestCase):
         self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
         self.assertTrue(self.task.exists())
 
+    def test_missing_task_worktree_is_rejected_as_non_root(self) -> None:
+        base_before = self.git(self.base, "rev-parse", "HEAD").stdout.strip()
+        self.task = Path(self.temporary_directory.name) / "missing"
+
+        result, payload = self.run_helper()
+
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("Git worktree roots", payload["reason"])
+        self.assertEqual(self.git(self.base, "rev-parse", "HEAD").stdout.strip(), base_before)
+
     def test_dirty_task_worktree_is_preserved(self) -> None:
         (self.task / "private.txt").write_text("private\n", encoding="utf-8")
 

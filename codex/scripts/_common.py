@@ -58,6 +58,8 @@ def blocked(reason: str, **details: Any) -> dict[str, Any]:
 
 def worktree_root(path: Path) -> Path | None:
     resolved = path.resolve()
+    if not resolved.is_dir():
+        return None
     result = _git(resolved, "rev-parse", "--show-toplevel")
     if result.returncode or Path(result.stdout.strip()).resolve() != resolved:
         return None
@@ -149,6 +151,8 @@ def _workspace_state_error(private: Path) -> str | None:
             if entry.name
             not in {PRIVATE_STATE_MARKER, PRIVATE_STATE_PLAN, PRIVATE_STATE_ARTIFACTS}
         }
+    except UnicodeDecodeError:
+        return "private task state ownership marker is not recognized"
     except OSError as error:
         return f"cannot inspect private task state: {error}"
     if unknown:

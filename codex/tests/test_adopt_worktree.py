@@ -242,6 +242,16 @@ class AdoptWorktreeTests(unittest.TestCase):
         self.assertEqual(payload["status"], "blocked")
         self.assertEqual(collision.read_text(encoding="utf-8"), before)
 
+    def test_missing_task_worktree_is_rejected_as_non_root(self) -> None:
+        self.write_paths("tracked.txt")
+        missing = Path(self.temporary_directory.name) / "missing"
+
+        payload = adopt.adopt_worktree(self.base, missing, self.head, self.paths_file)
+
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("Git worktree roots", payload["reason"])
+        self.assertFalse(missing.exists())
+
     def test_reports_applied_paths_after_write_failure(self) -> None:
         (self.base / "tracked.txt").write_text("changed\n", encoding="utf-8")
         (self.base / "added.txt").write_text("new\n", encoding="utf-8")
