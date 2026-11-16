@@ -1,15 +1,18 @@
 # Orchestra
 
 Orchestra provides reusable engineering skills and an explicit multi-agent
-software-delivery workflow that runs inside [T3 Code](https://github.com/pingdotgg/t3code).
-Use individual skills in any harness, or invoke `$orchestra` in a T3 thread for
-an approved plan, implementation, independent review, verification and phase
-commits. You remain the product owner and final authority.
+software-delivery workflow that runs on [T3 Code](https://github.com/pingdotgg/t3code)
+or [Capy](https://capy.ai). Use individual skills in any harness, or invoke
+`$orchestra` in a T3 or Capy thread for an approved plan, implementation,
+independent review, verification and phase commits. You remain the product
+owner and final authority.
 
 The core is skills, one flow assignment and focused Python helpers. It needs no
-task manager, MCP server, database or background service of its own: T3 Code
-supplies threads, worktrees, delegation to the providers it runs, the browser
-and pull request watching.
+task manager, MCP server, database or background service of its own: the host
+supplies threads, checkouts, role dispatch to the models it runs, the browser
+and pull request wakes. Each host is one thin reference that maps the same
+primitives, with no adapters or matrices, and each host's bundle ships only its
+own reference.
 
 ```text
 $orchestra add CSV export to the orders page
@@ -37,16 +40,16 @@ Orchestra makes different bets:
 
 - **Explicit full workflow.** `$orchestra` starts the planned route. Modular skills support ordinary work without activating it.
 - **Four roles, not forty personas.** Analyst, implementer, reviewer, verifier. The root adds a capability (frontend, debugging, browser acceptance, planning) per dispatch instead of inventing a new agent for each domain.
-- **The right model for each role.** One flow assigns each capability a provider and model inside T3: Claude Code implements, GPT Sol reviews and verifies, a second reviewer from another family joins the first full review. You change any row without forking the flow.
+- **The right model for each role.** One flow assigns each capability a provider and model on every host: Claude Code implements, GPT Sol reviews and verifies, a second reviewer from another family joins the first full review. You change any row without forking the flow.
 - **Independence where it pays.** The implementer runs and fixes every deterministic check before handoff. A reviewer who did not write the code reads intent, diff, tests, and fresh evidence. A separate verifier appears only at real boundaries: browsers, running services, mutable data, credentials.
 - **Git is the state machine.** One task, one branch, one commit per accepted phase. No event ledger, no lock files, no plan CLI you have to keep in sync.
 - **Bounded autonomy.** Inside an approved objective the orchestrator makes reversible technical decisions on its own. It stops for you at data loss, production, public contracts, security, external cost, scope expansion, and anything hard to undo.
 
 ## How a task flows
 
-1. **Brief.** Orchestra reuses the conversation you already had, summarizes the brief and resolves the flow assignment against T3's live model catalog.
+1. **Brief.** Orchestra reuses the conversation you already had, summarizes the brief and resolves the flow assignment against the host's live model catalog.
 2. **Specification.** A short read-only preflight and focused repository context close real gaps. You confirm observable acceptance in one message for simple tasks.
-3. **Checkout.** One collision-free `orchestra/<slug>` branch is created — in a T3 worktree (`managed`) or in your clean current checkout (`hybrid`). Never directly on `main`.
+3. **Checkout.** One collision-free `orchestra/<slug>` branch is created — in a dedicated worktree (`managed`) or in your clean current checkout (`hybrid`). Never directly on `main`.
 4. **Plan.** The root or a planner writes one overview and one self-contained document per phase. Any required plan or decision review finishes before the plan is presented for approval; simple tasks can combine specification and plan approval. The approved plan lands in the task's private `.orchestra/plan.md`.
 5. **Phases.** For each phase: implement and self-check → optional visual preview for UI work → independent review → verification where the boundary demands it → phase commit with exact path scope and evidence.
 6. **Delivery.** `implementation complete; delivery pending`. You decide: hold, open a PR, or integrate locally — according to the repository's declared policy. You can also grant the endpoint up front ("open a PR and merge when clean").
@@ -54,16 +57,16 @@ Orchestra makes different bets:
 ## Models
 
 [`codex/config/flow.toml`](codex/config/flow.toml) is the default assignment:
-a T3 provider instance, model and optional effort for each capability, the
+a provider, model and optional effort for each capability, the
 task root a parent launches, the second reviewer, and the recovery attempts.
 To change it, write only the entries you want in `~/.orchestra/flow.toml`, or
-ask `$orchestra-models` to show and change them against T3's live catalog; each entry replaces the
-shipped one whole. Supporting another T3 provider is one more row and a short check that
+ask `$orchestra-models` to show and change them against the host's live catalog; each entry replaces the
+shipped one whole. Each host maps the same rows onto its own model ids, so one file serves both. Supporting another provider is one more row and a short check that
 its children can read their role skill and keep read-only work read-only.
 
 ## Use the pieces on their own
 
-You do not need the full workflow to benefit from the roles. Each skill works standalone from any chat, inside or outside T3:
+You do not need the full workflow to benefit from the roles. Each skill works standalone from any chat, on a supported host or not:
 
 ```text
 Use $orchestra-role-reviewer to review this diff for correctness.
@@ -86,8 +89,8 @@ functional exceptions.
 
 Use `$orchestrator` when the outcome requires independent projects or task
 roots. The parent sets shared contracts and checks the combined result; each
-child runs full Orchestra in its own T3 thread. A Hermes thread in T3 can act as
-that parent, or dispatch a single task: it works out the request with you and
+child runs full Orchestra in its own host thread. A Hermes thread in T3 or a
+Captain in Capy can act as that parent, or dispatch a single task: it works out the request with you and
 delegates, but never implements. See [the coordination packet](codex/skills/orchestrator/packet-example.md)
 and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 
@@ -95,20 +98,21 @@ and [behavioral acceptance](docs/evaluation/MODULAR_ACCEPTANCE.md).
 
 | Skill | When |
 | --- | --- |
-| `orchestra` | Explicit full workflow in T3: spec → plan → phases → delivery |
+| `orchestra` | Explicit full workflow on T3 Code or Capy: spec → plan → phases → delivery |
 | `orchestra-project-start` | You have an idea and no repository. Picks a proportional stack, builds a runnable vertical slice, then *offers* Orchestra |
 | `orchestra-repo-readiness` | Existing repo. Checks it against a runnable target state (one-command setup, clean and deterministic gates, isolated tests, isolated app, structure) and repairs what you grant, writing a short tracked `.agent/` store |
-| `orchestra-models` | See or change the provider and model of each role, checked against T3's live catalog |
+| `orchestra-models` | See or change the provider and model of each role, checked against the host's live catalog |
 | `orchestra-role-*` | Analyst, implementer, reviewer, verifier as standalone tools |
 | `orchestra-phase-commit` · `orchestra-delivery-policy` · `orchestra-pr-open` · `orchestra-pr-review` · `orchestra-pr-merge` · `orchestra-local-integrate` | Delivery, each with its own explicit authority contract |
 
 ## Install
 
 **Prerequisites:** Python 3, Git, T3 Code with the providers you want to use
-(Claude Code, Codex, Cursor, Grok), and the GitHub CLI if you want PR delivery.
+(Claude Code, Codex, Cursor, Grok) or a Capy organization, and the GitHub CLI if
+you want PR delivery.
 
-Build a self-contained bundle for each provider you use as a task root, and
-install it with that provider's plugin manager:
+For T3 Code, build a self-contained bundle for each provider you use as a task
+root, and install it with that provider's plugin manager:
 
 ```sh
 python3 codex/scripts/package_plugin.py --target claude --output dist/claude/orchestra
@@ -117,13 +121,17 @@ python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orc
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
 ```
 
-Every bundle carries the same workflow, skills, helpers and flow assignment and
-inherits the provider's permissions. See [plugin packaging](packaging/README.md)
+For Capy, build the `capy` bundle into a Drive root with the one update command
+in [plugin packaging](packaging/README.md#install-on-capy); it keeps the Drive's
+own notes, reports and settings.
+
+Every bundle carries the same workflow, skills, helpers and flow assignment plus
+the reference of its one host, and inherits the host's permissions. See [plugin packaging](packaging/README.md)
 for local loading and updates. A remote T3 environment can instead pin a
 source checkout with `codex/scripts/prepare_source.py`. Building does not
 install or publish anything.
 
-Optional settings live in `~/.orchestra/`: `checkout-mode` (`managed` or
+Optional settings live in `~/.orchestra/` (on Capy, the Drive's `orchestra-home/`): `checkout-mode` (`managed` or
 `hybrid`), `worktree-root`, `browser-route` (`auto`, `in_app`, `chrome` or
 `codex-cu`) and `flow.toml`.
 
@@ -155,7 +163,7 @@ Missing policy is never inferred — Orchestra asks once and recommends `hybrid`
 ```text
 VISION.md              mission, principles, success criteria, non-goals
 docs/WORKFLOW.md       the canonical behavior contract, request → delivery
-docs/ARCHITECTURE.md   components, contracts, the T3 host, installation boundary
+docs/ARCHITECTURE.md   components, contracts, the hosts, installation boundary
 docs/ROADMAP.md        non-canonical; decisions, deferred work and rejected ideas
 AGENTS.md              concise executable rules for agents working on Orchestra itself
 codex/skills/          the shared skills and their internal playbooks

@@ -26,7 +26,7 @@ assess the check; report required checks that could not run as blockers.
   mutable or stateful data, credentials, network or an external environment,
   or explicit repository policy.
 - Confirm command arguments and working directory before execution. Commands must not pass through an unrequested shell wrapper or mutate source.
-- T3's runtime mode and the provider's permission choice remain
+- The host's permission setting and the provider's permission choice remain
   authoritative: Orchestra never changes them or blocks execution solely
   because they differ. A command that crosses a protected boundary is issued
   once and its prompt or denial is respected. Never retry a denial through a

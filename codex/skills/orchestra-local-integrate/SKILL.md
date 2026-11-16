@@ -15,14 +15,13 @@ Keep the integration decision, helper invocation, and blocker handling at the ro
 2. Require checkout mode, exact task/base checkout identity, task and base branch names, the terminal task revision from the completed plan manifest, repository policy, and the captured starting revision for hybrid tasks.
 3. Have the root directly run `python3 "${ORCHESTRA_RUNTIME_ROOT}/scripts/integrate_local.py" --task-worktree <task> --base-worktree <base> --task-branch <task-branch> --base-branch <base-branch> --expected-task-revision <manifest-sha> --checkout-mode <managed|hybrid> [--start-revision <sha>] [--preserve-task-resources] --authorized` and read its structured result. Managed task/base roots are distinct; hybrid uses the same checkout root.
 4. Before integration, require the clean task HEAD to match the supplied terminal manifest revision, the independent review to accept that exact revision, and every configured delivery check to run fresh with its complete result. Then require fast-forward-only integration and confirmation that the base contains that exact task SHA.
-5. After verified integration, require `delivery_verified: true` and the exact base `delivery_revision`. Then apply the post-delivery part of WORKFLOW "Migrations at delivery". Managed mode removes the exact task worktree and branch, except a T3 worktree kept with `--preserve-task-resources`. Hybrid mode restores and fast-forwards the unchanged starting branch, preserves the checkout, and deletes only the fully merged Orchestra task branch and private task artifacts.
+5. After verified integration, require `delivery_verified: true` and the exact base `delivery_revision`. Then apply the post-delivery part of WORKFLOW "Migrations at delivery". Managed mode removes the exact task worktree and branch, except a host-owned worktree kept with `--preserve-task-resources`. Hybrid mode restores and fast-forwards the unchanged starting branch, preserves the checkout, and deletes only the fully merged Orchestra task branch and private task artifacts.
 6. Return `partial` when integration succeeded but conservative cleanup could not finish; return `blocked` before mutation on dirty, divergent, unmerged, ambiguous, unauthorized, or failed-check state.
 
 Never force, reset, clean, rewrite history, remove dirty or unmerged resources, release, deploy, publish, or mutate production.
 
-A T3 worktree, attached or handed off, is host-owned (see
-[T3 Code](../orchestra/references/host_t3.md)): pass `--preserve-task-resources`
-in managed mode. The helper still
+A checkout the host owns, as the host reference's "Checkout" says, gets
+`--preserve-task-resources` in managed mode. The helper still
 requires authority, exact revisions and checks. Follow the returned partial
 cleanup handoff for the local ref after host release; PR merge still performs
 guarded remote-ref cleanup. Preserving the checkout does not silently abandon

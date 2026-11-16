@@ -12,8 +12,13 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+HOST_REFERENCES = ROOT / "codex/skills/orchestra/references"
 sys.path.insert(0, str(ROOT / "codex/scripts"))
 from package_plugin import HELPERS, SKILLS, TARGETS, build_plugin
+
+
+def tree(path: Path) -> set[Path]:
+    return {Path("."), *(entry.relative_to(path) for entry in path.rglob("*"))} if path.exists() else set()
 
 
 class PluginPackagingTests(unittest.TestCase):
@@ -48,8 +53,13 @@ class PluginPackagingTests(unittest.TestCase):
                 self.assertEqual((plugin / "flow.toml").read_bytes(), (ROOT / "codex/config/flow.toml").read_bytes())
                 skill_root = ROOT / "codex/skills"
                 resources = (*skill_root.rglob("*.md"), *skill_root.glob("*/agents/openai.yaml"))
+                other_hosts = set(HOST_REFERENCES.glob("host_*.md")) - {HOST_REFERENCES / f"host_{TARGETS[target]}.md"}
                 for source in resources:
-                    self.assertEqual((plugin / "skills" / source.relative_to(ROOT / "codex/skills")).read_bytes(), source.read_bytes())
+                    bundled = plugin / "skills" / source.relative_to(skill_root)
+                    if source in other_hosts:
+                        self.assertFalse(bundled.exists(), source.name)
+                    else:
+                        self.assertEqual(bundled.read_bytes(), source.read_bytes())
                 for absent in ("hosts", "profiles", "agents", "scripts/sync.py", "scripts/delegate.py"):
                     self.assertFalse((plugin / absent).exists(), absent)
                 self.assertFalse((plugin / ".mcp.json").exists())
@@ -58,9 +68,24 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertFalse((self.root / "home").exists())
         self.assertFalse((self.root / "state").exists())
 
+    def test_each_bundle_ships_and_names_only_its_own_host_reference(self) -> None:
+        hosts = {path.name for path in HOST_REFERENCES.glob("host_*.md")}
+        self.assertEqual({f"host_{host}.md" for host in TARGETS.values()}, hosts)
+        for target, host in TARGETS.items():
+            with self.subTest(target=target):
+                plugin = self.build(target)
+                own = f"host_{host}.md"
+                shipped = {path.name for path in (plugin / "skills/orchestra/references").glob("host_*.md")}
+                self.assertEqual(shipped, {own})
+                for path in plugin.rglob("*"):
+                    if path.is_file():
+                        text = path.read_text(encoding="utf-8")
+                        for other in hosts - {own}:
+                            self.assertNotIn(other, text, path.relative_to(plugin))
+
     def test_host_manifests_select_one_format_and_shared_metadata(self) -> None:
         metadata = json.loads((ROOT / "packaging/orchestra/.codex-plugin/plugin.json").read_text())
-        manifests = {"portable": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "claude": ".claude-plugin/plugin.json"}
+        manifests = {"portable": "plugin.json", "capy": "plugin.json", "cursor": ".cursor-plugin/plugin.json", "grok": ".claude-plugin/plugin.json", "claude": ".claude-plugin/plugin.json"}
         for target in TARGETS:
             plugin = self.build(target)
             manifest = json.loads((plugin / manifests[target]).read_text())
@@ -103,6 +128,9 @@ class PluginPackagingTests(unittest.TestCase):
 
     def test_packaged_preparation_uses_exact_source_without_global_installation(self) -> None:
         plugin = self.build()
+        git_home = self.root / "git home"
+        subprocess.run(["git", "version"], env={**os.environ, "HOME": str(git_home)},
+                       capture_output=True, check=True)
         repository = self.root / "source fixture"
         for relative in (
             "docs/WORKFLOW.md", "codex/skills/orchestra/SKILL.md",
@@ -131,7 +159,7 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertEqual(payload["revision"], revision)
         self.assertEqual(Path(payload["workflow"]), destination / "docs/WORKFLOW.md")
         self.assertTrue((Path(payload["skills_root"]) / "orchestra/SKILL.md").is_file())
-        self.assertFalse((self.root / "home").exists())
+        self.assertLessEqual(tree(self.root / "home"), tree(git_home))
         self.assertFalse((self.root / "state").exists())
 
     def test_claude_target_ships_only_the_package_read_hook(self) -> None:

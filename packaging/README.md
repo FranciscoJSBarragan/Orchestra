@@ -1,13 +1,17 @@
 # Orchestra plugin bundles
 
 The plugin contains the Orchestra workflow, reusable skills, local Python
-helpers and the default flow assignment. Its full workflow runs inside T3 Code:
-install the bundle for each provider you use as a task root (Claude Code,
-Codex, Cursor or Grok), and T3 carries every role to the provider its flow row
-names. Python 3.11+ and Git are required; GitHub CLI is required only for PR
-delivery. Package discovery is not proof that T3 or a provider exposes the
-tools the workflow needs. Standalone skills retain their own bounded authority
-in any harness.
+helpers, the default flow assignment and the reference of one host. Its full
+workflow runs on T3 Code or Capy. For T3 Code, install a `portable`, `cursor`,
+`grok` or `claude` bundle for each provider you use as a task root (Claude
+Code, Codex, Cursor or Grok), and T3 carries every role to the provider its
+flow row names. For Capy, install the `capy` bundle into a Drive. Each bundle
+ships only its own host's reference, so neither host loads the other's
+instructions; both rebuild from the same canonical source. Python 3.11+ and
+Git are required; GitHub CLI is required only for PR delivery. Package
+discovery is not proof that the host or a provider exposes the tools the
+workflow needs. Standalone skills retain their own bounded authority in any
+harness.
 
 ## Build from source
 
@@ -20,10 +24,12 @@ python3 codex/scripts/package_plugin.py --target portable --output dist/portable
 python3 codex/scripts/package_plugin.py --target cursor --output dist/cursor/orchestra
 python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchestra
 python3 codex/scripts/package_plugin.py --target claude --output dist/claude/orchestra
+python3 codex/scripts/package_plugin.py --target capy --output dist/capy/orchestra
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
-manifest. `cursor` uses Cursor's native manifest. `grok` uses the
+manifest; `capy` emits the same two manifests and swaps the T3 Code host
+reference for Capy's. `cursor` uses Cursor's native manifest. `grok` uses the
 Claude-compatible plugin layout recognized by Grok Build. `claude` uses Claude
 Code's `.claude-plugin` manifest and ships one read hook. Native variants avoid
 competing root manifests so each loader selects its own format. All content is
@@ -39,7 +45,7 @@ resource ships in every bundle.
 ## Downloadable candidates
 
 The repository's `Plugin bundles` GitHub Actions workflow runs the canonical
-full validator, builds all four targets, and uploads one artifact named
+full validator, builds every target, and uploads one artifact named
 `orchestra-plugins-<commit>`. It runs for pull requests, pushes to `main`, and
 manual dispatch. Artifacts expire after 14 days; they are development
 candidates, not marketplace publications or releases.
@@ -151,6 +157,30 @@ plugins may namespace skill names. An unequivocal instruction such as “Use
 Orchestra to implement this change” also activates it. The root resolves
 runtime paths from the loaded skill and checks the `t3-code` tools before task
 setup. Loading alone does not start work and never changes permissions.
+
+## Install on Capy
+
+Capy discovers skills at `skills/<name>/SKILL.md` in a Drive, so the `capy`
+bundle installs into the root of one Drive location: a Captain's Drive when a
+Captain launches task roots, otherwise your own. The same command installs and
+updates it. Run it from the Orchestra checkout on a Capy machine where that
+Drive is mounted, after `git pull`:
+
+```sh
+drive=~/.capy/drive/<location>
+build=$(mktemp -d)/orchestra &&
+python3 codex/scripts/package_plugin.py --target capy --output "$build" &&
+rsync -a --delete --filter='P /*' --filter='P /skills/*' "$build/" "$drive/"
+```
+
+`--delete` removes stale files inside the bundle's own top-level entries and
+skill folders, so a file the new bundle no longer ships disappears. The two
+protect rules keep every other top-level entry of the Drive (`NOTES.md`,
+`CREW.md`, `reports/`, `handoffs/`, `orchestra-home/`) and every other
+skill folder. A top-level file or skill folder that a later bundle drops stays
+until you remove it. Keep settings and flow overrides in that Drive's
+`orchestra-home/`, which the update never touches. New threads load the
+updated skills.
 
 ## Acceptance
 

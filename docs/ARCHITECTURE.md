@@ -2,15 +2,15 @@
 
 ## Architectural objective
 
-Build an orchestration product for T3 Code whose complexity is dominated by
-software delivery work, not by its own control plane. T3 Code is the one
-execution host and the providers it runs are executors; shared skills, helpers,
-and Git remain one copy.
+Build an orchestration product for T3 Code and Capy whose complexity is
+dominated by software delivery work, not by its own control plane. Each host is
+one thin reference and the providers it runs are executors; shared skills,
+helpers, and Git remain one copy.
 
 ```mermaid
 flowchart LR
-    U["User"] <--> O["Orchestrator in a T3 thread"]
-    O --> A["Four roles + capabilities through T3"]
+    U["User"] <--> O["Orchestrator in a host thread"]
+    O --> A["Four roles + capabilities through the host"]
     O --> W["Workflow skills"]
     W --> G["Git / GitHub / project tools"]
     A --> E["Compact evidence and results"]
@@ -365,29 +365,37 @@ assignment table is introduced. Operational authority and lifecycle live in
 WORKFLOW "Modular engineering", "Project verification" and "Repository conventions".
 
 `orchestrator` owns an explicitly selected parent responsibility across
-independent task roots. Its task roots are T3 threads that retain child
-context; a `delegate_task` role remains deliberately narrower.
+independent task roots. Its task roots are host threads that retain child
+context; a dispatched role remains deliberately narrower.
 One persistent Markdown project register links handles, plans, accepted revisions
 and joint evidence for the parent/resume consumer, including concurrent tasks in
 one repository. Optional stable context is separate from progress. This replaces
 the old private index, does not mirror child phase state and is not an authoritative
-board or scheduler. T3-created checkouts are adopted once and retained for
-T3-owned cleanup; task-root resources remain separate from the flow's role
-rows. WORKFLOW "Initiative coordination" owns the contract, and the
-coordinator's host-transports reference maps it onto T3. A Hermes thread may
-act as the parent without implementing.
+board or scheduler. Host-created checkouts are adopted once and retained for
+host-owned cleanup; task-root resources remain separate from the flow's role
+rows. WORKFLOW "Initiative coordination" owns the contract, and each host
+reference's "Task roots" maps it. A dispatcher parent, a Hermes thread in T3 or
+a Captain in Capy, may act as the parent without implementing.
 
-## T3 Code host
+## Hosts
 
 Shared product, skills, packets, artifacts, Git and the four role skills are
-provider-neutral. T3 Code supplies threads, worktrees (`t3_worktree_handoff`),
-role transport (`delegate_task` with an explicit provider, model and effort),
-completion notifications, the collaborative browser and pull request watching,
-as WORKFLOW "T3 Code host" and the T3 Code reference specify. Each provider T3
-runs (Claude Code, Codex, Cursor, Grok and later ones) is an executor:
-supporting one is a flow row plus a role check against the live catalog, never
-a host adapter. Outside T3 the role, engineering and verification skills remain
-usable directly; the full workflow does not.
+host-neutral. WORKFLOW "Host" names the primitives the workflow needs (task
+roots, parent reports, role dispatch and continuation, the live model catalog,
+checkouts, PR wakes, the browser, user preview, questions, permissions and the
+dispatcher parent), and each supported host has one reference that maps them:
+`host_t3.md` for T3 Code and `host_capy.md` for Capy. A host is that one file,
+never an adapter, matrix or tier; the code branches by host only in which
+reference a bundle copies. Each provider a host runs (Claude Code, Codex,
+Cursor, Grok and later ones) is an executor: supporting one is a flow row plus
+a role check against the live catalog. Outside a supported host the role,
+engineering and verification skills remain usable directly; the full workflow
+does not.
+
+The canonical validator keeps the split checkable: both references map every
+WORKFLOW "Host" primitive in the same sections, and no shared workflow, skill
+or flow file names a tool from a host's primitive table or a host reference
+file, so a root on one host never reads the other's text.
 
 Role skills have one behavior contract with two contexts: a direct assignment
 returns inline evidence; an approved phase supplies the workflow's artifacts
@@ -402,7 +410,8 @@ parent-launched task root, the second reviewer of the review pair, and the
 later recovery attempts. The user's
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml` replaces whole entries without
 editing the package. The root reads both directly; there is no resolver
-helper, tier, preset or per-provider matrix. Role skills stay model-free and
+helper, tier, preset, per-provider matrix or per-host flow file; each host
+reference maps the shared provider ids onto its own model ids. Role skills stay model-free and
 capability playbooks stay independent of providers; the validator keeps the
 file complete and model ids out of skills. WORKFLOW "Flow assignment" owns
 resolution, availability, substitution and recovery.
@@ -415,10 +424,10 @@ it.
 
 Permission and browser-routing behavior is specified once in
 `docs/WORKFLOW.md` ("Test permissions and browser routing"). Architecturally,
-T3's runtime mode and each provider's permission choice are observed and never
-written, and `browser_route` is a transient packet value: T3's collaborative
-browser first, then Claude in Chrome for a Claude child started with
-`--chrome`, or `codex-cu`. Browser evidence is PNG screenshot files cited from
+the host's permission setting and each provider's permission choice are
+observed and never written, and `browser_route` is a transient packet value:
+the host's own browser first, then the surfaces its reference lists, copied
+into the packet by the root. Browser evidence is PNG screenshot files cited from
 the existing report kinds, not a new artifact kind.
 
 ## Phase resource lifecycle
@@ -426,7 +435,7 @@ the existing report kinds, not a new artifact kind.
 Resource hygiene is owner-first and transient: agents clean exact owned
 resources before each handoff, retention requires explicit packet
 authorization, handles live only in root memory, and no helper discovers or
-kills processes globally. Waiting uses T3's completion notifications without
+kills processes globally. Waiting uses the host's completion wakes without
 busy-polling. The complete rules — cleanup statuses, teardown, verification
 ordering, and the observation boundary — live in `docs/WORKFLOW.md` ("Phase
 execution", "Phase teardown", and "Agent waiting"). Commit execution remains a
@@ -505,7 +514,7 @@ authorized merge and guarded post-merge cleanup; `pr.py` calls `gh` and direct
 Git primitives and is not a generalized GitHub abstraction. Review-thread
 observation uses one bounded GraphQL query because REST check and comment data
 cannot establish thread resolution. Incomplete pagination remains `partial`,
-never clean. Managed task checkouts come from T3 (`t3_worktree_handoff`) at the
+never clean. Managed task checkouts come from the host's checkout primitive at the
 configured path and exact fetched upstream commit for a remotely tracked
 canonical base. Hybrid task setup first
 resolves and fetches that upstream, uses `git merge --ff-only <upstream>` only
@@ -553,18 +562,24 @@ They contain no installers, active configuration, credentials, or private data.
 The portable target uses Agent Plugins 1.0 `plugin.json` with a Codex
 compatibility manifest; the Cursor, Grok and Claude Code targets use those
 providers' native manifests, so each can load the entry skill as a T3 task
-root. The Claude Code target ships one `PreToolUse` hook that allows read-only
+root. The `capy` target writes the portable manifests and installs into a Capy
+Drive. Each target ships exactly one host reference, T3 Code's for the four
+provider targets and Capy's for `capy`, so neither host's bundle contains the
+other's instructions. The Claude Code target ships one `PreToolUse` hook that allows read-only
 tools only inside its own package, because Claude Code otherwise denies
 non-interactive agents their role skills; it grants no write, shell, or
 outside-path access. All targets retain the same shared workflow; only
-distribution metadata varies. Runtime resolution and dispatch policy belong to
-WORKFLOW "T3 Code host" and the loaded skill's runtime reference.
+distribution metadata and the host reference vary. Runtime resolution and
+dispatch policy belong to WORKFLOW "Host" and the loaded skill's runtime
+reference.
 
 Plugin install, update, listing, and removal belong to each provider's plugin
 manager; install once per provider used as a task root.
 `codex/scripts/update_local.py` rebuilds into a fixed folder, drives those
 managers for Claude Code and Codex and copies Cursor's local plugin, without
-writing provider configuration.
+writing provider configuration. On Capy the packaging README's update command
+rebuilds the `capy` bundle into a Drive root without touching the Drive's other
+files.
 Removing a plugin does
 not remove user task data. Publishing bundles or a public marketplace is a
 separate delivery action. Orchestra installation is never part of ordinary task

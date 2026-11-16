@@ -56,7 +56,7 @@ workflow. For example:
 
 ```text
 Use orchestrator from Orchestra revision <full approved SHA>.
-Resolve that source's runtime and read its coordination entry and host transport.
+Resolve that source's runtime and read its coordination entry and host reference.
 Project context: <accessible PROJECT.md and BOARD.md>.
 Task authority: <the grants from this conversation; backlog is not approval>.
 Report the instruction revision the next child actually resolves.

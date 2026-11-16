@@ -69,6 +69,7 @@ class PlannedFlowInvariantTests(unittest.TestCase):
             "shared_conduct.md",
             "source_preparation.md",
             "host_t3.md",
+            "host_capy.md",
             "model_notes.md",
             "finding_triage.md",
             "planning_stage.md",

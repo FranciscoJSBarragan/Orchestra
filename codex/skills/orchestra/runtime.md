@@ -26,6 +26,10 @@ do not silently fall back to another installed version.
 | Helpers | `<runtime>/scripts/` |
 | Flow assignment | `<runtime>/flow.toml`, overridden by `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml` |
 | Role skills and shared references | `<skills-root>/<skill>/` |
+| Host reference | `<skills-root>/orchestra/references/host_<host>.md` |
+
+A package ships only its host's reference. In source mode, read only the one
+for the host running this session.
 
 Every delegated role packet includes the absolute `role_skill` path and the
 selected runtime and skills roots. Resolve sibling skills and references from
@@ -34,8 +38,7 @@ the absolute shared engineering guidance path and its `#source-comments`
 section. A root's global instruction file is not evidence that another provider
 received it. A task-root packet instead names its selected entry skill and
 those same roots under WORKFLOW "Initiative coordination". Dispatch is
-specified in WORKFLOW "T3 Code host" and the [T3 Code](references/host_t3.md)
-reference.
+specified in WORKFLOW "Host" and the host reference.
 
 The package is read-only. Checkout settings and flow overrides stay under
 `${ORCHESTRA_HOME:-$HOME/.orchestra}`; worktrees retain their existing
