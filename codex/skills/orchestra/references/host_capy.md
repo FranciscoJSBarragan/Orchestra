@@ -96,9 +96,9 @@ unless the project's Setup does, so hooks the repository versions outside
 When `.git/hooks` holds only samples, run `git config core.hooksPath <dir>`
 in that checkout before the first phase commit, the way a developer installs
 them, so Git runs every hook with its own arguments; a hook the Setup installed
-in `.git/hooks` already runs. Never pass it per command with `-c` or `GIT_CONFIG_*`: those
-reach every Git process a hook starts, including a test's fixture
-repositories.
+in `.git/hooks` already runs. Never pass it per command with `-c` or
+`GIT_CONFIG_*`: those reach every Git process a hook starts, including a
+test's fixture repositories.
 
 ## Role transport
 
