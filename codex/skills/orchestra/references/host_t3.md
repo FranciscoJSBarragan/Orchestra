@@ -25,6 +25,9 @@ follow WORKFLOW.
 | `permissions` | `runtimeMode` inherit |
 | `dispatcher_parent` | A Hermes thread |
 
+These names, every other `t3_*` and `preview_*` tool, `create_threads` and the
+`t3-code` server are T3's; no core file or other host's file names them.
+
 ## Runtime
 
 Install the bundle once for each provider used as a task root, as its

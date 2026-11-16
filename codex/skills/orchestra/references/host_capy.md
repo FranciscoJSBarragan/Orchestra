@@ -24,6 +24,9 @@ follow WORKFLOW.
 | `permissions` | No permission mode; Capy's platform rules apply |
 | `dispatcher_parent` | A Captain |
 
+These names and every other `tools.*` call are Capy's; no core file or other
+host's file names them.
+
 ## Runtime
 
 The Capy bundle (`package_plugin.py --target capy`) installs into the root of
