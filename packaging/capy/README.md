@@ -19,17 +19,15 @@ build=$(mktemp -d)/orchestra &&
 python3 codex/scripts/package_plugin.py --target capy --output "$build" &&
 cp -R "$build/." "${drive:?}/" &&
 (cd "$build" && for entry in .codex-plugin * skills/*; do
-  [ "$entry" = skills ] || (cd "$drive" && find "$entry" -depth)
-done) | while IFS= read -r installed; do
-  [ -e "$build/$installed" ] || rm -rf "$drive/$installed"
-done
+  [ "$entry" = skills ] || (cd "$drive" &&
+    find "$entry" -depth ! -exec test -e "$build/{}" ';' -exec rm -rf {} +)
+done)
 ```
 
 `cp` writes the new bundle over the installed one, so threads reading the
-Drive never find it missing. The loop then lists every path under each
+Drive never find it missing. `find` then removes every path under each
 top-level entry the bundle ships except `skills/`, and under each Orchestra
-skill folder, and removes the paths the new bundle no longer ships. Every
-other top-level entry of the Drive (`NOTES.md`, `CREW.md`, `AGENTS.md`,
+skill folder, that the new bundle no longer ships. Every other top-level entry of the Drive (`NOTES.md`, `CREW.md`, `AGENTS.md`,
 `reports/`, `handoffs/`, `renders/`, `orchestra-home/`) and every other skill
 folder stays untouched. It uses only POSIX shell tools, so it behaves the same
 in `sh`, `bash` and `zsh` on Linux and macOS; it avoids `rsync` because

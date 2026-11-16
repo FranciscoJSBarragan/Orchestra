@@ -191,6 +191,10 @@ class PluginPackagingTests(unittest.TestCase):
                 for stale in (directory / "stale.md", directory / "stale/stale.md"):
                     stale.write_text("stale")
         (drive / "skills/orchestra/SKILL.md").write_text("previous")
+        neighbor = home / ".capy/drive/neighbor/keep.md"
+        for path in (drive / "skills/orchestra/x\n../neighbor/stale.md", neighbor):
+            path.parent.mkdir(parents=True)
+            path.write_text(path.name)
         kept = {Path(name): name.encode() for name in (
             "NOTES.md", "CREW.md", "AGENTS.md", "reports/ORCH-5.md", "handoffs/ORCH-2/host.md",
             "renders/ORCH-5/screen.png", "orchestra-home/flow.toml", "skills/other/SKILL.md",
@@ -210,6 +214,7 @@ class PluginPackagingTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         installed = {path.relative_to(drive): path.read_bytes() for path in drive.rglob("*") if path.is_file()}
         self.assertEqual({path: installed.pop(path, None) for path in kept}, kept)
+        self.assertEqual(neighbor.read_text(), "keep.md")
         self.assertEqual(installed, {path.relative_to(bundle): path.read_bytes()
                                      for path in bundle.rglob("*") if path.is_file()})
 
