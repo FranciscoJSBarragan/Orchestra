@@ -509,6 +509,20 @@ class FullModeFixtureTest(unittest.TestCase):
         self.assertIn("review_pair needs provider and model", result.stdout)
         self.assertIn("has an invalid effort", result.stdout)
 
+    def test_non_text_effort_is_actionable(self) -> None:
+        flow = self.root / "codex/config/flow.toml"
+        original = flow.read_text(encoding="utf-8")
+        for effort in ("[]", '{ level = "high" }'):
+            with self.subTest(effort=effort):
+                try:
+                    self.edit_flow('effort = "high"', f"effort = {effort}")
+                    result = self.run_validator()
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("FAIL: flow-contract: task_root has an invalid effort", result.stdout)
+                    self.assertNotIn("Traceback", result.stderr)
+                finally:
+                    flow.write_text(original, encoding="utf-8")
+
     def test_model_id_in_skill_text_is_rejected(self) -> None:
         skill = self.root / "codex/skills/orchestra-role-reviewer/SKILL.md"
         skill.write_text(skill.read_text(encoding="utf-8") + "\nPrefer gpt-6.1-sol.\n", encoding="utf-8")
