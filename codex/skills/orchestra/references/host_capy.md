@@ -93,9 +93,10 @@ handoff states that the result exists only on that machine.
 A thread's checkout is a fresh clone, and a clone sets no `core.hooksPath`
 unless the project's Setup does, so hooks the repository versions outside
 `.git/hooks` (for example in `.githooks/`) do not run on a phase commit.
-Before the first phase commit, run `git config core.hooksPath <dir>` in that
-checkout, the way a developer installs them, so Git runs every hook with its
-own arguments. Never pass it per command with `-c` or `GIT_CONFIG_*`: those
+When `.git/hooks` holds only samples, run `git config core.hooksPath <dir>`
+in that checkout before the first phase commit, the way a developer installs
+them, so Git runs every hook with its own arguments; a hook the Setup installed
+in `.git/hooks` already runs. Never pass it per command with `-c` or `GIT_CONFIG_*`: those
 reach every Git process a hook starts, including a test's fixture
 repositories.
 
