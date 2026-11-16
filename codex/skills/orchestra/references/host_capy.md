@@ -90,6 +90,16 @@ Ask for the task-branch push grant with specification confirmation; once
 granted, push the task branch after every phase commit. Without it, the
 handoff states that the result exists only on that machine.
 
+A thread's checkout is a fresh clone, and a clone sets no `core.hooksPath`
+unless the project's Setup does, so hooks the repository versions outside
+`.git/hooks` (for example in `.githooks/`) do not run on a phase commit.
+When `.git/hooks` holds only samples, run `git config core.hooksPath <dir>`
+in that checkout before the first phase commit, the way a developer installs
+them, so Git runs every hook with its own arguments; a hook the Setup installed
+in `.git/hooks` already runs. Never pass it per command with `-c` or
+`GIT_CONFIG_*`: those reach every Git process a hook starts, including a
+test's fixture repositories.
+
 ## Role transport
 
 - Dispatch each role as one subagent with `machine: "shared"` and the model
@@ -105,10 +115,12 @@ handoff states that the result exists only on that machine.
   in the user's language from the first dispatch, including an analyst
   dispatched before checkout.
 - One `tools.subagent.start` call applies one model to every index it starts.
-  For the review pair, create both drafts in one `tools.subagent.create` call,
-  start each index with its own model, and read each `rejected` list. Wait on
-  both with `wait` (`subagents`, `return_when: "all"`) so the root wakes
-  once with both reports.
+  For the review pair, create both drafts in one `tools.subagent.create` call
+  without `start`, start each with its own
+  `tools.subagent.start({ indices: [<index>], machine: "shared", model })`
+  call, where `model` is `{ model_id, reasoning_mode }`, and read each
+  `rejected` list. Wait on both with `wait` (`subagents`,
+  `return_when: "all"`) so the root wakes once with both reports.
 - End the turn after dispatch: a subagent's final report wakes the root. A
   `queued` subagent starts on its own; never relaunch it. Stop one that must
   not continue with `tools.subagent.stop`.
@@ -120,9 +132,15 @@ handoff states that the result exists only on that machine.
 
 - A task root is one Capy thread. Launched by a Captain with
   `tools.thread.create`, it is a crew thread whose `model` is the flow's
-  `task_root` row mapped as "Flow rows" defines, and the Captain is its parent
-  and its dispatcher parent under WORKFLOW "Dispatcher parent". Invoked
-  directly, it is a plain thread and the person is its user.
+  `task_root` row mapped as "Flow rows" defines, passed with both `model_id`
+  and `reasoning_mode`: an omitted `model` inherits the Captain's selection
+  and an omitted `reasoning_mode` takes the model's own default. A root whose
+  observed model or effort differs from that row names the difference in its
+  next report to the Captain and records the outcome in plan Decisions; the
+  Captain restores the row with a `message_agent` send that carries `model`,
+  or relays the difference to the person. The Captain is its parent and its
+  dispatcher parent under WORKFLOW "Dispatcher parent". Invoked directly, it
+  is a plain thread and the person is its user.
 - Report to the parent with a `message_agent` report without `to`:
   `needs_you` for a derived plan, a decision or a question for the person,
   `final` for the stable handoff. A `working` report never reaches the
@@ -139,20 +157,28 @@ handoff states that the result exists only on that machine.
 ## Pull requests
 
 - Push the task branch and confirm its published head is the terminal
-  manifest commit. Open the PR with `tools.pr.create` passing
-  `head: orchestra/<task-slug>`, base, title and body: it touches no checkout
-  and makes this thread the PR's owner, so CI results, reviews, comments,
-  conflicts and the merge wake it. Then run `pr.py open` on the same head to
-  write the PR-CONTEXT capsule into that PR: it finds the open PR, keeps the
-  body `tools.pr.create` wrote and replaces only the capsule. Pass
-  `--repository` with the owner/name casing `tools.pr.create` returned. Never
-  `gh pr create`.
+  manifest commit. Write the human body to a file outside the repository,
+  then open the PR with `tools.pr.create` passing
+  `head: orchestra/<task-slug>`, base, title and that body: it touches no
+  checkout and makes this thread the PR's owner, so CI results, reviews,
+  comments, conflicts and the merge wake it. Then run `pr.py open` on the same
+  head with that file as `--body-file` and the capsule intent in
+  `--context-file` to write the PR-CONTEXT capsule into that PR: it finds the
+  open PR, keeps the body `tools.pr.create` wrote and replaces only the
+  capsule. Pass `--repository` with the owner/name casing `tools.pr.create`
+  returned. Never `gh pr create`.
 - Only the root pushes to the task branch; the thread that last pushed owns
   the PR's events.
 - A wake is news. Observe again with `pr.py observe` under WORKFLOW "PR path";
   `tools.pr.getChecks` and `tools.pr.getComments` are quick reads, not the
   clean judgment. With checks or a bot review pending, end the turn with
-  `end_turn`.
+  `end_turn`. Capy's CI wake fires once the checks GitHub has created finish,
+  and GitHub may create a workflow's run only after it computes mergeability,
+  minutes after the PR opens. When `observe` shows `merge_state` `UNKNOWN`,
+  or a workflow whose pull-request trigger matches this PR's base and changed
+  paths has no run on the head, no wake is guaranteed: end the turn with a
+  short `wait` timer (`duration_seconds`) and observe again when it fires
+  before judging the PR clean.
 - Capy's automatic review adds a PR feedback surface; it never replaces the
   WORKFLOW "Review policy" reviews or the review pair. When its verdict wakes
   the root, read `tools.pr.getFindings`, triage each finding under
@@ -206,5 +232,7 @@ lines, into each browser packet; roles never read this reference.
   quotes the person; a merge needs the person's own request.
 - Comments and status changes on an issue the root owns also wake it. One that
   asks nothing, and any wake the parent does not need, ends with `end_turn`.
-  When the Captain asks for no interim reports, platform reminders to report
-  after repeated waits are answered with `end_turn` as well.
+  So does the turn a Captain's grant started, once the granted work is
+  dispatched, since WORKFLOW "Child root setup" acknowledges a grant by acting
+  on it. When the Captain asks for no interim reports, platform reminders to
+  report after repeated waits are answered with `end_turn` as well.
