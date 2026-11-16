@@ -48,24 +48,25 @@ shell call that runs a helper or reads settings, unless the project sets
 
 ## Flow rows
 
-The flow keeps its provider ids. Map each row to one Capy model id and check it
-against the subagent model list in your context, which is the live catalog;
-organization policy may still refuse a model at start and names the permitted
-alternatives.
+The flow keeps its provider ids. Map each row to the Capy model id that the
+subagent model list in your context, which is the live catalog, bills to the
+row's route; the prefixes below are today's, and when the catalog renames one
+the id it bills to the same route replaces it. Organization policy may still
+refuse a model at start and names the permitted alternatives.
 
-| Flow `provider` | Capy model id | Billing route |
+| Flow `provider` | Capy model id today | Billing route |
 | --- | --- | --- |
-| `claudeAgent` | `claude-code/<model>` | Claude plan |
+| `claudeAgent` | `anthropic/<model>` | Claude plan |
 | `codex` | `openai/<model>` | Codex plan |
 | `cursor`, `grok` | `xai/<model>` | the route the catalog names |
 
 `effort` passes unchanged as `reasoning_mode`. [Model notes](model_notes.md)
 apply by family: every `openai/gpt-*` model, Terra included, takes the GPT
-lines. A missing id or effort blocks under WORKFLOW "Flow assignment". A
-different billing route for the same model (for example `anthropic/` on Capy
-credits instead of `claude-code/`) is a substitution that needs the user's
-choice. `tools.subagent.get` reports the model that ran; that is observed
-evidence, the effort is requested only.
+lines. A missing id or effort blocks under WORKFLOW "Flow assignment". The
+same model on a different billing route (for example on the Capy API instead of
+the Claude plan) is a substitution that needs the user's choice.
+`tools.subagent.get` reports the model that ran; that is observed evidence, the
+effort is requested only.
 
 ## Checkout
 
