@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -45,6 +46,17 @@ class TaskStateTests(unittest.TestCase):
         if result.returncode and fail_test:
             self.fail(result.stdout + result.stderr)
         return result
+
+    def assert_cli_blocked(self, action: str, worktree: Path) -> None:
+        process = subprocess.run(
+            [sys.executable, str(HELPER), action, "--worktree", str(worktree)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotIn("Traceback", process.stderr)
+        self.assertEqual(process.returncode, 1, process.stdout + process.stderr)
+        self.assertEqual(json.loads(process.stdout)["status"], "blocked")
 
     def test_init_is_ignored_idempotent_and_resolvable(self) -> None:
         first = task_state.initialize_private_task_state(self.repo)
@@ -113,6 +125,38 @@ class TaskStateTests(unittest.TestCase):
         result = task_state.cleanup(self.repo)
         self.assertEqual(result["status"], "blocked")
         self.assertTrue(state.is_symlink())
+
+    def test_unusable_worktree_paths_are_blocked_without_changes(self) -> None:
+        root = Path(self.temporary_directory.name)
+        missing = root / "missing"
+        regular_file = root / "file.txt"
+        regular_file.write_text("not a worktree\n", encoding="utf-8")
+        plain_directory = root / "plain"
+        plain_directory.mkdir()
+
+        for worktree in (missing, regular_file, plain_directory):
+            for action in ("init", "resolve", "cleanup"):
+                with self.subTest(worktree=worktree.name, action=action):
+                    self.assert_cli_blocked(action, worktree)
+
+        self.assertFalse(missing.exists())
+        self.assertEqual(regular_file.read_text(encoding="utf-8"), "not a worktree\n")
+        self.assertEqual(list(plain_directory.iterdir()), [])
+
+    def test_unrecognized_marker_is_blocked_and_preserved(self) -> None:
+        self.assertEqual(
+            task_state.initialize_private_task_state(self.repo)["status"], "ok"
+        )
+        state = self.repo / ".orchestra"
+        marker = state / ".gitignore"
+
+        for content in (b"*\n\xff\n", b"*\n"):
+            marker.write_bytes(content)
+            for action in ("init", "resolve", "cleanup"):
+                with self.subTest(content=content, action=action):
+                    self.assert_cli_blocked(action, self.repo)
+                    self.assertEqual(marker.read_bytes(), content)
+                    self.assertTrue((state / "artifacts").is_dir())
 
     def test_legacy_state_is_resolved_and_cleaned_without_migration(self) -> None:
         git_dir = Path(self.git("rev-parse", "--absolute-git-dir").stdout.strip())
