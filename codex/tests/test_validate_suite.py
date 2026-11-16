@@ -599,5 +599,14 @@ class FullModeFixtureTest(unittest.TestCase):
             result.stdout,
         )
 
+    def test_missing_task_state_tests_fail_quick(self) -> None:
+        (self.root / "codex/tests/test_task_state.py").unlink()
+        result = self.run_validator("--quick")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "required-path: missing codex/tests/test_task_state.py",
+            result.stdout,
+        )
+
 if __name__ == "__main__":
     unittest.main()

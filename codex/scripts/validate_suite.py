@@ -102,6 +102,7 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-local-integrate/agents/openai.yaml",
     "codex/tests/test_commit_phase.py",
     "codex/tests/test_adopt_worktree.py",
+    "codex/tests/test_task_state.py",
     "codex/tests/test_routing_activation.py",
     "codex/tests/test_planned_flow.py",
     "codex/tests/test_validate_suite.py",
