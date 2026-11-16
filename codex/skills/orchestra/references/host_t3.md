@@ -27,8 +27,8 @@ follow WORKFLOW.
 
 ## Runtime
 
-Install the bundle once for each provider used as a task root, as the
-packaging README describes; a second install of the same provider duplicates
+Install the bundle once for each provider used as a task root, as its
+`README.md` describes; a second install of the same provider duplicates
 skills. The Claude Code bundle's only hook allows read-only tools inside its
 installed package, so a Claude child can read its role skill. Settings and flow
 overrides live under `${ORCHESTRA_HOME:-$HOME/.orchestra}`.
@@ -163,8 +163,8 @@ the merging root reports the merge.
 
 ## Browser and preview
 
-The root copies the route and tab lines below that a browser packet needs into
-that packet; roles never read this reference.
+The root copies the lines below for the packet's `browser_route`, and the tab
+lines, into each browser packet; roles never read this reference.
 
 - `auto`: T3's collaborative browser. When it is unavailable, including a
   `preview_open` sandbox or setup error, a Claude child started with

@@ -77,6 +77,7 @@ class PluginPackagingTests(unittest.TestCase):
                 own = f"host_{host}.md"
                 shipped = {path.name for path in (plugin / "skills/orchestra/references").glob("host_*.md")}
                 self.assertEqual(shipped, {own})
+                self.assertEqual((plugin / "README.md").read_bytes(), (ROOT / "packaging" / host / "README.md").read_bytes())
                 for path in plugin.rglob("*"):
                     if path.is_file():
                         text = path.read_text(encoding="utf-8")

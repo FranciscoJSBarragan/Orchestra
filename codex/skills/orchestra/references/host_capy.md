@@ -27,8 +27,8 @@ follow WORKFLOW.
 ## Runtime
 
 The Capy bundle (`package_plugin.py --target capy`) installs into the root of
-one Drive location with the packaging README's update command: each skill lands
-at `skills/<name>/SKILL.md`, where Capy discovers it, and
+one Drive location with the update command in its `README.md`: each skill
+lands at `skills/<name>/SKILL.md`, where Capy discovers it, and
 `.codex-plugin/plugin.json`, `WORKFLOW.md`, `flow.toml` and `scripts/` sit
 beside `skills/`, so [runtime resources](../runtime.md) resolve a plugin root
 under `~/.capy/drive/<location>/`. Use the Captain's Drive when a Captain
@@ -73,15 +73,14 @@ still apply: fetch, compare the captured HEAD with upstream, fast-forward a
 strictly behind clean base, and block when ahead or diverged. No managed
 worktree, handoff or `--preserve-task-resources` is needed.
 
-On Capy machines `/usr/bin/git` is a wrapper that writes
-`$HOME/.capy/git-shim.log`, and the real binary is `/usr/bin/git.real`. A
+Where `/usr/bin/git` is Capy's wrapper that writes
+`$HOME/.capy/git-shim.log` (the real binary is then `/usr/bin/git.real`), a
 repository test that asserts nothing is written under a temporary `HOME` can
 fail for that reason alone, also on the base. Run the repository's hard gate
 once in preflight; if it fails only that way, run every gate with a directory
 holding a `git -> /usr/bin/git.real` symlink first on `PATH`, record that
 environment fix in plan Decisions and pass it in every packet that runs the
-gate. GitHub CI stays the shim-free evidence. The checkout has no
-`core.hooksPath`, so a repository's versioned Git hooks do not run on commit.
+gate. GitHub CI stays the shim-free evidence.
 
 Unpushed commits and `.orchestra/` are lost when Capy rebuilds the machine.
 Ask for the task-branch push grant with specification confirmation; once
@@ -100,8 +99,8 @@ handoff states that the result exists only on that machine.
 - The packet adds: do not commit, open pull requests, spawn subagents, create
   threads or message other agents; end with one final report carrying the
   role's status line, Summary and artifact file name. Packets and reports are
-  in the user's language from the first dispatch, including a pre-checkout
-  `repository_context` analyst.
+  in the user's language from the first dispatch, including an analyst
+  dispatched before checkout.
 - One `tools.subagent.start` call applies one model to every index it starts.
   For the review pair, create both drafts in one `tools.subagent.create` call,
   start each index with its own model, and read each `rejected` list. Wait on
@@ -150,21 +149,20 @@ handoff states that the result exists only on that machine.
 - A wake is news. Observe again with `pr.py observe` under WORKFLOW "PR path";
   `tools.pr.getChecks` and `tools.pr.getComments` are quick reads, not the
   clean judgment. With checks or a bot review pending, end the turn with
-  `end_turn`. Review apps the repository installs appear as checks and keep
-  the head pending until they finish.
+  `end_turn`.
 - Capy's automatic review adds a PR feedback surface; it never replaces the
   WORKFLOW "Review policy" reviews or the review pair. When its verdict wakes
   the root, read `tools.pr.getFindings`, triage each finding under
   [finding triage](finding_triage.md) like other PR feedback, record the
   disposition with `tools.pr.updateFindings`, and fix accepted ones through a
-  normal fix round. Findings of kind `note` exist only in Capy. Capy also
-  posts a review body, which `pr.py observe` lists as
-  `supplemental_feedback`; after triage pass its `fingerprint` with
+  normal fix round. Capy also posts a review body, which `pr.py observe`
+  lists as `supplemental_feedback`; after triage pass its `fingerprint` with
   `--acknowledged-feedback` to `observe` and `merge`. Inline comments it
   leaves are review threads `observe` reads, so the PR is not clean until
   each one has a disposition.
-- Capy merges only a merge the person asked for in this thread. A `merge when
-  clean` grant the person gave here counts; one relayed by a Captain does not.
+- Capy's instructions allow a merge only when the person asks for it in this
+  thread: a `merge when clean` grant the person gave here counts, one relayed
+  by a Captain does not.
   Otherwise report the clean PR and end the turn; the person merges from
   Capy's pull request page or asks here. A merge wakes the thread only when
   someone wrote in it within the last three days by default; otherwise run the
@@ -177,8 +175,8 @@ handoff states that the result exists only on that machine.
 
 ## Browser and preview
 
-The root copies the route and tab lines below that a browser packet needs into
-that packet; roles never read this reference.
+The root copies the lines below for the packet's `browser_route`, and the tab
+lines, into each browser packet; roles never read this reference.
 
 - `auto` and `in_app` use `tools.capy.browser` on the shared machine; no
   other surface exists, so any other `browser_route` returns `blocked`.
@@ -201,9 +199,9 @@ that packet; roles never read this reference.
   report, since a parent-launched root never combines them. The Captain
   answers what the brief and earlier decisions settle and relays the rest; the
   person may answer in the crew thread directly. A Captain's reply approves a
-  delivery action, merge, preview exit or new repository convention only when
-  it quotes the person.
-- The Captain's issue comments and status changes also wake the root. One that
+  delivery action, preview exit or new repository convention only when it
+  quotes the person; a merge needs the person's own request.
+- Comments and status changes on an issue the root owns also wake it. One that
   asks nothing, and any wake the parent does not need, ends with `end_turn`.
   When the Captain asks for no interim reports, platform reminders to report
   after repeated waits are answered with `end_turn` as well.

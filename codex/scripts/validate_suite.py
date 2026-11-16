@@ -36,6 +36,8 @@ REQUIRED_PATHS = (
     "codex/tests/test_update_local.py",
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
+    "packaging/t3/README.md",
+    "packaging/capy/README.md",
     "packaging/claude/hooks/hooks.json",
     "packaging/claude/hooks/read_package.py",
     "codex/skills/orchestra/runtime.md",
@@ -558,37 +560,53 @@ def _table_rows(text: str, heading: str) -> list[list[str]]:
             for line in section.splitlines() if line.startswith("| `")]
 
 
+def _names(text: str, name: str) -> bool:
+    tail = "[A-Za-z]" if name.endswith(".") else r"(?![\w-])"
+    return re.search(rf"(?<![\w.-]){re.escape(name)}{tail}", text) is not None
+
+
 def check_host_separation(root: Path) -> list[str]:
     workflow = root / "docs/WORKFLOW.md"
+    flow = root / "codex/config/flow.toml"
     hosts = sorted((root / "codex/skills/orchestra/references").glob("host_*.md"))
     if not workflow.is_file() or not hosts:
         return []
     primitives = [row[0] for row in _table_rows(workflow.read_text(encoding="utf-8"), "## Host")]
     failures = [] if primitives else ["host-contract: WORKFLOW Host must table the host primitives"]
-    host_names: set[str] = set()
+    flow_names = re.sub(r"#.*", "", flow.read_text(encoding="utf-8")) if flow.is_file() else ""
+    texts = {host: host.read_text(encoding="utf-8") for host in hosts}
+    vocabulary: dict[Path, set[str]] = {}
     sections: set[tuple[str, ...]] = set()
-    for host in hosts:
-        text = host.read_text(encoding="utf-8")
+    for host, text in texts.items():
         rows = _table_rows(text, "## Primitives")
         if [row[0] for row in rows] != primitives:
             failures.append(f"host-contract: {host.name} Primitives must map the WORKFLOW Host primitives in order")
         tools = {name for row in rows for cell in row[1:] for name in re.findall(r"`([^`]+)`", cell)}
         if not tools:
             failures.append(f"host-contract: {host.name} Primitives must name its host tools")
-        host_names |= tools | {host.name}
+        others = "\n".join(other for path, other in texts.items() if path != host)
+        names = {name for name in re.findall(r"`([^`\n]+)`", text)
+                 if re.fullmatch(r"[A-Za-z][\w.-]*", name) and re.search(r"\w[._-]\w|[a-z][A-Z]", name)
+                 and not re.search(r"\.(?:py|md|json|toml|ya?ml|log)$", name)
+                 and not _names(flow_names, name) and not _names(others, name)}
+        namespaces = [name.split(".")[0] + "." for name in names if "." in name]
+        vocabulary[host] = (tools | names | {host.name}
+                            | {namespace for namespace in namespaces if namespaces.count(namespace) > 1})
         sections.add(tuple(re.findall(r"^## .+$", text, re.MULTILINE)))
     if len(sections) > 1:
         failures.append("host-contract: host references must have the same sections")
-    core = [workflow, root / "codex/config/flow.toml",
-            *(path for path in sorted((root / "codex/skills").rglob("*"))
-              if path.is_file() and path not in hosts)]
-    for path in core:
+    checked = [(path, hosts) for path in (workflow, flow, *sorted((root / "codex/skills").rglob("*")))
+               if path not in hosts]
+    checked += [(root / "packaging" / host.stem.removeprefix("host_") / "README.md",
+                 [other for other in hosts if other != host]) for host in hosts]
+    for path, foreign in checked:
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8")
-        for name in sorted(host_names):
-            if re.search(rf"(?<![\w.-]){re.escape(name)}(?![\w-])", text):
-                failures.append(f"host-contract: {path.relative_to(root)} names host-specific {name}")
+        for name in sorted(set().union(*(vocabulary[host] for host in foreign))):
+            if _names(text, name):
+                failures.append(f"host-contract: {path.relative_to(root)} names host-specific "
+                                f"{name}{'*' if name.endswith('.') else ''}")
     return failures
 
 

@@ -197,6 +197,26 @@ class ValidateSuiteTests(unittest.TestCase):
                         path.write_text(original)
         self.assertEqual(validator.check_host_separation(self.root), [])
 
+    def test_host_names_outside_the_primitives_tables_stay_in_their_host(self) -> None:
+        for path, leak in (("codex/skills/orchestra-role-reviewer/SKILL.md", "tools.subagent.stop"),
+                           ("codex/skills/orchestra-role-reviewer/SKILL.md", "tools.pr.getChecks"),
+                           ("codex/skills/orchestra-role-reviewer/SKILL.md", "create_threads"),
+                           ("docs/WORKFLOW.md", "tools.issue.update"),
+                           ("packaging/t3/README.md", "message_agent"),
+                           ("packaging/capy/README.md", "t3-code")):
+            with self.subTest(path=path, leak=leak):
+                target = self.root / path
+                original = target.read_text()
+                try:
+                    target.write_text(original + f"\nUse {leak} here.\n")
+                    self.assertTrue(any(failure.startswith(f"host-contract: {path} names host-specific")
+                                        for failure in validator.check_host_separation(self.root)))
+                finally:
+                    target.write_text(original)
+        guide = self.root / "packaging/t3/README.md"
+        guide.write_text(guide.read_text() + "\nUse t3_thread_send here.\n")
+        self.assertEqual(validator.check_host_separation(self.root), [])
+
     def test_every_host_maps_every_primitive_in_the_same_sections(self) -> None:
         references = self.root / "codex/skills/orchestra/references"
         hosts = sorted(references.glob("host_*.md"))

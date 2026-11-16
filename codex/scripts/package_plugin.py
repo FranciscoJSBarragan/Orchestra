@@ -78,7 +78,7 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         ("docs/WORKFLOW.md", "WORKFLOW.md"),
         ("codex/config/flow.toml", "flow.toml"),
         ("LICENSE", "LICENSE"),
-        ("packaging/README.md", "README.md"),
+        (f"packaging/{TARGETS[target]}/README.md", "README.md"),
     ):
         files.append((source / original, Path(destination)))
     if target == "claude":

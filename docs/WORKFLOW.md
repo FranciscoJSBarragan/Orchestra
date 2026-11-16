@@ -106,9 +106,7 @@ skills, helpers, the flow assignment, WORKFLOW and its host reference in one
 relocatable package; explicit source mode uses a prepared checkout. Settings
 and flow overrides stay outside it under `${ORCHESTRA_HOME:-$HOME/.orchestra}`.
 Installing or loading it neither activates Orchestra nor grants delivery
-authority. The host's and each provider's permission settings are observed,
-never written or raised: a dispatch inherits them (`permissions`), and a
-denial is never bypassed.
+authority.
 
 The orchestrator keeps the main objective while adapting safely to facts
 found during execution: it does not stop for routine technical choices or
@@ -1298,7 +1296,7 @@ resources or an exact safely addressable handle reported by the owner.
 
 ### Test permissions and browser routing
 
-Orchestra observes the host's permission setting and each provider's
+Orchestra observes the host's `permissions` and each provider's
 permission choice; it never changes them or blocks because they differ. A
 command that crosses a protected boundary is issued once, and its prompt or
 denial is respected; never retry a denial through a workaround or broaden

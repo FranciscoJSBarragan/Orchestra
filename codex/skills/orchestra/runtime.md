@@ -26,10 +26,7 @@ do not silently fall back to another installed version.
 | Helpers | `<runtime>/scripts/` |
 | Flow assignment | `<runtime>/flow.toml`, overridden by `${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml` |
 | Role skills and shared references | `<skills-root>/<skill>/` |
-| Host reference | `<skills-root>/orchestra/references/host_<host>.md` |
-
-A package ships only its host's reference. In source mode, read only the one
-for the host running this session.
+| Host reference | `<skills-root>/orchestra/references/host_<host>.md` for the host running this session; read no other |
 
 Every delegated role packet includes the absolute `role_skill` path and the
 selected runtime and skills roots. Resolve sibling skills and references from

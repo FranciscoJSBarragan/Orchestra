@@ -569,7 +569,7 @@ other's instructions. The Claude Code target ships one `PreToolUse` hook that al
 tools only inside its own package, because Claude Code otherwise denies
 non-interactive agents their role skills; it grants no write, shell, or
 outside-path access. All targets retain the same shared workflow; only
-distribution metadata and the host reference vary. Runtime resolution and
+distribution metadata and the host's reference and guide vary. Runtime resolution and
 dispatch policy belong to WORKFLOW "Host" and the loaded skill's runtime
 reference.
 
@@ -577,7 +577,7 @@ Plugin install, update, listing, and removal belong to each provider's plugin
 manager; install once per provider used as a task root.
 `codex/scripts/update_local.py` rebuilds into a fixed folder, drives those
 managers for Claude Code and Codex and copies Cursor's local plugin, without
-writing provider configuration. On Capy the packaging README's update command
+writing provider configuration. On Capy the Capy guide's update command
 rebuilds the `capy` bundle into a Drive root without touching the Drive's other
 files.
 Removing a plugin does

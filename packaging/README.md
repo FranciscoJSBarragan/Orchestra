@@ -1,17 +1,13 @@
 # Orchestra plugin bundles
 
 The plugin contains the Orchestra workflow, reusable skills, local Python
-helpers, the default flow assignment and the reference of one host. Its full
-workflow runs on T3 Code or Capy. For T3 Code, install a `portable`, `cursor`,
-`grok` or `claude` bundle for each provider you use as a task root (Claude
-Code, Codex, Cursor or Grok), and T3 carries every role to the provider its
-flow row names. For Capy, install the `capy` bundle into a Drive. Each bundle
-ships only its own host's reference, so neither host loads the other's
-instructions; both rebuild from the same canonical source. Python 3.11+ and
-Git are required; GitHub CLI is required only for PR delivery. Package
-discovery is not proof that the host or a provider exposes the tools the
-workflow needs. Standalone skills retain their own bounded authority in any
-harness.
+helpers, the default flow assignment and the reference and guide of one host.
+Its full workflow runs on T3 Code or Capy, and each host's guide says how to
+load it. Each bundle ships only its own host's reference and guide, so neither
+host loads the other's instructions; both rebuild from the same canonical
+source. Package discovery is not proof that the host or a provider exposes the
+tools the workflow needs. Standalone skills retain their own bounded authority
+in any harness.
 
 ## Build from source
 
@@ -28,8 +24,8 @@ python3 codex/scripts/package_plugin.py --target capy --output dist/capy/orchest
 ```
 
 `portable` emits an Agent Plugins 1.0 root manifest and a Codex compatibility
-manifest; `capy` emits the same two manifests and swaps the T3 Code host
-reference for Capy's. `cursor` uses Cursor's native manifest. `grok` uses the
+manifest; `capy` emits the same two manifests with Capy's host reference
+and guide. `cursor` uses Cursor's native manifest. `grok` uses the
 Claude-compatible plugin layout recognized by Grok Build. `claude` uses Claude
 Code's `.claude-plugin` manifest and ships one read hook. Native variants avoid
 competing root manifests so each loader selects its own format. All content is
@@ -56,131 +52,14 @@ revision distinguishes candidates built before the next package version.
 Download the artifact from the selected successful workflow run, extract the
 outer artifact, and verify the archives with `sha256sum -c SHA256SUMS` (or
 `shasum -a 256 -c SHA256SUMS` on macOS). Extract the selected archive into a
-new directory. Its top-level `orchestra/` is the bundle used below. Do not
-extract over an active installation.
+new directory; its top-level `orchestra/` is the bundle its host guide loads.
+Do not extract over an active installation.
 
-## Load a bundle
+## Load or install
 
-Claude Code validates a bundle and loads it for one session without
-installation:
-
-```sh
-claude plugin validate /absolute/path/to/dist/claude/orchestra
-claude --plugin-dir /absolute/path/to/dist/claude/orchestra
-```
-
-Its `hooks/hooks.json` lets agents read the package's own files without
-prompts; it allows only `Read`, `Glob`, and `Grep` inside the bundle.
-
-To install it for every Claude Code session, wrap the bundle in a local
-marketplace: copy it to a persistent catalog folder as `orchestra/` and add
-`.claude-plugin/marketplace.json` beside it:
-
-```json
-{
-  "name": "orchestra-local",
-  "owner": {"name": "<your name>"},
-  "plugins": [{"name": "orchestra", "source": "./orchestra"}]
-}
-```
-
-Then register the catalog and install from it:
-
-```sh
-claude plugin marketplace add /absolute/path/to/catalog
-claude plugin install orchestra@orchestra-local
-```
-
-The catalog folder must stay in place while the plugin is installed.
-
-Cursor loads a copied bundle from `~/.cursor/plugins/local/orchestra` after a
-reload (it skips symlinks that leave that folder), or one for a session:
-
-```sh
-cursor-agent --plugin-dir /absolute/path/to/dist/cursor/orchestra
-```
-
-Grok Build can validate and install a local bundle with its plugin manager:
-
-```sh
-grok plugin validate /absolute/path/to/dist/grok/orchestra
-grok plugin install /absolute/path/to/dist/grok/orchestra
-grok inspect --json
-```
-
-For Codex, add the portable bundle to your chosen local marketplace using the
-provider's plugin tools, then install `orchestra@<marketplace-name>`. The bundle
-is not itself a marketplace catalog. Codex manages its cached copy and updates;
-Orchestra does not write a personal marketplace or register one automatically.
-For example, an existing local catalog can use the following entry (the path is
-relative to that catalog's repository root):
-
-```json
-{
-  "name": "orchestra",
-  "source": {"source": "local", "path": "./plugins/orchestra"},
-  "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
-  "category": "Productivity"
-}
-```
-
-Place the generated bundle at that catalog's `plugins/orchestra`, register the
-catalog through `codex plugin marketplace add /absolute/path/to/catalog-root`
-if needed, and run `codex plugin add orchestra@<marketplace-name>`. Inspect with
-`codex plugin list`; remove with `codex plugin remove orchestra@<marketplace-name>`.
-
-To update Claude Code, Codex and Cursor with one command, keep the bundles
-under one fixed folder so catalogs never change path. Register once: the Claude
-Code catalog is `<folder>/current/claude` and the Codex catalog entry's source
-is `<folder>/current/portable/orchestra`. Cursor needs no registration. The
-first run builds `current` and stops at the reinstall step until those catalogs
-are registered; register them and run it again. Then each update is:
-
-```sh
-git pull
-python3 codex/scripts/update_local.py --root <folder> --claude <marketplace> --codex <marketplace> --cursor
-```
-
-Pass only the providers you use. The script runs the full validator, builds into
-`<folder>/next` (writing the Claude Code catalog with the given name), moves
-`current` to `previous` (dropping the older `previous`) and promotes the new
-build to `current`. It then uninstalls and reinstalls through `claude plugin` and
-`codex plugin`, replaces Cursor's local copy (Cursor's manager adds only Git
-marketplaces) and fails unless every bundle file is byte-identical in each
-installed copy; it writes no provider configuration. Managers can report success
-and leave stale bytes, as Grok Build 1.0.34 did on `plugin update`. Start a new
-T3 thread so the provider reloads skills. To roll back, move `previous` back to
-`current`, then uninstall and install through each manager.
-
-Invoke the Orchestra skill in a T3 thread with the name that provider exposes;
-plugins may namespace skill names. An unequivocal instruction such as “Use
-Orchestra to implement this change” also activates it. The root resolves
-runtime paths from the loaded skill and checks the `t3-code` tools before task
-setup. Loading alone does not start work and never changes permissions.
-
-## Install on Capy
-
-Capy discovers skills at `skills/<name>/SKILL.md` in a Drive, so the `capy`
-bundle installs into the root of one Drive location: a Captain's Drive when a
-Captain launches task roots, otherwise your own. The same command installs and
-updates it. Run it from the Orchestra checkout on a Capy machine where that
-Drive is mounted, after `git pull`:
-
-```sh
-drive=~/.capy/drive/<location>
-build=$(mktemp -d)/orchestra &&
-python3 codex/scripts/package_plugin.py --target capy --output "$build" &&
-rsync -a --delete --filter='P /*' --filter='P /skills/*' "$build/" "$drive/"
-```
-
-`--delete` removes stale files inside the bundle's own top-level entries and
-skill folders, so a file the new bundle no longer ships disappears. The two
-protect rules keep every other top-level entry of the Drive (`NOTES.md`,
-`CREW.md`, `reports/`, `handoffs/`, `orchestra-home/`) and every other
-skill folder. A top-level file or skill folder that a later bundle drops stays
-until you remove it. Keep settings and flow overrides in that Drive's
-`orchestra-home/`, which the update never touches. New threads load the
-updated skills.
+Each bundle ships its host's guide as `README.md`: the
+[T3 Code guide](t3/README.md) for `portable`, `cursor`, `grok` and `claude`,
+and the [Capy guide](capy/README.md) for `capy`.
 
 ## Acceptance
 
@@ -191,7 +70,7 @@ records that evidence and what remains.
 
 ## Lifecycle
 
-Update and remove through each provider's plugin manager. Removing the bundle
+Update and remove a bundle as its host's guide describes. Removing the bundle
 leaves private tasks and worktrees intact; clear those only through their
 explicit lifecycle tools. Distribution, public catalogs, publication, and
 installation into your active environment are separate actions from building

@@ -122,7 +122,7 @@ python3 codex/scripts/package_plugin.py --target grok --output dist/grok/orchest
 ```
 
 For Capy, build the `capy` bundle into a Drive root with the one update command
-in [plugin packaging](packaging/README.md#install-on-capy); it keeps the Drive's
+in the [Capy guide](packaging/capy/README.md); it keeps the Drive's
 own notes, reports and settings.
 
 Every bundle carries the same workflow, skills, helpers and flow assignment plus
