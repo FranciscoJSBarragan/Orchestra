@@ -315,7 +315,7 @@ def check_flow_assignment(root: Path) -> list[str]:
             return [f"flow-contract: {label} needs provider and model, and at most effort"]
         if not all(isinstance(entry[key], str) and entry[key].strip() for key in ("provider", "model")):
             return [f"flow-contract: {label} needs a non-empty provider and model"]
-        if "effort" in entry and entry["effort"] not in REASONING_EFFORTS:
+        if "effort" in entry and not (isinstance(entry["effort"], str) and entry["effort"] in REASONING_EFFORTS):
             return [f"flow-contract: {label} has an invalid effort"]
         return []
 
