@@ -92,9 +92,10 @@ handoff states that the result exists only on that machine.
 
 A thread's checkout is a fresh clone, and a clone sets no `core.hooksPath`
 unless the project's Setup does, so hooks the repository versions outside
-`.git/hooks` (for example `.githooks/pre-commit`) do not run on a phase
-commit. Run that hook from the repository root with the phase's paths staged
-before each phase commit, as `git commit` would where the hooks are installed.
+`.git/hooks` (for example in `.githooks/`) do not run on a phase commit. Run
+them from the repository root before each phase commit as `git commit` would
+where they are installed: `pre-commit` with the phase's paths staged, then
+`prepare-commit-msg` and `commit-msg` on the phase's message file.
 
 ## Role transport
 
