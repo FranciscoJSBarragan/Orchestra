@@ -1,8 +1,3 @@
-# Default assignment of the Orchestra flow inside T3 Code. WORKFLOW "Flow
-# assignment" owns resolution; a user overrides any entry in
-# ${ORCHESTRA_HOME:-$HOME/.orchestra}/flow.toml instead of editing this file.
-# `provider` is a T3 provider instance and `model` an id from its live catalog.
-
 [task_root]
 provider = "claudeAgent"
 model = "claude-opus-5-5"

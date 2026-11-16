@@ -172,12 +172,71 @@ class ValidateSuiteTests(unittest.TestCase):
         self.assertTrue(any("orchestra-role-reviewer/SKILL.md" in item and "#change-quality" in item
                             for item in failures), failures)
 
-    def test_parent_requires_root_transport_resource(self) -> None:
+    def test_parent_requires_the_runtime_that_resolves_its_root_transport(self) -> None:
         skill = self.root / "codex/skills/orchestrator/SKILL.md"
-        skill.write_text(skill.read_text().replace("(host-transports.md)", "(packet-example.md)"))
-        result = self.run_validator()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("modular-routing: orchestrator must link host-transports.md", result.stdout)
+        skill.write_text(skill.read_text().replace("(../orchestra/runtime.md)", "(packet-example.md)"))
+        self.assertIn("modular-routing: orchestrator must link ../orchestra/runtime.md",
+                      validator.check_modular_routing(self.root))
+
+    def test_core_cannot_name_a_host_tool_or_host_reference(self) -> None:
+        references = self.root / "codex/skills/orchestra/references"
+        for host in sorted(references.glob("host_*.md")):
+            rows = validator._table_rows(host.read_text(), "## Primitives")
+            tool = re.findall(r"`([^`]+)`", rows[0][1])[0]
+            for core, leak in (("codex/skills/orchestra-role-reviewer/SKILL.md", tool),
+                               ("docs/WORKFLOW.md", tool),
+                               ("codex/skills/orchestra/runtime.md", host.name)):
+                with self.subTest(host=host.name, core=core, leak=leak):
+                    path = self.root / core
+                    original = path.read_text()
+                    try:
+                        path.write_text(original + f"\nUse {leak} here.\n")
+                        self.assertIn(f"host-contract: {core} names host-specific {leak}",
+                                      validator.check_host_separation(self.root))
+                    finally:
+                        path.write_text(original)
+        self.assertEqual(validator.check_host_separation(self.root), [])
+
+    def test_each_host_name_stays_in_its_own_host(self) -> None:
+        capy = "codex/skills/orchestra/references/host_capy.md"
+        t3 = "codex/skills/orchestra/references/host_t3.md"
+        cases = (
+            ("codex/skills/orchestra-role-reviewer/SKILL.md", "tools.subagent.stop", True),
+            ("codex/skills/orchestra-role-reviewer/SKILL.md", "create_threads", True),
+            ("docs/WORKFLOW.md", "tools.issue.update", True),
+            (capy, "delegate_task", True),
+            (t3, "tools.thread.create", True),
+            ("packaging/t3/README.md", "message_agent", True),
+            ("packaging/capy/README.md", "t3-code", True),
+            ("codex/skills/orchestra-pr-review/SKILL.md", "supplemental_feedback", False),
+            (capy, "tools.issue.update", False),
+            ("packaging/t3/README.md", "t3_thread_send", False),
+        )
+        for path, name, leaks in cases:
+            with self.subTest(path=path, name=name):
+                target = self.root / path
+                original = target.read_text()
+                try:
+                    target.write_text(original + f"\nUse `{name}` here.\n")
+                    failures = validator.check_host_separation(self.root)
+                    self.assertEqual(any(failure.startswith(f"host-contract: {path} names host-specific")
+                                         for failure in failures), leaks, failures)
+                finally:
+                    target.write_text(original)
+
+    def test_every_host_maps_every_primitive_in_the_same_sections(self) -> None:
+        references = self.root / "codex/skills/orchestra/references"
+        hosts = sorted(references.glob("host_*.md"))
+        self.assertGreaterEqual(len(hosts), 2)
+        host = hosts[0]
+        original = host.read_text()
+        row = next(line for line in original.splitlines() if line.startswith("| `dispatcher_parent`"))
+        host.write_text(original.replace(row + "\n", ""))
+        self.assertIn(f"host-contract: {host.name} Primitives must map the WORKFLOW Host primitives in order",
+                      validator.check_host_separation(self.root))
+        host.write_text(original + "\n## Extra\n\nOnly one host has this.\n")
+        self.assertIn("host-contract: host references must have the same sections",
+                      validator.check_host_separation(self.root))
 
     def test_parent_cannot_be_made_implicitly_selected(self) -> None:
         metadata = self.root / "codex/skills/orchestrator/agents/openai.yaml"

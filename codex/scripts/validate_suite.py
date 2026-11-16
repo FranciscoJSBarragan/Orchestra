@@ -36,6 +36,8 @@ REQUIRED_PATHS = (
     "codex/tests/test_update_local.py",
     "packaging/orchestra/.codex-plugin/plugin.json",
     "packaging/README.md",
+    "packaging/t3/README.md",
+    "packaging/capy/README.md",
     "packaging/claude/hooks/hooks.json",
     "packaging/claude/hooks/read_package.py",
     "codex/skills/orchestra/runtime.md",
@@ -64,7 +66,6 @@ REQUIRED_PATHS = (
     "codex/skills/orchestra-project-verification/feature-example.md",
     "codex/skills/orchestrator/packet-example.md",
     "codex/skills/orchestrator/acceptance-packet.md",
-    "codex/skills/orchestrator/host-transports.md",
     "codex/skills/orchestrator/project-workspace.md",
     "docs/evaluation/MODULAR_ACCEPTANCE.md",
     "codex/tests/fixtures/modular_engineering/make_fixture.py",
@@ -431,6 +432,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
         "shared_conduct.md",
         "source_preparation.md",
         "host_t3.md",
+        "host_capy.md",
         "model_notes.md",
         "finding_triage.md",
         "planning_stage.md",
@@ -445,7 +447,7 @@ def check_skills_and_runtime(root: Path) -> list[str]:
             failures.append(
                 "skill-contract: orchestra must contain exactly seven playbooks, "
                 "one architecture reference, one shared conduct reference, "
-                "one source preparation recipe, the T3 Code adapter, "
+                "one source preparation recipe, one reference per host, "
                 "the model notes, the finding triage and the planning stage"
             )
         routing_path = root / "codex/skills/orchestra/SKILL.md"
@@ -552,13 +554,63 @@ def check_skills_and_runtime(root: Path) -> list[str]:
 
 
 
+def _section(text: str, heading: str) -> str:
+    return text.partition(f"\n{heading}\n")[2].split("\n## ", 1)[0]
+
+
+def _table_rows(text: str, heading: str) -> list[list[str]]:
+    return [[cell.strip() for cell in line.strip().strip("|").split("|")]
+            for line in _section(text, heading).splitlines() if line.startswith("| `")]
+
+
+def _names(text: str, name: str) -> bool:
+    tail = r"\w" if name.endswith("*") else r"(?![\w-])"
+    return re.search(rf"(?<![\w.-]){re.escape(name.removesuffix('*'))}{tail}", text) is not None
+
+
+def check_host_separation(root: Path) -> list[str]:
+    workflow = root / "docs/WORKFLOW.md"
+    hosts = sorted((root / "codex/skills/orchestra/references").glob("host_*.md"))
+    if not workflow.is_file() or not hosts:
+        return []
+    primitives = [row[0] for row in _table_rows(workflow.read_text(encoding="utf-8"), "## Host")]
+    failures = [] if primitives else ["host-contract: WORKFLOW Host must table the host primitives"]
+    vocabulary: dict[Path, set[str]] = {}
+    sections: set[tuple[str, ...]] = set()
+    for host in hosts:
+        text = host.read_text(encoding="utf-8")
+        mapped = [row[0] for row in _table_rows(text, "## Primitives")]
+        if mapped != primitives:
+            failures.append(f"host-contract: {host.name} Primitives must map the WORKFLOW Host primitives in order")
+        names = set(re.findall(r"`([^`\n]+)`", _section(text, "## Primitives"))) - {name.strip("`") for name in mapped}
+        if not names:
+            failures.append(f"host-contract: {host.name} Primitives must name its host tools")
+        vocabulary[host] = names | {host.name}
+        sections.add(tuple(re.findall(r"^## .+$", text, re.MULTILINE)))
+    if len(sections) > 1:
+        failures.append("host-contract: host references must have the same sections")
+    checked = [(path, hosts) for path in (workflow, root / "codex/config/flow.toml",
+                                          *sorted((root / "codex/skills").rglob("*"))) if path not in hosts]
+    for host in hosts:
+        foreign = [other for other in hosts if other != host]
+        checked += [(host, foreign), (root / "packaging" / host.stem.removeprefix("host_") / "README.md", foreign)]
+    for path, foreign in checked:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for name in sorted(set().union(*(vocabulary[host] for host in foreign))):
+            if _names(text, name):
+                failures.append(f"host-contract: {path.relative_to(root)} names host-specific {name}")
+    return failures
+
+
 def check_modular_routing(root: Path) -> list[str]:
     failures: list[str] = []
     routes = {
         "orchestra-repo-readiness": ("Repository readiness", ("../orchestra-engineering/SKILL.md", "../orchestra-project-verification/SKILL.md")),
         "orchestra-engineering": ("Modular engineering", ("../orchestra-project-verification/SKILL.md",)),
         "orchestra-project-verification": ("Project verification", ("feature-example.md",)),
-        "orchestrator": ("Initiative coordination", ("host-transports.md", "packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
+        "orchestrator": ("Initiative coordination", ("packet-example.md", "project-workspace.md", "acceptance-packet.md", "../orchestra/SKILL.md")),
     }
     workflow = root / "docs/WORKFLOW.md"
     policy = workflow.read_text(encoding="utf-8") if workflow.is_file() else ""
@@ -755,6 +807,7 @@ QUICK_CHECKS: tuple[Check, ...] = (
     check_hook,
     check_flow_assignment,
     check_skills_and_runtime,
+    check_host_separation,
     check_modular_routing,
     check_repository_conventions,
 )

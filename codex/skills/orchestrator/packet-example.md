@@ -36,7 +36,7 @@ unexpected HEAD or host branch metadata before mutation.
 
 Task-root resources: the flow's `task_root` entry or the user's explicit
 choice, separate from the parent's selection and the flow's role rows. Resolve the
-actual dispatch type and controls through [host transports](host-transports.md).
+actual dispatch type and controls through the host reference's "Task roots".
 
 Instructions: pinned Orchestra revision or verified package identity; absolute
 entry skill, workflow, runtime/skills roots and flow assignment.
@@ -86,7 +86,7 @@ behavior, identify affected callers and state, and propose the smallest supporte
 change. Separate evidence from hypotheses; unavailable reproduction is a limit.
 
 Investigation resources: the flow's `task_root` entry or the user's explicit
-choice, selected in this packet through T3's controls.
+choice, selected in this packet through the host's launch controls.
 Name each delegated analyst's resources and bounded assignment separately.
 
 Authority: read-only investigation and a report at the parent-named accessible

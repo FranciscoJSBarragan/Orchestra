@@ -63,45 +63,50 @@ identifiers Orchestra names stay verbatim. Tracked repository artifacts
 (code, comments, commits, PRs and docs) follow the repository's convention.
 
 Every dispatch starts from a clean context: the packet and named artifacts
-carry the assignment, dispatched under "T3 Code host", with the same logical
+carry the assignment, dispatched under "Host", with the same logical
 assignment and exact approved artifact IDs on every round.
 
-## T3 Code host
+## Host
 
-The full workflow runs inside T3 Code. The task root is a T3 thread on a
-provider whose `orchestra` entry skill is installed (Claude Code, Codex,
-Cursor or Grok today), and the `t3-code` MCP tools are its host: T3 owns
-threads, worktrees, role transport, the browser and pull request watching, and
-the T3 Code reference `host_t3.md` defines the exact calls. Without those
-tools the root says that the full workflow needs T3 Code and offers the
-standalone skills instead.
+The host runs the task root and its agents. Each supported host has one
+reference, resolved through `orchestra/runtime.md`, that maps these primitives
+onto its tools; a package ships only its host's reference, and this document
+and the skills name only the primitives. Without the tools that reference
+names, the root says the full workflow needs a supported host and offers the
+standalone skills.
 
-Every provider T3 runs is an executor, not a host. "Flow assignment" names the
-provider instance, model and effort of each role, and `delegate_task` carries
-it. Supporting another provider needs only its row and one role check against
-the live `orchestrator_capabilities` catalog: the child reads its role skill by
+| Primitive | What the workflow needs from the host |
+| --- | --- |
+| `launch_task_root` | A top-level task root session with its own checkout and selected model, linked to the parent that launched it |
+| `report_to_parent` | A child root's message that wakes its parent and names the child's handle |
+| `dispatch_role` | A fresh leaf session in the root's checkout with the flow row's exact model and effort, whose completion wakes the root |
+| `continue_session` | A message that continues an existing session with its context, and one wait for that turn |
+| `model_catalog` | The live models and efforts that flow rows are checked against |
+| `task_checkout` | How a managed task checkout is created or adopted, and who releases it |
+| `watch_pr` | Ending the turn so the PR's checks, reviews, comments and conflicts wake the root |
+| `browser_surface` | The surfaces a `browser_route` can name, with task-owned tabs and screenshots saved to files |
+| `user_preview` | Showing the running application to the user |
+| `ask_user` | A blocking question the host shows as waiting for the user |
+| `permissions` | The permission setting a dispatch inherits |
+| `dispatcher_parent` | Who acts as the parent of "Dispatcher parent" |
+
+Every provider is an executor, not a host: `dispatch_role` carries the flow
+row's model and effort, and supporting another provider needs only its row and
+one role check against `model_catalog` (the child reads its role skill by
 absolute path, publishes its report, and keeps a read-only assignment
-read-only.
+read-only). Every dispatch is fresh, including each fix and review round; the
+root continues a child's session only for preview absorption or an unfinished
+turn, and waits under "Agent waiting". The child's returned result is the
+completed-state evidence before commit. After every return the root checks Git
+status and HEAD; a read-only role that changed anything beyond its declared
+report blocks.
 
-Every dispatch is a fresh `delegate_task` child; each fix round and each review
-round starts a new one. The root continues a child's thread only for preview
-absorption or an unfinished turn, and waits under "Agent waiting". The child's
-returned result is the completed-state evidence before commit. After every
-return the root checks Git status and HEAD; a read-only role that changed
-anything beyond its declared report blocks.
-
-Resolve executable resources through `orchestra/runtime.md`. An installed
-plugin keeps skills, helpers, the flow assignment and WORKFLOW in one
+Resolve executable resources through `orchestra/runtime.md`. A plugin keeps
+skills, helpers, the flow assignment, WORKFLOW and its host reference in one
 relocatable package; explicit source mode uses a prepared checkout. Settings
-and the user's flow overrides stay outside the package under
-`${ORCHESTRA_HOME:-$HOME/.orchestra}`. Installing or loading the plugin does
-not activate Orchestra or grant delivery authority; install it once per
-provider to avoid duplicate skills.
-
-T3's runtime mode and each provider's permission choice are observed, never
-written or raised: children use `runtimeMode: inherit`, and a denial is never
-bypassed. The Claude Code plugin's only hook allows read-only tools inside its
-installed package, so a Claude child can read its role skill.
+and flow overrides stay outside it under `${ORCHESTRA_HOME:-$HOME/.orchestra}`.
+Installing or loading it neither activates Orchestra nor grants delivery
+authority.
 
 The orchestrator keeps the main objective while adapting safely to facts
 found during execution: it does not stop for routine technical choices or
@@ -265,9 +270,9 @@ choices within the user's selection, cross-child decisions and combined
 acceptance. Each child owns its plan, implementation, review, verification and
 permitted delivery as a full Orchestra root with proportional phases and the
 normal role agents, carrying explicit activation in its packet; task size and
-repository count never select another workflow. A child root is a T3 thread,
-not a leaf `delegate_task` role. A user's explicit custom or standalone
-selection stays available under "Standalone tools", identified as such,
+repository count never select another workflow. A child root comes from
+`launch_task_root`, not a leaf `dispatch_role`. A user's explicit custom or
+standalone selection stays available under "Standalone tools", identified as such,
 never presented as Orchestra execution or used as an automatic fallback. If the host cannot execute a root
 responsibility, report that gap. One parent coordinates independent children;
 children create no further hierarchy or sibling tasks.
@@ -345,11 +350,11 @@ continuation handles while they have a consumer and remove only owned
 transient prompts and logs no longer needed. No board schema, allocator, database or watcher.
 
 Select resources separately for the parent, each task root and its role
-agents. A parent, Hermes included, launches and continues each task root with
-the flow's `task_root` entry unless the user selects other resources, checked
-against the live catalog like every other row. Carry the explicit root model
-and effort in the packet and register through T3's actual controls; role
-assignments follow "Flow assignment".
+agents. A parent, a dispatcher parent included, launches and continues each
+task root with the flow's `task_root` entry unless the user selects other
+resources, checked against the live catalog like every other row. Carry the
+explicit root model and effort in the packet and register through the host's
+actual launch controls; role assignments follow "Flow assignment".
 Actual concurrency, nesting and
 tool access must support the assignment; a model-family label is no evidence
 of effort.
@@ -358,7 +363,7 @@ The parent reads what shaping the brief and judging child plans needs.
 Research beyond that bounded reading (repositories, entry points, shared
 contracts) never inherits the parent's model: it uses the flow's
 `repository_context` row unless the user selects other resources, through a
-source-read-only `delegate_task`. Start
+source-read-only `dispatch_role`. Start
 one analyst per repository or independent area in the same turn, each with
 only its framing questions; a contract question spanning areas goes in exactly
 one packet. Each answers inline, Summary first, with Details limited to the
@@ -366,16 +371,18 @@ evidence behind each answer. Facts the children must share go into the brief,
 register or a child packet, not a research file. A problem needing a cause,
 specification or plan candidate goes to an investigation-only child root.
 
-Launch each task root as a T3 thread under `orchestrator/host-transports.md`
-in the resolved skills root, and internal roles through `delegate_task`, never
-as a claim of persistent task-root capabilities a leaf lacks. Check
-availability before launch, preserve exact thread identities and use argument
-APIs or safe quoting. Never strip a root's protections, enable hidden bypass
-permissions, or assume a plugin provides missing tools.
+Launch each task root with `launch_task_root` as the host reference's "Task
+roots" maps it, and internal roles with `dispatch_role`, never as a claim of
+persistent task-root capabilities a leaf lacks. Check availability before
+launch, and observe launch, role-tool availability, readable evidence and
+continuation separately on the actual host before claiming that route works.
+Preserve exact session identities and use argument APIs or safe quoting. Never
+strip a root's protections, enable hidden bypass permissions, or assume a
+plugin provides missing tools.
 
-Exactly one checkout creator owns each checkout: T3's thread transport or
-the child's setup, never both; a clean host-supplied isolated checkout may be
-adopted under "Child root setup". Several mutable repositories get separate
+Exactly one checkout creator owns each checkout: the host's
+`launch_task_root` or the child's setup, never both; a clean host-supplied
+isolated checkout may be adopted under "Child root setup". Several mutable repositories get separate
 checkouts and owners or explicitly serialized writes, each with its own
 instructions. Never run two writers in one checkout; same-repository parallel
 tasks need separate checkouts, and an explicitly shared checkout serializes
@@ -453,14 +460,15 @@ consequences rather than repeating unchanged local code reviews. Completion requ
 and honest delivery state, not a list of successful child messages; merge,
 push, release and deployment stay separately scoped under delivery policy.
 
-A parent that keeps registers, Hermes included, runs one read-only
-retrospective cadence across all of them: whenever it closes a register line,
+A parent that keeps registers, a dispatcher parent included, runs one
+read-only retrospective cadence across all of them: whenever it closes a register line,
 for one task or an initiative, it reads every register it keeps and host
 state, counts the lines closed in any of them since its latest retrospective
 thread, whichever register holds that handle, and, once five or more have
-closed, launches a read-only thread (Claude Code `claude-opus-5-5` at
-`xhigh`) that analyzes finished threads, reports, PRs and Git and returns
-only evidence-backed proposals, consumed under "Engineering guidance and
+closed, launches a read-only thread (provider `claudeAgent`, model
+`claude-opus-5-5`, effort `xhigh`, mapped like a flow row) that analyzes
+finished threads, reports, PRs and Git and returns only evidence-backed
+proposals, consumed under "Engineering guidance and
 evidence". It records that thread's handle in the register whose closing line
 triggered it and tells the user it launched one instead of asking first. An
 approved proposal enters through a normal root and PR; agents never rewrite
@@ -469,7 +477,7 @@ counter, schedule or watcher.
 
 ### Child root setup
 
-A child root, whether an initiative child or a task a Hermes dispatcher
+A child root, whether an initiative child or a task a dispatcher parent
 launched, first resolves inherited approval and the supplied checkout here and
 under the checkout rules, reusing settled scope and authority instead of
 presenting them as new decisions. Neither inherited authority nor any reply to
@@ -482,9 +490,8 @@ confirmation, never reaching setup or execution without that authority.
 The child messages the parent only when it needs the parent or is done: a
 decision outside its authority, a derived plan for acceptance, a question for
 the user, a shared resource request or release, a blocker, or its stable final
-handoff. It sends each through `t3_thread_send` in `queue` mode to the parent
-thread its packet names, naming its own `threadId`, as `orchestrator/host-transports.md` in the
-resolved skills root maps it.
+handoff. It sends each with `report_to_parent` to the parent its packet
+names, naming its own handle.
 Progress, started work, unsubmitted candidates and intermediate results stay
 in its own thread and reports for the parent to read when needed; a grant is
 acknowledged by acting on it, never by a reply. The final handoff gives
@@ -533,11 +540,11 @@ evidence about its cause, not a waiver or a pass. Preserve partial work and
 route findings to the same child and reviewer; the parent does not take over
 its implementation or review loop.
 
-### Hermes dispatcher
+### Dispatcher parent
 
-Inside T3 Code a Hermes thread may be the parent of one task or of an
-initiative. It works out the request with the user, recommends, launches task
-roots with the confirmed brief and the user's delivery direction, accepts a
+A host may give the user a conversational parent (`dispatcher_parent`) for
+one task or an initiative. It works out the request with the user, recommends,
+launches task roots with the confirmed brief and the user's delivery direction, accepts a
 derived plan that stays within that brief, relays any other plan to the user,
 and follows their reports. It answers a child's question itself when the
 confirmed brief, the user's earlier decisions, repository conventions and
@@ -556,13 +563,13 @@ investigation to the task root. For one task it integrates nothing, so the
 root's own gates and delivery suffice and it commissions no further runs; for
 an initiative it commissions hard gates and joint acceptance to a verifier as
 described above. For one task the register holds just that task's line. How the user reaches
-Hermes and what Hermes remembers belong to the user's Hermes configuration;
-repository knowledge stays under "Repository conventions".
+that parent and what it remembers belong to its host and the user's
+configuration; repository knowledge stays under "Repository conventions".
 
 ## Flow assignment
 
 There is one flow. `flow.toml` in the selected runtime (source
-`codex/config/flow.toml`) assigns each capability a T3 provider instance, a
+`codex/config/flow.toml`) assigns each capability a provider, a
 model and an optional effort, names the resources of a parent-launched task
 root (`task_root`, used as "Initiative coordination" says) and the second
 reviewer of the review pair under "Review policy", and lists the later recovery
@@ -574,7 +581,8 @@ edit the installed package to customize a task; `orchestra-models` shows the
 assignment and writes the user's file.
 
 Resolve the assignment once before the first dispatch and check every row
-against T3's live `orchestrator_capabilities` catalog, as `host_t3.md` maps it.
+against the host's `model_catalog`, mapped as the host reference's "Flow
+rows" defines.
 An unavailable provider, model or effort blocks only the dispatches that need
 it until the user selects a supported option; never substitute another
 provider, model, account or billing path silently. When quota or credits are
@@ -1235,7 +1243,7 @@ phase:
    screenshots. The user may iterate the approved scope in this conversation; no new chat
    or manual process start is required.
    Git and the `implementation-report` remain truth; no preview artifact.
-4. Wait with the provider's question tool for iterate, freeze as-is, or skip. Iteration
+4. Wait with `ask_user` for iterate, freeze as-is, or skip. Iteration
    stays uncommitted on the task branch unless the user authorized a commit;
    out-of-scope paths or new behavior block or replan.
 
@@ -1275,7 +1283,7 @@ retires the cohort and commits. Otherwise, after
 review and verification pass and before commit, it sends one parallel
 cleanup-only follow-up to the owners of those declarations, stops shared
 temporary processes it started, consumes the results, retires every phase
-agent once its `delegate_task` result has returned with no retained
+agent once its `dispatch_role` result has returned with no retained
 resource, and confirms that no agent or owned process with
 worktree write access remains.
 
@@ -1288,32 +1296,25 @@ resources or an exact safely addressable handle reported by the owner.
 
 ### Test permissions and browser routing
 
-Orchestra observes T3's runtime mode and each provider's permission choice; it
-never changes them or blocks because they differ. A command that crosses a
-protected boundary is issued once, and its prompt or denial is respected; never
-retry a denial through a workaround or broaden permissions. Syntax, type,
+Orchestra observes the host's `permissions` and each provider's
+permission choice; it never changes them or blocks because they differ. A
+command that crosses a protected boundary is issued once, and its prompt or
+denial is respected; never retry a denial through a workaround or broaden
+permissions. Syntax, type,
 compile, lint, import, assertion, validation-contract and CLI-usage failures
 are real failures. A missing external service, credential or dependency may
 return `blocked` but never broadens authority.
 
 Packets for `frontend_implementation` browser work and `browser_acceptance`
-carry `browser_route: auto | in_app | chrome | codex-cu`. Without a
-user-selected route, the root uses the one-line user setting
+carry `browser_route` and the host reference's browser lines for that route,
+so roles never read the host reference. Without a user-selected route, the
+root uses the one-line user setting
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/browser-route`, else `auto`; no
-installation writes or removes that setting.
-
-- `auto`: T3's collaborative browser through its `preview_*` tools. When it is
-  unavailable, including a `preview_open` sandbox or setup error, a Claude
-  child started with `--chrome` uses Claude in Chrome and any other child uses
-  `codex-cu`.
-- `in_app`: T3's browser only.
-- `chrome`: Claude in Chrome only, for a Claude child started with `--chrome`;
-  otherwise `blocked`.
-- `codex-cu`: the codex-cu MCP, Codex's computer-use engine driving Chrome,
-  used as the browser acceptance playbook defines. The optional server is
-  [codex-cu](https://github.com/FranciscoJSBarragan/codex-cu-mcp).
-
-The browser acceptance playbook defines the tab steps, and User preview never
+installation writes or removes that setting. `auto` uses the host's own
+browser first and its listed fallbacks in order; `in_app` uses the host's own
+browser only; any other route names one surface the host reference lists and
+uses only that surface. A route the host lacks returns `blocked`. The browser
+acceptance playbook defines the run and evidence rules, and User preview never
 replaces a blocked gate.
 
 An explicit user route, relayed or given directly, must be attempted even as
@@ -1323,8 +1324,8 @@ it. Functional failures, application timeouts and selector problems never
 cause a switch. On an allowed `auto` fallback, capture the first surface's
 blocker, close any task-owned tab on it, open a new task tab on the fallback
 surface and repeat the complete scenario, so evidence from different surfaces
-is never combined; if both are unavailable, return `blocked`. Other computer
-use, standalone browser automation and other browsers are not substitutes for
+is never combined; if no listed surface is available, return `blocked`. Other
+computer use, standalone browser automation and other browsers are not substitutes for
 these routes.
 
 Every visual interaction or acceptance run opens a fresh task-owned tab on
@@ -1333,7 +1334,7 @@ tab before every handoff; fixes and reruns open a new one. Browser handoffs
 also stop their owned supporting processes and report `retained_resources:
 none`. Frontend iteration and independent acceptance use separate tabs and
 evidence. Orchestra preserves unrelated tabs, sessions, windows and browser
-state and never closes Chrome or a shared window.
+state and never closes the browser application or a shared window.
 
 Every `browser_acceptance` run that reached a visible page writes PNG
 screenshots into the task artifacts directory as
@@ -1438,8 +1439,8 @@ The `${ORCHESTRA_HOME:-$HOME/.orchestra}/checkout-mode` user setting selects
 and is recorded in the plan. Loading a plugin creates no settings file. Managed
 mode uses a dedicated worktree below `ORCHESTRA_WORKTREE_ROOT`, the
 `${ORCHESTRA_HOME:-$HOME/.orchestra}/worktree-root` setting, or
-`$HOME/.orchestra/worktrees`, in that order, created through T3 as
-`host_t3.md` defines. Hybrid mode creates the task
+`$HOME/.orchestra/worktrees`, in that order, created through the host's
+`task_checkout`. Hybrid mode creates the task
 branch from the exact captured HEAD of the current clean primary checkout or
 linked worktree.
 
@@ -1503,9 +1504,9 @@ blocks automatic resume.
 Apply "Conversation continuity" to user messages and worker updates received
 while waiting. An intermediate message does not terminate the assignment.
 
-Dispatch roles with `delegate_task` in `async` mode and end the turn: T3's
-completion notification wakes the root, which reads the result once with
-`task_status`. Wait on a thread with one long `t3_thread_wait`. Completion or
+Dispatch roles with `dispatch_role` and end the turn: the role's completion
+wakes the root, which reads the result once. Wait on a continued session with
+the single long wait of `continue_session`. Completion or
 error must return immediately, including before any status inspection. A timeout only means the wait ended, not that work failed.
 Do not replace an event-aware wait with unconditional sleeps or a chain of
 model turns whose only purpose is deciding to sleep again. If the host supports
@@ -1752,9 +1753,9 @@ the root persists no PR state beyond the PR itself.
    phase's terminal manifest commit before the push, and the capsule is
    refreshed. A thread is resolved once its fix is pushed or triage rejected it
    with evidence; replying on GitHub needs separate messaging authority.
-5. Wait. Between observations the root waits on T3's pull request watcher as
-   `host_t3.md` defines, never by polling and never by ending its turn with
-   checks or review bots pending and no watch.
+5. Wait. Between observations the root waits with `watch_pr`, never by
+   polling and never by ending its turn with checks or review bots pending and
+   no watch.
 6. Clean. One complete clean observation of the current head ends the loop.
    When only a person's review remains, the root reports that before it
    waits. With merge authority, `orchestra-pr-merge` runs `pr.py merge`, which
@@ -1804,9 +1805,10 @@ migration files and asks where they apply.
 
 ## Maturity
 
-Automated checks and representative canaries provide evidence. T3 Code is the
-approved execution host; a Hermes thread there acts only as the parent under
-"Hermes dispatcher". Any other host remains deferred.
+Automated checks and representative canaries provide evidence. T3 Code and
+Capy are the approved execution hosts, each through one host reference; a
+host's dispatcher parent acts only under "Dispatcher parent". Any other host
+remains deferred.
 
 ## User-facing progress and handoff
 
@@ -1830,13 +1832,10 @@ comparison or mapping becomes materially clearer; an unavailable capability
 never blocks. Delegated agents report to the root and create no user-facing
 visualizations.
 
-A question required to continue uses the provider's question tool
-(`AskUserQuestion` in Claude Code, `request_user_input` without
-`autoResolutionMs` in Codex) when available, so the T3 thread shows that it
-waits, and stays open until the user answers; a task root launched by a parent
-sends the question to that parent instead. Stop watching a pull request before
-asking. If the tool is unavailable or returns no usable selection, ask one concise
-plain-text question in the final response and wait, without retrying the
+A question required to continue uses `ask_user` when available, so the host
+shows that the task waits, and stays open until the user answers; a task root
+launched by a parent sends the question to that parent instead. If the tool is
+unavailable or returns no usable selection, ask one concise plain-text question in the final response and wait, without retrying the
 selector. Automatic resolution is only for informational, non-blocking
 questions whose timeout can safely accept the recommended default. This does
 not change command, test or host-wait timeouts.

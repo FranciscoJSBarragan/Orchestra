@@ -43,8 +43,7 @@ loop and its authority are WORKFLOW "PR path"; judge every item with
    - a merge state GitHub is still computing: observe once more before
      deciding, since no watcher event follows it;
    - pending checks, a bot review in progress or a person's review: watch the
-     PR as
-     [T3 Code](../orchestra/references/host_t3.md#pull-requests) defines and
+     PR with `watch_pr` as the host reference's "Pull requests" defines and
      end your turn. On a wake, start again at step 1.
 
 ## Ask only if

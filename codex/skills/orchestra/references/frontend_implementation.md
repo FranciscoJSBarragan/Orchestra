@@ -11,12 +11,12 @@ For a delegated capability assignment, use this playbook with the implementer ro
   additional design skill.
 - Reuse existing components and patterns before adding new abstractions. Cover responsive behavior, accessibility, interaction states, loading, empty, error, and success states that are relevant to acceptance.
 - Keep inseparable non-frontend changes within scope only when the packet authorizes them; otherwise return `blocked` so the root can define a separate bounded phase.
-- When visual iteration is needed, require `browser_route: auto | in_app |
-  chrome | codex-cu`. Explicit user selection must be attempted, including a canary of a
-  previously failing tool, and remains fixed without fallback. Do
-  not veto or substitute it. Use the routes and T3 tab steps in
-  [browser acceptance](browser_acceptance.md).
-- A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the first surface's blocker, close any implementation-owned tab already created on it, and repeat the complete visual scenario in a new task tab on the fallback surface. Do not substitute Computer Use or standalone browser automation; return `blocked` when both surfaces are unavailable.
+- When visual iteration is needed, require `browser_route` and the host's
+  browser lines for it. Explicit user selection must be attempted, including a
+  canary of a previously failing tool, and remains fixed without fallback. Do
+  not veto or substitute it. Use the route rules in
+  [browser acceptance](browser_acceptance.md) and the packet's tab steps.
+- A functional failure, application timeout, or selector problem never triggers fallback. On an allowed `auto` fallback, capture the first surface's blocker, close any implementation-owned tab already created on it, and repeat the complete visual scenario in a new task tab on the fallback surface. Do not substitute Computer Use or standalone browser automation; return `blocked` when no listed surface is available.
 - Use an implementation-owned task tab, separate from independent acceptance.
   Preserve user tabs, authenticated sessions, shared windows and applications.
   Keep a preview process only when the packet explicitly authorizes it, and

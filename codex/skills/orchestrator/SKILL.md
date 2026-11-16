@@ -34,14 +34,14 @@ the handle is unavailable. Already approved work retains its authority.
 Ordinary [engineering](../orchestra-engineering/SKILL.md) and explicitly selected
 custom work remain separate modular uses under WORKFLOW "Standalone tools".
 
-Use [host transports](host-transports.md) to dispatch supported task roots.
+Launch task roots as the host reference's "Task roots" maps them.
 Every packet carries the [model notes](../orchestra/references/model_notes.md)
 lines for its target's family.
-A `delegate_task` role is still appropriate for an independent review or other
+A `dispatch_role` leaf is still appropriate for an independent review or other
 bounded role; its no-commit/no-subagent contract cannot run a full child root.
 Before parallel mutation, establish isolated task checkouts and concrete shared
 contracts. Select task-root resources separately from the parent and the flow's
-role rows through the T3 mapping in [host transports](host-transports.md). Wait for a dependency's required revision or
+role rows through the host's launch controls. Wait for a dependency's required revision or
 evidence rather than relying on a child's optimistic progress description.
 
 At stable handoff, consume the child's compact result once: exact revision,

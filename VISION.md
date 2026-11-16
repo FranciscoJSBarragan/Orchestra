@@ -11,13 +11,16 @@ quality-to-cost ratio.
 ## Vision
 
 Orchestra should make it practical to hand a well-defined implementation to a
-task root running inside T3 Code and trust it to reach a correct, reviewed, and
-committed result. The user remains the product owner and final authority; the
-root acts as the technical lead responsible for execution. T3 Code is the one
-execution host: it supplies threads, worktrees, delegation, the browser and pull
-request watching, while each provider it runs (Claude Code, Codex, Cursor and
-others) is an executor the flow assigns per capability. Supporting another
-provider is a row of data and a role check, not a host adapter.
+task root running on a supported host and trust it to reach a correct,
+reviewed, and committed result. The user remains the product owner and final
+authority; the root acts as the technical lead responsible for execution. T3
+Code and Capy are the supported hosts. Each is one thin reference that maps the
+same host primitives (threads, checkouts, role dispatch, completion wakes, the
+browser and pull request wakes) onto its own tools, with no adapters, matrices
+or tiers, and each host's bundle carries only its own reference. Each model a
+host runs (Claude Code, Codex, Cursor and others) is an executor the flow
+assigns per capability. Supporting another provider is a row of data and a
+role check, not a host adapter.
 
 The desired experience is not maximum process. Direct implementation and any
 planning-only host mode remain available outside Orchestra. When the user
@@ -33,13 +36,13 @@ preserving local review and shared acceptance. Its parent handles global decisio
 transcript. A persistent Markdown register and context links support continuation
 without becoming a task engine. The same
 parent/task-root/role design runs on T3 threads, on the local machine or a
-remote T3 environment. Inside T3 a Hermes thread may act as the dispatcher
-parent: it works out a request with the user, recommends, launches and follows
-task roots, and never implements.
+remote T3 environment, and on Capy threads and subagents. A dispatcher parent,
+a Hermes thread in T3 or a Captain in Capy, works out a request with the user,
+recommends, launches and follows task roots, and never implements.
 
 The analysis, implementation, review, verification, and commit skills are
-plain Markdown usable in any harness without the full planned workflow. Inside
-T3 there is one flow: Orchestra ships a default provider and model for each
+plain Markdown usable in any harness without the full planned workflow. On
+every host there is one flow: Orchestra ships a default provider and model for each
 capability, and the user overrides them outside the package without forking
 the flow.
 
@@ -153,7 +156,7 @@ Completion means the relevant verification actually ran and its result was
 read. Review and test evidence should be fresh for the revision being delivered
 without recomputing unrelated evidence that has not changed.
 
-Orchestra observes T3's runtime mode and each provider's permission choice and
+Orchestra observes the host's permission setting and each provider's permission choice and
 never writes permission configuration; the complete permission rules live in
 `docs/WORKFLOW.md`. Deterministic product, assertion,
 compilation, or CLI-usage failures remain real failures.
@@ -234,7 +237,7 @@ mutable data, credentials, network or external environments, or explicit
 repository policy.
 
 The flow's assignment, its defaults plus the user's overrides, remains
-authoritative. T3 delegation carries every role to its provider; model-provider
+authoritative. The host's role dispatch carries every role to its model; model-provider
 bridges belong to separate products. An unavailable assignment requires an
 explicit supported choice rather than a hidden fallback.
 
@@ -251,7 +254,7 @@ its own shared processes, and retires the phase cohort with the lifecycle
 evidence available to the active multi-agent protocol. Resource handles remain
 transient and never become a registry.
 
-Browser work uses T3's browser or the configured `browser_route` in a fresh
+Browser work uses the host's browser or the configured `browser_route` in a fresh
 task-owned tab; an explicit user route is never vetoed or substituted, and
 Orchestra never claims user tabs or closes shared browser state. The routes and
 tab lifecycle
@@ -284,7 +287,7 @@ worktree or the opt-in hybrid clean primary checkout. Orchestra never pulls, imp
 rebases setup work; existing work is never cleaned, stashed, or rewritten
 implicitly; and completed resources are removed only when exact Git and
 integration evidence make cleanup safe. The complete checkout mechanics live in `docs/WORKFLOW.md` ("Task checkout and
-branch"), provider and permission mechanics in "T3 Code host", and the installation boundary in `docs/ARCHITECTURE.md`.
+branch"), host and permission mechanics in "Host" and the host references, and the installation boundary in `docs/ARCHITECTURE.md`.
 
 Completion freezes the approved objective, acceptance, and artifact selection.
 The terminal phase commit may advance for the reviewed corrections before delivery
@@ -308,7 +311,7 @@ Orchestra succeeds when:
 - delivery rejects a task head that is not the terminal manifest commit;
 - the PR path can open, review, fix, push, converge, merge when authorized, and
   clean exact task resources without losing intent;
-- concurrent tasks and their state can be read from T3's thread list and the
+- concurrent tasks and their state can be read from the host's thread list and the
   parent's register without opening every agent conversation;
 - downstream agents consume exact producer-authored documents without
   root-authored summary chains;
@@ -337,8 +340,9 @@ Orchestra succeeds when:
 - Selecting an approved artifact by recency, or duplicating Git/GitHub facts as
   semantic reports without a downstream consumer.
 - Re-reviewing cosmetic preferences until a budget is exhausted.
-- Host adapters outside T3 Code. Other harnesses use the standalone skills;
-  a provider runs Orchestra roles only through T3.
+- Host adapters, host matrices or host tiers. Each supported host is one thin
+  reference that maps the same primitives; other harnesses use the standalone
+  skills, and a further host needs the owner's decision.
 - Building extra roles for capabilities that compose with the four base
   responsibilities.
 
@@ -346,8 +350,10 @@ Orchestra succeeds when:
 
 Orchestra can be distributed as a self-contained plugin generated from its
 canonical source. Skills and helpers remain one product; packaging does not
-introduce another workflow runtime. A provider that acts as a task root needs
-only the entry skill discoverable; roles read their skills by path. T3 and the
-provider retain permissions and execution authority.
+introduce another workflow runtime. Each host's bundle carries only that
+host's reference, and every bundle rebuilds from the same source. A provider
+that acts as a task root needs only the entry skill discoverable; roles read
+their skills by path. The host and the provider retain permissions and
+execution authority.
 
 Public marketplace publication is separate work.

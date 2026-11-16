@@ -37,8 +37,8 @@ Context is your scarcest resource; protect it for the user's problem.
 
 | Step | What you do | Read |
 | --- | --- | --- |
-| 1. Activate | Confirm explicit activation, an execution-capable mode and the `t3-code` tools | `Orchestrator behavior`, `T3 Code host`, `Autonomy within an approved objective` |
-| 2. Flow assignment | Resolve the shipped assignment plus the user's overrides against T3's live catalog | `Flow assignment`, [T3 Code](references/host_t3.md) |
+| 1. Activate | Confirm explicit activation, an execution-capable mode and the host's tools | `Orchestrator behavior`, `Host`, `Autonomy within an approved objective`, the host reference |
+| 2. Flow assignment | Resolve the shipped assignment plus the user's overrides against the host's live catalog | `Flow assignment` |
 | 3. Context and specification | Preflight, delegate bounded investigation when needed and wait for its result before continuing, confirm the specification and its prior-state expectations with the user | `Context and planning` steps 1–8, `Agent waiting` before your first dispatch; [staged outcomes](references/architecture_guidance.md#staged-outcomes) when the objective holds several capabilities or an end state |
 | 4. Plan and review | Write or delegate the plan, get the required plan review, judge findings, request approval with material consequences and dismissed counterexamples | [planning stage](references/planning_stage.md), `Review policy` before a plan review, [finding triage](references/finding_triage.md) |
 | 5. Set up the task | Create the checkout and task state with `task_state.py`, write the approved plan | `Task checkout and branch`, `Local task plan`, `Task-private artifacts` |
@@ -51,7 +51,7 @@ Context is your scarcest resource; protect it for the user's problem.
 
 | Trigger | Read |
 | --- | --- |
-| Launched by a Hermes dispatcher for one task | `Child root setup` |
+| Launched by a dispatcher parent for one task | `Child root setup` |
 | Dispatched as an initiative child root, or the user asks to coordinate several tasks | `Initiative coordination` and [orchestrator](../orchestrator/SKILL.md) |
 | A phase declares `User preview: required` | `User preview` |
 | A verifier needs browser, services, credentials or test permissions | `Test permissions and browser routing` |
@@ -93,10 +93,10 @@ shared engineering reference; they do not gain new playbooks or personas.
 
 ## Host
 
-The full workflow runs inside T3 Code: the checkout and every dispatch follow
-[T3 Code](references/host_t3.md), and each role goes to the provider, model and
-effort its flow row names. Without the `t3-code` tools, say that the full
-workflow needs T3 Code and offer the standalone skills.
+The full workflow runs on a supported host: the checkout and every dispatch
+follow its host reference, and each role goes to the provider, model and
+effort its flow row names. Without that reference's tools, say that the full
+workflow needs a supported host and offer the standalone skills.
 
 ## Hard limits
 

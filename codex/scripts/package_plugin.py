@@ -37,7 +37,8 @@ HELPERS = (
     "integrate_local.py",
     "_common.py",
 )
-TARGETS = ("portable", "cursor", "grok", "claude")
+TARGETS = {"portable": "t3", "cursor": "t3", "grok": "t3", "claude": "t3", "capy": "capy"}
+HOST_REFERENCES = Path("orchestra/references")
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
@@ -57,21 +58,27 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         raise ValueError(f"output already exists: {output}; choose a new destination")
     metadata_path = source / "packaging/orchestra/.codex-plugin/plugin.json"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    host_reference = HOST_REFERENCES / f"host_{TARGETS[target]}.md"
     files: list[tuple[Path, Path]] = []
     for skill in SKILLS:
         if not (source / "codex/skills" / skill / "SKILL.md").is_file():
             raise ValueError(f"missing skill: {skill}")
         for path in sorted((source / "codex/skills" / skill).rglob("*")):
             if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
-                relative = path.relative_to(source / "codex/skills" / skill)
-                files.append((path, Path("skills") / skill / relative))
+                relative = path.relative_to(source / "codex/skills")
+                if (relative.parent == HOST_REFERENCES and relative.name.startswith("host_")
+                        and relative != host_reference):
+                    continue
+                files.append((path, Path("skills") / relative))
+    if not (source / "codex/skills" / host_reference).is_file():
+        raise ValueError(f"missing host reference: {host_reference}")
     for helper in HELPERS:
         files.append((source / "codex/scripts" / helper, Path("scripts") / helper))
     for original, destination in (
         ("docs/WORKFLOW.md", "WORKFLOW.md"),
         ("codex/config/flow.toml", "flow.toml"),
         ("LICENSE", "LICENSE"),
-        ("packaging/README.md", "README.md"),
+        (f"packaging/{TARGETS[target]}/README.md", "README.md"),
     ):
         files.append((source / original, Path(destination)))
     if target == "claude":
@@ -92,7 +99,7 @@ def build_plugin(source: Path, output: Path, target: str) -> Path:
         common = {key: metadata[key] for key in (
             "name", "version", "description", "author", "license", "keywords",
         )}
-        if target == "portable":
+        if target in ("portable", "capy"):
             write_json(output / "plugin.json", {"$schema": SCHEMA, **common})
         elif target == "cursor":
             write_json(output / ".cursor-plugin/plugin.json", {**common, "skills": "./skills/"})

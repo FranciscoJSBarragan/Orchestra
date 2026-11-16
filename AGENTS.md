@@ -51,7 +51,7 @@ and final technical judgment. It follows the autonomy policy in
 approved objective it makes reversible in-scope decisions without re-asking
 and stops only at the hard gates named there. User follow-ups and worker updates
 follow "Conversation continuity" and "Agent waiting" without replacing the
-active objective. The user remains the final authority. The T3 Code host, the
+active objective. The user remains the final authority. The host primitives, the
 flow assignment, checkout and branch rules, agent flow, phase execution, review
 policy, delivery, and browser/permission routing are all specified in
 `docs/WORKFLOW.md`; do not duplicate them here or in skills. Direct role and

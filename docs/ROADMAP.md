@@ -15,7 +15,8 @@ code quality. Plugin installation does not create a second runtime.
 
 Decided by the owner on 2026-10-27:
 
-- T3 Code is the only host for the full workflow. Providers inside T3 (Claude
+- T3 Code is the only host for the full workflow (Capy joined it on 2026-11-16,
+  as the next entry records). Providers inside T3 (Claude
   Code, Codex, Cursor, Grok, and providers T3 adds later such as Pi, OpenCode,
   Muse Code or Antigravity) are executors: supporting one is a row in the
   flow's assignment plus a role check against the live T3 catalog, not a host
@@ -56,6 +57,29 @@ if later evidence reopens the question. The removal deleted the Codex, Cursor,
 Grok, Devin and Claude Code host adapters and matrices, the tiers, the
 execution presets, CLI delegation (`delegate.py`), direct sync (`sync.py`) and
 the Codex Guardian setup.
+
+### Capy as second host
+
+Decided by the owner on 2026-11-16: Capy is a second supported host for the
+full workflow, beside T3 Code, and the T3 Code route stays as it was. Each host
+is one thin reference that maps the same WORKFLOW "Host" primitives, with no
+adapters, matrices or tiers. The core names only those primitives, every bundle
+ships exactly one host reference, and both hosts' bundles rebuild from the one
+canonical source; the validator and the packaging tests check that separation.
+
+Evidence behind the decision: on 2026-11-16 the portable 0.2.13 bundle, plus a
+draft Capy reference installed in a Captain's Drive, ran one task end to end on
+Capy. A crew thread was the task root, the Captain its dispatcher parent, and
+shared subagents on Terra, Sol, Opus and Haiku its roles; it passed an
+investigation-only report, a parent-accepted plan, two reviewed phases and the
+review pair, opened PR #12 with its PR-CONTEXT capsule and reached a clean
+`pr.py observe`, and the merge woke it for cleanup. The pilot's sixteen
+deviations from the draft became the shipped Capy reference. The browser and
+user preview are not yet exercised on Capy.
+
+This does not reopen `multi-host-final`: that revision ran each harness as its
+own host through adapters, matrices, tiers, presets and CLI delegation, while
+here the code branches only in which reference a bundle copies.
 
 ### Engineering baseline
 

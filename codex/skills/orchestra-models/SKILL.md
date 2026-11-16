@@ -17,9 +17,9 @@ task, dispatches agents or changes permissions.
 1. Read both files and show one table: `task_root`, each capability, then
    `review_pair` and each `escalation` attempt, with provider, model, effort,
    and whether the entry is the default or the user's.
-2. With the `t3-code` tools available, read `orchestrator_capabilities` and mark
-   every entry whose provider instance, model or effort the live catalog lacks.
-   Without them, say that the check needs T3 Code.
+2. Read the host's `model_catalog` as the host reference maps it and mark every
+   entry whose provider, model or effort the live catalog lacks. Without that
+   catalog, say that the check needs a supported host.
 
 ## Change
 
