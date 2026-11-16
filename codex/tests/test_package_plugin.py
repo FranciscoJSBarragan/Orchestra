@@ -178,6 +178,46 @@ class PluginPackagingTests(unittest.TestCase):
             build_plugin(ROOT, plugin, "portable")
         self.assertEqual(sentinel.read_text(), "preserve")
 
+    def test_capy_guide_update_replaces_bundle_entries_and_keeps_drive_files(self) -> None:
+        guide = (ROOT / "packaging/capy/README.md").read_text(encoding="utf-8")
+        command = re.search(r"```sh\n(.*?)```", guide, re.DOTALL).group(1)
+        bundle = self.build("capy")
+        home = self.root / "home"
+        drive = home / ".capy/drive/crew"
+        shutil.copytree(bundle, drive)
+        for directory in [path for path in drive.rglob("*") if path.is_dir()]:
+            if directory != drive / "skills":
+                (directory / "stale").mkdir()
+                for stale in (directory / "stale.md", directory / "stale/stale.md"):
+                    stale.write_text("stale")
+        (drive / "skills/orchestra/SKILL.md").write_text("previous")
+        neighbor = home / ".capy/drive/neighbor/keep.md"
+        for path in (drive / "skills/orchestra/x\n../neighbor/stale.md", neighbor):
+            path.parent.mkdir(parents=True)
+            path.write_text(path.name)
+        kept = {Path(name): name.encode() for name in (
+            "NOTES.md", "CREW.md", "AGENTS.md", "reports/ORCH-5.md", "handoffs/ORCH-2/host.md",
+            "renders/ORCH-5/screen.png", "orchestra-home/flow.toml", "skills/other/SKILL.md",
+            "skills/other/references/guide.md",
+        )}
+        for relative, content in kept.items():
+            (drive / relative).parent.mkdir(parents=True, exist_ok=True)
+            (drive / relative).write_bytes(content)
+        result = subprocess.run(
+            ["sh", "-c", command.replace("<location>", "crew") + 'rc=$?\necho "$build"\nexit $rc\n'],
+            cwd=ROOT, env={**os.environ, "HOME": str(home)},
+            capture_output=True, text=True, check=False,
+        )
+        build = Path(result.stdout.splitlines()[-1] if result.stdout else "")
+        if build.is_absolute() and build.is_dir() and [p.name for p in build.parent.iterdir()] == [build.name]:
+            self.addCleanup(shutil.rmtree, build.parent)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        installed = {path.relative_to(drive): path.read_bytes() for path in drive.rglob("*") if path.is_file()}
+        self.assertEqual({path: installed.pop(path, None) for path in kept}, kept)
+        self.assertEqual(neighbor.read_text(), "keep.md")
+        self.assertEqual(installed, {path.relative_to(bundle): path.read_bytes()
+                                     for path in bundle.rglob("*") if path.is_file()})
+
     def test_invalid_target_and_incomplete_sources_leave_no_package(self) -> None:
         output = self.root / "orchestra"
         with self.assertRaisesRegex(ValueError, "unsupported"):
