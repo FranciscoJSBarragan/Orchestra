@@ -131,8 +131,10 @@ before each phase commit, as `git commit` would where the hooks are installed.
   `task_root` row mapped as "Flow rows" defines, passed with both `model_id`
   and `reasoning_mode`: an omitted `model` inherits the Captain's selection
   and an omitted `reasoning_mode` takes the model's own default. A root whose
-  observed model or effort differs from that row records the difference in
-  plan Decisions and continues on it. The Captain is its parent and its
+  observed model or effort differs from that row names the difference in its
+  next report to the Captain and records the outcome in plan Decisions; the
+  Captain restores the row with a `message_agent` send that carries `model`,
+  or relays the difference to the person. The Captain is its parent and its
   dispatcher parent under WORKFLOW "Dispatcher parent". Invoked directly, it
   is a plain thread and the person is its user.
 - Report to the parent with a `message_agent` report without `to`:
@@ -169,9 +171,10 @@ before each phase commit, as `git commit` would where the hooks are installed.
   `end_turn`. Capy's CI wake fires once the checks GitHub has created finish,
   and GitHub may create a workflow's run only after it computes mergeability,
   minutes after the PR opens. When `observe` shows `merge_state` `UNKNOWN`,
-  or a workflow that runs on pull requests has no run on the head, no wake is
-  guaranteed: end the turn with a short `wait` timer (`duration_seconds`)
-  and observe again when it fires before judging the PR clean.
+  or a workflow whose pull-request trigger matches this PR's base and changed
+  paths has no run on the head, no wake is guaranteed: end the turn with a
+  short `wait` timer (`duration_seconds`) and observe again when it fires
+  before judging the PR clean.
 - Capy's automatic review adds a PR feedback surface; it never replaces the
   WORKFLOW "Review policy" reviews or the review pair. When its verdict wakes
   the root, read `tools.pr.getFindings`, triage each finding under
