@@ -92,11 +92,12 @@ handoff states that the result exists only on that machine.
 
 A thread's checkout is a fresh clone, and a clone sets no `core.hooksPath`
 unless the project's Setup does, so hooks the repository versions outside
-`.git/hooks` (for example in `.githooks/`) do not run on a phase commit. Give
-each phase commit that directory as `core.hooksPath` for that command only, so
-Git runs every hook with its own arguments and the checkout's configuration
-stays untouched: prefix the `git commit` or `commit_phase.py` call with
-`GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=<dir>`.
+`.git/hooks` (for example in `.githooks/`) do not run on a phase commit.
+Before the first phase commit, run `git config core.hooksPath <dir>` in that
+checkout, the way a developer installs them, so Git runs every hook with its
+own arguments. Never pass it per command with `-c` or `GIT_CONFIG_*`: those
+reach every Git process a hook starts, including a test's fixture
+repositories.
 
 ## Role transport
 
