@@ -92,10 +92,11 @@ handoff states that the result exists only on that machine.
 
 A thread's checkout is a fresh clone, and a clone sets no `core.hooksPath`
 unless the project's Setup does, so hooks the repository versions outside
-`.git/hooks` (for example in `.githooks/`) do not run on a phase commit. Run
-them from the repository root before each phase commit as `git commit` would
-where they are installed: `pre-commit` with the phase's paths staged, then
-`prepare-commit-msg` and `commit-msg` on the phase's message file.
+`.git/hooks` (for example in `.githooks/`) do not run on a phase commit. Give
+each phase commit that directory as `core.hooksPath` for that command only, so
+Git runs every hook with its own arguments and the checkout's configuration
+stays untouched: prefix the `git commit` or `commit_phase.py` call with
+`GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=<dir>`.
 
 ## Role transport
 
