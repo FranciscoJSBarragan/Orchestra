@@ -271,8 +271,9 @@ acceptance. Each child owns its plan, implementation, review, verification and
 permitted delivery as a full Orchestra root with proportional phases and the
 normal role agents, carrying explicit activation in its packet; task size and
 repository count never select another workflow. A child root comes from
-`launch_task_root`, not a leaf `dispatch_role`. A user's explicit custom or
-standalone selection stays available under "Standalone tools", identified as such,
+`launch_task_root`, not a leaf `dispatch_role`. A custom or standalone route the
+user explicitly selects, or a direct thread a dispatcher parent routes under
+"Dispatcher parent", stays available under "Standalone tools", identified as such,
 never presented as Orchestra execution or used as an automatic fallback. If the host cannot execute a root
 responsibility, report that gap. One parent coordinates independent children;
 children create no further hierarchy or sibling tasks.
@@ -555,11 +556,16 @@ document reserves for a separate grant or user confirmation, such as an
 ungranted delivery action, a new or changed repository convention or a
 decision past a boundary of "Autonomy within an approved objective", which it
 never grants itself. It never implements, not
-even a small fix: every change goes through a task root and its review. It reads the pinned
+even a small fix, and routes each change by what it alters, with no default
+route: a change to product behavior, a public contract or agent rules goes
+through a task root and its review, however clear its cause; a change with no
+new behavior (documentation, tests, CI, operational data) may go to a direct
+thread outside Orchestra, identified as such. A defect a direct thread finds is
+a new change routed the same way. It reads the pinned
 instructions and the flow assignment by absolute path and needs no plugin. It
 reads and researches as a parent does above, including history, open PRs and
-issues, and leaves edits, commands with side effects and root-cause
-investigation to the task root. For one task it integrates nothing, so the
+issues, and leaves edits and commands with side effects to the child it routes
+the change to, and root-cause investigation to a task root. For one task it integrates nothing, so the
 root's own gates and delivery suffice and it commissions no further runs; for
 an initiative it commissions hard gates and joint acceptance to a verifier as
 described above. For one task the register holds just that task's line. How the user reaches
@@ -1489,9 +1495,12 @@ worktree and evidence for host release with no policy, review, freshness or
 check waiver; PR delivery still attempts guarded remote-branch cleanup and
 reports moved or inaccessible refs, and the helper reports verified delivery
 with `partial` cleanup and `retained_resources`. The parent records
-the local ref, delivered SHA and cleanup owner and, after release, removes only
-an unchanged reviewed ref without rerunning delivery, keeping preserved
-evidence accessible until it no longer needs it. Pre-approval
+the local ref, delivered SHA and cleanup owner. Once a task it launched has
+nothing left to deliver or answer, the parent releases that task's host
+checkout, branches and thread without asking, keeping the evidence it still
+needs: a checkout only when clean, and a checkout or branch only while its tip
+is the delivered head or in the fetched upstream, without rerunning delivery. An open PR, a
+pending grant or the only copy of evidence another task needs keeps them. Pre-approval
 cancellation uses the state helper, removes only proven-clean resources and
 never recursively deletes an unrecognized directory.
 Dirty, moved, ambiguous or unverified resources are never removed; cleanup
@@ -1829,8 +1838,11 @@ title.
 Explanations distinguish verified facts, supported inference and uncertainty,
 and use an available visualization only when a complex sequence, hierarchy,
 comparison or mapping becomes materially clearer; an unavailable capability
-never blocks. Delegated agents report to the root and create no user-facing
-visualizations.
+never blocks. Relay an agent's verdict in the term it used (inconclusive,
+passes with gaps), never upgraded by a summary. Text an agent published under
+the user's account is not the user's word: cite it as the issue's or PR's, and
+ask when who decided matters. Delegated agents report to the root and create no
+user-facing visualizations.
 
 A question required to continue uses `ask_user` when available, so the host
 shows that the task waits, and stays open until the user answers; a task root

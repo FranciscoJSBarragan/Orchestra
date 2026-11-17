@@ -75,9 +75,14 @@ Call `t3_worktree_status` before task setup.
   Starting the thread in a T3 worktree avoids the handoff entirely.
 
 A T3 worktree, attached or handed off, is T3-owned. Deliver it in managed
-mode with `--preserve-task-resources`; the user
-releases the worktree and thread from T3, since archiving a thread does not
-remove its worktree.
+mode with `--preserve-task-resources`. Archiving a thread removes neither its
+worktree nor its branch, and T3 has no tool that does, so the parent that
+launched the root releases them under WORKFLOW "Task checkout and branch":
+`git worktree remove` without `--force` from the clone that owns it, then each
+task branch under the same condition, including the `workspaceStrategy`
+branch, which stays behind when the child switched branches. It settles each thread it launched
+or delegated once no work is left (`t3_thread_organize`, `action: settle`). A
+root without a parent leaves that release to the user.
 
 ## Role transport
 
@@ -93,7 +98,9 @@ remove its worktree.
   `t3_thread_send` only for preview absorption or an unfinished turn; that
   message does not reopen the delegated task, so wait on the thread with one
   long `t3_thread_wait` instead of status messages, then read only the new
-  turn with `t3_thread_read`.
+  turn with `t3_thread_read`. Every `t3_thread_wait` passes `timeoutMs` of at
+  most 280000 and repeats: the MCP call ends at 300 s, and a larger value only
+  returns an error.
 - Every review round is a fresh `delegate_task` with a new `clientRequestId`:
   the first carries the full bounded review context, a delta round the
   full-review base, prior dispositions and only the delta.
@@ -144,13 +151,11 @@ thread to that PR's state.
 
 `delegate_task` is a leaf transport, not a task root. Its child runs in the
 caller's checkout with no workspace option. From a parent in a shared checkout
-it is limited to source-read-only roles (`interactionMode: plan`,
-`runtimeMode: approval-required`); a task root bound to its own worktree uses
-it for every role, including resumption and review rounds, under "Role
-transport". Verify the checkout with Git after it returns.
-
-Archiving a thread does not remove its worktree or branch. Release them through
-the child's cleanup handoff after the accepted revision is preserved.
+it is limited to source-read-only roles: `interactionMode: plan`, the
+inherited `runtimeMode` and the read-only limit written in the task, since
+`approval-required` asks the user to approve every command. A task root bound
+to its own worktree uses it for every role, including resumption and review
+rounds, under "Role transport". Verify the checkout with Git after it returns.
 
 ## Pull requests
 
@@ -162,7 +167,10 @@ result; observe the PR again under WORKFLOW "PR path". Only the root that owns
 the PR watches it, never a `delegate_task` child or a parent. Call
 `unwatch_pull_request` before a handoff or a question so the thread leaves
 Working for the user's inbox. T3 does not wake a thread when its PR merges, so
-the merging root reports the merge.
+the merging root reports the merge. A token saved in T3's Source Control
+settings takes precedence over `gh`, and a fine-grained one cannot read the
+PR's check rollup, so the watcher stops after eight failed reads; remove that
+saved token so T3 uses the `gh` login.
 
 ## Browser and preview
 
@@ -210,4 +218,8 @@ A question the user must answer uses `AskUserQuestion` in Claude Code or
 `request_user_input` without `autoResolutionMs` in Codex, so the T3 thread
 shows that it waits. Call `unwatch_pull_request` first when the root watches
 a PR. A task root a Hermes thread launched sends its question to that thread
-with `t3_thread_send` instead.
+with `t3_thread_send` instead. A Codex child can also ask through an interface
+question that blocks its turn, and a queued `t3_thread_send` waits behind it:
+before answering a child that says it waits, list `t3_pending_request` for its
+`threadId`, answer a pending request there with `respond`, and queue only
+further detail.
