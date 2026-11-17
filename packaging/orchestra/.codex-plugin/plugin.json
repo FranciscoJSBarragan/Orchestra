@@ -1,6 +1,6 @@
 {
   "name": "orchestra",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "Explicit planned software delivery in T3 Code or Capy with independent review, verification, and authorized delivery.",
   "author": {
     "name": "Francisco Javier Serna Barragan"
