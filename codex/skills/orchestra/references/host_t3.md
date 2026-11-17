@@ -78,9 +78,9 @@ A T3 worktree, attached or handed off, is T3-owned. Deliver it in managed
 mode with `--preserve-task-resources`. Archiving a thread removes neither its
 worktree nor its branch, and T3 has no tool that does, so the parent that
 launched the root releases them under WORKFLOW "Task checkout and branch":
-`git worktree remove` without `--force` from the clone that owns it, then the
-`workspaceStrategy` branch, which stays even when the child switched branches,
-only while it points at the delivered head. It settles each thread it launched
+`git worktree remove` without `--force` from the clone that owns it, then each
+task branch under the same condition, including the `workspaceStrategy`
+branch, which stays behind when the child switched branches. It settles each thread it launched
 or delegated once no work is left (`t3_thread_organize`, `action: settle`). A
 root without a parent leaves that release to the user.
 

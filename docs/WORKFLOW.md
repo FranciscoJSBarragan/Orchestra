@@ -564,8 +564,8 @@ thread outside Orchestra, identified as such. A defect a direct thread finds is
 a new change routed the same way. It reads the pinned
 instructions and the flow assignment by absolute path and needs no plugin. It
 reads and researches as a parent does above, including history, open PRs and
-issues, and leaves edits, commands with side effects and root-cause
-investigation to the task root. For one task it integrates nothing, so the
+issues, and leaves edits and commands with side effects to the child it routes
+the change to, and root-cause investigation to a task root. For one task it integrates nothing, so the
 root's own gates and delivery suffice and it commissions no further runs; for
 an initiative it commissions hard gates and joint acceptance to a verifier as
 described above. For one task the register holds just that task's line. How the user reaches
@@ -1497,9 +1497,9 @@ reports moved or inaccessible refs, and the helper reports verified delivery
 with `partial` cleanup and `retained_resources`. The parent records
 the local ref, delivered SHA and cleanup owner. Once a task it launched has
 nothing left to deliver or answer, the parent releases that task's host
-checkout and thread without asking, keeping the evidence it still needs: the
-checkout only when clean with its HEAD delivered or in the fetched upstream,
-then only an unchanged reviewed ref, without rerunning delivery. An open PR, a
+checkout, branches and thread without asking, keeping the evidence it still
+needs: a checkout only when clean, and a checkout or branch only while its tip
+is the delivered head or in the fetched upstream, without rerunning delivery. An open PR, a
 pending grant or the only copy of evidence another task needs keeps them. Pre-approval
 cancellation uses the state helper, removes only proven-clean resources and
 never recursively deletes an unrecognized directory.
